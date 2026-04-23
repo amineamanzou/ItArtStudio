@@ -1,17 +1,535 @@
 ---
+import BaseLayout from "../layouts/BaseLayout.astro";
 ---
 
-<!doctype html>
-<html lang="fr">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>IT Art Studio</title>
-  </head>
-  <body>
-    <main>
-      <h1>IT Art Studio</h1>
-      <p>Initialisation Astro en cours.</p>
+<BaseLayout
+  title="IT Art Studio"
+  description="Studio de conseil et de creation pour projets exigeants."
+>
+  <div class="page-shell">
+    <header class="site-header">
+      <a class="brand" href="#top">
+        <span class="brand__mark"></span>
+        <span class="brand__text">
+          <strong>IT Art Studio</strong>
+          <small>Consulting, conception, creation</small>
+        </span>
+      </a>
+
+      <nav class="site-nav" aria-label="Navigation principale">
+        <a href="#practice-it">IT, Produit &amp; Observabilite</a>
+        <a href="#practice-creation">Creation &amp; Collection</a>
+        <a href="#proofs">Portfolio</a>
+        <a href="#method">Methode</a>
+        <a href="#about">A propos</a>
+        <a href="#contact">Contact</a>
+      </nav>
+
+      <a class="button button--ghost header-cta" href="#contact">
+        Reserver un appel
+      </a>
+    </header>
+
+    <main id="top">
+      <section class="hero section">
+        <div class="hero__copy">
+          <p class="eyebrow">Studio francais pour projets exigeants</p>
+          <h1>Deux pratiques. Une meme exigence.</h1>
+          <p class="hero__lede">
+            IT Art Studio reunit expertise senior, conception et creation pour
+            faire avancer des projets qui doivent etre utiles, credibles et
+            desirables.
+          </p>
+          <p class="hero__support">
+            Du conseil IT a l'observabilite, du prototype a la collection, nous
+            intervenons la ou il faut clarifier, produire et rendre la valeur
+            visible.
+          </p>
+
+          <div class="hero__actions">
+            <a class="button button--primary" href="#contact">
+              Parler de votre projet
+            </a>
+            <a class="button button--secondary" href="#practices">
+              Explorer nos pratiques
+            </a>
+          </div>
+
+          <div class="hero__bridge">
+            <span>Expertise</span>
+            <span>Conception</span>
+            <span>Creation</span>
+          </div>
+
+          <ul class="hero__signals" aria-label="Points de credibilite">
+            <li>10+ ans d'expertise observabilite</li>
+            <li>Grands comptes, startups et independants</li>
+            <li>Du besoin au prototype, du concept au rendu</li>
+          </ul>
+
+          <div class="hero-mobile-summary">
+            <article>
+              <p class="eyebrow">Pratique I</p>
+              <strong>IT, Produit &amp; Observabilite</strong>
+              <span>Observabilite, consulting, formation, BA, prototype</span>
+            </article>
+            <article>
+              <p class="eyebrow">Pratique II</p>
+              <strong>Creation, Contenu &amp; Collection</strong>
+              <span>Sur-mesure, contenu, collection capsule, presence</span>
+            </article>
+          </div>
+        </div>
+
+        <div class="hero__visual" aria-hidden="true">
+          <div class="hero-stage">
+            <div class="hero-stage__halo hero-stage__halo--one"></div>
+            <div class="hero-stage__halo hero-stage__halo--two"></div>
+            <div class="hero-stage__line hero-stage__line--one"></div>
+            <div class="hero-stage__line hero-stage__line--two"></div>
+            <div class="hero-stage__grid"></div>
+            <div class="hero-stage__column hero-stage__column--left"></div>
+            <div class="hero-stage__column hero-stage__column--right"></div>
+
+            <article class="floating-panel floating-panel--it">
+              <p class="panel-kicker">Pratique I</p>
+              <h2>IT, Produit &amp; Observabilite</h2>
+              <p>
+                Expertise, formation, due diligence, business analysis et
+                accompagnements engages.
+              </p>
+              <ul>
+                <li>Systemes critiques</li>
+                <li>Lecture senior du risque</li>
+                <li>Execution orientee resultat</li>
+              </ul>
+            </article>
+
+            <article class="floating-panel floating-panel--creation">
+              <p class="panel-kicker">Pratique II</p>
+              <h2>Creation, Contenu &amp; Collection</h2>
+              <p>
+                Sur-mesure, contenu video, collection capsule et presence de
+                marque.
+              </p>
+            </article>
+
+            <div class="hero-stage__metrics">
+              <div>
+                <strong>60/40</strong>
+                <span>Poids editorial home</span>
+              </div>
+              <div>
+                <strong>2</strong>
+                <span>Pratiques lisibles</span>
+              </div>
+              <div>
+                <strong>1</strong>
+                <span>Marque qui fait le lien</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="credibility-strip">
+        <div class="credibility-strip__label">Quelques signaux cles</div>
+        <div class="credibility-strip__items">
+          <span>Observabilite senior</span>
+          <span>Telecom, energie, finance</span>
+          <span>Conception du besoin au prototype</span>
+          <span>Projets video et pieces montrables</span>
+          <span>Appel decouverte comme conversion principale</span>
+        </div>
+      </section>
+
+      <section class="story section">
+        <div class="section-heading">
+          <p class="eyebrow">Positionnement</p>
+          <h2>Un studio a deux pratiques, reuni par une meme facon de travailler.</h2>
+        </div>
+
+        <div class="story__grid">
+          <div class="story__text">
+            <p>
+              Chez IT Art Studio, nous ne separons pas l'intelligence du
+              besoin, la qualite d'execution et la force de perception du
+              resultat final. C'est cette exigence commune qui relie nos
+              interventions techniques, produit et creatives.
+            </p>
+            <p>
+              L'objectif de la marque n'est pas d'accumuler des services. Il
+              s'agit de montrer une capacite rare a rendre des sujets complexes
+              plus clairs, plus solides et plus desirables.
+            </p>
+          </div>
+
+          <aside class="story__manifesto">
+            <p class="eyebrow">Phrase manifeste</p>
+            <p>
+              Nous faisons le lien entre ce qui fonctionne, ce qui se comprend
+              et ce qui se retient.
+            </p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="practices section" id="practices">
+        <div class="section-heading">
+          <p class="eyebrow">Pratiques</p>
+          <h2>Deux terrains d'intervention, un meme niveau d'exigence.</h2>
+        </div>
+
+        <div class="practice-grid">
+          <article class="practice-card practice-card--it" id="practice-it">
+            <div class="practice-card__meta">
+              <span>Pratique I</span>
+              <span>Moteur business principal</span>
+            </div>
+            <h3>IT, Produit &amp; Observabilite</h3>
+            <p>
+              Expertise senior, consulting, formation, due diligence, business
+              analysis, cadrage et accompagnement avec objectif de resultat.
+            </p>
+            <ul class="tag-list">
+              <li>Observabilite</li>
+              <li>Consulting</li>
+              <li>Formation</li>
+              <li>Due diligence</li>
+              <li>Business analysis</li>
+              <li>Prototype</li>
+            </ul>
+            <div class="practice-card__footer">
+              <a class="text-link" href="#proofs">Voir la pratique IT</a>
+              <strong>Plus de 10 ans de profondeur sur le sujet</strong>
+            </div>
+          </article>
+
+          <article class="practice-card practice-card--creation" id="practice-creation">
+            <div class="practice-card__meta">
+              <span>Pratique II</span>
+              <span>Singularite du studio</span>
+            </div>
+            <h3>Creation, Contenu &amp; Collection</h3>
+            <p>
+              Sur-mesure, collection, contenu video, FPV, conseil creatif et
+              accompagnement de presence de marque.
+            </p>
+            <ul class="tag-list">
+              <li>Sur-mesure</li>
+              <li>Collection capsule</li>
+              <li>Video</li>
+              <li>FPV</li>
+              <li>Conseil creatif</li>
+              <li>Presence de marque</li>
+            </ul>
+            <div class="practice-card__footer">
+              <a class="text-link" href="#proofs">Voir la pratique creation</a>
+              <strong>Un langage plus visuel, sans perdre la rigueur</strong>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="problems section">
+        <div class="section-heading section-heading--split">
+          <div>
+            <p class="eyebrow">Constat</p>
+            <h2>
+              Certains projets ne manquent pas de valeur. Ils manquent de
+              clarte, de structure ou de forme.
+            </h2>
+          </div>
+          <p class="section-note">
+            Ce bloc doit faire reconnaitre des douleurs concretes avant de
+            parler d'offres.
+          </p>
+        </div>
+
+        <div class="problem-grid">
+          <article class="problem-card">
+            <span>01</span>
+            <h3>Systeme critique mal observe</h3>
+            <p>
+              Trop de signal, pas assez de lecture. Les equipes voient des
+              alertes, pas encore des decisions.
+            </p>
+          </article>
+          <article class="problem-card">
+            <span>02</span>
+            <h3>Besoin metier mal formule</h3>
+            <p>
+              Les attentes sont reelles, mais l'expression du besoin reste trop
+              floue pour produire vite.
+            </p>
+          </article>
+          <article class="problem-card">
+            <span>03</span>
+            <h3>Prototype absent ou fragile</h3>
+            <p>
+              Le projet existe en theorie, pas encore dans une forme assez
+              nette pour engager.
+            </p>
+          </article>
+          <article class="problem-card">
+            <span>04</span>
+            <h3>Expertise difficile a rendre lisible</h3>
+            <p>
+              La competence est la. Sa perception, elle, reste en dessous de sa
+              vraie valeur.
+            </p>
+          </article>
+          <article class="problem-card">
+            <span>05</span>
+            <h3>Image de marque trop faible</h3>
+            <p>
+              Le fond est bon. Le rendu, les contenus ou la presence ne sont
+              pas encore a la hauteur.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="pillars section">
+        <div class="section-heading">
+          <p class="eyebrow">Reponse</p>
+          <h2>
+            Nous intervenons la ou la technique, la conception et la perception
+            doivent enfin travailler ensemble.
+          </h2>
+        </div>
+
+        <div class="pillar-grid">
+          <article class="pillar-card">
+            <span>01</span>
+            <h3>Comprendre</h3>
+            <p>
+              Clarifier les enjeux, les contraintes et ce qui compte vraiment.
+            </p>
+          </article>
+          <article class="pillar-card">
+            <span>02</span>
+            <h3>Construire</h3>
+            <p>
+              Produire des cadrages, prototypes, dispositifs, contenus ou
+              livrables reelement utiles.
+            </p>
+          </article>
+          <article class="pillar-card">
+            <span>03</span>
+            <h3>Mettre en valeur</h3>
+            <p>
+              Soigner la lisibilite, la coherence et la qualite percue du
+              resultat.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="proofs section" id="proofs">
+        <div class="section-heading section-heading--split">
+          <div>
+            <p class="eyebrow">Preuves choisies</p>
+            <h2>Des contextes differents, une meme exigence de resultat.</h2>
+          </div>
+          <p class="section-note">
+            Mix recommande : cas IT anonymises, prototype, portfolio creation
+            et projet video visible.
+          </p>
+        </div>
+
+        <div class="proof-grid">
+          <article class="proof-card proof-card--featured">
+            <div class="proof-card__visual proof-card__visual--it"></div>
+            <div class="proof-card__body">
+              <p class="eyebrow">Cas IT anonymise</p>
+              <h3>Refondre la lecture d'un systeme critique sans exposer le SI.</h3>
+              <p>
+                Contexte grand compte. Mission d'observabilite et
+                accompagnement senior avec restitution claire pour les equipes.
+              </p>
+              <div class="proof-card__stat">
+                <strong>+ indicateur cle</strong>
+                <span>A remplacer par une preuve chifree reelle</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="proof-card">
+            <div class="proof-card__visual proof-card__visual--product"></div>
+            <div class="proof-card__body">
+              <p class="eyebrow">BA / Prototype</p>
+              <h3>Passer d'un besoin diffus a un prototype exploitable.</h3>
+              <p>
+                Elucidation, interviews, specs, Figma et lien fluide avec les
+                devs.
+              </p>
+            </div>
+          </article>
+
+          <article class="proof-card">
+            <div class="proof-card__visual proof-card__visual--fashion"></div>
+            <div class="proof-card__body">
+              <p class="eyebrow">Collection</p>
+              <h3>Construire une piece ou une capsule avec vraie tenue.</h3>
+              <p>
+                Sur-mesure, sourcing, prototypes, details cuir et metal,
+                dominance noire.
+              </p>
+            </div>
+          </article>
+
+          <article class="proof-card">
+            <div class="proof-card__visual proof-card__visual--video"></div>
+            <div class="proof-card__body">
+              <p class="eyebrow">Contenu video</p>
+              <h3>Rendre une presence visible, dynamique et memorisable.</h3>
+              <p>
+                Creation video, angles aventure, media owner et formats qui
+                servent la perception.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="method section" id="method">
+        <div class="section-heading section-heading--split">
+          <div>
+            <p class="eyebrow">Methode</p>
+            <h2>Une methode simple, pour des sujets qui ne le sont pas.</h2>
+          </div>
+          <p class="section-note">
+            Le travail doit rester lisible, concret et oriente resultat.
+          </p>
+        </div>
+
+        <div class="timeline">
+          <article class="timeline-step">
+            <span>01</span>
+            <h3>Comprendre</h3>
+            <p>Lire le contexte, isoler les vrais enjeux, reduire le flou.</p>
+          </article>
+          <article class="timeline-step">
+            <span>02</span>
+            <h3>Cadrer</h3>
+            <p>Poser un perimetre realiste, des livrables clairs et un cap.</p>
+          </article>
+          <article class="timeline-step">
+            <span>03</span>
+            <h3>Produire</h3>
+            <p>Executer avec exigence, sans theatre ni lourdeur inutile.</p>
+          </article>
+          <article class="timeline-step">
+            <span>04</span>
+            <h3>Affiner</h3>
+            <p>Rendre le resultat plus net, plus solide et plus presentable.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="testimonial section">
+        <div class="quote-block">
+          <p class="eyebrow">Bloc temoin</p>
+          <blockquote>
+            [Extrait de verbatim client a integrer ici. Le bloc est present
+            dans la maquette, mais le contenu doit etre alimente par une
+            citation reelle et validee.]
+          </blockquote>
+          <div class="quote-block__meta">
+            <strong>Responsable plateforme, groupe energie</strong>
+            <span>Format d'affichage recommande pour les cas anonymises</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="about section" id="about">
+        <div class="section-heading">
+          <p class="eyebrow">A propos</p>
+          <h2>Deux parcours complementaires. Une meme exigence de fond.</h2>
+        </div>
+
+        <div class="about-grid">
+          <article class="about-card">
+            <p class="eyebrow">Associe 01</p>
+            <h3>Observabilite, conseil et lecture senior des systemes</h3>
+            <p>
+              Plus de 10 ans d'accompagnement sur des contextes telecom,
+              energie, finance, avec une capacite a former, auditer et
+              intervenir sur des sujets recents.
+            </p>
+          </article>
+          <article class="about-card">
+            <p class="eyebrow">Associee 02</p>
+            <h3>Business analysis, prototype, creation et collection</h3>
+            <p>
+              Elucidation du besoin, interviews, specs, Figma, execution de
+              projet et savoir-faire materiel sur la confection et les pieces
+              premium.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="contact section" id="contact">
+        <div class="contact-panel">
+          <div class="contact-panel__intro">
+            <p class="eyebrow">Contact</p>
+            <h2>Parlons de ce que vous devez clarifier, construire ou mettre en valeur.</h2>
+            <p>
+              Premier echange pour comprendre le besoin, qualifier le contexte
+              et voir s'il y a un vrai fit.
+            </p>
+          </div>
+
+          <div class="contact-panel__grid">
+            <form class="contact-form">
+              <label>
+                Nom
+                <input type="text" placeholder="Votre nom" />
+              </label>
+              <label>
+                Email
+                <input type="email" placeholder="vous@entreprise.fr" />
+              </label>
+              <label>
+                Sujet
+                <select>
+                  <option>IT, Produit &amp; Observabilite</option>
+                  <option>Creation, Contenu &amp; Collection</option>
+                  <option>Je ne sais pas encore</option>
+                </select>
+              </label>
+              <label>
+                Besoin
+                <textarea
+                  rows="5"
+                  placeholder="Contexte, urgence, objectif, type d'accompagnement"
+                ></textarea>
+              </label>
+              <button class="button button--primary" type="button">
+                Envoyer la demande
+              </button>
+            </form>
+
+            <aside class="booking-card">
+              <p class="eyebrow">Reservation</p>
+              <h3>Integration Google Meet a brancher en build.</h3>
+              <p>
+                La maquette reserve un espace clair pour un embed de calendrier
+                ou un lien de prise de rendez-vous.
+              </p>
+              <div class="booking-card__slots">
+                <span>Lun 09:30</span>
+                <span>Mar 14:00</span>
+                <span>Mer 11:00</span>
+                <span>Jeu 16:30</span>
+              </div>
+              <a class="button button--secondary" href="#top">Retour en haut</a>
+            </aside>
+          </div>
+        </div>
+      </section>
     </main>
-  </body>
-</html>
+  </div>
+</BaseLayout>
