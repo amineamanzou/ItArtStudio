@@ -10,6 +10,16 @@ Le repository expose la partie technique et les prototypes visibles. Les documen
 - future integration Astro
 - futur packaging conteneur pour le deploiement
 
+## Stack retenue
+
+- Astro en output statique
+- CSS sur mesure
+- JavaScript minimal
+- Google Calendar / Google Meet pour la prise de rendez-vous
+- container statique derriere le Caddy existant de l'infra
+
+Le site reste volontairement sans backend applicatif en V1.
+
 ## Structure publique
 
 - `mockup/` : maquette statique de la home V1
