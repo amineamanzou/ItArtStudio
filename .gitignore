@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.astro/
+.DS_Store
+.env
+.env.*
+coverage/
+generated/
+docs/
+specifications/
+mockup/*.png
