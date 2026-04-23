@@ -33,3 +33,22 @@ Le site reste volontairement sans backend applicatif en V1.
 ## Preview locale
 
 Ouvrir `mockup/index.html` dans un navigateur, ou servir le dossier avec un serveur statique local.
+
+## Commandes
+
+- `npm install`
+- `npm run dev`
+- `npm run build`
+- `npm run check`
+
+## Container
+
+Build :
+
+- `docker build -t it-art-studio .`
+
+Run :
+
+- `docker run --rm -p 8080:8080 it-art-studio`
+
+Le container final sert uniquement les fichiers statiques sur le port `8080`, pour etre place derriere le Caddy existant.
