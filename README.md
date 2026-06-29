@@ -1,54 +1,70 @@
 # IT Art Studio
 
-Repository public du futur site IT Art Studio.
+Site one-page public d'IT Art Studio, studio de conseil et de creation pour
+projets exigeants.
 
-Le repository expose la partie technique et les prototypes visibles. Les documents de conception et de specification restent locaux et sont exclus du versioning public.
+La V1 est un site Astro statique: pas de backend, pas de base de donnees, pas de
+SPA. Le container final sert les fichiers generes avec Nginx unprivileged sur le
+port `8080`, derriere le reverse proxy de l'infra.
 
-## Etat actuel
-
-- maquette statique de la home V1 dans `mockup/`
-- future integration Astro
-- futur packaging conteneur pour le deploiement
-
-## Stack retenue
+## Stack
 
 - Astro en output statique
 - CSS sur mesure
-- JavaScript minimal
-- Google Calendar / Google Meet pour la prise de rendez-vous
-- container statique derriere le Caddy existant de l'infra
+- JavaScript minimal pour reveal et parallax leger
+- Image editoriale locale dans `public/assets/`
+- Runtime production `nginxinc/nginx-unprivileged:alpine`
 
-Le site reste volontairement sans backend applicatif en V1.
+## Commandes locales
 
-## Structure publique
-
-- `mockup/` : maquette statique de la home V1
-
-## Notes
-
-- les specifications sont conservees localement et ignorees par Git
-- les captures de verification generees sont aussi ignorees
-- la prochaine etape technique cible est la conversion de la maquette vers Astro
-
-## Preview locale
-
-Ouvrir `mockup/index.html` dans un navigateur, ou servir le dossier avec un serveur statique local.
-
-## Commandes
-
-- `npm install`
-- `npm run dev`
-- `npm run build`
-- `npm run check`
+```bash
+npm ci
+npm run dev
+npm run check
+npm run build
+npm run preview
+```
 
 ## Container
 
-Build :
+```bash
+docker build -t it-art-studio .
+docker run --rm -p 8080:8080 it-art-studio
+```
 
-- `docker build -t it-art-studio .`
+Puis ouvrir `http://127.0.0.1:8080/`.
 
-Run :
+## CI
 
-- `docker run --rm -p 8080:8080 it-art-studio`
+Le workflow GitHub Actions `.github/workflows/ci.yml` lance:
 
-Le container final sert uniquement les fichiers statiques sur le port `8080`, pour etre place derriere le Caddy existant.
+- `npm ci`
+- `npm run check`
+- `npm run build`
+- upload de `dist`
+- build Docker
+- smoke test HTTP du container sur `8080`
+
+## Preview GitHub Pages
+
+Le workflow `.github/workflows/deploy-pages.yml` publie la version statique sur
+GitHub Pages pour previsualisation:
+
+`https://amineamanzou.github.io/ItArtStudio/`
+
+Avant la premiere publication, ouvrir les settings du repository sur GitHub,
+aller dans **Pages**, puis choisir **GitHub Actions** comme source. Le workflow
+se lance a chaque push sur `main` et peut aussi etre lance manuellement depuis
+l'onglet **Actions**.
+
+## Structure
+
+- `src/pages/index.astro` : contenu de la one-page
+- `src/layouts/BaseLayout.astro` : layout HTML, SEO de base, reveal/parallax
+- `src/styles/global.css` : design system et responsive
+- `public/assets/studio-artefacts.png` : visuel hero/projets V1
+- `PRODUCT.md` : contexte strategique pour agents et design
+- `DESIGN.md` : systeme visuel courant
+
+Les documents de strategie historiques restent dans `docs/` en local et sont
+ignores par Git.

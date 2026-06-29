@@ -1,7 +1,14 @@
 .git
 .gitignore
+.astro
 node_modules
 dist
 docs
 mockup/*.png
 npm-debug.log
+.DS_Store
+.env
+.env.*
+coverage
+generated
+specifications
