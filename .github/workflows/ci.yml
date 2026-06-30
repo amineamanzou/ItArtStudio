@@ -32,6 +32,13 @@ jobs:
       - name: Build static site
         run: npm run build
 
+      - name: Build GitHub Pages path
+        run: npm run build
+        env:
+          GITHUB_PAGES: "true"
+          SITE_URL: https://amineamanzou.github.io
+          BASE_PATH: /ItArtStudio
+
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4
         with:

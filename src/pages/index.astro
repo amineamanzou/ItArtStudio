@@ -6,304 +6,212 @@ const baseUrl = import.meta.env.BASE_URL.endsWith("/")
   : `${import.meta.env.BASE_URL}/`;
 const studioArtefacts = `${baseUrl}assets/studio-artefacts.png`;
 
-const projectLinks = [
-  {
-    title: "Observabilite & systemes critiques",
-    kind: "Mission IT",
-    copy:
-      "Audits, formations et accompagnements sur des environnements telecom, energie et finance ou le signal doit redevenir exploitable.",
-    className: "project-card--systems"
-  },
-  {
-    title: "Besoin, prototype & passage au build",
-    kind: "Produit",
-    copy:
-      "Interviews, specs, Figma et cadrage pour transformer une intention metier en trajectoire que les equipes peuvent suivre.",
-    className: "project-card--product"
-  },
-  {
-    title: "Collection, piece & presence visuelle",
-    kind: "Creation",
-    copy:
-      "Confection, sourcing, Clo3D, contenu video et direction de collection pour donner une forme rare aux projets qui doivent se voir.",
-    className: "project-card--creation"
-  }
+const leftSocials = [
+  { label: "LinkedIn", href: "https://www.linkedin.com/" },
+  { label: "YouTube", href: "https://www.youtube.com/" },
+  { label: "Instagram", href: "https://www.instagram.com/" },
+  { label: "TikTok", href: "https://www.tiktok.com/" },
+  { label: "Facebook", href: "https://www.facebook.com/" },
+  { label: "Threads", href: "https://www.threads.net/" },
+  { label: "X", href: "https://x.com/" }
 ];
+
+const rightSocials = [
+  { label: "YouTube", href: "https://www.youtube.com/" },
+  { label: "Instagram", href: "https://www.instagram.com/" },
+  { label: "TikTok", href: "https://www.tiktok.com/" }
+];
+
+const techSignals = [
+  "Innovation IA",
+  "Observabilité",
+  "Architecture",
+  "Scaling",
+  "Cloud"
+];
+
+const artSignals = [
+  "Direction design",
+  "3D",
+  "Collection de mode",
+  "Image",
+  "Matière"
+];
+
+const values = [
+  "Exigence",
+  "Clarté",
+  "Transmission",
+  "Présence",
+  "Impact"
+];
+
+const valueLoop = [...values, ...values, ...values, ...values];
+const reverseValueLoop = [...values].reverse().concat(values).concat([...values].reverse()).concat(values);
 ---
 
 <BaseLayout
-  title="IT Art Studio - Studio de conseil et de creation"
-  description="IT Art Studio transforme des sujets complexes en resultats solides, visibles et desirables: observabilite, produit, prototype, collection et contenu."
+  title="IT Art Studio - Studio IT, Art et innovation"
+  description="IT Art Studio reunit architecture tech, IA, observabilite, design, 3D et collection dans une experience vitrine cinematic scroll."
 >
-  <div class="site-shell" style={`--studio-asset: url("${studioArtefacts}")`}>
-    <header class="site-header is-visible" data-reveal>
-      <a class="brand" href="#top" aria-label="Retour a l'accueil IT Art Studio">
-        <span class="brand__mark" aria-hidden="true"></span>
-        <span class="brand__text">
-          <strong>IT Art Studio</strong>
-          <small>Conseil, produit, creation</small>
-        </span>
+  <div class="cinematic-shell" style={`--studio-asset: url("${studioArtefacts}")`} data-active-track="studio">
+    <header class="cinematic-nav" aria-label="Navigation principale">
+      <a class="nav-brand" href="#top" aria-label="Retour a l'accueil IT Art Studio">
+        <span>IT</span>
+        <strong>STUDIO</strong>
+        <span>ART</span>
       </a>
 
-      <nav class="site-nav" aria-label="Navigation principale">
-        <a href="#practices">Pratiques</a>
-        <a href="#projects">Projets</a>
-        <a href="#method">Methode</a>
+      <nav class="nav-links" aria-label="Sections">
         <a href="#founders">Fondateurs</a>
+        <a href="#signals">Domaines</a>
+        <a href="#values">Valeurs</a>
         <a href="#contact">Contact</a>
       </nav>
-
-      <a class="button button--quiet" href="#contact">Reserver un appel</a>
     </header>
 
+    <nav class="mobile-track-switch" aria-label="Piste de lecture mobile">
+      <button type="button" data-track-trigger="it" aria-pressed="false">IT</button>
+      <button type="button" data-track-trigger="studio" aria-pressed="true">Studio</button>
+      <button type="button" data-track-trigger="art" aria-pressed="false">Art</button>
+    </nav>
+
     <main id="top">
-      <section class="hero" aria-labelledby="hero-title">
-        <div class="hero__media is-visible" data-reveal data-parallax="-0.035">
-          <img
-            src={studioArtefacts}
-            alt="Table de studio avec ordinateur, textile, prototype papier et materiel video"
-            width="1536"
-            height="1024"
-          />
+      <section class="hero-cinematic" data-cinematic-hero aria-labelledby="hero-title">
+        <canvas id="split-canvas" class="split-canvas" aria-hidden="true"></canvas>
+
+        <div class="split-field split-field--it" aria-hidden="true"></div>
+
+        <div class="split-field split-field--art" aria-hidden="true"></div>
+
+        <div class="split-axis" aria-hidden="true"></div>
+
+        <div class="studio-core" data-cinema-reveal>
+          <h1 id="hero-title" aria-label="IT Art Studio">
+            <span class="hero-mark-row" aria-hidden="true">
+              <span>IT</span>
+              <span>ART</span>
+            </span>
+            <strong>STUDIO</strong>
+          </h1>
         </div>
 
-        <div class="hero__content is-visible" data-reveal>
-          <p class="hero__line">Studio francais pour sujets exigeants</p>
-          <h1 id="hero-title">Deux pratiques. Une meme exigence.</h1>
-          <p class="hero__lede">
-            IT Art Studio reunit expertise senior, conception produit et creation
-            pour transformer des contextes complexes en resultats solides,
-            visibles et desirables.
-          </p>
-          <div class="hero__actions">
-            <a class="button button--primary" href="#contact">Parler de votre projet</a>
-            <a class="button button--secondary" href="#practices">Explorer les pratiques</a>
+        <div class="scroll-cue" aria-hidden="true">
+          <span></span>
+        </div>
+      </section>
+
+      <section class="founder-reveal" id="founders" data-founder-reveal aria-labelledby="founders-title">
+        <h2 id="founders-title" class="sr-only">Fondateurs</h2>
+
+        <div class="founder-stage">
+          <article class="founder-half founder-half--it" data-cinema-reveal>
+            <div class="portrait-frame portrait-frame--amine" aria-hidden="true">
+              <span class="portrait-light"></span>
+              <span class="portrait-silhouette"></span>
+            </div>
+            <div class="founder-caption">
+              <p>Amine Amanzou</p>
+              <h3>Architecture tech, IA, observabilite, scaling cloud</h3>
+            </div>
+          </article>
+
+          <div class="founder-seam" aria-hidden="true"></div>
+
+          <article class="founder-half founder-half--art" data-cinema-reveal>
+            <div class="portrait-frame portrait-frame--carine" aria-hidden="true">
+              <span class="portrait-light"></span>
+              <span class="portrait-silhouette"></span>
+            </div>
+            <div class="founder-caption">
+              <p>Carine</p>
+              <h3>Design, 3D, direction de collection, image</h3>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="social-bridge" aria-label="Liens sociaux">
+        <div class="social-dual">
+          <div class="social-list social-list--it" aria-label="Reseaux IT">
+            {leftSocials.map((social) => (
+            <a
+              class="social-node"
+              href={social.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-cinema-reveal
+            >
+              <span>{social.label}</span>
+            </a>
+            ))}
+          </div>
+
+          <div class="social-list social-list--art" aria-label="Reseaux ART">
+            {rightSocials.map((social) => (
+              <a
+                class="social-node"
+                href={social.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-cinema-reveal
+              >
+                <span>{social.label}</span>
+              </a>
+            ))}
           </div>
         </div>
-
-        <div class="hero__proofs is-visible" data-reveal aria-label="Signaux de credibilite">
-          <p>10+ ans en observabilite</p>
-          <p>Grands comptes, startups, independants</p>
-          <p>Du besoin au prototype, du systeme a la piece</p>
-        </div>
       </section>
 
-      <section class="manifesto" data-reveal>
-        <div class="section-label">Positionnement</div>
-        <h2>
-          Nous intervenons la ou le fond, l'execution et la perception doivent
-          enfin travailler ensemble.
-        </h2>
-        <p>
-          Le studio ne juxtapose pas des services. Il applique une meme maniere
-          de lire, structurer, produire et rendre visible, que le sujet soit un
-          systeme critique, un prototype produit, une collection ou une presence
-          de marque.
-        </p>
-      </section>
+      <section class="domain-split" id="signals" data-domain-split aria-labelledby="signals-title">
+        <h2 id="signals-title" class="sr-only">Domaines IT et ART</h2>
 
-      <section class="practices" id="practices" aria-labelledby="practices-title">
-        <div class="section-head" data-reveal>
-          <div class="section-label">Pratiques</div>
-          <h2 id="practices-title">Deux terrains d'intervention, sans brouiller la marque.</h2>
-        </div>
-
-        <div class="practice-layout">
-          <article class="practice-panel practice-panel--primary" data-reveal>
-            <div>
-              <span class="practice-panel__number">I</span>
-              <h3>IT, Produit &amp; Observabilite</h3>
-              <p>
-                Le moteur business du studio: expertise senior, consulting,
-                formation, due diligence, business analysis, cadrage et
-                accompagnement avec objectif de resultat.
-              </p>
-            </div>
-            <ul class="signal-list">
-              <li>Systemes critiques et observabilite</li>
-              <li>Lecture senior du risque et des arbitrages</li>
-              <li>Prototype, specs et transmission aux equipes</li>
-            </ul>
-          </article>
-
-          <article class="practice-panel practice-panel--secondary" data-reveal>
-            <div>
-              <span class="practice-panel__number">II</span>
-              <h3>Creation, Contenu &amp; Collection</h3>
-              <p>
-                Le versant plus singulier: sur-mesure, collection capsule,
-                direction de contenu, FPV et accompagnement de presence.
-              </p>
-            </div>
-            <ul class="signal-list">
-              <li>Pieces, drops et prototypes de collection</li>
-              <li>Video, aventure, angles FPV et formats sociaux</li>
-              <li>Direction visuelle sans perdre la rigueur metier</li>
-            </ul>
-          </article>
-        </div>
-      </section>
-
-      <section class="values" aria-labelledby="values-title">
-        <div class="values__intro" data-reveal>
-          <div class="section-label">Valeurs</div>
-          <h2 id="values-title">Une exigence simple, tenue de bout en bout.</h2>
-        </div>
-        <div class="values__grid">
-          <article data-reveal>
-            <h3>Lire juste</h3>
-            <p>Comprendre le vrai sujet avant de proposer un format ou une solution.</p>
-          </article>
-          <article data-reveal>
-            <h3>Produire reel</h3>
-            <p>Livrer des cadrages, prototypes, formations, contenus ou pieces qui servent.</p>
-          </article>
-          <article data-reveal>
-            <h3>Rendre visible</h3>
-            <p>Soigner la lisibilite, la coherence et la qualite percue du resultat final.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="projects" id="projects" aria-labelledby="projects-title">
-        <div class="section-head" data-reveal>
-          <div class="section-label">Projets</div>
-          <h2 id="projects-title">Des preuves presentees comme des artefacts, pas comme un mur de logos.</h2>
-          <p>
-            La V1 garde les references sensibles anonymisees et ouvre la place
-            aux cas visibles quand les preuves finales seront validées.
-          </p>
-        </div>
-
-        <div class="project-grid">
-          {projectLinks.map((project) => (
-            <article class={`project-card ${project.className}`} data-reveal>
-              <div class="project-card__image" aria-hidden="true"></div>
-              <div class="project-card__body">
-                <span>{project.kind}</span>
-                <h3>{project.title}</h3>
-                <p>{project.copy}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section class="method" id="method" aria-labelledby="method-title">
-        <div class="method__sticky" data-reveal>
-          <div class="section-label">Methode</div>
-          <h2 id="method-title">Une methode calme pour des sujets qui ne le sont pas.</h2>
-          <p>
-            Les projets exigeants n'ont pas besoin de theatre. Ils ont besoin
-            d'une lecture propre, d'un perimetre clair et d'une execution qui
-            tient quand le contexte se complique.
-          </p>
-        </div>
-
-        <ol class="method__steps">
-          <li data-reveal>
-            <strong>Comprendre</strong>
-            <span>Lire le contexte, les contraintes et les vraies tensions.</span>
-          </li>
-          <li data-reveal>
-            <strong>Cadrer</strong>
-            <span>Poser le bon perimetre, les livrables utiles et le cap.</span>
-          </li>
-          <li data-reveal>
-            <strong>Produire</strong>
-            <span>Executer sans lourdeur inutile, avec une exigence stable.</span>
-          </li>
-          <li data-reveal>
-            <strong>Affiner</strong>
-            <span>Faire monter le rendu final en clarte et en perception.</span>
-          </li>
-        </ol>
-      </section>
-
-      <section class="founders" id="founders" aria-labelledby="founders-title">
-        <div class="section-head" data-reveal>
-          <div class="section-label">Fondateurs</div>
-          <h2 id="founders-title">Deux trajectoires complementaires.</h2>
-        </div>
-
-        <div class="founders__grid">
-          <article data-reveal>
-            <div class="founder-portrait founder-portrait--systems" aria-hidden="true"></div>
-            <h3>Amine Amanzou</h3>
+        <div class="domain-columns">
+          <div class="domain-column domain-column--it" data-cinema-reveal>
+            <h3>IT</h3>
             <p>
-              Expertise observabilite, lecture senior des systemes, transmission
-              et accompagnement dans des environnements exigeants.
+              Comprendre les systemes, les rendre observables, choisir les bons
+              arbitrages, et faire passer l'idee du diagnostic au build.
             </p>
             <ul>
-              <li>Telecom</li>
-              <li>Energie</li>
-              <li>Finance</li>
-              <li>Observabilite</li>
+              {techSignals.map((signal, index) => <li><span>{String(index + 1).padStart(2, "0")}</span>{signal}</li>)}
             </ul>
-          </article>
+          </div>
 
-          <article data-reveal>
-            <div class="founder-portrait founder-portrait--creation" aria-hidden="true"></div>
-            <h3>Associee creation &amp; produit</h3>
+          <div class="domain-column domain-column--art" data-cinema-reveal>
+            <h3>ART</h3>
             <p>
-              Business analysis, interviews, prototype, relation dev, confection,
-              Clo3D, sourcing et direction de collection.
+              Donner une forme visible aux intuitions: volume, matiere, image,
+              collection, presence de marque et objets desirables.
             </p>
             <ul>
-              <li>BA</li>
-              <li>Figma</li>
-              <li>Sur-mesure</li>
-              <li>Collection</li>
+              {artSignals.map((signal, index) => <li><span>{String(index + 1).padStart(2, "0")}</span>{signal}</li>)}
             </ul>
-          </article>
+          </div>
         </div>
       </section>
 
-      <section class="closing-quote" data-reveal>
-        <blockquote>
-          Le projet ne doit pas seulement fonctionner. Il doit donner confiance
-          des le premier regard.
-        </blockquote>
+      <section class="shared-values" id="values" data-values aria-labelledby="values-title">
+        <h2 id="values-title" class="sr-only">Valeurs communes</h2>
+        <div class="values-line" aria-hidden="true"></div>
+        <div class="value-marquee value-marquee--left" aria-hidden="true">
+          <div class="value-track">
+            {valueLoop.map((value) => <span>{value}</span>)}
+          </div>
+        </div>
+        <div class="value-marquee value-marquee--right" aria-hidden="true">
+          <div class="value-track">
+            {reverseValueLoop.map((value) => <span>{value}</span>)}
+          </div>
+        </div>
       </section>
 
-      <section class="contact" id="contact" aria-labelledby="contact-title">
-        <div class="contact__copy" data-reveal>
-          <div class="section-label">Contact</div>
-          <h2 id="contact-title">Parlons de ce que vous devez clarifier, construire ou mettre en valeur.</h2>
-          <p>
-            Premier echange pour comprendre le besoin, qualifier le contexte et
-            voir s'il y a un vrai fit. La reservation Google Calendar / Meet se
-            branche ici sans backend applicatif.
-          </p>
-        </div>
-
-        <form class="contact-form" data-reveal>
-          <label>
-            Nom
-            <input type="text" name="name" autocomplete="name" placeholder="Votre nom" />
-          </label>
-          <label>
-            Email
-            <input type="email" name="email" autocomplete="email" placeholder="vous@entreprise.fr" />
-          </label>
-          <label>
-            Sujet
-            <select name="topic">
-              <option>IT, Produit & Observabilite</option>
-              <option>Creation, Contenu & Collection</option>
-              <option>Je ne sais pas encore</option>
-            </select>
-          </label>
-          <label>
-            Besoin
-            <textarea
-              name="message"
-              rows="5"
-              placeholder="Contexte, urgence, objectif, type d'accompagnement"
-            ></textarea>
-          </label>
-          <button class="button button--primary" type="button">Envoyer la demande</button>
-        </form>
+      <section class="contact-final" id="contact" aria-labelledby="contact-title">
+        <h2 id="contact-title" class="sr-only">Contact</h2>
+        <a class="contact-split-button" href="mailto:contact@itart.studio">
+          <span>Contactez</span>
+          <span>-nous</span>
+        </a>
       </section>
     </main>
   </div>

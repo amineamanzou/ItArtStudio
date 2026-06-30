@@ -3,15 +3,17 @@
 Site one-page public d'IT Art Studio, studio de conseil et de creation pour
 projets exigeants.
 
-La V1 est un site Astro statique: pas de backend, pas de base de donnees, pas de
-SPA. Le container final sert les fichiers generes avec Nginx unprivileged sur le
-port `8080`, derriere le reverse proxy de l'infra.
+La V1 reste un site Astro statique: pas de backend, pas de base de donnees, pas
+de SPA. Le container final sert les fichiers generes avec Nginx unprivileged sur
+le port `8080`, derriere le reverse proxy de l'infra.
 
 ## Stack
 
 - Astro en output statique
 - CSS sur mesure
-- JavaScript minimal pour reveal et parallax leger
+- GSAP ScrollTrigger pour la narration au scroll
+- Lenis pour le scroll lisse
+- Three.js pour la scene WebGL du split IT / ART
 - Image editoriale locale dans `public/assets/`
 - Runtime production `nginxinc/nginx-unprivileged:alpine`
 
@@ -59,9 +61,10 @@ l'onglet **Actions**.
 
 ## Structure
 
-- `src/pages/index.astro` : contenu de la one-page
-- `src/layouts/BaseLayout.astro` : layout HTML, SEO de base, reveal/parallax
-- `src/styles/global.css` : design system et responsive
+- `src/pages/index.astro` : contenu de la one-page cinematic
+- `src/layouts/BaseLayout.astro` : layout HTML, SEO de base, runtime client
+- `src/scripts/cinematic.ts` : GSAP, Lenis, Three.js et switch mobile
+- `src/styles/global.css` : design system, scenes, responsive
 - `public/assets/studio-artefacts.png` : visuel hero/projets V1
 - `PRODUCT.md` : contexte strategique pour agents et design
 - `DESIGN.md` : systeme visuel courant

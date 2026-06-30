@@ -2,71 +2,78 @@
 
 ## Visual Theme
 
-IT Art Studio utilise une direction "atelier de systemes": une surface graphite,
-des panneaux limestone tres calmes, des accents cuivre et signal, et des images
-d'artefacts de studio. L'effet recherche est premium, tactile et structure, sans
-surcharger la page.
+IT Art Studio utilise maintenant une direction cinematic dark: une scene noire
+travaillee par un split central IT / ART, des particules WebGL sur desktop, une
+image d'atelier assombrie et une frontiere lumineuse ou `STUDIO` sert de
+passage. Le site doit se lire comme une sequence en scroll, avec peu de
+composants visibles et une forte impression de mouvement.
 
 ## Color
 
 Tokens principaux en OKLCH:
 
-- `--graphite`: fond sombre, presence studio, hero et valeurs.
-- `--surface`: surface claire principale, proche du blanc neutre.
-- `--limestone`: surface secondaire froide, utilisee pour les panneaux.
-- `--copper`: accent editorial et humain.
-- `--signal`: accent technique discret.
-- `--moss`: accent secondaire ponctuel.
+- `--void`: fond noir principal.
+- `--tech`: accent cyan du cote IT.
+- `--art`: accent corail du cote ART.
+- `--studio`: blanc chaud pour le point commun et les CTAs.
+- `--glass`: surfaces translucides pour navigation, liens et contact.
 
-Le contraste texte/fond doit rester AA. Le texte courant reste sombre sur les
-surfaces claires et clair sur graphite.
+Le contraste texte/fond doit rester AA. Les accents ne portent pas seuls une
+information critique.
 
 ## Typography
 
-Le site utilise une pile systeme pour eviter les choix de polices trop reflexes:
+Le site garde une pile systeme pour rester rapide et eviter les choix de polices
+trop reflexes:
 
 - UI et corps: `Avenir Next`, `Segoe UI`, `Helvetica Neue`, Arial, sans-serif.
-- Display: Georgia, `Times New Roman`, serif.
+- Display ponctuel: `Bodoni 72`, Didot, `Times New Roman`, serif.
 
-Les grands titres restent sous `6rem`, avec un tracking minimum de `-0.025em`.
-Les paragraphes sont limites par le layout et utilisent `text-wrap: pretty`.
+Le hero reserve la serif a `STUDIO` et au CTA final. Les mots IT / ART restent
+plus directs, proches de la frontiere centrale.
 
 ## Layout
 
-La page est une one-page statique composee de grandes sections:
+La page est une one-page statique composee de scenes:
 
-1. Hero image-led avec artefact studio.
-2. Positionnement.
-3. Deux pratiques.
-4. Valeurs.
-5. Projets choisis.
-6. Methode.
-7. Fondateurs.
-8. Citation.
-9. Contact.
+1. Hero split IT / ART proche de la frontiere, avec `STUDIO` en dessous.
+2. Founder reveal avec abstractions temporaires pour tester le mouvement de tete.
+3. Pont de reseaux sociaux cliquables.
+4. Domain split: IA, observabilite, architecture, scaling, cloud a gauche;
+   design, 3D, collection, image et matiere a droite.
+5. Valeurs communes qui traversent la frontiere.
+6. Contact final.
 
-Les cartes sont reservees aux projets et aux fondateurs. Les sections ne sont
-pas imbriquees dans des cartes decoratives. Les rayons restent entre 8px et 18px.
+Le split simultane est reserve au desktop. Sur mobile, un switch fixe IT /
+Studio / Art sert de repere et le contenu reste empile, lisible et stable.
 
 ## Imagery
 
-L'image source V1 est `/public/assets/studio-artefacts.png`, generee comme un
-visuel editorial de table de studio: ordinateur, textile, prototype papier,
-detail cuivre et materiel video. Elle sert de hero et de recadrage pour les
-projets/fondateurs en attendant des assets reels.
+L'image source V1 `/public/assets/studio-artefacts.png` reste la matiere de
+fond. Les portraits fondateurs sont volontairement abstraits dans ce prototype:
+ils servent a tester le timing et l'alignement avant de consommer des credits de
+generation video ou de produire des portraits definitifs.
 
 ## Motion
 
-Motion minimale: reveal progressif et parallax tres faible. Aucune information
-importante ne depend de l'animation. `prefers-reduced-motion` supprime les
-transitions et le parallax.
+La motion est une amelioration progressive:
+
+- GSAP ScrollTrigger pour pin/scrub du hero et transitions de sections.
+- Lenis pour le scroll lisse.
+- Three.js pour les particules et le motif central sur desktop seulement.
+- `prefers-reduced-motion` supprime le runtime lourd et garde un recit statique.
+- Les ancres sont recalculees apres `ScrollTrigger.refresh()` pour tenir compte
+  du pinning et de la navigation fixe.
+
+Aucune information importante ne depend de l'animation: le contenu reste present
+par defaut.
 
 ## Components
 
-- `site-header`: navigation sticky compacte.
-- `hero`: image-led, H1, lede, CTAs, signaux de credibilite.
-- `practice-panel`: deux panneaux asymetriques, primary/secondary.
-- `project-card`: image recadree + contexte.
-- `method__steps`: sequence ordonnee utile.
-- `contact-form`: formulaire statique de qualification, a brancher sur un
-  service externe si besoin.
+- `cinematic-nav`: navigation fixe compacte.
+- `hero-cinematic`: split principal, canvas WebGL, marque centrale.
+- `founder-reveal`: scene de test pour les futurs portraits.
+- `social-bridge`: liens reseaux.
+- `domain-split`: deux colonnes IT / ART.
+- `shared-values`: valeurs transverses.
+- `contact-final`: CTA mailto.
