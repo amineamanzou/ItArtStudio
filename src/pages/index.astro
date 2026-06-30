@@ -18,16 +18,19 @@ const leftSocials = [
 
 const rightSocials = [
   { label: "YouTube", href: "https://www.youtube.com/" },
-  { label: "Instagram", href: "https://www.instagram.com/" },
+  { label: "Instagram", href: "https://www.instagram.com/CariineDesign/" },
   { label: "TikTok", href: "https://www.tiktok.com/" }
 ];
 
 const socialFilms = [
-  { label: "Studio log", side: "IT" },
-  { label: "Short format", side: "ART" },
-  { label: "Build note", side: "IT" },
-  { label: "Lookbook", side: "ART" },
-  { label: "Behind the scenes", side: "STUDIO" }
+  { label: "Jump cut IA", side: "IT", src: `${baseUrl}assets/social/it-jump-cut-ia.mp4` },
+  { label: "CariineDesign", side: "ART", source: "Instagram" },
+  { label: "Serveur honteux", side: "IT", src: `${baseUrl}assets/social/it-serveur-agent.mp4` },
+  { label: "Direction design", side: "ART", source: "Instagram" },
+  { label: "Carrousels agents", side: "IT", src: `${baseUrl}assets/social/it-carousels-agents.mp4` },
+  { label: "Collection / 3D", side: "ART", source: "Instagram" },
+  { label: "Observabilité", side: "IT", src: `${baseUrl}assets/social/it-observability.mp4` },
+  { label: "Studio crossing", side: "STUDIO" }
 ];
 
 const techSignals = [
@@ -152,8 +155,16 @@ const alternateValueLoop = values.slice(3).concat(values).concat(values.slice(0,
           <div class="social-video-track">
             {[...socialFilms, ...socialFilms].map((film) => (
               <figure class={`social-video-card social-video-card--${film.side.toLowerCase()}`}>
+                {"src" in film && (
+                  <video autoplay muted loop playsinline preload="metadata">
+                    <source src={film.src} type="video/mp4" />
+                  </video>
+                )}
                 <span>{film.side}</span>
-                <figcaption>{film.label}</figcaption>
+                <figcaption>
+                  {film.label}
+                  {"source" in film && <small>{film.source}</small>}
+                </figcaption>
               </figure>
             ))}
           </div>
