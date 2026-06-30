@@ -38,11 +38,13 @@ La page est une one-page statique composee de scenes:
 
 1. Hero split IT / ART proche de la frontiere, avec `STUDIO` en dessous.
 2. Founder reveal avec abstractions temporaires pour tester le mouvement de tete.
-3. Pont de reseaux sociaux cliquables.
-4. Domain split: IA, observabilite, architecture, scaling, cloud a gauche;
-   design, 3D, collection, image et matiere a droite.
-5. Valeurs communes qui traversent la frontiere.
-6. Contact final.
+3. Pont de reseaux sociaux cliquables avec carrousel de videos en background,
+   pret a recevoir les assets reels des reseaux.
+4. Domain split plus ouvert: IA, observabilite, architecture, scaling, cloud a
+   gauche; design, 3D, collection, image et matiere a droite.
+5. Valeurs communes en trois lignes horizontales, vitesses opposees et
+   differentes.
+6. Contact final en texte pur, avec surbrillance au hover.
 
 Le split simultane est reserve au desktop. Sur mobile, un switch fixe IT /
 Studio / Art sert de repere et le contenu reste empile, lisible et stable.

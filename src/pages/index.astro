@@ -22,6 +22,14 @@ const rightSocials = [
   { label: "TikTok", href: "https://www.tiktok.com/" }
 ];
 
+const socialFilms = [
+  { label: "Studio log", side: "IT" },
+  { label: "Short format", side: "ART" },
+  { label: "Build note", side: "IT" },
+  { label: "Lookbook", side: "ART" },
+  { label: "Behind the scenes", side: "STUDIO" }
+];
+
 const techSignals = [
   "Innovation IA",
   "Observabilité",
@@ -43,11 +51,19 @@ const values = [
   "Clarté",
   "Transmission",
   "Présence",
-  "Impact"
+  "Impact",
+  "Rigueur",
+  "Audace",
+  "Matière",
+  "Signal",
+  "Soin",
+  "Mouvement",
+  "Justesse"
 ];
 
 const valueLoop = [...values, ...values, ...values, ...values];
 const reverseValueLoop = [...values].reverse().concat(values).concat([...values].reverse()).concat(values);
+const alternateValueLoop = values.slice(3).concat(values).concat(values.slice(0, 6)).concat(values);
 ---
 
 <BaseLayout
@@ -112,7 +128,7 @@ const reverseValueLoop = [...values].reverse().concat(values).concat([...values]
             </div>
             <div class="founder-caption">
               <p>Amine Amanzou</p>
-              <h3>Architecture tech, IA, observabilite, scaling cloud</h3>
+              <h3>Transformer la complexité technique en systèmes lisibles, robustes et transmissibles.</h3>
             </div>
           </article>
 
@@ -125,13 +141,24 @@ const reverseValueLoop = [...values].reverse().concat(values).concat([...values]
             </div>
             <div class="founder-caption">
               <p>Carine</p>
-              <h3>Design, 3D, direction de collection, image</h3>
+              <h3>Donner une forme sensible aux idées: image, volume, matière et collection.</h3>
             </div>
           </article>
         </div>
       </section>
 
-      <section class="social-bridge" aria-label="Liens sociaux">
+      <section class="social-bridge" id="socials" aria-label="Liens sociaux">
+        <div class="social-video-carousel" aria-hidden="true">
+          <div class="social-video-track">
+            {[...socialFilms, ...socialFilms].map((film) => (
+              <figure class={`social-video-card social-video-card--${film.side.toLowerCase()}`}>
+                <span>{film.side}</span>
+                <figcaption>{film.label}</figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+
         <div class="social-dual">
           <div class="social-list social-list--it" aria-label="Reseaux IT">
             {leftSocials.map((social) => (
@@ -202,6 +229,11 @@ const reverseValueLoop = [...values].reverse().concat(values).concat([...values]
         <div class="value-marquee value-marquee--right" aria-hidden="true">
           <div class="value-track">
             {reverseValueLoop.map((value) => <span>{value}</span>)}
+          </div>
+        </div>
+        <div class="value-marquee value-marquee--center" aria-hidden="true">
+          <div class="value-track">
+            {alternateValueLoop.map((value) => <span>{value}</span>)}
           </div>
         </div>
       </section>

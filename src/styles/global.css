@@ -545,16 +545,88 @@ main {
 }
 
 .social-bridge {
+  position: relative;
   min-height: 100svh;
   display: grid;
   align-items: center;
+  overflow: hidden;
   background:
     radial-gradient(circle at 50% 44%, oklch(70% 0.08 92 / 12%), transparent 24rem),
     var(--void);
 }
 
+.social-video-carousel {
+  position: absolute;
+  inset: 8% 0 auto;
+  z-index: 0;
+  overflow: hidden;
+  opacity: 0.28;
+  mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+}
+
+.social-video-track {
+  display: flex;
+  width: max-content;
+  gap: clamp(18px, 3vw, 42px);
+  animation: social-video-drift 38s linear infinite;
+  will-change: transform;
+}
+
+.social-video-card {
+  position: relative;
+  width: clamp(160px, 18vw, 280px);
+  aspect-ratio: 9 / 16;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 50% 18%, currentColor, transparent 32%),
+    linear-gradient(180deg, oklch(100% 0 0 / 8%), oklch(0% 0 0 / 78%)),
+    oklch(6% 0.018 255);
+  color: var(--studio);
+  filter: saturate(0.9) contrast(1.08);
+}
+
+.social-video-card--it {
+  color: var(--tech);
+}
+
+.social-video-card--art {
+  color: var(--art);
+}
+
+.social-video-card span,
+.social-video-card figcaption {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  z-index: 1;
+  font-size: 0.78rem;
+  font-weight: 760;
+}
+
+.social-video-card span {
+  top: 12px;
+  color: currentColor;
+}
+
+.social-video-card figcaption {
+  bottom: 12px;
+  color: var(--ink);
+}
+
+@keyframes social-video-drift {
+  from {
+    transform: translate3d(-8%, 0, 0);
+  }
+  to {
+    transform: translate3d(-52%, 0, 0);
+  }
+}
+
 .social-dual {
   position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: clamp(38px, 10vw, 160px);
@@ -614,6 +686,8 @@ main {
 
 .domain-split {
   min-height: 120svh;
+  display: grid;
+  align-items: center;
   background:
     linear-gradient(90deg, oklch(7% 0.036 232) 0 50%, oklch(8% 0.034 22) 50%),
     var(--void);
@@ -621,27 +695,35 @@ main {
 
 .domain-columns {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1px;
-  width: min(1240px, 100%);
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  gap: clamp(42px, 9vw, 160px);
+  width: min(1320px, 100%);
   margin-inline: auto;
-  border: 1px solid var(--line);
-  background: var(--line);
+  border: 0;
+  background: transparent;
 }
 
 .domain-column {
   display: grid;
   align-content: space-between;
-  min-height: 74svh;
-  padding: clamp(28px, 5vw, 74px);
-  background:
-    linear-gradient(180deg, var(--glass), transparent 38%),
-    oklch(6% 0.018 255 / 90%);
+  min-height: 68svh;
+  padding: clamp(12px, 3vw, 38px) 0;
+  background: transparent;
+}
+
+.domain-column--it {
+  align-self: start;
+  padding-right: clamp(20px, 4vw, 70px);
+}
+
+.domain-column--art {
+  align-self: end;
+  padding-left: clamp(20px, 4vw, 70px);
 }
 
 .domain-column h3 {
   margin: 0;
-  font-size: clamp(5rem, 13vw, 11rem);
+  font-size: clamp(5.8rem, 15vw, 13rem);
   letter-spacing: -0.04em;
   line-height: 0.8;
 }
@@ -659,10 +741,10 @@ main {
 }
 
 .domain-column p {
-  max-width: 48ch;
-  margin: clamp(26px, 4vw, 44px) 0;
+  max-width: 36ch;
+  margin: clamp(42px, 7vw, 96px) 0 clamp(28px, 5vw, 62px);
   color: var(--ink-soft);
-  font-size: clamp(1rem, 1.3vw, 1.2rem);
+  font-size: clamp(1.08rem, 1.55vw, 1.42rem);
   line-height: 1.65;
   text-wrap: pretty;
 }
@@ -673,7 +755,7 @@ main {
 
 .domain-column ul {
   display: grid;
-  gap: clamp(9px, 1.2vw, 14px);
+  gap: clamp(12px, 1.6vw, 20px);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -694,7 +776,7 @@ main {
   padding: 11px 0 0;
   color: var(--ink);
   background: transparent;
-  font-size: clamp(1rem, 1.35vw, 1.35rem);
+  font-size: clamp(1.1rem, 1.65vw, 1.65rem);
   font-weight: 640;
 }
 
@@ -706,10 +788,11 @@ main {
 
 .shared-values {
   --value-cross: 0;
-  min-height: 110svh;
+  position: relative;
+  min-height: 122svh;
   display: grid;
   align-content: center;
-  gap: clamp(18px, 4vw, 56px);
+  gap: clamp(24px, 4.2vw, 64px);
   overflow: hidden;
   background:
     linear-gradient(90deg, oklch(7% 0.032 232), oklch(7% 0.016 255) 42% 58%, oklch(8% 0.032 22)),
@@ -744,12 +827,18 @@ main {
 
 .value-marquee--right .value-track {
   animation-name: value-marquee-right;
+  animation-duration: 31s;
+}
+
+.value-marquee--center .value-track {
+  animation-name: value-marquee-center;
+  animation-duration: 22s;
 }
 
 .value-track span {
   color: var(--ink);
   font-family: var(--font-display);
-  font-size: clamp(4.2rem, 12vw, 12rem);
+  font-size: clamp(4rem, 10.5vw, 11rem);
   font-weight: 500;
   letter-spacing: -0.04em;
   line-height: 0.82;
@@ -782,6 +871,15 @@ main {
   }
 }
 
+@keyframes value-marquee-center {
+  from {
+    transform: translate3d(-36%, 0, 0);
+  }
+  to {
+    transform: translate3d(-8%, 0, 0);
+  }
+}
+
 .contact-final {
   min-height: 100svh;
   display: grid;
@@ -797,36 +895,39 @@ main {
   z-index: 34;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  width: min(820px, 88vw);
-  min-height: clamp(92px, 12vw, 156px);
+  width: min(920px, 92vw);
+  min-height: 0;
   align-items: center;
-  border: 1px solid var(--line-strong);
-  background:
-    linear-gradient(90deg, oklch(8% 0.054 232 / 88%) 0 50%, oklch(9% 0.05 22 / 88%) 50%),
-    oklch(100% 0 0 / 5%);
+  border: 0;
+  background: transparent;
   color: var(--studio);
   font-family: var(--font-display);
-  font-size: clamp(2.3rem, 8vw, 7.2rem);
+  font-size: clamp(3rem, 9vw, 8.6rem);
   font-weight: 500;
   letter-spacing: -0.04em;
   line-height: 0.86;
   text-align: center;
-  backdrop-filter: blur(18px);
+  text-shadow: 0 0 0 transparent;
 }
 
 .contact-split-button span:first-child {
   justify-self: end;
-  padding-right: clamp(10px, 2vw, 28px);
+  padding-right: clamp(2px, 0.35vw, 6px);
 }
 
 .contact-split-button span:last-child {
   justify-self: start;
-  padding-left: clamp(10px, 2vw, 28px);
+  padding-left: clamp(2px, 0.35vw, 6px);
 }
 
-.contact-split-button:hover {
-  border-color: oklch(100% 0 0 / 48%);
-  transform: scale(1.015);
+.contact-split-button:hover,
+.contact-split-button:focus-visible {
+  color: var(--ink);
+  transform: scale(1.018);
+  text-shadow:
+    0 0 18px oklch(96% 0.026 92 / 34%),
+    -18px 0 42px oklch(75% 0.15 215 / 28%),
+    18px 0 42px oklch(72% 0.17 28 / 28%);
 }
 
 [data-cinema-reveal] {
@@ -952,6 +1053,7 @@ main {
   .domain-column,
   .domain-column--art {
     min-height: auto;
+    padding-inline: 0;
     text-align: left;
   }
 
@@ -980,17 +1082,27 @@ main {
     font-size: clamp(2.1rem, 11vw, 4rem);
   }
 
+  .social-video-carousel {
+    inset: 14% 0 auto;
+    opacity: 0.2;
+  }
+
+  .social-video-card {
+    width: clamp(112px, 32vw, 160px);
+  }
+
   .shared-values {
     min-height: 92svh;
+    gap: 18px;
   }
 
   .value-track span {
-    font-size: clamp(3.2rem, 16vw, 5.4rem);
+    font-size: clamp(2.8rem, 13vw, 4.8rem);
   }
 
   .contact-split-button {
     width: min(92vw, 520px);
-    font-size: clamp(2.5rem, 13vw, 5rem);
+    font-size: clamp(2.8rem, 14vw, 5.4rem);
   }
 }
 
@@ -1022,5 +1134,9 @@ main {
   .value-track {
     animation: none !important;
     transform: translate3d(-18%, 0, 0);
+  }
+
+  .social-video-track {
+    animation: none !important;
   }
 }
