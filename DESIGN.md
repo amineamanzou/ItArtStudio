@@ -445,6 +445,16 @@ Gates V3.9:
 - le rapport QA doit exposer le score directionnel pour que la qualite
   "site jouable" soit lisible avant les parcours longs vers les zones.
 
+Gates V4.0:
+
+- `identity-ribbon-rendered`: ajouter un ruban 3D central `IT / STUDIO / ART`
+  compose de tuiles instanciees, pixels suspendus, plaques typographiques et
+  liaisons lumineuses pour materialiser la double identite dans le monde;
+- les petites lumieres de route sont instanciees pour liberer du budget scene
+  avant d'ajouter ce signe central, en gardant `sceneObjects <= 955`;
+- `identity-ribbon-visible`: projeter le ruban dans le snapshot QA, verifier
+  bbox, occlusion UI, ROI pixels, contours, couleurs et mouvement multi-frame.
+
 ## Components
 
 - `game-site`: surface principale.

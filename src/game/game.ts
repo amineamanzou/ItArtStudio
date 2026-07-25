@@ -240,6 +240,8 @@ type QaSnapshot = {
     scenerySignatures: number;
     sceneryMotionObjects: number;
     sceneryRoleCounts: Record<string, number>;
+    identityRibbonObjects: number;
+    identityRibbonSignatures: number;
     terrainLayers: number;
     routeGuidanceObjects: number;
     routeGuidanceSignatures: number;
@@ -288,6 +290,7 @@ type QaSnapshot = {
     activePlaceArchitecture: ScreenRectQa & { zoneId: string; family: string | null };
     activeSignatureArtifact: ScreenRectQa & { zoneId: string };
     activeProjectArtifact: ScreenRectQa & { zoneId: string };
+    identityRibbon: ScreenRectQa;
     activeZoneComposition: ZoneCompositionQa;
     activeRouteEncounter: ScreenRectQa & { id: string | null; routeId: string | null; intensity: number; distance: number };
   };
@@ -363,6 +366,7 @@ class StudioGame {
   private projectArtifactObjectCount = 0;
   private projectArtifactSceneObjectCount = 0;
   private sceneryObjectCount = 0;
+  private worldSceneryMotionObjectCount = 0;
   private terrainLayerCount = 0;
   private routeGuidanceObjectCount = 0;
   private routeGuidanceVisualizedSegments = 0;
@@ -389,6 +393,7 @@ class StudioGame {
   private readonly placeArchitectureGroups = new Map<string, THREE.Object3D>();
   private readonly signatureArtifactGroups = new Map<string, THREE.Object3D>();
   private readonly projectArtifactGroups = new Map<string, THREE.Object3D>();
+  private identityRibbonGroup: THREE.Object3D | null = null;
   private readonly worldSceneryMotionObjects: THREE.Object3D[] = [];
   private readonly routeGuidanceMotionObjects: THREE.Object3D[] = [];
   private readonly routeEncounterGates: RouteEncounterGate[] = [];
@@ -472,6 +477,8 @@ class StudioGame {
       scenerySignatures: 0,
       sceneryMotionObjects: 0,
       sceneryRoleCounts: {},
+      identityRibbonObjects: 0,
+      identityRibbonSignatures: 0,
       terrainLayers: 0,
       routeGuidanceObjects: 0,
       routeGuidanceSignatures: 0,
@@ -612,6 +619,22 @@ class StudioGame {
         visible: false,
         center: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false },
         zoneId: defaultZone.id
+      },
+      identityRibbon: {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        area: 0,
+        clippedX: 0,
+        clippedY: 0,
+        clippedWidth: 0,
+        clippedHeight: 0,
+        clippedArea: 0,
+        visibleRatio: 0,
+        cornerDepthCount: 0,
+        visible: false,
+        center: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false }
       },
       activeZoneComposition: {
         zoneId: defaultZone.id,
@@ -819,9 +842,11 @@ class StudioGame {
     const rendered = createWorldScenery(colors);
     this.scene.add(rendered.group);
     this.sceneryObjectCount += rendered.objectCount;
+    this.worldSceneryMotionObjectCount += rendered.motionObjectCount;
+    this.identityRibbonGroup = rendered.identityRibbon;
     this.terrainLayerCount += rendered.terrainLayers;
     this.decorativeObjectCount += rendered.objectCount;
-    this.motionRoleCount += rendered.motionObjects.length;
+    this.motionRoleCount += rendered.motionObjectCount;
     this.worldSceneryMotionObjects.push(...rendered.motionObjects);
     for (const signature of rendered.signatures) {
       this.scenerySignatureIds.add(signature);
@@ -1859,6 +1884,14 @@ class StudioGame {
       if (behavior === "sweep") {
         object.rotation.y += delta * 0.38;
         object.position.y = baseY + Math.sin(phase) * amplitude * 0.08;
+      } else if (behavior === "instance-pulse") {
+        const pulse = Math.sin(phase * 1.35) * 0.5 + 0.5;
+        object.position.y = baseY + pulse * amplitude * 0.08;
+        object.traverse((child) => {
+          if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
+            child.material.emissiveIntensity = 0.12 + pulse * 0.14;
+          }
+        });
       } else if (behavior === "pulse") {
         const pulseScale = 1 + Math.sin(phase * 1.2) * 0.045;
         object.scale.setScalar(pulseScale);
@@ -2183,10 +2216,21 @@ class StudioGame {
       const instancedPropClusters = zoneAssets.reduce((sum, zone) => sum + zone.instancedPropClusters, 0);
       const instancedPropObjects = zoneAssets.reduce((sum, zone) => sum + zone.instancedPropObjects, 0);
       const sceneryRoleCounts: Record<string, number> = {};
+      let identityRibbonObjects = 0;
+      const identityRibbonSignatures = new Set<string>();
       this.scene.traverse((object) => {
         const role = object.userData.worldSceneryRole;
         if (typeof role === "string") {
-          sceneryRoleCounts[role] = (sceneryRoleCounts[role] ?? 0) + 1;
+          const roleCount =
+            typeof object.userData.worldSceneryRoleCount === "number" ? object.userData.worldSceneryRoleCount : 1;
+          sceneryRoleCounts[role] = (sceneryRoleCounts[role] ?? 0) + roleCount;
+          if (role === "identity-ribbon") {
+            identityRibbonObjects +=
+              typeof object.userData.worldSceneryObjectCount === "number" ? object.userData.worldSceneryObjectCount : roleCount;
+            if (typeof object.userData.worldScenerySignature === "string") {
+              identityRibbonSignatures.add(object.userData.worldScenerySignature);
+            }
+          }
         }
       });
 
@@ -2219,8 +2263,10 @@ class StudioGame {
         projectArtifactMaterials: this.projectArtifactMaterialIds.size,
         sceneryObjects: this.sceneryObjectCount,
         scenerySignatures: this.scenerySignatureIds.size,
-        sceneryMotionObjects: this.worldSceneryMotionObjects.length,
+        sceneryMotionObjects: this.worldSceneryMotionObjectCount,
         sceneryRoleCounts,
+        identityRibbonObjects,
+        identityRibbonSignatures: identityRibbonSignatures.size,
         terrainLayers: this.terrainLayerCount,
         routeGuidanceObjects: this.routeGuidanceObjectCount,
         routeGuidanceSignatures: this.routeGuidanceSignatureIds.size,
@@ -2292,6 +2338,7 @@ class StudioGame {
     const activePlaceArchitecture = this.placeArchitectureGroups.get(activeZone.id);
     const activeSignatureArtifact = this.signatureArtifactGroups.get(activeZone.id);
     const activeProjectArtifact = this.projectArtifactGroups.get(activeZone.id);
+    const identityRibbon = this.identityRibbonGroup;
     const previousScreen = this.qaSnapshot.screen;
     const activeLandmarkScreen = full && qaMode && activeLandmark
       ? this.projectObjectToScreenRect(activeLandmark)
@@ -2312,6 +2359,11 @@ class StudioGame {
       ? this.projectObjectToScreenRect(activeProjectArtifact)
       : previousScreen.activeProjectArtifact.zoneId === activeZone.id
         ? previousScreen.activeProjectArtifact
+        : this.emptyScreenRect();
+    const identityRibbonScreen = full && qaMode && identityRibbon
+      ? this.projectObjectToScreenRect(identityRibbon)
+      : previousScreen.identityRibbon.visible
+        ? previousScreen.identityRibbon
         : this.emptyScreenRect();
     const activePlaceArchitectureFamily =
       typeof activePlaceArchitecture?.userData.placeArchitectureFamily === "string"
@@ -2360,6 +2412,7 @@ class StudioGame {
         ...activeProjectArtifactScreen,
         zoneId: activeZone.id
       },
+      identityRibbon: identityRibbonScreen,
       activeZoneComposition: full
         ? this.createZoneComposition(activeZone.id, [
             activeLandmarkScreen,

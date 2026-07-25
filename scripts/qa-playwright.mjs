@@ -1857,14 +1857,23 @@ async function checkContact(page) {
 async function checkWorldRichness(page) {
   const snapshot = await getQaSnapshot(page, { refresh: true });
   const world = snapshot?.world;
-  const expectedSceneryRoles = ["terrain-edge", "tech-skyline", "art-sculpture", "studio-threshold", "route-light"];
+  const expectedSceneryRoles = [
+    "terrain-edge",
+    "tech-skyline",
+    "art-sculpture",
+    "studio-threshold",
+    "identity-ribbon",
+    "route-light"
+  ];
   const missingSceneryRoles = expectedSceneryRoles.filter((role) => !world?.sceneryRoleCounts?.[role]);
   const hasWorldComposition =
     world &&
     world.terrainLayers >= 5 &&
-    world.sceneryObjects >= 60 &&
-    world.scenerySignatures >= 24 &&
+    world.sceneryObjects >= 120 &&
+    world.scenerySignatures >= 29 &&
     world.sceneryMotionObjects >= 20 &&
+    world.identityRibbonObjects >= 60 &&
+    world.identityRibbonSignatures >= 1 &&
     missingSceneryRoles.length === 0;
   const allSignatureArtifactSignatures = (world?.zones ?? []).flatMap((zone) => zone.signatureArtifactSignatures ?? []);
   const duplicateSignatureArtifactSignatures = allSignatureArtifactSignatures.filter(
@@ -2087,6 +2096,34 @@ async function checkWorldRichness(page) {
       localMotionBehaviorTypes: [...localMotionBehaviorTypes].sort(),
       thinZones,
       zones: visualSpecZones
+    });
+  }
+
+  const identityRibbonRendered =
+    world &&
+    world.identityRibbonObjects >= 60 &&
+    world.identityRibbonSignatures >= 1 &&
+    world.sceneryRoleCounts?.["identity-ribbon"] === 1 &&
+    world.sceneryMotionObjects >= 20 &&
+    world.sceneObjects <= 955;
+  if (identityRibbonRendered) {
+    pass("identity-ribbon-rendered", {
+      identityRibbonObjects: world.identityRibbonObjects,
+      identityRibbonSignatures: world.identityRibbonSignatures,
+      roleCount: world.sceneryRoleCounts?.["identity-ribbon"],
+      sceneryObjects: world.sceneryObjects,
+      sceneryMotionObjects: world.sceneryMotionObjects,
+      sceneObjects: world.sceneObjects
+    });
+  } else {
+    scenarioFail("identity-ribbon-rendered", "The central IT/STUDIO/ART ribbon is not materialized within budget.", {
+      identityRibbonObjects: world?.identityRibbonObjects,
+      identityRibbonSignatures: world?.identityRibbonSignatures,
+      roleCount: world?.sceneryRoleCounts?.["identity-ribbon"],
+      sceneryObjects: world?.sceneryObjects,
+      sceneryMotionObjects: world?.sceneryMotionObjects,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: 955
     });
   }
 
@@ -3158,6 +3195,214 @@ async function inspectProjectArtifactVisibility(page, label) {
   }
 
   return ok;
+}
+
+async function inspectIdentityRibbonVisibility(page, label) {
+  const collect = async () =>
+    page.evaluate(() => {
+      if (typeof window.__IT_ART_STUDIO_QA_REFRESH__ === "function") {
+        window.__IT_ART_STUDIO_QA_REFRESH__();
+      }
+      const qa = window.__IT_ART_STUDIO_QA__;
+      const round = (value, digits = 3) => Number(value.toFixed(digits));
+      const ribbon = qa?.screen?.identityRibbon ?? null;
+      const selectors = [".game-hud", ".zone-panel", ".world-map", ".mobile-drive", ".mobile-zone-nav"];
+      const uiRects = selectors
+        .map((selector) => {
+          const node = document.querySelector(selector);
+          if (!(node instanceof HTMLElement)) {
+            return null;
+          }
+          const style = getComputedStyle(node);
+          const rect = node.getBoundingClientRect();
+          if (
+            style.display === "none" ||
+            style.visibility === "hidden" ||
+            Number(style.opacity) === 0 ||
+            rect.width === 0 ||
+            rect.height === 0
+          ) {
+            return null;
+          }
+          return { selector, left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+        })
+        .filter(Boolean);
+      const intersectArea = (a, b) => {
+        const left = Math.max(a.left, b.left);
+        const right = Math.min(a.right, b.right);
+        const top = Math.max(a.top, b.top);
+        const bottom = Math.min(a.bottom, b.bottom);
+        return Math.max(0, right - left) * Math.max(0, bottom - top);
+      };
+      const ribbonRect = ribbon
+        ? {
+            left: ribbon.clippedX ?? ribbon.x,
+            top: ribbon.clippedY ?? ribbon.y,
+            right: (ribbon.clippedX ?? ribbon.x) + (ribbon.clippedWidth ?? ribbon.width),
+            bottom: (ribbon.clippedY ?? ribbon.y) + (ribbon.clippedHeight ?? ribbon.height)
+          }
+        : null;
+      const clippedArea = ribbon?.clippedArea ?? ribbon?.area ?? 0;
+      const uiOccludedArea = ribbonRect ? uiRects.reduce((sum, rect) => sum + intersectArea(ribbonRect, rect), 0) : 0;
+      const uiOccludedRatio = clippedArea > 0 ? Math.min(1, uiOccludedArea / clippedArea) : 1;
+      const visibleAfterUiRatio = Math.max(0, (ribbon?.visibleRatio ?? 0) * (1 - uiOccludedRatio));
+      const sampleCanvasRoi = () => {
+        const canvas = document.querySelector("canvas");
+        if (!(canvas instanceof HTMLCanvasElement) || !ribbon || ribbon.clippedWidth <= 1 || ribbon.clippedHeight <= 1) {
+          return { sampled: false, brightRatio: 0, edgeDensity: 0, edgeTransitions: 0, colorBuckets: 0 };
+        }
+        const canvasRect = canvas.getBoundingClientRect();
+        const sourceLeft = Math.max(0, ribbon.clippedX - canvasRect.left);
+        const sourceTop = Math.max(0, ribbon.clippedY - canvasRect.top);
+        const sourceWidth = Math.min(ribbon.clippedWidth, canvasRect.width - sourceLeft);
+        const sourceHeight = Math.min(ribbon.clippedHeight, canvasRect.height - sourceTop);
+        const scaleX = canvas.width / canvasRect.width;
+        const scaleY = canvas.height / canvasRect.height;
+        const sx = Math.max(0, Math.floor(sourceLeft * scaleX));
+        const sy = Math.max(0, Math.floor(sourceTop * scaleY));
+        const sw = Math.max(1, Math.min(canvas.width - sx, Math.ceil(sourceWidth * scaleX)));
+        const sh = Math.max(1, Math.min(canvas.height - sy, Math.ceil(sourceHeight * scaleY)));
+        const roiWidth = Math.max(32, Math.min(128, Math.round(sourceWidth)));
+        const roiHeight = Math.max(24, Math.min(96, Math.round(sourceHeight)));
+        const roi = document.createElement("canvas");
+        roi.width = roiWidth;
+        roi.height = roiHeight;
+        const ctx = roi.getContext("2d", { willReadFrequently: true });
+        if (!ctx) {
+          return { sampled: false, brightRatio: 0, edgeDensity: 0, edgeTransitions: 0, colorBuckets: 0 };
+        }
+        try {
+          ctx.drawImage(canvas, sx, sy, sw, sh, 0, 0, roiWidth, roiHeight);
+          const pixels = ctx.getImageData(0, 0, roiWidth, roiHeight).data;
+          const lumas = [];
+          const buckets = new Set();
+          let brightPixels = 0;
+          let edgeTransitions = 0;
+          for (let y = 0; y < roiHeight; y += 1) {
+            for (let x = 0; x < roiWidth; x += 1) {
+              const index = (y * roiWidth + x) * 4;
+              const r = pixels[index];
+              const g = pixels[index + 1];
+              const b = pixels[index + 2];
+              const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+              lumas.push(luminance);
+              if (luminance >= 58) {
+                brightPixels += 1;
+              }
+              buckets.add(`${Math.floor(r / 36)}:${Math.floor(g / 36)}:${Math.floor(b / 36)}`);
+            }
+          }
+          const step = Math.max(2, Math.floor(Math.min(roiWidth, roiHeight) / 24));
+          let comparisons = 0;
+          for (let y = step; y < roiHeight; y += step) {
+            for (let x = step; x < roiWidth; x += step) {
+              const index = y * roiWidth + x;
+              comparisons += 2;
+              if (Math.abs(lumas[index] - lumas[index - step]) >= 14) {
+                edgeTransitions += 1;
+              }
+              if (Math.abs(lumas[index] - lumas[index - step * roiWidth]) >= 14) {
+                edgeTransitions += 1;
+              }
+            }
+          }
+          return {
+            sampled: true,
+            brightRatio: round(brightPixels / (roiWidth * roiHeight)),
+            edgeDensity: round(comparisons > 0 ? edgeTransitions / comparisons : 0),
+            edgeTransitions,
+            colorBuckets: buckets.size,
+            roiWidth,
+            roiHeight
+          };
+        } catch (error) {
+          return {
+            sampled: false,
+            error: error instanceof Error ? error.message : String(error),
+            brightRatio: 0,
+            edgeDensity: 0,
+            edgeTransitions: 0,
+            colorBuckets: 0
+          };
+        }
+      };
+
+      return {
+        activeZoneId: qa?.activeZoneId ?? null,
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+        frameCount: qa?.frameCount ?? 0,
+        averageFrameMs: qa?.averageFrameMs ?? 0,
+        ribbon,
+        world: {
+          sceneObjects: qa?.world?.sceneObjects ?? 0,
+          identityRibbonObjects: qa?.world?.identityRibbonObjects ?? 0,
+          identityRibbonSignatures: qa?.world?.identityRibbonSignatures ?? 0,
+          sceneryRoleCounts: qa?.world?.sceneryRoleCounts ?? {}
+        },
+        uiOccludedRatio: round(uiOccludedRatio),
+        visibleAfterUiRatio: round(visibleAfterUiRatio),
+        roi: sampleCanvasRoi()
+      };
+    });
+
+  const first = await collect();
+  await page.waitForTimeout(380);
+  const second = await collect();
+  await page.waitForTimeout(380);
+  const third = await collect();
+  const samples = [first, second, third];
+  const centerDelta = Math.max(
+    ...samples.slice(1).map((sample) =>
+      Math.hypot((sample.ribbon?.center?.x ?? 0) - (first.ribbon?.center?.x ?? 0), (sample.ribbon?.center?.y ?? 0) - (first.ribbon?.center?.y ?? 0))
+    )
+  );
+  const sizeDelta = Math.max(
+    ...samples.slice(1).map((sample) =>
+      Math.abs((sample.ribbon?.width ?? 0) - (first.ribbon?.width ?? 0)) +
+      Math.abs((sample.ribbon?.height ?? 0) - (first.ribbon?.height ?? 0))
+    )
+  );
+  const frameDelta = (third.frameCount ?? 0) - (first.frameCount ?? 0);
+  const motionDelta = Number(Math.max(centerDelta, sizeDelta).toFixed(3));
+  const weakestVisibleAfterUi = Math.min(...samples.map((sample) => sample.visibleAfterUiRatio ?? 0));
+  const weakestArea = Math.min(...samples.map((sample) => sample.ribbon?.clippedArea ?? 0));
+  const weakestEdges = Math.min(...samples.map((sample) => sample.roi?.edgeTransitions ?? 0));
+  const weakestBuckets = Math.min(...samples.map((sample) => sample.roi?.colorBuckets ?? 0));
+  const weakestBright = Math.min(...samples.map((sample) => sample.roi?.brightRatio ?? 0));
+
+  const ok =
+    samples.every((sample) => sample.ribbon?.visible === true) &&
+    samples.every((sample) => sample.roi?.sampled === true) &&
+    first.world.identityRibbonObjects >= 60 &&
+    first.world.identityRibbonSignatures >= 1 &&
+    first.world.sceneryRoleCounts?.["identity-ribbon"] === 1 &&
+    first.world.sceneObjects <= 955 &&
+    frameDelta >= 12 &&
+    motionDelta >= 0.35 &&
+    motionDelta <= 96 &&
+    weakestVisibleAfterUi >= 0.42 &&
+    weakestArea >= 1100 &&
+    weakestBright >= 0.03 &&
+    weakestEdges >= 8 &&
+    weakestBuckets >= 5;
+
+  const details = {
+    label,
+    samples,
+    frameDelta,
+    motionDelta,
+    weakestVisibleAfterUi: Number(weakestVisibleAfterUi.toFixed(3)),
+    weakestArea: Number(weakestArea.toFixed(1)),
+    weakestBright: Number(weakestBright.toFixed(3)),
+    weakestEdges,
+    weakestBuckets
+  };
+
+  if (ok) {
+    pass(`identity-ribbon-visible:${label}`, details);
+  } else {
+    scenarioFail(`identity-ribbon-visible:${label}`, "The IT/STUDIO/ART identity ribbon is not readable as a living 3D asset.", details);
+  }
 }
 
 async function inspectPlaceCompositionVisibility(page, label) {
@@ -4727,6 +4972,8 @@ async function writeReport() {
   const visualScenario = scenarios.find((scenario) => scenario.name === "visual-specs-rendered");
   const placeArchitectureScenario = scenarios.find((scenario) => scenario.name === "place-architecture-rendered");
   const projectArtifactsScenario = scenarios.find((scenario) => scenario.name === "project-artifacts-rendered");
+  const identityRibbonScenario = scenarios.find((scenario) => scenario.name === "identity-ribbon-rendered");
+  const identityRibbonVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("identity-ribbon-visible:"));
   const playerScenario = scenarios.find((scenario) => scenario.name === "player-personality");
   const trailScenario = scenarios.find((scenario) => scenario.name === "rover-trail:keyboard-route");
   const activationScenarios = scenarios.filter((scenario) => scenario.name.startsWith("activation-feedback:"));
@@ -4838,6 +5085,11 @@ async function writeReport() {
     `- Scenery motion objects: ${world?.sceneryMotionObjects ?? "n/a"}`,
     `- Scenery roles: ${
       world?.sceneryRoleCounts ? Object.entries(world.sceneryRoleCounts).map(([role, count]) => `${role}:${count}`).join(", ") : "n/a"
+    }`,
+    `- Identity ribbon: ${
+      identityRibbonScenario?.details
+        ? `${identityRibbonScenario.details.identityRibbonObjects} objects, signatures ${identityRibbonScenario.details.identityRibbonSignatures}, visibility ${identityRibbonVisibleScenarios.filter((scenario) => scenario.status === "pass").length}/${identityRibbonVisibleScenarios.length}`
+        : "n/a"
     }`,
     `- Material variants: ${world?.materialVariants ?? "n/a"}`,
     `- Motion roles: ${world?.motionRoles ?? "n/a"}`,
@@ -5039,6 +5291,7 @@ async function main() {
     await inspectSignatureArtifactVisibility(page, "home-loaded");
     await inspectProjectArtifactVisibility(page, "home-loaded");
     await inspectPlaceCompositionVisibility(page, "home-loaded");
+    await inspectIdentityRibbonVisibility(page, "home-loaded");
     await inspectZonePerceptualProof(page, "home-loaded");
     await checkLightingLayer(page, "home-loaded");
     await checkVisibleZoneControls(page, "desktop");

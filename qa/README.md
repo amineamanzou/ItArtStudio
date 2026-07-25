@@ -109,6 +109,9 @@ The runner:
 - projects the rover and active zone into screen coordinates, then checks that
   they stay readable and outside visible HUD, panel, mini-map, and mobile
   controls;
+- projects the central `IT / STUDIO / ART` identity ribbon into screen
+  coordinates and samples it across multiple frames so the QA proves a living
+  3D brand asset, not only a scene-graph entry;
 - clicks mini-map buttons with real pointer coordinates after a DOM hit-test and
   verifies active zone state, `aria-pressed`, pointer input mode, and player
   marker convergence;
@@ -191,6 +194,10 @@ The runner:
   events in `?qa=1&realKeys=1`: ArrowUp moves forward on the z axis, ArrowDown
   moves backward, ArrowLeft and ArrowRight move laterally and rotate the rover,
   and every proof must increment keyboard down/up counters over live frames.
+- The central identity ribbon must remain a 3D world object: at least 60
+  semantic pieces, one `identity-ribbon` role, visible screen-space bounds,
+  sampled ROI detail, measurable multi-frame motion, and no scene-object budget
+  regression above `955`.
 - The real keyboard tour must prove route continuity: at least 180 frames, 60
   units travelled, 16 active trail marks, stable camera distance/lag, and no
   invisible player samples.
