@@ -289,6 +289,21 @@ Gates V2.8:
   surface se dupliquent, si le graphe de route n'est pas materialise, ou si la
   scene depasse le budget d'objets fixe pour cette vague.
 
+Gates V2.9:
+
+- deux light-pools additifs reutilises, un sur la zone active et un sur la
+  route proche, sans nouvelle vraie lumiere ni ombre dynamique;
+- snapshot QA enrichi avec `lighting`: pools visibles, opacites, echelles,
+  route proche, nombre de vraies lumieres et nombre de lumieres avec ombre;
+- preuves perceptuelles par zone via ROI canvas de l'artefact signature actif:
+  hash 8x8, luminosite, densite de contours, buckets couleur et ratio visible;
+- rapport QA agrege `zone-perceptual-distance` et `all-zone-closeup-report`
+  pour verifier que les zones couvertes par la mini-map ne partagent pas la
+  meme empreinte visuelle;
+- rejet QA si l'eclairage devient couteux, si les light-pools disparaissent, si
+  les zones proches ont des hashes dupliques, ou si les preuves pixel manquent
+  de contraste local.
+
 ## Components
 
 - `game-site`: surface principale.

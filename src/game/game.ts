@@ -92,6 +92,19 @@ type ActivationFeedback = {
   intensity: number;
   triggerCount: number;
 };
+type LightingQa = {
+  poolCount: number;
+  poolObjects: number;
+  activePoolVisible: boolean;
+  activePoolOpacity: number;
+  activePoolScale: number;
+  routePoolVisible: boolean;
+  routePoolOpacity: number;
+  routePoolScale: number;
+  nearestRouteId: string | null;
+  realLightCount: number;
+  shadowCastingLightCount: number;
+};
 
 type ZoneAssetQa = {
   id: string;
@@ -230,6 +243,7 @@ type QaSnapshot = {
     maxScale: number;
     cameraImpulse: number;
   };
+  lighting: LightingQa;
   canvas: { width: number; height: number; dpr: number };
   frameCount: number;
   averageFrameMs: number;
@@ -296,6 +310,10 @@ class StudioGame {
   private readonly signatureArtifactGroups = new Map<string, THREE.Object3D>();
   private readonly worldSceneryMotionObjects: THREE.Object3D[] = [];
   private readonly routeGuidanceMotionObjects: THREE.Object3D[] = [];
+  private activeLightPool!: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
+  private routeLightPool!: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
+  private lightPoolObjectCount = 0;
+  private currentNearestRouteId: string | null = null;
   private readonly wheelMeshes: THREE.Mesh[] = [];
   private readonly trailMarks: TrailMark[] = [];
   private readonly frameDeltas: number[] = [];
@@ -437,6 +455,19 @@ class StudioGame {
       maxScale: 1,
       cameraImpulse: 0
     },
+    lighting: {
+      poolCount: 0,
+      poolObjects: 0,
+      activePoolVisible: false,
+      activePoolOpacity: 0,
+      activePoolScale: 0,
+      routePoolVisible: false,
+      routePoolOpacity: 0,
+      routePoolScale: 0,
+      nearestRouteId: null,
+      realLightCount: 0,
+      shadowCastingLightCount: 0
+    },
     canvas: { width: 0, height: 0, dpr: 1 },
     frameCount: 0,
     averageFrameMs: 0,
@@ -516,11 +547,41 @@ class StudioGame {
     this.addWorldScenery();
     this.addRoads();
     this.addRouteGuidance();
+    this.addLightingPools();
     this.addWorldProps();
 
     for (const zone of zones) {
       this.addZone(zone);
     }
+  }
+
+  private createLightPool(role: string, opacity: number) {
+    const mesh = new THREE.Mesh(
+      new THREE.CircleGeometry(1, 64),
+      new THREE.MeshBasicMaterial({
+        color: colors.studio,
+        transparent: true,
+        opacity,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+      })
+    );
+    mesh.rotation.x = -Math.PI * 0.5;
+    mesh.position.y = 0.052;
+    mesh.renderOrder = 2;
+    mesh.userData.worldLightingRole = role;
+    return mesh;
+  }
+
+  private addLightingPools() {
+    this.activeLightPool = this.createLightPool("active-zone-pool", motionQuery.matches ? 0.08 : 0.14);
+    this.routeLightPool = this.createLightPool("nearest-route-pool", motionQuery.matches ? 0.05 : 0.1);
+    this.routeLightPool.scale.setScalar(1.35);
+    this.scene.add(this.activeLightPool);
+    this.scene.add(this.routeLightPool);
+    this.decorativeObjectCount += 2;
+    this.lightPoolObjectCount = 2;
+    this.updateLightingPools(0);
   }
 
   private addWorldScenery() {
@@ -1243,6 +1304,7 @@ class StudioGame {
     this.updateActiveZone();
     this.updateWorldMotion(delta);
     this.updateActivationFeedback(delta);
+    this.updateLightingPools(delta);
     this.updateWorldSceneryMotion(delta);
     this.updateRouteGuidanceMotion(delta);
     this.updateCamera(delta);
@@ -1561,6 +1623,35 @@ class StudioGame {
         object.rotation.y = baseRotationY + Math.sin(phase * 0.8) * 0.035 + delta * 0.02;
       }
     });
+  }
+
+  private updateLightingPools(delta: number) {
+    if (!this.activeLightPool || !this.routeLightPool) {
+      return;
+    }
+
+    const activeZone = zones.find((zone) => zone.id === this.activeZoneId) ?? defaultZone;
+    const surface = sampleDriveSurface(this.playerPosition);
+    const route = worldRoutes.find((item) => item.id === surface.routeId);
+    const activePhase = motionQuery.matches ? 0 : Math.sin(this.elapsedTime * 1.6) * 0.5 + 0.5;
+    const routePhase = motionQuery.matches ? 0 : Math.sin(this.elapsedTime * 2.2 + 1.3) * 0.5 + 0.5;
+    const activeOpacity = motionQuery.matches ? 0.075 : 0.085 + activePhase * 0.055;
+    const routeOpacity = motionQuery.matches ? 0.045 : (surface.onRoute ? 0.065 : 0.035) + routePhase * 0.035;
+    const activeScale = activeZone.radius * (1.18 + activePhase * 0.1);
+    const routeScale = 0.95 + clamp(1 - surface.distance / 3, 0, 1) * 0.34 + routePhase * 0.07;
+
+    this.currentNearestRouteId = surface.routeId;
+    this.activeLightPool.visible = true;
+    this.activeLightPool.position.set(activeZone.position[0], 0.056, activeZone.position[1]);
+    this.activeLightPool.scale.lerp(new THREE.Vector3(activeScale, activeScale, activeScale), 1 - Math.pow(0.002, delta));
+    this.activeLightPool.material.color.setHex(colors[activeZone.kind]);
+    this.activeLightPool.material.opacity = activeOpacity;
+
+    this.routeLightPool.visible = Boolean(surface.routeId);
+    this.routeLightPool.position.set(surface.nearest.x, 0.058, surface.nearest.z);
+    this.routeLightPool.scale.lerp(new THREE.Vector3(routeScale, routeScale, routeScale), 1 - Math.pow(0.004, delta));
+    this.routeLightPool.material.color.setHex(colors[route?.kind ?? activeZone.kind]);
+    this.routeLightPool.material.opacity = routeOpacity;
   }
 
   private triggerZoneActivation(zone: StudioZone) {
@@ -1896,6 +1987,33 @@ class StudioGame {
       maxOpacity: Number(feedbackMeshes.reduce((max, mesh) => Math.max(max, mesh.material.opacity), 0).toFixed(3)),
       maxScale: Number(feedbackMeshes.reduce((max, mesh) => Math.max(max, mesh.scale.x), 1).toFixed(3)),
       cameraImpulse: Number(this.cameraImpulse.toFixed(3))
+    };
+    let realLightCount = 0;
+    let shadowCastingLightCount = 0;
+    let poolObjects = 0;
+    this.scene.traverse((object) => {
+      if (object instanceof THREE.Light) {
+        realLightCount += 1;
+        if (object.castShadow) {
+          shadowCastingLightCount += 1;
+        }
+      }
+      if (typeof object.userData.worldLightingRole === "string") {
+        poolObjects += 1;
+      }
+    });
+    this.qaSnapshot.lighting = {
+      poolCount: this.lightPoolObjectCount,
+      poolObjects,
+      activePoolVisible: this.activeLightPool?.visible ?? false,
+      activePoolOpacity: Number((this.activeLightPool?.material.opacity ?? 0).toFixed(3)),
+      activePoolScale: Number((this.activeLightPool?.scale.x ?? 0).toFixed(3)),
+      routePoolVisible: this.routeLightPool?.visible ?? false,
+      routePoolOpacity: Number((this.routeLightPool?.material.opacity ?? 0).toFixed(3)),
+      routePoolScale: Number((this.routeLightPool?.scale.x ?? 0).toFixed(3)),
+      nearestRouteId: this.currentNearestRouteId,
+      realLightCount,
+      shadowCastingLightCount
     };
     this.qaSnapshot.canvas = {
       width: this.canvas.width,

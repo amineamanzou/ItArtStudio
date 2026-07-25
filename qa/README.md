@@ -135,6 +135,17 @@ The runner:
   a sampled canvas ROI proving rendered contrast and color detail.
 - Mini-map destination checks must run the same signature artifact visibility
   gate for each zone covered by the active QA profile.
+- Mini-map destination checks must also collect a perceptual close-up proof for
+  each covered zone: 64-bit ROI hash, bright ratio, edge density, color bucket
+  count, generic hash balance, artifact area, and artifact visible ratio.
+- The aggregate `zone-perceptual-distance` gate must cover four zones in quick
+  profile and all ten zones in full profile, reject duplicate hashes, reject weak
+  ROI proofs, and keep the nearest-neighbor hamming distance above the calibrated
+  profile threshold.
+- The fake lighting layer must stay deliberately cheap: two additive light-pool
+  meshes, no more than two real Three.js lights, no more than one shadow-casting
+  light, visible active/route pools, and measured opacity/scale in the QA
+  snapshot.
 - The production URL must not expose `window.__IT_ART_STUDIO_QA__` or
   `window.__IT_ART_STUDIO_QA_STEP__`; those are reserved for QA URLs so the
   public runtime avoids repeated scene inventory traversal.
@@ -151,7 +162,8 @@ The runner:
 - The real keyboard tour must prove kinematic driving: at least 90 physics
   samples over 120 frames, 75 moving samples, 35 input samples, 18 coasting
   samples, peak speed between 8 and 18 units/s, bounded acceleration and turn
-  rates, normalized per-frame displacement <= 2.35, and a measured drag release.
+  rates, p95 acceleration <= 82, normalized per-frame displacement <= 2.35, and
+  a measured drag release.
 - The world must expose at least five terrain layers, 60 scenery objects, 24
   scenery signatures, 20 animated scenery objects, and all expected scenery
   roles: terrain edge, tech skyline, art sculpture, studio threshold, route
@@ -185,8 +197,10 @@ The runner:
 - Frame telemetry must be present in the QA snapshot.
 - Runtime frame budget warms up briefly, then must record at least 85 rendered
   frames over a 6s live window before screenshot sampling begins, with
-  approximate FPS >= 14 and average frame time <= 75ms. The report still keeps
-  the raw frame count, FPS, and average frame time visible for performance
+  approximate FPS >= 14 and average frame time <= 75ms. If the first sample hits
+  a warm-up stall, the runner retries once at the same thresholds and reports
+  the first attempt; thresholds are not lowered by the retry. The report still
+  keeps the raw frame count, FPS, and average frame time visible for performance
   tracking.
 - Keyboard route must reach:
   - `ai-lab`
@@ -226,6 +240,7 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
   - `physicsSamples`
 - `camera`
 - `screen`
+- `lighting`
 - `canvas`
 - `frameCount`
 - `averageFrameMs`
