@@ -9,7 +9,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "qa:game": "node scripts/qa-playwright.mjs"
+    "qa:game": "node scripts/qa-playwright.mjs",
+    "qa:game:quick": "QA_PROFILE=quick node scripts/qa-playwright.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.8",

@@ -9,9 +9,20 @@ Generated artifacts are written to `qa/artifacts/` and ignored by Git.
 npm run qa:game
 ```
 
+For tighter local loops:
+
+```bash
+npm run qa:game:quick
+```
+
 By default the runner uses `http://127.0.0.1:4331/?qa=1` so it can run next
 to a normal Astro dev server on `4321`. Override it with `QA_PORT` or
 `QA_BASE_URL` when needed.
+
+`qa:game` is the full pre-push gate. `qa:game:quick` keeps the same critical
+WebGL, color, world-richness, keyboard, contact, sampled mini-map, desktop,
+mobile, and reduced-motion checks while skipping the exhaustive breakpoint and
+all-pin traversal.
 
 The runner:
 
@@ -26,8 +37,9 @@ The runner:
   keyboard listener;
 - uses the `?qa=1` keyboard-step hook to keep navigation deterministic in
   headless Chromium while preserving `lastInputMode: keyboard`;
-- clicks mini-map pins and verifies the active zone state;
-- runs responsive captures for desktop, tablet, mobile, and small mobile;
+- clicks mini-map buttons through the DOM and verifies the active zone state;
+- runs responsive captures for desktop, tablet, mobile, and small mobile in
+  full mode;
 - runs a reduced-motion viewport;
 - checks that the contact CTA becomes a visible `mailto:` link;
 - captures screenshots for every major QA state;

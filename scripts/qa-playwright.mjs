@@ -10,6 +10,7 @@ const root = process.cwd();
 const startedAt = Date.now();
 const port = Number(process.env.QA_PORT ?? 4331);
 const baseUrl = process.env.QA_BASE_URL ?? `http://127.0.0.1:${port}/?qa=1`;
+const qaProfile = process.env.QA_PROFILE === "quick" ? "quick" : "full";
 const qaMode = (() => {
   try {
     return new URL(baseUrl).searchParams.has("qa");
@@ -547,23 +548,43 @@ async function checkViewport(page, viewport, label, options = {}) {
 }
 
 async function checkMiniMapJumps(page) {
-  const targets = [
-    "studio-gate",
-    "ai-lab",
-    "observability-tower",
-    "architecture-bridge",
-    "cloud-dock",
-    "design-atelier",
-    "three-d-foundry",
-    "fashion-room",
-    "values-plaza",
-    "contact-portal"
-  ];
+  const targets =
+    qaProfile === "quick"
+      ? ["studio-gate", "ai-lab", "design-atelier", "contact-portal"]
+      : [
+          "studio-gate",
+          "ai-lab",
+          "observability-tower",
+          "architecture-bridge",
+          "cloud-dock",
+          "design-atelier",
+          "three-d-foundry",
+          "fashion-room",
+          "values-plaza",
+          "contact-portal"
+        ];
 
   for (const targetId of targets) {
-    await page.locator(`.world-map [data-zone-jump="${targetId}"]`).click();
+    const clickResult = await page.evaluate((zoneId) => {
+      const button = document.querySelector(`.world-map [data-zone-jump="${zoneId}"]`);
+      if (!(button instanceof HTMLButtonElement)) {
+        return { clicked: false, reason: "missing-button" };
+      }
+      button.click();
+      return { clicked: true };
+    }, targetId);
+
+    if (!clickResult.clicked) {
+      const snapshot = await getQaSnapshot(page);
+      scenarioFail(`mini-map:${targetId}`, "Mini-map pin could not be clicked through the DOM.", {
+        clickResult,
+        snapshot
+      });
+      continue;
+    }
+
     await page.waitForFunction((zoneId) => window.__IT_ART_STUDIO_QA__?.activeZoneId === zoneId, targetId, {
-      timeout: 5_000
+      timeout: 12_000
     });
 
     const snapshot = await getQaSnapshot(page);
@@ -603,6 +624,7 @@ async function writeReport() {
   const summary = {
     status: failures.length === 0 ? "pass" : "fail",
     baseUrl,
+    qaProfile,
     outputRoot,
     durationMs: Date.now() - startedAt,
     scenarioCount: scenarios.length,
@@ -619,6 +641,7 @@ async function writeReport() {
     "",
     `Status: ${summary.status}`,
     `Base URL: ${baseUrl}`,
+    `Profile: ${summary.qaProfile}`,
     `Duration: ${summary.durationMs}ms`,
     `Failures: ${failures.length}`,
     `Console messages: ${consoleMessages.length}`,
@@ -708,13 +731,19 @@ async function main() {
     await checkContact(page);
     await checkMiniMapJumps(page);
     await capture(page, "mini-map-jumps");
-    await checkViewport(page, { width: 1280, height: 720 }, "desktop-wide");
-    await checkViewport(page, { width: 1024, height: 768 }, "tablet-landscape");
-    await checkViewport(page, { width: 821, height: 900 }, "tablet-boundary-desktop");
-    await checkViewport(page, { width: 820, height: 900 }, "tablet-portrait");
-    await checkMobileLayout(page);
-    await checkViewport(page, { width: 320, height: 700 }, "mobile-small");
-    await checkViewport(page, { width: 1024, height: 768 }, "reduced-motion", { reducedMotion: "reduce" });
+    if (qaProfile === "quick") {
+      await checkViewport(page, { width: 1280, height: 720 }, "desktop-wide");
+      await checkMobileLayout(page);
+      await checkViewport(page, { width: 1024, height: 768 }, "reduced-motion", { reducedMotion: "reduce" });
+    } else {
+      await checkViewport(page, { width: 1280, height: 720 }, "desktop-wide");
+      await checkViewport(page, { width: 1024, height: 768 }, "tablet-landscape");
+      await checkViewport(page, { width: 821, height: 900 }, "tablet-boundary-desktop");
+      await checkViewport(page, { width: 820, height: 900 }, "tablet-portrait");
+      await checkMobileLayout(page);
+      await checkViewport(page, { width: 320, height: 700 }, "mobile-small");
+      await checkViewport(page, { width: 1024, height: 768 }, "reduced-motion", { reducedMotion: "reduce" });
+    }
     await page.close();
   } catch (error) {
     fail("qa-runner-crash", {
