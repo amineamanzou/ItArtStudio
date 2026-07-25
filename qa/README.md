@@ -49,6 +49,8 @@ The runner:
   and distinct signatures;
 - verifies that the global world composition exposes terrain layers, route
   lights, district silhouettes, studio thresholds, and animated scenery roles;
+- verifies that keyboard and mini-map zone changes trigger visible 3D
+  activation feedback with rings, sparks, opacity, scale, and sequence telemetry;
 - records frame telemetry before gameplay scenarios;
 - measures a live runtime budget from the game's frame counter before
   screenshot sampling so WebGL stalls from pixel reads do not hide low FPS;
@@ -106,6 +108,10 @@ The runner:
   bounds.
 - The playable avatar must leave at least 18 reusable trail marks, with active
   visible marks after keyboard traversal.
+- Each keyboard and mini-map zone change must increase
+  `activeFeedback.sequence`, expose at least three activation rings, eight
+  sparks, nine visible feedback objects, max opacity >= 0.12, and max scale >=
+  1.06 in the short activation window.
 - Frame telemetry must be present in the QA snapshot.
 - Runtime frame budget warms up briefly, then must record at least 85 rendered
   frames over a 6s live window before screenshot sampling begins, with

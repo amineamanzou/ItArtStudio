@@ -25,6 +25,15 @@ type DriveKey = "up" | "down" | "left" | "right";
 
 type BoundsQa = { width: number; height: number; depth: number };
 type TrailMark = { mesh: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>; age: number; maxAge: number };
+type ActivationFeedback = {
+  group: THREE.Group;
+  halo: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
+  rings: Array<THREE.Mesh<THREE.TorusGeometry, THREE.MeshBasicMaterial>>;
+  sparks: Array<THREE.Mesh<THREE.SphereGeometry, THREE.MeshBasicMaterial>>;
+  age: number;
+  intensity: number;
+  triggerCount: number;
+};
 
 type ZoneAssetQa = {
   id: string;
@@ -83,6 +92,18 @@ type QaSnapshot = {
   };
   player: { x: number; z: number; rotationY: number; meshCount: number; wheelCount: number; bounds: BoundsQa };
   trail: { totalMarks: number; activeMarks: number; maxOpacity: number };
+  activeFeedback: {
+    zoneId: string;
+    sequence: number;
+    lastTriggeredFrame: number;
+    visibleObjects: number;
+    ringCount: number;
+    sparkCount: number;
+    intensity: number;
+    maxOpacity: number;
+    maxScale: number;
+    cameraImpulse: number;
+  };
   canvas: { width: number; height: number; dpr: number };
   frameCount: number;
   averageFrameMs: number;
@@ -133,6 +154,8 @@ class StudioGame {
   private readonly setDressingSignatureIds = new Set<string>();
   private readonly scenerySignatureIds = new Set<string>();
   private readonly zoneMotionObjects = new Map<string, THREE.Object3D[]>();
+  private readonly activationFeedbackByZone = new Map<string, ActivationFeedback>();
+  private readonly landmarkMeshes = new Map<string, THREE.Object3D>();
   private readonly worldSceneryMotionObjects: THREE.Object3D[] = [];
   private readonly wheelMeshes: THREE.Mesh[] = [];
   private readonly trailMarks: TrailMark[] = [];
@@ -140,6 +163,9 @@ class StudioGame {
   private readonly visitedZoneIds = new Set<string>([defaultZone.id]);
   private trailCursor = 0;
   private trailDistance = 0;
+  private activationSequence = 0;
+  private lastActivationFrame = 0;
+  private cameraImpulse = 0;
   private readonly qaSnapshot: QaSnapshot = {
     ready: false,
     activeZoneId: defaultZone.id,
@@ -168,6 +194,18 @@ class StudioGame {
     },
     player: { x: 0, z: 0, rotationY: 0, meshCount: 0, wheelCount: 0, bounds: { width: 0, height: 0, depth: 0 } },
     trail: { totalMarks: 0, activeMarks: 0, maxOpacity: 0 },
+    activeFeedback: {
+      zoneId: defaultZone.id,
+      sequence: 0,
+      lastTriggeredFrame: 0,
+      visibleObjects: 0,
+      ringCount: 0,
+      sparkCount: 0,
+      intensity: 0,
+      maxOpacity: 0,
+      maxScale: 1,
+      cameraImpulse: 0
+    },
     canvas: { width: 0, height: 0, dpr: 1 },
     frameCount: 0,
     averageFrameMs: 0,
@@ -487,6 +525,12 @@ class StudioGame {
     rim.userData.zoneId = zone.id;
     group.add(rim);
 
+    const activationFeedback = this.createZoneActivationFeedback(zone, accent);
+    group.add(activationFeedback.group);
+    this.activationFeedbackByZone.set(zone.id, activationFeedback);
+    this.decorativeObjectCount += 1 + activationFeedback.rings.length + activationFeedback.sparks.length;
+    this.motionRoleCount += activationFeedback.rings.length + activationFeedback.sparks.length;
+
     const visualSpec = zoneVisualSpecs[zone.id];
     if (visualSpec) {
       this.addZoneVisualSpec(group, zone, visualSpec);
@@ -500,6 +544,7 @@ class StudioGame {
       child.userData.zoneId = zone.id;
       child.userData.landmarkZone = zone.id;
     });
+    this.landmarkMeshes.set(zone.id, marker);
     group.add(marker);
 
     const label = this.createLabel(zone.shortLabel, accent);
@@ -508,6 +553,76 @@ class StudioGame {
 
     this.zoneMeshes.set(zone.id, group);
     this.scene.add(group);
+  }
+
+  private createZoneActivationFeedback(zone: StudioZone, accent: number): ActivationFeedback {
+    const group = new THREE.Group();
+    group.name = `${zone.id}-activation-feedback`;
+    group.userData.zoneId = zone.id;
+    group.userData.activationFeedbackZone = zone.id;
+
+    const halo = new THREE.Mesh(
+      new THREE.CircleGeometry(zone.radius * 1.28, 36),
+      new THREE.MeshBasicMaterial({
+        color: accent,
+        transparent: true,
+        opacity: 0.05,
+        depthWrite: false
+      })
+    );
+    halo.rotation.x = -Math.PI * 0.5;
+    halo.position.y = 0.31;
+    halo.userData.zoneId = zone.id;
+    halo.userData.activationFeedbackPart = "halo";
+    group.add(halo);
+
+    const rings: ActivationFeedback["rings"] = [];
+    for (let index = 0; index < 3; index += 1) {
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(zone.radius * (1.16 + index * 0.16), 0.018 + index * 0.004, 8, 72),
+        new THREE.MeshBasicMaterial({
+          color: index === 1 ? colors.studio : accent,
+          transparent: true,
+          opacity: 0.08,
+          depthWrite: false
+        })
+      );
+      ring.rotation.x = Math.PI * 0.5;
+      ring.position.y = 0.42 + index * 0.06;
+      ring.userData.zoneId = zone.id;
+      ring.userData.activationFeedbackPart = "ring";
+      ring.userData.motionRole = "activation-ring";
+      ring.userData.localMotionBehavior = "sweep";
+      group.add(ring);
+      rings.push(ring);
+    }
+
+    const sparks: ActivationFeedback["sparks"] = [];
+    for (let index = 0; index < 8; index += 1) {
+      const angle = (index / 8) * Math.PI * 2;
+      const radius = zone.radius * (1.05 + (index % 2) * 0.18);
+      const spark = new THREE.Mesh(
+        new THREE.SphereGeometry(0.07 + (index % 3) * 0.012, 10, 6),
+        new THREE.MeshBasicMaterial({
+          color: index % 2 === 0 ? accent : colors.studio,
+          transparent: true,
+          opacity: 0.06,
+          depthWrite: false
+        })
+      );
+      spark.position.set(Math.cos(angle) * radius, 0.62 + (index % 3) * 0.08, Math.sin(angle) * radius);
+      spark.userData.zoneId = zone.id;
+      spark.userData.activationFeedbackPart = "spark";
+      spark.userData.motionRole = "activation-spark";
+      spark.userData.localMotionBehavior = index % 2 === 0 ? "float" : "pulse";
+      spark.userData.motionBaseX = spark.position.x;
+      spark.userData.motionBaseY = spark.position.y;
+      spark.userData.motionBaseZ = spark.position.z;
+      group.add(spark);
+      sparks.push(spark);
+    }
+
+    return { group, halo, rings, sparks, age: 99, intensity: 0, triggerCount: 0 };
   }
 
   private addZoneVisualSpec(group: THREE.Group, zone: StudioZone, spec: ZoneVisualSpec) {
@@ -830,6 +945,7 @@ class StudioGame {
     this.updatePlayer(delta);
     this.updateActiveZone();
     this.updateWorldMotion(delta);
+    this.updateActivationFeedback(delta);
     this.updateWorldSceneryMotion(delta);
     this.updateCamera(delta);
     this.updateMiniMap();
@@ -1027,15 +1143,92 @@ class StudioGame {
     });
   }
 
+  private triggerZoneActivation(zone: StudioZone) {
+    const feedback = this.activationFeedbackByZone.get(zone.id);
+    if (!feedback) {
+      return;
+    }
+
+    this.activationSequence += 1;
+    this.lastActivationFrame = this.frameCount;
+    feedback.age = 0;
+    feedback.intensity = motionQuery.matches ? 0.42 : 1;
+    feedback.triggerCount += 1;
+    feedback.group.visible = true;
+    feedback.halo.material.opacity = motionQuery.matches ? 0.12 : 0.28;
+    feedback.halo.scale.setScalar(1);
+
+    feedback.rings.forEach((ring, index) => {
+      ring.visible = true;
+      ring.scale.setScalar(0.9 + index * 0.05);
+      ring.material.opacity = motionQuery.matches ? 0.16 : 0.62 - index * 0.1;
+    });
+    feedback.sparks.forEach((spark, index) => {
+      spark.visible = true;
+      spark.scale.setScalar(0.92 + (index % 3) * 0.08);
+      spark.material.opacity = motionQuery.matches ? 0.14 : 0.48 - (index % 3) * 0.04;
+    });
+
+    if (!motionQuery.matches) {
+      this.cameraImpulse = Math.max(this.cameraImpulse, 1);
+    }
+  }
+
+  private updateActivationFeedback(delta: number) {
+    this.activationFeedbackByZone.forEach((feedback, zoneId) => {
+      const active = zoneId === this.activeZoneId;
+      feedback.age += delta;
+      const burst = clamp(1 - feedback.age / (motionQuery.matches ? 1.4 : 2.2), 0, 1);
+      feedback.intensity = active ? (motionQuery.matches ? 0.2 + burst * 0.22 : 0.22 + burst * 0.78) : 0;
+      feedback.group.visible = active || feedback.intensity > 0.02;
+
+      feedback.halo.visible = feedback.group.visible;
+      feedback.halo.material.opacity = active ? (motionQuery.matches ? 0.08 + burst * 0.08 : 0.06 + burst * 0.22) : 0;
+      feedback.halo.scale.setScalar(1 + burst * (motionQuery.matches ? 0.08 : 0.2));
+
+      feedback.rings.forEach((ring, index) => {
+        const phase = this.elapsedTime * (0.9 + index * 0.16);
+        const spread = active ? 1 + (1 - burst) * (motionQuery.matches ? 0.12 : 0.34) + index * 0.05 : 1;
+        ring.visible = feedback.group.visible;
+        ring.rotation.z += delta * (active && !motionQuery.matches ? 0.35 + index * 0.1 : 0.08);
+        ring.scale.setScalar(spread + Math.sin(phase) * feedback.intensity * 0.025);
+        ring.material.opacity = active
+          ? (motionQuery.matches ? 0.1 : 0.12) + burst * (motionQuery.matches ? 0.12 : 0.42) - index * 0.035
+          : 0;
+      });
+
+      feedback.sparks.forEach((spark, index) => {
+        const baseX = typeof spark.userData.motionBaseX === "number" ? spark.userData.motionBaseX : spark.position.x;
+        const baseY = typeof spark.userData.motionBaseY === "number" ? spark.userData.motionBaseY : spark.position.y;
+        const baseZ = typeof spark.userData.motionBaseZ === "number" ? spark.userData.motionBaseZ : spark.position.z;
+        const phase = this.elapsedTime * (1.2 + (index % 4) * 0.11) + index * 0.7;
+        spark.visible = feedback.group.visible;
+        spark.position.x = baseX + Math.cos(phase) * feedback.intensity * 0.12;
+        spark.position.y = baseY + Math.sin(phase * 1.1) * feedback.intensity * (motionQuery.matches ? 0.04 : 0.18);
+        spark.position.z = baseZ + Math.sin(phase * 0.7) * feedback.intensity * 0.12;
+        spark.scale.setScalar(0.9 + burst * (motionQuery.matches ? 0.08 : 0.42) + (index % 3) * 0.04);
+        spark.material.opacity = active ? (motionQuery.matches ? 0.08 : 0.1) + burst * (motionQuery.matches ? 0.1 : 0.34) : 0;
+      });
+
+      const landmark = this.landmarkMeshes.get(zoneId);
+      if (landmark) {
+        const landmarkPulse = active && !motionQuery.matches ? 1 + burst * 0.14 : 1;
+        landmark.scale.lerp(new THREE.Vector3(landmarkPulse, landmarkPulse, landmarkPulse), 1 - Math.pow(0.0004, delta));
+      }
+    });
+  }
+
   private updateCamera(delta: number) {
     const target = this.playerPosition;
-    const desired = new THREE.Vector3(target.x + 8, 9.4, target.z + 8);
+    const impulse = motionQuery.matches ? 0 : this.cameraImpulse;
+    const desired = new THREE.Vector3(target.x + 8 + impulse * 0.24, 9.4 + impulse * 0.42, target.z + 8 + impulse * 0.24);
     this.camera.position.lerp(desired, 1 - Math.pow(0.001, delta));
-    this.camera.lookAt(target.x, 0, target.z);
+    this.camera.lookAt(target.x, impulse * 0.12, target.z);
+    this.cameraImpulse = Math.max(0, this.cameraImpulse - delta * 2.2);
   }
 
   private updateActiveZone() {
-    let closest = defaultZone;
+    let closest: StudioZone | null = null;
     let closestDistance = Number.POSITIVE_INFINITY;
 
     for (const zone of zones) {
@@ -1046,12 +1239,13 @@ class StudioGame {
       }
     }
 
-    if (closest.id !== this.activeZoneId) {
+    if (closest && closest.id !== this.activeZoneId) {
       this.updatePanel(closest);
     }
   }
 
   private updatePanel(zone: StudioZone) {
+    const shouldTriggerActivation = this.activeZoneId !== zone.id;
     this.activeZoneId = zone.id;
     this.visitedZoneIds.add(zone.id);
     document.querySelector("[data-game-root]")?.setAttribute("data-active-zone", zone.id);
@@ -1084,6 +1278,10 @@ class StudioGame {
     document.querySelectorAll<HTMLButtonElement>("[data-zone-jump]").forEach((button) => {
       button.setAttribute("aria-pressed", String(button.dataset.zoneJump === zone.id));
     });
+
+    if (shouldTriggerActivation) {
+      this.triggerZoneActivation(zone);
+    }
   }
 
   private markReady() {
@@ -1182,6 +1380,22 @@ class StudioGame {
       maxOpacity: Number(
         activeTrailMarks.reduce((max, mark) => Math.max(max, mark.mesh.material.opacity), 0).toFixed(3)
       )
+    };
+    const activeFeedback = this.activationFeedbackByZone.get(activeZone.id);
+    const feedbackMeshes = activeFeedback
+      ? [activeFeedback.halo, ...activeFeedback.rings, ...activeFeedback.sparks].filter((mesh) => mesh.visible)
+      : [];
+    this.qaSnapshot.activeFeedback = {
+      zoneId: activeZone.id,
+      sequence: this.activationSequence,
+      lastTriggeredFrame: this.lastActivationFrame,
+      visibleObjects: feedbackMeshes.filter((mesh) => mesh.material.opacity > 0.08).length,
+      ringCount: activeFeedback?.rings.length ?? 0,
+      sparkCount: activeFeedback?.sparks.length ?? 0,
+      intensity: Number((activeFeedback?.intensity ?? 0).toFixed(3)),
+      maxOpacity: Number(feedbackMeshes.reduce((max, mesh) => Math.max(max, mesh.material.opacity), 0).toFixed(3)),
+      maxScale: Number(feedbackMeshes.reduce((max, mesh) => Math.max(max, mesh.scale.x), 1).toFixed(3)),
+      cameraImpulse: Number(this.cameraImpulse.toFixed(3))
     };
     this.qaSnapshot.canvas = {
       width: this.canvas.width,

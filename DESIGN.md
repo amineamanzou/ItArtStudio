@@ -194,6 +194,17 @@ Gates V1.8:
   scenographie (`terrain-edge`, `tech-skyline`, `art-sculpture`,
   `studio-threshold`, `route-light`) disparaissent.
 
+Gates V1.9:
+
+- feedback d'activation 3D par zone: halo, anneaux, sparks, pulse du landmark
+  et impulsion camera legere;
+- snapshot QA enrichi avec `activeFeedback.sequence`, `visibleObjects`,
+  `ringCount`, `sparkCount`, `maxOpacity`, `maxScale` et `cameraImpulse`;
+- verification Playwright apres route clavier et mini-map que le monde repond
+  au changement de lieu, pas seulement le panneau HTML;
+- hors rayon de zone, conservation de la derniere zone active pour eviter le
+  flicker narratif vers `studio-gate` pendant les traversees.
+
 ## Components
 
 - `game-site`: surface principale.

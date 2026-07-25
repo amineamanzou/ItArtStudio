@@ -481,6 +481,55 @@ async function driveToZone(page, target) {
   return snapshot;
 }
 
+async function checkActivationFeedback(page, targetId, previousSequence = 0) {
+  const samples = [];
+  const started = Date.now();
+  while (Date.now() - started < 850) {
+    const snapshot = await getQaSnapshot(page);
+    if (snapshot?.activeFeedback) {
+      samples.push(snapshot.activeFeedback);
+    }
+    await page.waitForTimeout(90);
+  }
+
+  const matching = samples.filter((feedback) => feedback.zoneId === targetId && feedback.sequence > previousSequence);
+  const best = matching.reduce(
+    (winner, feedback) => {
+      if (!winner) {
+        return feedback;
+      }
+      return feedback.visibleObjects + feedback.maxOpacity + feedback.maxScale >
+        winner.visibleObjects + winner.maxOpacity + winner.maxScale
+        ? feedback
+        : winner;
+    },
+    null
+  );
+
+  const ok =
+    best &&
+    best.ringCount >= 3 &&
+    best.sparkCount >= 8 &&
+    best.visibleObjects >= 9 &&
+    best.maxOpacity >= 0.12 &&
+    best.maxScale >= 1.06 &&
+    best.intensity >= 0.12 &&
+    best.lastTriggeredFrame > 0;
+
+  if (ok) {
+    pass(`activation-feedback:${targetId}`, {
+      previousSequence,
+      best,
+      sampleCount: samples.length
+    });
+  } else {
+    scenarioFail(`activation-feedback:${targetId}`, "Zone activation did not produce strong enough 3D feedback.", {
+      previousSequence,
+      samples
+    });
+  }
+}
+
 async function checkRealKeyboardInput(page) {
   const before = await getQaSnapshot(page);
   let after = before;
@@ -1113,6 +1162,7 @@ async function checkMiniMapJumps(page) {
 
   for (const targetId of targets) {
     const pinSelector = `.world-map [data-zone-jump="${targetId}"]`;
+    const beforeActivation = await getQaSnapshot(page);
     const actionability = await clickActionable(page, pinSelector, `mini-map:${targetId}`, {
       minWidth: 30,
       minHeight: 30
@@ -1156,6 +1206,7 @@ async function checkMiniMapJumps(page) {
           recoveredAfterTimeout: true,
           message: error instanceof Error ? error.message : String(error)
         });
+        await checkActivationFeedback(page, targetId, beforeActivation?.activeFeedback?.sequence ?? 0);
         continue;
       }
       scenarioFail(`mini-map:${targetId}`, "Mini-map jump did not settle near the requested pin in time.", {
@@ -1177,6 +1228,7 @@ async function checkMiniMapJumps(page) {
         lastInputMode: snapshot.lastInputMode,
         actionability
       });
+      await checkActivationFeedback(page, targetId, beforeActivation?.activeFeedback?.sequence ?? 0);
     } else {
       scenarioFail(`mini-map:${targetId}`, "Mini-map jump did not synchronize active zone and aria state.", {
         snapshot,
@@ -1360,10 +1412,12 @@ async function writeReport() {
   const visualScenario = scenarios.find((scenario) => scenario.name === "visual-specs-rendered");
   const playerScenario = scenarios.find((scenario) => scenario.name === "player-personality");
   const trailScenario = scenarios.find((scenario) => scenario.name === "rover-trail:keyboard-route");
+  const activationScenarios = scenarios.filter((scenario) => scenario.name.startsWith("activation-feedback:"));
   const world = worldScenario?.details?.world;
   const player = playerScenario?.details?.player;
   const localMotionBehaviorTypes = visualScenario?.details?.localMotionBehaviorTypes ?? [];
   const trail = trailScenario?.details?.trail;
+  const lastActivation = activationScenarios.at(-1)?.details?.best;
 
   const lines = [
     "# IT Art Studio QA Report",
@@ -1413,6 +1467,12 @@ async function writeReport() {
     `- Player parts: ${player?.meshCount ?? "n/a"} (${player?.wheelCount ?? "n/a"} wheels)`,
     `- Rover trail: ${trail?.activeMarks ?? "n/a"}/${trail?.totalMarks ?? "n/a"} active, max opacity ${
       trail?.maxOpacity ?? "n/a"
+    }`,
+    `- Activation feedback checks: ${activationScenarios.length}`,
+    `- Last activation feedback: ${
+      lastActivation
+        ? `${lastActivation.zoneId}, sequence ${lastActivation.sequence}, visible ${lastActivation.visibleObjects}, opacity ${lastActivation.maxOpacity}, scale ${lastActivation.maxScale}`
+        : "n/a"
     }`,
     "",
     "## Screenshots",
@@ -1488,7 +1548,9 @@ async function main() {
     ];
 
     for (const target of targets) {
+      const beforeActivation = await getQaSnapshot(page);
       await driveToZone(page, target);
+      await checkActivationFeedback(page, target.id, beforeActivation?.activeFeedback?.sequence ?? 0);
       await capture(page, target.id);
     }
     await checkRoverTrail(page, "keyboard-route");
