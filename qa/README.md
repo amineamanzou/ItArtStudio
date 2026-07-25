@@ -41,6 +41,10 @@ The runner:
 - verifies that every `ZoneVisualSpec` is materialized in the rendered scene
   graph with decals, prop clusters, prop objects, material variants, and a
   distinct visual fingerprint;
+- verifies that every declared zone surface profile is materialized with finish,
+  motif, roles, signatures, and non-duplicated surface fingerprints;
+- verifies that route guidance is derived from the road graph and materializes
+  every drive segment with visible chevrons and studs;
 - verifies that rendered visual specs expose motion roles for biome-specific
   animation;
 - verifies that every zone exposes multiple local motion behaviors so the world
@@ -115,6 +119,9 @@ The runner:
   prop clusters, nine prop objects, six material variants, and a distinct
   fingerprint. The rendered counts must also meet or exceed the expectations
   derived from that zone's spec.
+- Every zone must expose one rendered surface profile, at least five surface
+  objects, five surface signatures, four surface roles, and a distinct surface
+  fingerprint.
 - Every zone must expose at least seven set dressing objects, three set dressing
   roles, five set dressing signatures, and a non-empty set dressing fingerprint.
 - The world must expose at least 78 set dressing objects and 58 set dressing
@@ -137,6 +144,10 @@ The runner:
 - The real keyboard tour must prove route adherence: at least 45 surface samples,
   route adherence >= 0.86, off-route ratio <= 0.14, max off-route distance <=
   2.8, and all expected IT/STUDIO/ART route ids covered.
+- Route guidance must materialize the drive graph: every segment visualized,
+  chevron and stud roles present for each segment, guidance marker count
+  reported in drive telemetry, and scene object count kept within the V2.8
+  budget.
 - The real keyboard tour must prove kinematic driving: at least 90 physics
   samples over 120 frames, 75 moving samples, 35 input samples, 18 coasting
   samples, peak speed between 8 and 18 units/s, bounded acceleration and turn

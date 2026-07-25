@@ -25,6 +25,13 @@ type DriveRouteSegment = {
   end: THREE.Vector2;
 };
 
+export type DriveSurfaceRouteSegmentQa = {
+  routeId: string;
+  start: { x: number; z: number };
+  end: { x: number; z: number };
+  length: number;
+};
+
 const routeWidth = 1.45;
 const zonePadExtraRadius = 0.55;
 
@@ -49,6 +56,15 @@ const routeSegments: DriveRouteSegment[] = worldRoutes.flatMap((route) => {
     end: points[index + 1]
   }));
 });
+
+export const driveSurfaceSegments: DriveSurfaceRouteSegmentQa[] = routeSegments.map((segment) => ({
+  routeId: segment.routeId,
+  start: { x: Number(segment.start.x.toFixed(3)), z: Number(segment.start.y.toFixed(3)) },
+  end: { x: Number(segment.end.x.toFixed(3)), z: Number(segment.end.y.toFixed(3)) },
+  length: Number(segment.start.distanceTo(segment.end).toFixed(3))
+}));
+
+const totalSegmentLength = Number(driveSurfaceSegments.reduce((sum, segment) => sum + segment.length, 0).toFixed(3));
 
 const nearestPointOnSegment = (point: THREE.Vector2, segment: DriveRouteSegment) => {
   const edge = segment.end.clone().sub(segment.start);
@@ -129,5 +145,7 @@ export function recordDriveSurfaceSample(
 export const driveSurfaceConfig = {
   routeWidth,
   zonePadExtraRadius,
-  segmentCount: routeSegments.length
+  routeCount: worldRoutes.length,
+  segmentCount: routeSegments.length,
+  totalSegmentLength
 };

@@ -1194,6 +1194,13 @@ async function checkWorldRichness(page) {
       zone.visualDecals < Math.max(3, zone.expectedVisuals?.decals ?? 0) ||
       zone.propClusters < Math.max(3, zone.expectedVisuals?.propClusters ?? 0) ||
       zone.propObjects < Math.max(9, zone.expectedVisuals?.propObjects ?? 0) ||
+      !zone.surfaceProfileId ||
+      !zone.surfaceFinish ||
+      !zone.surfaceMotif ||
+      zone.surfaceObjects < Math.max(5, zone.expectedVisuals?.surfaceObjects ?? 0) ||
+      zone.surfaceSignatures?.length < Math.max(5, zone.expectedVisuals?.surfaceSignatures ?? 0) ||
+      zone.surfaceRoles?.length < 4 ||
+      !zone.surfaceFingerprint ||
       zone.setDressingObjects < 7 ||
       zone.setDressingRoles?.length < 3 ||
       zone.setDressingSignatures?.length < 5 ||
@@ -1226,6 +1233,8 @@ async function checkWorldRichness(page) {
     world.visualSpecs === 10 &&
     world.visualDecals >= 30 &&
     world.propClusters >= 30 &&
+    world.surfaceObjects >= 50 &&
+    world.surfaceSignatures >= 50 &&
     world.setDressingObjects >= 78 &&
     world.setDressingSignatures >= 58 &&
     world.signatureArtifactObjects >= 55 &&
@@ -1270,12 +1279,21 @@ async function checkWorldRichness(page) {
   const localMotionBehaviorTypes = new Set(
     visualSpecZones.flatMap((zone) => Object.keys(zone.localMotionBehaviors ?? {}))
   );
+  const duplicateSurfaceFingerprints = visualSpecZones
+    .map((zone) => zone.surfaceFingerprint)
+    .filter((fingerprint, index, fingerprints) => fingerprint && fingerprints.indexOf(fingerprint) !== index);
+  const allSurfaceSignatures = visualSpecZones.flatMap((zone) => zone.surfaceSignatures ?? []);
+  const duplicateSurfaceSignatures = allSurfaceSignatures.filter(
+    (signature, index, signatures) => signature && signatures.indexOf(signature) !== index
+  );
   const visualSpecRendered =
     world &&
     visualSpecZones.length === snapshot.zoneCount &&
     world.visualSpecs === snapshot.zoneCount &&
     world.visualDecals >= snapshot.zoneCount * 3 &&
     world.propClusters >= snapshot.zoneCount * 3 &&
+    world.surfaceObjects >= snapshot.zoneCount * 5 &&
+    world.surfaceSignatures >= snapshot.zoneCount * 5 &&
     world.materialVariants >= snapshot.zoneCount * 6 &&
     world.setDressingObjects >= 78 &&
     world.setDressingSignatures >= 58 &&
@@ -1286,6 +1304,8 @@ async function checkWorldRichness(page) {
     hasWorldComposition &&
     world.motionRoles >= visualSpecZones.reduce((sum, zone) => sum + (zone.motionObjectCount ?? 0), 0) &&
     duplicateFingerprints.length === 0 &&
+    duplicateSurfaceFingerprints.length === 0 &&
+    duplicateSurfaceSignatures.length === 0 &&
     duplicateSetDressingFingerprints.length === 0 &&
     duplicateSetDressingSignatures.length === 0 &&
     duplicateSignatureArtifactSignatures.length === 0 &&
@@ -1298,6 +1318,8 @@ async function checkWorldRichness(page) {
       visualSpecs: world.visualSpecs,
       visualDecals: world.visualDecals,
       propClusters: world.propClusters,
+      surfaceObjects: world.surfaceObjects,
+      surfaceSignatures: world.surfaceSignatures,
       materialVariants: world.materialVariants,
       setDressingObjects: world.setDressingObjects,
       setDressingSignatures: world.setDressingSignatures,
@@ -1313,6 +1335,7 @@ async function checkWorldRichness(page) {
       sceneryRoleCounts: world.sceneryRoleCounts,
       motionRoles: world.motionRoles,
       motionRolesByType: world.motionRolesByType,
+      surfaceSignatures: allSurfaceSignatures,
       setDressingSignatures: allSetDressingSignatures,
       localMotionBehaviorTypes: [...localMotionBehaviorTypes].sort(),
       fingerprints: visualSpecZones.map((zone) => zone.visualFingerprint)
@@ -1322,6 +1345,8 @@ async function checkWorldRichness(page) {
       visualSpecs: world?.visualSpecs,
       visualDecals: world?.visualDecals,
       propClusters: world?.propClusters,
+      surfaceObjects: world?.surfaceObjects,
+      surfaceSignatures: world?.surfaceSignatures,
       materialVariants: world?.materialVariants,
       setDressingObjects: world?.setDressingObjects,
       setDressingSignatures: world?.setDressingSignatures,
@@ -1334,6 +1359,8 @@ async function checkWorldRichness(page) {
       motionRoles: world?.motionRoles,
       motionRolesByType: world?.motionRolesByType,
       duplicateFingerprints,
+      duplicateSurfaceFingerprints,
+      duplicateSurfaceSignatures,
       duplicateSetDressingFingerprints,
       duplicateSetDressingSignatures,
       duplicateSignatureArtifactSignatures,
@@ -1341,6 +1368,76 @@ async function checkWorldRichness(page) {
       localMotionBehaviorTypes: [...localMotionBehaviorTypes].sort(),
       thinZones,
       zones: visualSpecZones
+    });
+  }
+
+  const surfaceThinZones = visualSpecZones.filter(
+    (zone) =>
+      !zone.surfaceProfileId ||
+      !zone.surfaceFinish ||
+      !zone.surfaceMotif ||
+      (zone.surfaceObjects ?? 0) < Math.max(5, zone.expectedVisuals?.surfaceObjects ?? 0) ||
+      (zone.surfaceSignatures?.length ?? 0) < Math.max(5, zone.expectedVisuals?.surfaceSignatures ?? 0) ||
+      (zone.surfaceRoles?.length ?? 0) < 4 ||
+      !zone.surfaceFingerprint
+  );
+  if (
+    world &&
+    visualSpecZones.length === snapshot.zoneCount &&
+    world.surfaceObjects >= snapshot.zoneCount * 5 &&
+    world.surfaceSignatures >= snapshot.zoneCount * 5 &&
+    duplicateSurfaceFingerprints.length === 0 &&
+    duplicateSurfaceSignatures.length === 0 &&
+    surfaceThinZones.length === 0
+  ) {
+    pass("surface-spec-materialized", {
+      surfaceObjects: world.surfaceObjects,
+      surfaceSignatures: world.surfaceSignatures,
+      fingerprints: visualSpecZones.map((zone) => zone.surfaceFingerprint)
+    });
+  } else {
+    scenarioFail("surface-spec-materialized", "Declared zone surface profiles are not fully materialized.", {
+      surfaceObjects: world?.surfaceObjects,
+      surfaceSignatures: world?.surfaceSignatures,
+      duplicateSurfaceFingerprints,
+      duplicateSurfaceSignatures,
+      surfaceThinZones
+    });
+  }
+
+  const surface = snapshot?.drive?.surface;
+  const routeRoles = world?.routeGuidanceRoleCounts ?? {};
+  const routeGuidanceRendered =
+    world &&
+    surface &&
+    world.routeGuidanceObjects >= surface.segmentCount * 3 &&
+    world.routeGuidanceSignatures >= surface.segmentCount * 2 &&
+    world.routeGuidanceMotionObjects >= surface.segmentCount * 2 &&
+    world.routeGuidanceVisualizedSegments === surface.segmentCount &&
+    surface.visualizedSegmentCount === surface.segmentCount &&
+    surface.guidanceMarkerCount === world.routeGuidanceObjects &&
+    routeRoles["route-chevron"] >= surface.segmentCount &&
+    routeRoles["route-stud"] >= surface.segmentCount &&
+    world.sceneObjects <= 1040;
+  if (routeGuidanceRendered) {
+    pass("route-guidance-rendered", {
+      routeGuidanceObjects: world.routeGuidanceObjects,
+      routeGuidanceSignatures: world.routeGuidanceSignatures,
+      routeGuidanceMotionObjects: world.routeGuidanceMotionObjects,
+      routeGuidanceVisualizedSegments: world.routeGuidanceVisualizedSegments,
+      routeGuidanceRoleCounts: world.routeGuidanceRoleCounts,
+      surface,
+      sceneObjects: world.sceneObjects
+    });
+  } else {
+    scenarioFail("route-guidance-rendered", "Road graph is not sufficiently materialized as visual guidance.", {
+      routeGuidanceObjects: world?.routeGuidanceObjects,
+      routeGuidanceSignatures: world?.routeGuidanceSignatures,
+      routeGuidanceMotionObjects: world?.routeGuidanceMotionObjects,
+      routeGuidanceVisualizedSegments: world?.routeGuidanceVisualizedSegments,
+      routeGuidanceRoleCounts: world?.routeGuidanceRoleCounts,
+      surface,
+      sceneObjects: world?.sceneObjects
     });
   }
 

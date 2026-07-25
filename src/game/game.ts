@@ -7,6 +7,7 @@ import {
   sampleDriveSurface,
   type DriveSurfaceTelemetry
 } from "./drive-surfaces";
+import { createRouteGuidance } from "./route-guidance";
 import { createZoneSignatureArtifacts } from "./zone-signature-artifacts";
 import { createWorldScenery } from "./world-scenery";
 import { createZoneSetDressing } from "./zone-set-dressing";
@@ -112,10 +113,24 @@ type ZoneAssetQa = {
   signatureArtifactBounds: BoundsQa;
   signatureArtifactScreen: ScreenRectQa;
   materialVariants: number;
+  surfaceProfileId: string | null;
+  surfaceFinish: string | null;
+  surfaceMotif: string | null;
+  surfaceObjects: number;
+  surfaceRoles: string[];
+  surfaceSignatures: string[];
+  surfaceFingerprint: string;
   declaredMaterialVariants: string[];
   renderedMaterialVariants: string[];
   missingMaterialVariants: string[];
-  expectedVisuals: { decals: number; propClusters: number; propObjects: number; materialVariants: number };
+  expectedVisuals: {
+    decals: number;
+    propClusters: number;
+    propObjects: number;
+    surfaceObjects: number;
+    surfaceSignatures: number;
+    materialVariants: number;
+  };
   expectedAnimation: { idleSpin: number; activeSpin: number; activeScale: number; pulse: number } | null;
   appliedAnimation: { idleSpin: number; activeSpin: number; activeScale: number; pulse: number } | null;
   animationMatchesSpec: boolean;
@@ -143,6 +158,8 @@ type QaSnapshot = {
     visualSpecs: number;
     visualDecals: number;
     propClusters: number;
+    surfaceObjects: number;
+    surfaceSignatures: number;
     setDressingObjects: number;
     setDressingSignatures: number;
     signatureArtifactObjects: number;
@@ -152,6 +169,11 @@ type QaSnapshot = {
     sceneryMotionObjects: number;
     sceneryRoleCounts: Record<string, number>;
     terrainLayers: number;
+    routeGuidanceObjects: number;
+    routeGuidanceSignatures: number;
+    routeGuidanceMotionObjects: number;
+    routeGuidanceRoleCounts: Record<string, number>;
+    routeGuidanceVisualizedSegments: number;
     materialVariants: number;
     motionRoles: number;
     motionRolesByType: Record<string, number>;
@@ -165,7 +187,15 @@ type QaSnapshot = {
     averageSpeed: number;
     rotationChange: number;
     cameraDistance: number;
-    surface: DriveSurfaceTelemetry & { routeWidth: number; segmentCount: number };
+    surface: DriveSurfaceTelemetry & {
+      routeWidth: number;
+      routeCount: number;
+      segmentCount: number;
+      zonePadExtraRadius: number;
+      totalSegmentLength: number;
+      visualizedSegmentCount: number;
+      guidanceMarkerCount: number;
+    };
     dynamics: DriveDynamicsQa;
     physicsSamples: DrivePhysicsSampleQa[];
   };
@@ -243,22 +273,29 @@ class StudioGame {
   private roadSegmentCount = 0;
   private visualDecalCount = 0;
   private propClusterCount = 0;
+  private surfaceObjectCount = 0;
   private setDressingObjectCount = 0;
   private signatureArtifactObjectCount = 0;
   private sceneryObjectCount = 0;
   private terrainLayerCount = 0;
+  private routeGuidanceObjectCount = 0;
+  private routeGuidanceVisualizedSegments = 0;
   private motionRoleCount = 0;
   private playerPartCount = 0;
   private readonly renderedVisualSpecIds = new Set<string>();
   private readonly materialVariantIds = new Set<string>();
+  private readonly surfaceSignatureIds = new Set<string>();
   private readonly setDressingSignatureIds = new Set<string>();
   private readonly signatureArtifactSignatureIds = new Set<string>();
   private readonly scenerySignatureIds = new Set<string>();
+  private readonly routeGuidanceSignatureIds = new Set<string>();
+  private readonly routeGuidanceRoleCounts: Record<string, number> = {};
   private readonly zoneMotionObjects = new Map<string, THREE.Object3D[]>();
   private readonly activationFeedbackByZone = new Map<string, ActivationFeedback>();
   private readonly landmarkMeshes = new Map<string, THREE.Object3D>();
   private readonly signatureArtifactGroups = new Map<string, THREE.Object3D>();
   private readonly worldSceneryMotionObjects: THREE.Object3D[] = [];
+  private readonly routeGuidanceMotionObjects: THREE.Object3D[] = [];
   private readonly wheelMeshes: THREE.Mesh[] = [];
   private readonly trailMarks: TrailMark[] = [];
   private readonly frameDeltas: number[] = [];
@@ -305,6 +342,8 @@ class StudioGame {
       visualSpecs: 0,
       visualDecals: 0,
       propClusters: 0,
+      surfaceObjects: 0,
+      surfaceSignatures: 0,
       setDressingObjects: 0,
       setDressingSignatures: 0,
       signatureArtifactObjects: 0,
@@ -314,6 +353,11 @@ class StudioGame {
       sceneryMotionObjects: 0,
       sceneryRoleCounts: {},
       terrainLayers: 0,
+      routeGuidanceObjects: 0,
+      routeGuidanceSignatures: 0,
+      routeGuidanceMotionObjects: 0,
+      routeGuidanceRoleCounts: {},
+      routeGuidanceVisualizedSegments: 0,
       materialVariants: 0,
       motionRoles: 0,
       motionRolesByType: {},
@@ -327,7 +371,16 @@ class StudioGame {
       averageSpeed: 0,
       rotationChange: 0,
       cameraDistance: 0,
-      surface: { ...createDriveSurfaceTelemetry(), routeWidth: driveSurfaceConfig.routeWidth, segmentCount: driveSurfaceConfig.segmentCount },
+      surface: {
+        ...createDriveSurfaceTelemetry(),
+        routeWidth: driveSurfaceConfig.routeWidth,
+        routeCount: driveSurfaceConfig.routeCount,
+        segmentCount: driveSurfaceConfig.segmentCount,
+        zonePadExtraRadius: driveSurfaceConfig.zonePadExtraRadius,
+        totalSegmentLength: driveSurfaceConfig.totalSegmentLength,
+        visualizedSegmentCount: 0,
+        guidanceMarkerCount: 0
+      },
       dynamics: {
         currentSpeed: 0,
         peakSpeed: 0,
@@ -462,6 +515,7 @@ class StudioGame {
     this.addDistrictPlates();
     this.addWorldScenery();
     this.addRoads();
+    this.addRouteGuidance();
     this.addWorldProps();
 
     for (const zone of zones) {
@@ -479,6 +533,22 @@ class StudioGame {
     this.worldSceneryMotionObjects.push(...rendered.motionObjects);
     for (const signature of rendered.signatures) {
       this.scenerySignatureIds.add(signature);
+    }
+  }
+
+  private addRouteGuidance() {
+    const rendered = createRouteGuidance(colors);
+    this.scene.add(rendered.group);
+    this.routeGuidanceObjectCount += rendered.objectCount;
+    this.routeGuidanceVisualizedSegments += rendered.visualizedSegmentCount;
+    this.decorativeObjectCount += rendered.objectCount;
+    this.motionRoleCount += rendered.motionObjects.length;
+    this.routeGuidanceMotionObjects.push(...rendered.motionObjects);
+    for (const signature of rendered.signatures) {
+      this.routeGuidanceSignatureIds.add(signature);
+    }
+    for (const [role, count] of Object.entries(rendered.roleCounts)) {
+      this.routeGuidanceRoleCounts[role] = (this.routeGuidanceRoleCounts[role] ?? 0) + count;
     }
   }
 
@@ -814,9 +884,13 @@ class StudioGame {
     this.renderedVisualSpecIds.add(rendered.visualSpecId);
     this.visualDecalCount += rendered.visualDecals;
     this.propClusterCount += rendered.propClusters;
-    this.decorativeObjectCount += rendered.visualDecals + rendered.propObjects;
+    this.surfaceObjectCount += rendered.surfaceObjects;
+    this.decorativeObjectCount += rendered.surfaceObjects + rendered.visualDecals + rendered.propObjects;
     this.motionRoleCount += rendered.motionObjects.length;
     this.zoneMotionObjects.set(zone.id, rendered.motionObjects);
+    for (const signature of rendered.surfaceSignatures) {
+      this.surfaceSignatureIds.add(signature);
+    }
     for (const variant of rendered.materialVariants) {
       this.materialVariantIds.add(variant);
     }
@@ -1170,6 +1244,7 @@ class StudioGame {
     this.updateWorldMotion(delta);
     this.updateActivationFeedback(delta);
     this.updateWorldSceneryMotion(delta);
+    this.updateRouteGuidanceMotion(delta);
     this.updateCamera(delta);
     this.updateMiniMap();
     this.renderer.render(this.scene, this.camera);
@@ -1467,6 +1542,27 @@ class StudioGame {
     });
   }
 
+  private updateRouteGuidanceMotion(delta: number) {
+    if (motionQuery.matches) {
+      return;
+    }
+
+    this.routeGuidanceMotionObjects.forEach((object, index) => {
+      const baseY = typeof object.userData.motionBaseY === "number" ? object.userData.motionBaseY : object.position.y;
+      const baseRotationY =
+        typeof object.userData.motionBaseRotationY === "number" ? object.userData.motionBaseRotationY : object.rotation.y;
+      const behavior = object.userData.localMotionBehavior;
+      const phase = this.elapsedTime * (1.15 + (index % 5) * 0.08) + index * 0.37;
+      if (behavior === "pulse") {
+        object.position.y = baseY + Math.sin(phase) * 0.018;
+        object.scale.setScalar(1 + Math.sin(phase * 1.2) * 0.035);
+      } else {
+        object.position.y = baseY + Math.sin(phase * 1.4) * 0.012;
+        object.rotation.y = baseRotationY + Math.sin(phase * 0.8) * 0.035 + delta * 0.02;
+      }
+    });
+  }
+
   private triggerZoneActivation(zone: StudioZone) {
     const feedback = this.activationFeedbackByZone.get(zone.id);
     if (!feedback) {
@@ -1682,6 +1778,8 @@ class StudioGame {
       visualSpecs: this.renderedVisualSpecIds.size,
       visualDecals: this.visualDecalCount,
       propClusters: this.propClusterCount,
+      surfaceObjects: this.surfaceObjectCount,
+      surfaceSignatures: this.surfaceSignatureIds.size,
       setDressingObjects: this.setDressingObjectCount,
       setDressingSignatures: this.setDressingSignatureIds.size,
       signatureArtifactObjects: this.signatureArtifactObjectCount,
@@ -1691,6 +1789,11 @@ class StudioGame {
       sceneryMotionObjects: this.worldSceneryMotionObjects.length,
       sceneryRoleCounts,
       terrainLayers: this.terrainLayerCount,
+      routeGuidanceObjects: this.routeGuidanceObjectCount,
+      routeGuidanceSignatures: this.routeGuidanceSignatureIds.size,
+      routeGuidanceMotionObjects: this.routeGuidanceMotionObjects.length,
+      routeGuidanceRoleCounts: { ...this.routeGuidanceRoleCounts },
+      routeGuidanceVisualizedSegments: this.routeGuidanceVisualizedSegments,
       materialVariants: this.materialVariantIds.size,
       motionRoles: this.motionRoleCount,
       motionRolesByType,
@@ -1722,7 +1825,12 @@ class StudioGame {
       surface: {
         ...this.driveSurfaceTelemetry,
         routeWidth: driveSurfaceConfig.routeWidth,
-        segmentCount: driveSurfaceConfig.segmentCount
+        routeCount: driveSurfaceConfig.routeCount,
+        segmentCount: driveSurfaceConfig.segmentCount,
+        zonePadExtraRadius: driveSurfaceConfig.zonePadExtraRadius,
+        totalSegmentLength: driveSurfaceConfig.totalSegmentLength,
+        visualizedSegmentCount: this.routeGuidanceVisualizedSegments,
+        guidanceMarkerCount: this.routeGuidanceObjectCount
       },
       dynamics: {
         currentSpeed: Number(this.lastDriveSpeed.toFixed(3)),
@@ -1853,10 +1961,24 @@ class StudioGame {
         signatureArtifactBounds: { width: 0, height: 0, depth: 0 },
         signatureArtifactScreen: this.emptyScreenRect(),
         materialVariants: 0,
+        surfaceProfileId: null,
+        surfaceFinish: null,
+        surfaceMotif: null,
+        surfaceObjects: 0,
+        surfaceRoles: [],
+        surfaceSignatures: [],
+        surfaceFingerprint: "",
         declaredMaterialVariants: [],
         renderedMaterialVariants: [],
         missingMaterialVariants: [],
-        expectedVisuals: { decals: 0, propClusters: 0, propObjects: 0, materialVariants: 0 },
+        expectedVisuals: {
+          decals: 0,
+          propClusters: 0,
+          propObjects: 0,
+          surfaceObjects: 0,
+          surfaceSignatures: 0,
+          materialVariants: 0
+        },
         expectedAnimation: null,
         appliedAnimation: null,
         animationMatchesSpec: false,
@@ -1883,8 +2005,11 @@ class StudioGame {
     const signatureArtifactFamilies = new Set<string>();
     const signatureArtifactSignatures = new Set<string>();
     const signatureArtifactMaterials = new Set<string>();
+    const surfaceRoles = new Set<string>();
+    const surfaceSignatures = new Set<string>();
     let setDressingObjects = 0;
     let signatureArtifactObjects = 0;
+    let surfaceObjects = 0;
     const materialVariants = new Set<string>();
     const semanticMaterialVariants = new Set<string>();
     const motionRoleCounts: Record<string, number> = {};
@@ -1941,6 +2066,15 @@ class StudioGame {
           }
         }
       }
+      if (typeof child.userData.surfaceRole === "string") {
+        surfaceRoles.add(child.userData.surfaceRole);
+        if (child instanceof THREE.Mesh) {
+          surfaceObjects += 1;
+          if (typeof child.userData.surfaceSignature === "string") {
+            surfaceSignatures.add(child.userData.surfaceSignature);
+          }
+        }
+      }
       if (typeof child.userData.materialVariant === "string") {
         materialVariants.add(child.userData.materialVariant);
       }
@@ -1993,6 +2127,19 @@ class StudioGame {
       signatureArtifactScreen:
         qaMode && signatureArtifactGroup ? this.projectObjectToScreenRect(signatureArtifactGroup) : this.emptyScreenRect(),
       materialVariants: materialVariants.size,
+      surfaceProfileId: typeof group.userData.surfaceProfileId === "string" ? group.userData.surfaceProfileId : null,
+      surfaceFinish: typeof group.userData.surfaceFinish === "string" ? group.userData.surfaceFinish : null,
+      surfaceMotif: typeof group.userData.surfaceMotif === "string" ? group.userData.surfaceMotif : null,
+      surfaceObjects,
+      surfaceRoles: [...surfaceRoles].sort(),
+      surfaceSignatures: [...surfaceSignatures].sort(),
+      surfaceFingerprint: [
+        group.userData.surfaceProfileId ?? "missing-surface",
+        group.userData.surfaceFinish ?? "missing-finish",
+        group.userData.surfaceMotif ?? "missing-motif",
+        [...surfaceRoles].sort().join("+"),
+        [...surfaceSignatures].sort().join("+")
+      ].join("|"),
       declaredMaterialVariants,
       renderedMaterialVariants,
       missingMaterialVariants,
@@ -2000,6 +2147,8 @@ class StudioGame {
         decals: spec?.decals.length ?? 0,
         propClusters: spec?.propClusters.length ?? 0,
         propObjects: spec?.propClusters.reduce((sum, cluster) => sum + cluster.count, 0) ?? 0,
+        surfaceObjects: spec ? 1 + spec.surface.bands.length : 0,
+        surfaceSignatures: spec ? 1 + spec.surface.bands.length : 0,
         materialVariants: expectedMaterialVariants.size
       },
       expectedAnimation,

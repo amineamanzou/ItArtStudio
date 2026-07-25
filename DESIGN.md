@@ -276,6 +276,19 @@ Gates V2.5:
 - rejet QA si la conduite ne couvre pas les routes attendues, sort trop souvent
   du graphe ou manque de continuite camera/trail.
 
+Gates V2.8:
+
+- surfaces materielles par zone dans `ZoneSurfaceSpec`: finish, motif, bandes,
+  roles et signatures exposes dans le scene graph;
+- guidage visuel derive de `worldRoutes`: chevrons et studs sur chaque segment
+  de route, sans toucher a la physique de conduite;
+- snapshot QA enrichi avec `surfaceObjects`, `surfaceSignatures`,
+  `routeGuidanceObjects`, `routeGuidanceSignatures`,
+  `routeGuidanceVisualizedSegments` et les compteurs de roles de guidage;
+- rejet QA si une surface declaree n'est pas rendue, si les fingerprints de
+  surface se dupliquent, si le graphe de route n'est pas materialise, ou si la
+  scene depasse le budget d'objets fixe pour cette vague.
+
 ## Components
 
 - `game-site`: surface principale.
