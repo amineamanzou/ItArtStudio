@@ -59,6 +59,12 @@ The runner:
   pixel ROI with enough brightness, edge transitions, and color buckets;
 - reuses that signature artifact visibility proof after mini-map jumps so the
   wider cartography is validated, not only the real keyboard route;
+- verifies that the active landmark, place architecture, and signature artifact
+  are visible together as a readable screen-space composition, with bounded UI
+  occlusion, coherent center spread, reported layer overlap, and a local ROI on
+  the composition union;
+- aggregates place-composition proofs across the sampled mini-map zones so quick
+  mode covers four representative zones and full mode covers all ten zones;
 - verifies that the global world composition exposes terrain layers, route
   lights, district silhouettes, studio thresholds, and animated scenery roles;
 - verifies that keyboard and mini-map zone changes trigger visible 3D
@@ -83,7 +89,8 @@ The runner:
   samples, speed curve, acceleration, drag after release, turn rate, and
   normalized per-frame displacement;
 - opens the production URL without `?qa=1` and verifies that the game reaches
-  `game-ready` without exposing the heavy QA snapshot or deterministic step hook;
+  `game-ready` without exposing the heavy QA snapshot, deterministic step hook,
+  or explicit QA refresh hook;
 - projects the rover and active zone into screen coordinates, then checks that
   they stay readable and outside visible HUD, panel, mini-map, and mobile
   controls;
@@ -140,8 +147,16 @@ The runner:
   keyboard checkpoint, with minimum screen size, visible canvas ratio, limited
   UI occlusion, no center occlusion by HUD/panel/mini-map/mobile controls, and
   a sampled canvas ROI proving rendered contrast and color detail.
+- Active place composition must be visible at the loaded state, every real
+  keyboard checkpoint, and every mini-map destination covered by the QA profile:
+  landmark, place architecture, and signature artifact must all project to
+  readable screen rectangles, remain outside UI center occlusion, and form a
+  bounded union with enough canvas brightness, edge density, and color buckets.
 - Mini-map destination checks must run the same signature artifact visibility
   gate for each zone covered by the active QA profile.
+- Mini-map destination checks must also run `place-composition-visible`; the
+  aggregate `place-composition-coverage` gate must cover four zones in quick
+  profile and all ten zones in full profile.
 - Mini-map destination checks must also collect a perceptual close-up proof for
   each covered zone: 64-bit ROI hash, bright ratio, edge density, color bucket
   count, generic hash balance, artifact area, and artifact visible ratio.
@@ -154,8 +169,9 @@ The runner:
   light, visible active/route pools, and measured opacity/scale in the QA
   snapshot.
 - The production URL must not expose `window.__IT_ART_STUDIO_QA__` or
-  `window.__IT_ART_STUDIO_QA_STEP__`; those are reserved for QA URLs so the
-  public runtime avoids repeated scene inventory traversal.
+  `window.__IT_ART_STUDIO_QA_STEP__` or `window.__IT_ART_STUDIO_QA_REFRESH__`;
+  those are reserved for QA URLs so the public runtime avoids repeated scene
+  inventory traversal.
 - The real keyboard tour must prove route continuity: at least 180 frames, 60
   units travelled, 16 active trail marks, stable camera distance/lag, and no
   invisible player samples.

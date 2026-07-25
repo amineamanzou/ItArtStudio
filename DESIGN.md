@@ -258,8 +258,9 @@ Gates V2.4:
   10 zones couvertes en profil full;
 - rapport QA distinct pour les preuves mini-map afin de verifier toute la
   cartographie et pas seulement le trajet clavier principal;
-- runtime public sans snapshot QA lourd: `window.__IT_ART_STUDIO_QA__` et
-  `window.__IT_ART_STUDIO_QA_STEP__` restent reserves aux URLs `?qa=1`;
+- runtime public sans snapshot QA lourd: `window.__IT_ART_STUDIO_QA__`,
+  `window.__IT_ART_STUDIO_QA_STEP__` et `window.__IT_ART_STUDIO_QA_REFRESH__`
+  restent reserves aux URLs `?qa=1`;
 - rejet QA si la production n'atteint pas `game-ready` sans exposer les hooks de
   test ou si le canvas cesse d'animer.
 
@@ -318,6 +319,23 @@ Gates V3.0:
 - rejet QA si une zone perd sa famille, si une signature se duplique, si les
   bounds ne forment pas une silhouette lisible, ou si le budget scene depasse le
   cap V3 fixe a 1080 objets.
+
+Gates V3.1:
+
+- projection screen-space des trois signes actifs du lieu: landmark,
+  architecture de lieu et artefact signature;
+- composition active calculee comme union de ces trois couches, avec nombre de
+  couches visibles, aire clippee, distances entre centres, recouvrement entre
+  couches et ratio de couche dominante exposes dans le rapport;
+- verification Playwright `place-composition-visible` au chargement, sur le
+  vrai trajet clavier et sur les sauts mini-map couverts par le profil QA;
+- preuve locale par ROI canvas sur l'union de composition: luminosite, densite
+  de contours et buckets couleur, plus mesure d'occlusion par l'UI visible;
+- hook QA explicite `window.__IT_ART_STUDIO_QA_REFRESH__` pour rafraichir les
+  projections screen-space juste avant les inspections, sans taxer le rendu en
+  continu;
+- rejet QA si le lieu actif est present dans l'inventaire mais ne se lit pas
+  comme une scene 3D coherente a l'ecran.
 
 ## Components
 

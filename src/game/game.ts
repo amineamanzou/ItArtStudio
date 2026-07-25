@@ -83,6 +83,23 @@ type ScreenRectQa = {
   visible: boolean;
   center: ScreenPointQa;
 };
+type ZoneCompositionQa = {
+  zoneId: string;
+  visibleLayerCount: number;
+  union: ScreenRectQa;
+  centerSpreadPx: number;
+  pairDistancesPx: {
+    landmarkToPlace: number;
+    landmarkToSignature: number;
+    placeToSignature: number;
+  };
+  pairOverlapRatios: {
+    landmarkPlace: number;
+    landmarkSignature: number;
+    placeSignature: number;
+  };
+  largestLayerAreaRatio: number;
+};
 type TrailMark = { mesh: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>; age: number; maxAge: number };
 type ActivationFeedback = {
   group: THREE.Group;
@@ -232,7 +249,10 @@ type QaSnapshot = {
   screen: {
     player: ScreenPointQa;
     activeZone: ScreenPointQa & { zoneId: string };
+    activeLandmark: ScreenRectQa & { zoneId: string };
+    activePlaceArchitecture: ScreenRectQa & { zoneId: string; family: string | null };
     activeSignatureArtifact: ScreenRectQa & { zoneId: string };
+    activeZoneComposition: ZoneCompositionQa;
   };
   input: {
     activeKeys: DriveKey[];
@@ -267,6 +287,7 @@ declare global {
   interface Window {
     __IT_ART_STUDIO_QA__?: QaSnapshot;
     __IT_ART_STUDIO_QA_STEP__?: (direction: DriveKey) => void;
+    __IT_ART_STUDIO_QA_REFRESH__?: () => void;
   }
 }
 
@@ -441,6 +462,41 @@ class StudioGame {
     screen: {
       player: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false },
       activeZone: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false, zoneId: defaultZone.id },
+      activeLandmark: {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        area: 0,
+        clippedX: 0,
+        clippedY: 0,
+        clippedWidth: 0,
+        clippedHeight: 0,
+        clippedArea: 0,
+        visibleRatio: 0,
+        cornerDepthCount: 0,
+        visible: false,
+        center: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false },
+        zoneId: defaultZone.id
+      },
+      activePlaceArchitecture: {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        area: 0,
+        clippedX: 0,
+        clippedY: 0,
+        clippedWidth: 0,
+        clippedHeight: 0,
+        clippedArea: 0,
+        visibleRatio: 0,
+        cornerDepthCount: 0,
+        visible: false,
+        center: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false },
+        zoneId: defaultZone.id,
+        family: null
+      },
       activeSignatureArtifact: {
         x: 0,
         y: 0,
@@ -457,6 +513,38 @@ class StudioGame {
         visible: false,
         center: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false },
         zoneId: defaultZone.id
+      },
+      activeZoneComposition: {
+        zoneId: defaultZone.id,
+        visibleLayerCount: 0,
+        union: {
+          x: 0,
+          y: 0,
+          width: 0,
+          height: 0,
+          area: 0,
+          clippedX: 0,
+          clippedY: 0,
+          clippedWidth: 0,
+          clippedHeight: 0,
+          clippedArea: 0,
+          visibleRatio: 0,
+          cornerDepthCount: 0,
+          visible: false,
+          center: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false }
+        },
+        centerSpreadPx: 0,
+        pairDistancesPx: {
+          landmarkToPlace: 0,
+          landmarkToSignature: 0,
+          placeToSignature: 0
+        },
+        pairOverlapRatios: {
+          landmarkPlace: 0,
+          landmarkSignature: 0,
+          placeSignature: 0
+        },
+        largestLayerAreaRatio: 0
       }
     },
     input: { activeKeys: [], keyboardDownCount: 0, keyboardUpCount: 0, lastKeyboardCode: null, qaStepHookCalls: 0 },
@@ -503,8 +591,7 @@ class StudioGame {
       preserveDrawingBuffer: qaMode,
       powerPreference: "high-performance"
     });
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.shadowMap.enabled = false;
   }
 
   start() {
@@ -517,6 +604,7 @@ class StudioGame {
     this.updatePanel(defaultZone);
     if (qaMode) {
       this.exposeQaSnapshot();
+      this.exposeQaRefresh();
     }
     this.exposeQaControls();
     this.animate();
@@ -531,12 +619,7 @@ class StudioGame {
 
     const key = new THREE.DirectionalLight(0xffffff, 2.5);
     key.position.set(-6, 11, 8);
-    key.castShadow = true;
-    key.shadow.mapSize.set(1024, 1024);
-    key.shadow.camera.left = -14;
-    key.shadow.camera.right = 14;
-    key.shadow.camera.top = 14;
-    key.shadow.camera.bottom = -14;
+    key.castShadow = false;
     this.scene.add(key);
 
     this.camera.position.set(8, 9, 8);
@@ -1346,7 +1429,7 @@ class StudioGame {
     const shouldSyncQa = qaMode && (!this.qaSnapshot.ready || now - this.lastQaSyncTime > 250);
     this.markReady();
     if (shouldSyncQa) {
-      this.syncQaSnapshot();
+      this.syncQaSnapshot({ full: false });
     }
   };
 
@@ -1848,6 +1931,10 @@ class StudioGame {
     window.__IT_ART_STUDIO_QA__ = this.qaSnapshot;
   }
 
+  private exposeQaRefresh() {
+    window.__IT_ART_STUDIO_QA_REFRESH__ = () => this.syncQaSnapshot({ full: true });
+  }
+
   private exposeQaControls() {
     if (!qaMode || realKeyboardQaMode) {
       return;
@@ -1859,7 +1946,8 @@ class StudioGame {
     };
   }
 
-  private syncQaSnapshot() {
+  private syncQaSnapshot(options: { full?: boolean } = {}) {
+    const full = options.full ?? true;
     this.lastQaSyncTime = performance.now();
     const stableFrameDeltas = this.frameDeltas.filter((item) => item > 0 && item < 120);
     const averageFrameMs =
@@ -1870,62 +1958,64 @@ class StudioGame {
 
     this.qaSnapshot.activeZoneId = activeZone.id;
     this.qaSnapshot.activeZoneLabel = activeZone.label;
-    let sceneObjects = 0;
-    let landmarkObjects = 0;
-    this.scene.traverse((object) => {
-      sceneObjects += 1;
-      if (typeof object.userData.landmarkZone === "string") {
-        landmarkObjects += 1;
-      }
-    });
-    const zoneAssets = zones.map((zone) => this.inspectZoneAsset(zone));
-    const motionRolesByType = zoneAssets.reduce<Record<string, number>>((summary, zone) => {
-      Object.entries(zone.motionRoleCounts).forEach(([role, count]) => {
-        summary[role] = (summary[role] ?? 0) + count;
+    if (full) {
+      let sceneObjects = 0;
+      let landmarkObjects = 0;
+      this.scene.traverse((object) => {
+        sceneObjects += 1;
+        if (typeof object.userData.landmarkZone === "string") {
+          landmarkObjects += 1;
+        }
       });
-      return summary;
-    }, {});
-    const sceneryRoleCounts: Record<string, number> = {};
-    this.scene.traverse((object) => {
-      const role = object.userData.worldSceneryRole;
-      if (typeof role === "string") {
-        sceneryRoleCounts[role] = (sceneryRoleCounts[role] ?? 0) + 1;
-      }
-    });
+      const zoneAssets = zones.map((zone) => this.inspectZoneAsset(zone));
+      const motionRolesByType = zoneAssets.reduce<Record<string, number>>((summary, zone) => {
+        Object.entries(zone.motionRoleCounts).forEach(([role, count]) => {
+          summary[role] = (summary[role] ?? 0) + count;
+        });
+        return summary;
+      }, {});
+      const sceneryRoleCounts: Record<string, number> = {};
+      this.scene.traverse((object) => {
+        const role = object.userData.worldSceneryRole;
+        if (typeof role === "string") {
+          sceneryRoleCounts[role] = (sceneryRoleCounts[role] ?? 0) + 1;
+        }
+      });
 
-    this.qaSnapshot.world = {
-      sceneObjects,
-      decorativeObjects: this.decorativeObjectCount,
-      roadSegments: this.roadSegmentCount,
-      landmarkObjects,
-      playerParts: this.playerPartCount,
-      visualSpecs: this.renderedVisualSpecIds.size,
-      visualDecals: this.visualDecalCount,
-      propClusters: this.propClusterCount,
-      surfaceObjects: this.surfaceObjectCount,
-      surfaceSignatures: this.surfaceSignatureIds.size,
-      setDressingObjects: this.setDressingObjectCount,
-      setDressingSignatures: this.setDressingSignatureIds.size,
-      placeArchitectureObjects: this.placeArchitectureObjectCount,
-      placeArchitectureFamilies: this.placeArchitectureFamilyIds.size,
-      placeArchitectureSignatures: this.placeArchitectureSignatureIds.size,
-      signatureArtifactObjects: this.signatureArtifactObjectCount,
-      signatureArtifactSignatures: this.signatureArtifactSignatureIds.size,
-      sceneryObjects: this.sceneryObjectCount,
-      scenerySignatures: this.scenerySignatureIds.size,
-      sceneryMotionObjects: this.worldSceneryMotionObjects.length,
-      sceneryRoleCounts,
-      terrainLayers: this.terrainLayerCount,
-      routeGuidanceObjects: this.routeGuidanceObjectCount,
-      routeGuidanceSignatures: this.routeGuidanceSignatureIds.size,
-      routeGuidanceMotionObjects: this.routeGuidanceMotionObjects.length,
-      routeGuidanceRoleCounts: { ...this.routeGuidanceRoleCounts },
-      routeGuidanceVisualizedSegments: this.routeGuidanceVisualizedSegments,
-      materialVariants: this.materialVariantIds.size,
-      motionRoles: this.motionRoleCount,
-      motionRolesByType,
-      zones: zoneAssets
-    };
+      this.qaSnapshot.world = {
+        sceneObjects,
+        decorativeObjects: this.decorativeObjectCount,
+        roadSegments: this.roadSegmentCount,
+        landmarkObjects,
+        playerParts: this.playerPartCount,
+        visualSpecs: this.renderedVisualSpecIds.size,
+        visualDecals: this.visualDecalCount,
+        propClusters: this.propClusterCount,
+        surfaceObjects: this.surfaceObjectCount,
+        surfaceSignatures: this.surfaceSignatureIds.size,
+        setDressingObjects: this.setDressingObjectCount,
+        setDressingSignatures: this.setDressingSignatureIds.size,
+        placeArchitectureObjects: this.placeArchitectureObjectCount,
+        placeArchitectureFamilies: this.placeArchitectureFamilyIds.size,
+        placeArchitectureSignatures: this.placeArchitectureSignatureIds.size,
+        signatureArtifactObjects: this.signatureArtifactObjectCount,
+        signatureArtifactSignatures: this.signatureArtifactSignatureIds.size,
+        sceneryObjects: this.sceneryObjectCount,
+        scenerySignatures: this.scenerySignatureIds.size,
+        sceneryMotionObjects: this.worldSceneryMotionObjects.length,
+        sceneryRoleCounts,
+        terrainLayers: this.terrainLayerCount,
+        routeGuidanceObjects: this.routeGuidanceObjectCount,
+        routeGuidanceSignatures: this.routeGuidanceSignatureIds.size,
+        routeGuidanceMotionObjects: this.routeGuidanceMotionObjects.length,
+        routeGuidanceRoleCounts: { ...this.routeGuidanceRoleCounts },
+        routeGuidanceVisualizedSegments: this.routeGuidanceVisualizedSegments,
+        materialVariants: this.materialVariantIds.size,
+        motionRoles: this.motionRoleCount,
+        motionRolesByType,
+        zones: zoneAssets
+      };
+    }
     const playerBounds = this.measureObject(this.player);
     this.qaSnapshot.player = {
       x: Number(this.playerPosition.x.toFixed(3)),
@@ -1979,10 +2069,29 @@ class StudioGame {
       physicsSamples: [...this.drivePhysicsSamples]
     };
     const activeZonePoint = new THREE.Vector3(activeZone.position[0], 0.28, activeZone.position[1]);
+    const activeLandmark = this.landmarkMeshes.get(activeZone.id);
+    const activePlaceArchitecture = this.placeArchitectureGroups.get(activeZone.id);
     const activeSignatureArtifact = this.signatureArtifactGroups.get(activeZone.id);
-    const activeSignatureArtifactScreen = qaMode && activeSignatureArtifact
+    const previousScreen = this.qaSnapshot.screen;
+    const activeLandmarkScreen = full && qaMode && activeLandmark
+      ? this.projectObjectToScreenRect(activeLandmark)
+      : previousScreen.activeLandmark.zoneId === activeZone.id
+        ? previousScreen.activeLandmark
+        : this.emptyScreenRect();
+    const activePlaceArchitectureScreen = full && qaMode && activePlaceArchitecture
+      ? this.projectObjectToScreenRect(activePlaceArchitecture)
+      : previousScreen.activePlaceArchitecture.zoneId === activeZone.id
+        ? previousScreen.activePlaceArchitecture
+        : this.emptyScreenRect();
+    const activeSignatureArtifactScreen = full && qaMode && activeSignatureArtifact
       ? this.projectObjectToScreenRect(activeSignatureArtifact)
-      : this.emptyScreenRect();
+      : previousScreen.activeSignatureArtifact.zoneId === activeZone.id
+        ? previousScreen.activeSignatureArtifact
+        : this.emptyScreenRect();
+    const activePlaceArchitectureFamily =
+      typeof activePlaceArchitecture?.userData.placeArchitectureFamily === "string"
+        ? activePlaceArchitecture.userData.placeArchitectureFamily
+        : null;
     this.qaSnapshot.camera = {
       position: this.toVec3Qa(this.camera.position),
       target: this.toVec3Qa(this.cameraTarget),
@@ -1996,10 +2105,32 @@ class StudioGame {
         ...this.projectToScreen(activeZonePoint),
         zoneId: activeZone.id
       },
+      activeLandmark: {
+        ...activeLandmarkScreen,
+        zoneId: activeZone.id
+      },
+      activePlaceArchitecture: {
+        ...activePlaceArchitectureScreen,
+        zoneId: activeZone.id,
+        family: activePlaceArchitectureFamily
+      },
       activeSignatureArtifact: {
         ...activeSignatureArtifactScreen,
         zoneId: activeZone.id
-      }
+      },
+      activeZoneComposition: full
+        ? this.createZoneComposition(activeZone.id, [
+            activeLandmarkScreen,
+            activePlaceArchitectureScreen,
+            activeSignatureArtifactScreen
+          ])
+        : previousScreen.activeZoneComposition.zoneId === activeZone.id
+          ? previousScreen.activeZoneComposition
+          : this.createZoneComposition(activeZone.id, [
+              activeLandmarkScreen,
+              activePlaceArchitectureScreen,
+              activeSignatureArtifactScreen
+            ])
     };
     this.qaSnapshot.input = {
       activeKeys: [...this.keys],
@@ -2362,6 +2493,112 @@ class StudioGame {
       width: Number(size.x.toFixed(3)),
       height: Number(size.y.toFixed(3)),
       depth: Number(size.z.toFixed(3))
+    };
+  }
+
+  private createZoneComposition(zoneId: string, layers: ScreenRectQa[]): ZoneCompositionQa {
+    const visibleLayers = layers.filter((layer) => layer.visible && layer.clippedArea > 0);
+    if (visibleLayers.length === 0) {
+      return {
+        zoneId,
+        visibleLayerCount: 0,
+        union: this.emptyScreenRect(),
+        centerSpreadPx: 0,
+        pairDistancesPx: {
+          landmarkToPlace: 0,
+          landmarkToSignature: 0,
+          placeToSignature: 0
+        },
+        pairOverlapRatios: {
+          landmarkPlace: 0,
+          landmarkSignature: 0,
+          placeSignature: 0
+        },
+        largestLayerAreaRatio: 0
+      };
+    }
+
+    const rawLeft = Math.min(...visibleLayers.map((layer) => layer.x));
+    const rawTop = Math.min(...visibleLayers.map((layer) => layer.y));
+    const rawRight = Math.max(...visibleLayers.map((layer) => layer.x + layer.width));
+    const rawBottom = Math.max(...visibleLayers.map((layer) => layer.y + layer.height));
+    const clippedLeft = Math.min(...visibleLayers.map((layer) => layer.clippedX));
+    const clippedTop = Math.min(...visibleLayers.map((layer) => layer.clippedY));
+    const clippedRight = Math.max(...visibleLayers.map((layer) => layer.clippedX + layer.clippedWidth));
+    const clippedBottom = Math.max(...visibleLayers.map((layer) => layer.clippedY + layer.clippedHeight));
+    const rawWidth = Math.max(0, rawRight - rawLeft);
+    const rawHeight = Math.max(0, rawBottom - rawTop);
+    const clippedWidth = Math.max(0, clippedRight - clippedLeft);
+    const clippedHeight = Math.max(0, clippedBottom - clippedTop);
+    const rawArea = rawWidth * rawHeight;
+    const clippedArea = clippedWidth * clippedHeight;
+    const centerX = clippedLeft + clippedWidth / 2;
+    const centerY = clippedTop + clippedHeight / 2;
+    const canvasRect = this.canvas.getBoundingClientRect();
+    const center = {
+      x: Number(centerX.toFixed(1)),
+      y: Number(centerY.toFixed(1)),
+      ndcX: Number((((centerX - canvasRect.left) / canvasRect.width) * 2 - 1).toFixed(3)),
+      ndcY: Number((1 - ((centerY - canvasRect.top) / canvasRect.height) * 2).toFixed(3)),
+      visible:
+        centerX >= canvasRect.left &&
+        centerX <= canvasRect.right &&
+        centerY >= canvasRect.top &&
+        centerY <= canvasRect.bottom
+    };
+    const distance = (left: ScreenRectQa | undefined, right: ScreenRectQa | undefined) =>
+      left && right && left.visible && right.visible
+        ? Number(Math.hypot(left.center.x - right.center.x, left.center.y - right.center.y).toFixed(1))
+        : 0;
+    const overlapRatio = (left: ScreenRectQa | undefined, right: ScreenRectQa | undefined) => {
+      if (!left || !right || left.clippedArea <= 0 || right.clippedArea <= 0) {
+        return 0;
+      }
+      const overlapLeft = Math.max(left.clippedX, right.clippedX);
+      const overlapTop = Math.max(left.clippedY, right.clippedY);
+      const overlapRight = Math.min(left.clippedX + left.clippedWidth, right.clippedX + right.clippedWidth);
+      const overlapBottom = Math.min(left.clippedY + left.clippedHeight, right.clippedY + right.clippedHeight);
+      const overlapArea = Math.max(0, overlapRight - overlapLeft) * Math.max(0, overlapBottom - overlapTop);
+      return Number((overlapArea / Math.min(left.clippedArea, right.clippedArea)).toFixed(3));
+    };
+    const centerDistances = visibleLayers.flatMap((left, leftIndex) =>
+      visibleLayers
+        .slice(leftIndex + 1)
+        .map((right) => Math.hypot(left.center.x - right.center.x, left.center.y - right.center.y))
+    );
+    const largestLayerArea = visibleLayers.reduce((max, layer) => Math.max(max, layer.clippedArea), 0);
+
+    return {
+      zoneId,
+      visibleLayerCount: visibleLayers.length,
+      union: {
+        x: Number(rawLeft.toFixed(1)),
+        y: Number(rawTop.toFixed(1)),
+        width: Number(rawWidth.toFixed(1)),
+        height: Number(rawHeight.toFixed(1)),
+        area: Number(rawArea.toFixed(1)),
+        clippedX: Number(clippedLeft.toFixed(1)),
+        clippedY: Number(clippedTop.toFixed(1)),
+        clippedWidth: Number(clippedWidth.toFixed(1)),
+        clippedHeight: Number(clippedHeight.toFixed(1)),
+        clippedArea: Number(clippedArea.toFixed(1)),
+        visibleRatio: Number((rawArea > 0 ? clippedArea / rawArea : 0).toFixed(3)),
+        cornerDepthCount: visibleLayers.reduce((sum, layer) => sum + layer.cornerDepthCount, 0),
+        visible: visibleLayers.length === layers.length && clippedArea > 0,
+        center
+      },
+      centerSpreadPx: Number((centerDistances.length > 0 ? Math.max(...centerDistances) : 0).toFixed(1)),
+      pairDistancesPx: {
+        landmarkToPlace: distance(layers[0], layers[1]),
+        landmarkToSignature: distance(layers[0], layers[2]),
+        placeToSignature: distance(layers[1], layers[2])
+      },
+      pairOverlapRatios: {
+        landmarkPlace: overlapRatio(layers[0], layers[1]),
+        landmarkSignature: overlapRatio(layers[0], layers[2]),
+        placeSignature: overlapRatio(layers[1], layers[2])
+      },
+      largestLayerAreaRatio: Number((clippedArea > 0 ? largestLayerArea / clippedArea : 0).toFixed(3))
     };
   }
 

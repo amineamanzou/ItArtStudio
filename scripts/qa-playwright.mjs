@@ -40,6 +40,7 @@ const scenarios = [];
 const failures = [];
 const consoleMessages = [];
 const zonePerceptualProofs = new Map();
+const zoneCompositionProofs = new Map();
 let screenshotIndex = 0;
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -171,11 +172,14 @@ async function stopServer(server) {
   ]);
 }
 
-async function getQaSnapshot(page) {
-  return page.evaluate(() => {
+async function getQaSnapshot(page, options = {}) {
+  return page.evaluate((shouldRefresh) => {
+    if (shouldRefresh && typeof window.__IT_ART_STUDIO_QA_REFRESH__ === "function") {
+      window.__IT_ART_STUDIO_QA_REFRESH__();
+    }
     const qa = window.__IT_ART_STUDIO_QA__;
     return qa ? JSON.parse(JSON.stringify(qa)) : null;
-  });
+  }, options.refresh === true);
 }
 
 async function sampleCanvas(page) {
@@ -775,6 +779,7 @@ async function checkRealDriveTour(browser) {
         await page.waitForTimeout(220);
         await inspectCameraSafeArea(page, `real-drive:${target.id}`);
         await inspectSignatureArtifactVisibility(page, `real-drive:${target.id}`);
+        await inspectPlaceCompositionVisibility(page, `real-drive:${target.id}`);
       } else {
         scenarioFail(`real-drive:${target.id}`, "Real keyboard drive did not reach the target zone.", {
           result,
@@ -1068,6 +1073,7 @@ async function checkProductionRuntimeLightweight(browser) {
         gameState: document.documentElement.dataset.gameState ?? null,
         hasQaSnapshot: "__IT_ART_STUDIO_QA__" in window,
         hasQaStep: "__IT_ART_STUDIO_QA_STEP__" in window,
+        hasQaRefresh: "__IT_ART_STUDIO_QA_REFRESH__" in window,
         frames,
         canvas:
           canvas instanceof HTMLCanvasElement
@@ -1081,6 +1087,7 @@ async function checkProductionRuntimeLightweight(browser) {
       state.gameState === "ready" &&
       state.hasQaSnapshot === false &&
       state.hasQaStep === false &&
+      state.hasQaRefresh === false &&
       state.frames >= 4 &&
       state.canvas?.width > 0 &&
       state.canvas?.height > 0
@@ -1156,7 +1163,7 @@ async function checkContact(page) {
 }
 
 async function checkWorldRichness(page) {
-  const snapshot = await getQaSnapshot(page);
+  const snapshot = await getQaSnapshot(page, { refresh: true });
   const world = snapshot?.world;
   const expectedSceneryRoles = ["terrain-edge", "tech-skyline", "art-sculpture", "studio-threshold", "route-light"];
   const missingSceneryRoles = expectedSceneryRoles.filter((role) => !world?.sceneryRoleCounts?.[role]);
@@ -1589,7 +1596,7 @@ async function checkRuntimeFrameBudget(page, label = "runtime") {
 }
 
 async function inspectCameraSafeArea(page, label) {
-  const snapshot = await getQaSnapshot(page);
+  const snapshot = await getQaSnapshot(page, { refresh: true });
   const screenState = await page.evaluate((qa) => {
     const selectors = [".game-hud", ".zone-panel", ".world-map", ".mobile-drive", ".mobile-zone-nav"];
     const uiRects = selectors
@@ -1693,7 +1700,7 @@ async function inspectCameraSafeArea(page, label) {
 }
 
 async function inspectSignatureArtifactVisibility(page, label) {
-  const snapshot = await getQaSnapshot(page);
+  const snapshot = await getQaSnapshot(page, { refresh: true });
   const state = await page.evaluate((qa) => {
     const round = (value, digits = 3) => Number(value.toFixed(digits));
     const intersectArea = (a, b) => {
@@ -1948,6 +1955,304 @@ async function inspectSignatureArtifactVisibility(page, label) {
   return ok;
 }
 
+async function inspectPlaceCompositionVisibility(page, label) {
+  const snapshot = await getQaSnapshot(page, { refresh: true });
+  const state = await page.evaluate((qa) => {
+    const round = (value, digits = 3) => Number(value.toFixed(digits));
+    const selectors = [".game-hud", ".zone-panel", ".world-map", ".mobile-drive", ".mobile-zone-nav"];
+    const uiRects = selectors
+      .map((selector) => {
+        const node = document.querySelector(selector);
+        if (!(node instanceof HTMLElement)) {
+          return null;
+        }
+        const style = getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        if (
+          style.display === "none" ||
+          style.visibility === "hidden" ||
+          Number(style.opacity) === 0 ||
+          rect.width === 0 ||
+          rect.height === 0
+        ) {
+          return null;
+        }
+        return { selector, left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+      })
+      .filter(Boolean);
+    const toRect = (item) => {
+      if (!item) {
+        return null;
+      }
+      return {
+        left: item.clippedX ?? item.x,
+        top: item.clippedY ?? item.y,
+        right: (item.clippedX ?? item.x) + (item.clippedWidth ?? item.width),
+        bottom: (item.clippedY ?? item.y) + (item.clippedHeight ?? item.height)
+      };
+    };
+    const uiOcclusion = (item) => {
+      const rect = toRect(item);
+      const area = item?.clippedArea ?? item?.area ?? 0;
+      if (!rect || area <= 0) {
+        return { area: 0, ratio: 1 };
+      }
+      const xEdges = [rect.left, rect.right];
+      const yEdges = [rect.top, rect.bottom];
+      for (const ui of uiRects) {
+        const left = Math.max(rect.left, ui.left);
+        const right = Math.min(rect.right, ui.right);
+        const top = Math.max(rect.top, ui.top);
+        const bottom = Math.min(rect.bottom, ui.bottom);
+        if (right > left && bottom > top) {
+          xEdges.push(left, right);
+          yEdges.push(top, bottom);
+        }
+      }
+      const xs = [...new Set(xEdges)].sort((a, b) => a - b);
+      const ys = [...new Set(yEdges)].sort((a, b) => a - b);
+      let occluded = 0;
+      for (let xIndex = 0; xIndex < xs.length - 1; xIndex += 1) {
+        for (let yIndex = 0; yIndex < ys.length - 1; yIndex += 1) {
+          const left = xs[xIndex];
+          const right = xs[xIndex + 1];
+          const top = ys[yIndex];
+          const bottom = ys[yIndex + 1];
+          const centerX = (left + right) / 2;
+          const centerY = (top + bottom) / 2;
+          if (
+            uiRects.some(
+              (ui) => centerX >= ui.left && centerX <= ui.right && centerY >= ui.top && centerY <= ui.bottom
+            )
+          ) {
+            occluded += Math.max(0, right - left) * Math.max(0, bottom - top);
+          }
+        }
+      }
+      return { area: round(occluded, 1), ratio: round(Math.min(1, occluded / area)) };
+    };
+    const centerOccluders = (item) => {
+      const center = item?.center ?? null;
+      if (!center) {
+        return [];
+      }
+      return uiRects
+        .filter(
+          (rect) =>
+            center.x >= rect.left - 12 &&
+            center.x <= rect.right + 12 &&
+            center.y >= rect.top - 12 &&
+            center.y <= rect.bottom + 12
+        )
+        .map((rect) => rect.selector);
+    };
+    const layerState = (name, rect) => {
+      const occlusion = uiOcclusion(rect);
+      return {
+        name,
+        rect,
+        centerOccluders: centerOccluders(rect),
+        uiOccludedArea: occlusion.area,
+        uiOccludedRatio: occlusion.ratio,
+        visibleAfterUiRatio: round(Math.max(0, (rect?.visibleRatio ?? 0) * (1 - occlusion.ratio)))
+      };
+    };
+    const sampleCanvasRoi = (rect) => {
+      const canvas = document.querySelector("#studio-map-canvas");
+      if (!(canvas instanceof HTMLCanvasElement) || !rect || rect.clippedWidth <= 1 || rect.clippedHeight <= 1) {
+        return { sampled: false, brightRatio: 0, edgeDensity: 0, colorBuckets: 0, roiWidth: 0, roiHeight: 0 };
+      }
+      const canvasRect = canvas.getBoundingClientRect();
+      const sourceLeft = Math.max(0, rect.clippedX - canvasRect.left);
+      const sourceTop = Math.max(0, rect.clippedY - canvasRect.top);
+      const sourceWidth = Math.min(rect.clippedWidth, canvasRect.width - sourceLeft);
+      const sourceHeight = Math.min(rect.clippedHeight, canvasRect.height - sourceTop);
+      if (sourceWidth <= 1 || sourceHeight <= 1) {
+        return { sampled: false, brightRatio: 0, edgeDensity: 0, colorBuckets: 0, roiWidth: 0, roiHeight: 0 };
+      }
+      const scaleX = canvas.width / canvasRect.width;
+      const scaleY = canvas.height / canvasRect.height;
+      const sx = Math.max(0, Math.floor(sourceLeft * scaleX));
+      const sy = Math.max(0, Math.floor(sourceTop * scaleY));
+      const sw = Math.max(1, Math.min(canvas.width - sx, Math.ceil(sourceWidth * scaleX)));
+      const sh = Math.max(1, Math.min(canvas.height - sy, Math.ceil(sourceHeight * scaleY)));
+      const roiSize = 64;
+      const roi = document.createElement("canvas");
+      roi.width = roiSize;
+      roi.height = roiSize;
+      const context = roi.getContext("2d", { willReadFrequently: true });
+      if (!context) {
+        return { sampled: false, brightRatio: 0, edgeDensity: 0, colorBuckets: 0, roiWidth: roiSize, roiHeight: roiSize };
+      }
+      let pixels;
+      try {
+        context.drawImage(canvas, sx, sy, sw, sh, 0, 0, roiSize, roiSize);
+        pixels = context.getImageData(0, 0, roiSize, roiSize).data;
+      } catch (error) {
+        return {
+          sampled: false,
+          error: error instanceof Error ? error.message : String(error),
+          brightRatio: 0,
+          edgeDensity: 0,
+          colorBuckets: 0,
+          roiWidth: roiSize,
+          roiHeight: roiSize
+        };
+      }
+      const lumas = [];
+      const buckets = new Set();
+      let brightPixels = 0;
+      for (let y = 0; y < roiSize; y += 1) {
+        for (let x = 0; x < roiSize; x += 1) {
+          const index = (y * roiSize + x) * 4;
+          const r = pixels[index];
+          const g = pixels[index + 1];
+          const b = pixels[index + 2];
+          const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          lumas.push(luma);
+          if (luma >= 72) {
+            brightPixels += 1;
+          }
+          buckets.add(`${Math.floor(r / 32)}:${Math.floor(g / 32)}:${Math.floor(b / 32)}`);
+        }
+      }
+      let edgeTransitions = 0;
+      let edgeComparisons = 0;
+      for (let y = 1; y < roiSize; y += 1) {
+        for (let x = 1; x < roiSize; x += 1) {
+          const index = y * roiSize + x;
+          if (Math.abs(lumas[index] - lumas[index - 1]) >= 18) {
+            edgeTransitions += 1;
+          }
+          if (Math.abs(lumas[index] - lumas[index - roiSize]) >= 18) {
+            edgeTransitions += 1;
+          }
+          edgeComparisons += 2;
+        }
+      }
+      return {
+        sampled: true,
+        brightRatio: round(brightPixels / lumas.length),
+        edgeDensity: round(edgeComparisons > 0 ? edgeTransitions / edgeComparisons : 0),
+        edgeTransitions,
+        colorBuckets: buckets.size,
+        roiWidth: roiSize,
+        roiHeight: roiSize
+      };
+    };
+    const landmark = layerState("landmark", qa?.screen?.activeLandmark ?? null);
+    const placeArchitecture = layerState("placeArchitecture", qa?.screen?.activePlaceArchitecture ?? null);
+    const signatureArtifact = layerState("signatureArtifact", qa?.screen?.activeSignatureArtifact ?? null);
+    const composition = qa?.screen?.activeZoneComposition ?? null;
+    const compositionUnion = composition?.union ?? null;
+    const compositionOcclusion = uiOcclusion(compositionUnion);
+    return {
+      activeZoneId: qa?.activeZoneId ?? null,
+      viewport: { width: window.innerWidth, height: window.innerHeight, area: window.innerWidth * window.innerHeight },
+      uiRects: uiRects.map((rect) => rect.selector),
+      landmark,
+      placeArchitecture,
+      signatureArtifact,
+      composition: composition
+        ? {
+            ...composition,
+            uiOccludedArea: compositionOcclusion.area,
+            uiOccludedRatio: compositionOcclusion.ratio,
+            visibleAfterUiRatio: round(Math.max(0, (compositionUnion?.visibleRatio ?? 0) * (1 - compositionOcclusion.ratio))),
+            centerOccluders: centerOccluders(compositionUnion),
+            roi: sampleCanvasRoi(compositionUnion)
+          }
+        : null
+    };
+  }, snapshot);
+
+  const isMobile = state.viewport.width <= 820;
+  const viewportArea = state.viewport.area;
+  const thresholds = {
+    landmark: {
+      minWidth: isMobile ? 32 : 44,
+      minHeight: isMobile ? 34 : 50,
+      minArea: isMobile ? 750 : 1_800,
+      minVisibleRatio: isMobile ? 0.54 : 0.7,
+      minVisibleAfterUiRatio: isMobile ? 0.48 : 0.62,
+      maxUiOccludedRatio: isMobile ? 0.22 : 0.1
+    },
+    placeArchitecture: {
+      minWidth: isMobile ? 56 : 88,
+      minHeight: isMobile ? 30 : 42,
+      minArea: isMobile ? 1_500 : 4_500,
+      minVisibleRatio: isMobile ? 0.44 : 0.6,
+      minVisibleAfterUiRatio: isMobile ? 0.34 : 0.48,
+      maxUiOccludedRatio: isMobile ? 0.32 : 0.18
+    },
+    composition: {
+      minArea: isMobile ? Math.max(3_200, viewportArea * 0.01) : Math.max(9_000, viewportArea * 0.006),
+      maxAreaRatio: isMobile ? 0.38 : 0.24,
+      minVisibleAfterUiRatio: isMobile ? 0.38 : 0.5,
+      maxUiOccludedRatio: isMobile ? 0.35 : 0.2,
+      minBrightRatio: isMobile ? 0.035 : 0.045,
+      minEdgeDensity: isMobile ? 0.018 : 0.024,
+      minColorBuckets: isMobile ? 5 : 6,
+      minCenterSpread: isMobile ? 6 : 8,
+      maxCenterSpread: isMobile ? 190 : 280,
+      maxPairOverlapRatio: 1,
+      maxLargestLayerAreaRatio: 1
+    }
+  };
+  const rectPasses = (layer, threshold) =>
+    layer?.rect?.visible === true &&
+    layer.rect.center?.visible === true &&
+    (layer.rect.cornerDepthCount ?? 0) >= 2 &&
+    layer.rect.width >= threshold.minWidth &&
+    layer.rect.height >= threshold.minHeight &&
+    layer.rect.clippedArea >= threshold.minArea &&
+    (layer.rect.visibleRatio ?? 0) >= threshold.minVisibleRatio &&
+    layer.centerOccluders.length === 0 &&
+    layer.uiOccludedRatio <= threshold.maxUiOccludedRatio &&
+    layer.visibleAfterUiRatio >= threshold.minVisibleAfterUiRatio;
+  const pairOverlapValues = Object.values(state.composition?.pairOverlapRatios ?? {});
+  const compositionAreaRatio =
+    state.composition?.union?.clippedArea && viewportArea > 0 ? state.composition.union.clippedArea / viewportArea : 0;
+  const ok =
+    rectPasses(state.landmark, thresholds.landmark) &&
+    rectPasses(state.placeArchitecture, thresholds.placeArchitecture) &&
+    state.signatureArtifact?.rect?.visible === true &&
+    state.signatureArtifact?.rect?.center?.visible === true &&
+    state.composition?.visibleLayerCount >= 3 &&
+    state.composition?.union?.visible === true &&
+    state.composition?.union?.center?.visible === true &&
+    state.composition?.centerOccluders.length === 0 &&
+    state.composition?.uiOccludedRatio <= thresholds.composition.maxUiOccludedRatio &&
+    state.composition?.visibleAfterUiRatio >= thresholds.composition.minVisibleAfterUiRatio &&
+    state.composition?.union?.clippedArea >= thresholds.composition.minArea &&
+    compositionAreaRatio <= thresholds.composition.maxAreaRatio &&
+    state.composition?.centerSpreadPx >= thresholds.composition.minCenterSpread &&
+    state.composition?.centerSpreadPx <= thresholds.composition.maxCenterSpread &&
+    pairOverlapValues.every((value) => value <= thresholds.composition.maxPairOverlapRatio) &&
+    (state.composition?.largestLayerAreaRatio ?? 1) <= thresholds.composition.maxLargestLayerAreaRatio &&
+    state.composition?.roi?.sampled === true &&
+    state.composition.roi.brightRatio >= thresholds.composition.minBrightRatio &&
+    state.composition.roi.edgeDensity >= thresholds.composition.minEdgeDensity &&
+    state.composition.roi.colorBuckets >= thresholds.composition.minColorBuckets;
+
+  const details = {
+    ...state,
+    compositionAreaRatio: Number(compositionAreaRatio.toFixed(3)),
+    thresholds
+  };
+  if (state.activeZoneId) {
+    zoneCompositionProofs.set(state.activeZoneId, details);
+  }
+
+  if (ok) {
+    pass(`place-composition-visible:${label}`, details);
+  } else {
+    scenarioFail(`place-composition-visible:${label}`, "Active place composition is not readable as one 3D scene.", details);
+  }
+
+  return ok;
+}
+
 function hammingDistance(left = "", right = "") {
   const maxLength = Math.max(left.length, right.length);
   let distance = 0;
@@ -1960,7 +2265,7 @@ function hammingDistance(left = "", right = "") {
 }
 
 async function inspectZonePerceptualProof(page, label) {
-  const snapshot = await getQaSnapshot(page);
+  const snapshot = await getQaSnapshot(page, { refresh: true });
   const proof = await page.evaluate(({ qa, proofLabel }) => {
     const round = (value, digits = 3) => Number(value.toFixed(digits));
     const artifact = qa?.screen?.activeSignatureArtifact ?? null;
@@ -2177,8 +2482,63 @@ async function checkZonePerceptualDistance() {
   }
 }
 
+async function checkZoneCompositionCoverage() {
+  const proofs = [...zoneCompositionProofs.values()];
+  const expectedZones = qaProfile === "quick" ? 4 : 10;
+  const weakProofs = proofs.filter((proof) => {
+    const thresholds = proof.thresholds?.composition;
+    if (!thresholds) {
+      return true;
+    }
+    return (
+      proof.composition?.visibleLayerCount < 3 ||
+      proof.composition?.union?.visible !== true ||
+      proof.composition?.visibleAfterUiRatio < thresholds.minVisibleAfterUiRatio ||
+      proof.composition?.uiOccludedRatio > thresholds.maxUiOccludedRatio ||
+      proof.composition?.union?.clippedArea < thresholds.minArea ||
+      proof.compositionAreaRatio > thresholds.maxAreaRatio ||
+      proof.composition?.roi?.sampled !== true ||
+      proof.composition?.roi?.edgeDensity < thresholds.minEdgeDensity ||
+      proof.composition?.roi?.colorBuckets < thresholds.minColorBuckets
+    );
+  });
+  const weakestVisibleAfterUi = proofs
+    .filter((proof) => typeof proof.composition?.visibleAfterUiRatio === "number")
+    .sort((a, b) => a.composition.visibleAfterUiRatio - b.composition.visibleAfterUiRatio)[0];
+  const ok = proofs.length >= expectedZones && weakProofs.length === 0;
+
+  if (ok) {
+    pass("place-composition-coverage", {
+      sampledZones: proofs.length,
+      expectedZones,
+      weakest:
+        weakestVisibleAfterUi
+          ? {
+              zoneId: weakestVisibleAfterUi.activeZoneId,
+              visibleAfterUiRatio: weakestVisibleAfterUi.composition.visibleAfterUiRatio,
+              uiOccludedRatio: weakestVisibleAfterUi.composition.uiOccludedRatio,
+              roi: weakestVisibleAfterUi.composition.roi
+            }
+          : null
+    });
+  } else {
+    scenarioFail("place-composition-coverage", "Not every sampled zone has a readable place composition.", {
+      sampledZones: proofs.length,
+      expectedZones,
+      weakProofs: weakProofs.map((proof) => ({
+        activeZoneId: proof.activeZoneId,
+        visibleLayerCount: proof.composition?.visibleLayerCount,
+        visibleAfterUiRatio: proof.composition?.visibleAfterUiRatio,
+        uiOccludedRatio: proof.composition?.uiOccludedRatio,
+        compositionAreaRatio: proof.compositionAreaRatio,
+        roi: proof.composition?.roi
+      }))
+    });
+  }
+}
+
 async function checkLightingLayer(page, label) {
-  const snapshot = await getQaSnapshot(page);
+  const snapshot = await getQaSnapshot(page, { refresh: true });
   const lighting = snapshot?.lighting;
   const ok =
     lighting &&
@@ -2666,6 +3026,7 @@ async function checkMiniMapJumps(page) {
         await checkLightingLayer(page, `mini-map:${targetId}`);
         await page.waitForTimeout(300);
         await inspectSignatureArtifactVisibility(page, `mini-map:${targetId}`);
+        await inspectPlaceCompositionVisibility(page, `mini-map:${targetId}`);
         await inspectZonePerceptualProof(page, `mini-map:${targetId}`);
         continue;
       }
@@ -2692,6 +3053,7 @@ async function checkMiniMapJumps(page) {
       await checkLightingLayer(page, `mini-map:${targetId}`);
       await page.waitForTimeout(300);
       await inspectSignatureArtifactVisibility(page, `mini-map:${targetId}`);
+      await inspectPlaceCompositionVisibility(page, `mini-map:${targetId}`);
       await inspectZonePerceptualProof(page, `mini-map:${targetId}`);
     } else {
       scenarioFail(`mini-map:${targetId}`, "Mini-map jump did not synchronize active zone and aria state.", {
@@ -2885,15 +3247,23 @@ async function writeReport() {
   const productionRuntimeScenario = scenarios.find((scenario) => scenario.name === "production-runtime-lightweight");
   const cameraSafeScenarios = scenarios.filter((scenario) => scenario.name.startsWith("camera-safe-area:"));
   const signatureVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("signature-artifact-visible:"));
+  const placeCompositionScenarios = scenarios.filter((scenario) => scenario.name.startsWith("place-composition-visible:"));
   const lightingScenarios = scenarios.filter((scenario) => scenario.name.startsWith("fake-lighting-active:"));
   const perceptualProofScenarios = scenarios.filter((scenario) => scenario.name.startsWith("zone-perceptual-proof:"));
+  const placeCompositionCoverageScenario = scenarios.find((scenario) => scenario.name === "place-composition-coverage");
   const perceptualDistanceScenario = scenarios.find((scenario) => scenario.name === "zone-perceptual-distance");
   const miniMapSignatureVisibleScenarios = signatureVisibleScenarios.filter((scenario) =>
     scenario.name.startsWith("signature-artifact-visible:mini-map:")
   );
+  const miniMapPlaceCompositionScenarios = placeCompositionScenarios.filter((scenario) =>
+    scenario.name.startsWith("place-composition-visible:mini-map:")
+  );
   const weakestSignatureScenario = signatureVisibleScenarios
     .filter((scenario) => typeof scenario.details?.visibleAfterUiRatio === "number")
     .sort((a, b) => a.details.visibleAfterUiRatio - b.details.visibleAfterUiRatio)[0];
+  const weakestPlaceCompositionScenario = placeCompositionScenarios
+    .filter((scenario) => typeof scenario.details?.composition?.visibleAfterUiRatio === "number")
+    .sort((a, b) => a.details.composition.visibleAfterUiRatio - b.details.composition.visibleAfterUiRatio)[0];
   const world = worldScenario?.details?.world;
   const player = playerScenario?.details?.player;
   const localMotionBehaviorTypes = visualScenario?.details?.localMotionBehaviorTypes ?? [];
@@ -2983,7 +3353,7 @@ async function writeReport() {
     }`,
     `- Production runtime lightweight: ${
       productionRuntimeScenario?.details
-        ? `ready ${productionRuntimeScenario.details.ready}, QA snapshot ${productionRuntimeScenario.details.hasQaSnapshot}, QA step ${productionRuntimeScenario.details.hasQaStep}, frames ${productionRuntimeScenario.details.frames}`
+        ? `ready ${productionRuntimeScenario.details.ready}, QA snapshot ${productionRuntimeScenario.details.hasQaSnapshot}, QA step ${productionRuntimeScenario.details.hasQaStep}, QA refresh ${productionRuntimeScenario.details.hasQaRefresh}, frames ${productionRuntimeScenario.details.frames}`
         : "n/a"
     }`,
     `- Camera safe-area checks: ${cameraSafeScenarios.filter((scenario) => scenario.status === "pass").length}/${
@@ -3010,6 +3380,22 @@ async function writeReport() {
     `- Weakest signature artifact visibility: ${
       weakestSignatureScenario
         ? `${weakestSignatureScenario.name.replace("signature-artifact-visible:", "")}, visible-after-ui ${weakestSignatureScenario.details.visibleAfterUiRatio}, ROI bright ${weakestSignatureScenario.details.roi?.brightRatio}, edges ${weakestSignatureScenario.details.roi?.edgeTransitions}, buckets ${weakestSignatureScenario.details.roi?.colorBuckets}`
+        : "n/a"
+    }`,
+    `- Place composition visible checks: ${placeCompositionScenarios.filter((scenario) => scenario.status === "pass").length}/${
+      placeCompositionScenarios.length
+    }`,
+    `- Mini-map place composition checks: ${miniMapPlaceCompositionScenarios.filter((scenario) => scenario.status === "pass").length}/${
+      miniMapPlaceCompositionScenarios.length
+    }`,
+    `- Place composition coverage: ${
+      placeCompositionCoverageScenario?.details
+        ? `${placeCompositionCoverageScenario.details.sampledZones}/${placeCompositionCoverageScenario.details.expectedZones} zones`
+        : "n/a"
+    }`,
+    `- Weakest place composition: ${
+      weakestPlaceCompositionScenario
+        ? `${weakestPlaceCompositionScenario.name.replace("place-composition-visible:", "")}, visible-after-ui ${weakestPlaceCompositionScenario.details.composition.visibleAfterUiRatio}, area ratio ${weakestPlaceCompositionScenario.details.compositionAreaRatio}, ROI bright ${weakestPlaceCompositionScenario.details.composition.roi?.brightRatio}, edge density ${weakestPlaceCompositionScenario.details.composition.roi?.edgeDensity}, buckets ${weakestPlaceCompositionScenario.details.composition.roi?.colorBuckets}`
         : "n/a"
     }`,
     `- Zone perceptual proofs: ${perceptualProofScenarios.filter((scenario) => scenario.status === "pass").length}/${
@@ -3068,6 +3454,7 @@ async function main() {
     const home = await capture(page, "home-loaded");
     await inspectCameraSafeArea(page, "home-loaded");
     await inspectSignatureArtifactVisibility(page, "home-loaded");
+    await inspectPlaceCompositionVisibility(page, "home-loaded");
     await inspectZonePerceptualProof(page, "home-loaded");
     await checkLightingLayer(page, "home-loaded");
     await checkVisibleZoneControls(page, "desktop");
@@ -3109,12 +3496,14 @@ async function main() {
       await driveToZone(page, target);
       await checkActivationFeedback(page, target.id, beforeActivation?.activeFeedback?.sequence ?? 0);
       await checkLightingLayer(page, `keyboard:${target.id}`);
+      await inspectPlaceCompositionVisibility(page, `keyboard:${target.id}`);
       await capture(page, target.id);
     }
     await checkRoverTrail(page, "keyboard-route");
 
     await checkContact(page);
     await checkMiniMapJumps(page);
+    await checkZoneCompositionCoverage();
     await checkZonePerceptualDistance();
     await capture(page, "mini-map-jumps");
     if (qaProfile === "quick") {
