@@ -250,6 +250,9 @@ type ZoneAssetQa = {
   projectArtifactActivityTypes: string[];
   projectArtifactSignatures: string[];
   projectArtifactMaterials: string[];
+  projectArtifactManifests: string[];
+  projectArtifactThemeRoles: string[];
+  projectArtifactRoleReliefSignatures: Record<string, string[]>;
   projectArtifactSpecimenFamilies: string[];
   projectArtifactDetailProfiles: string[];
   projectArtifactReliefSignatures: string[];
@@ -326,6 +329,8 @@ type QaSnapshot = {
     projectArtifactActivityTypes: number;
     projectArtifactSignatures: number;
     projectArtifactMaterials: number;
+    projectArtifactManifests: number;
+    projectArtifactThemeRoles: number;
     projectArtifactSpecimenFamilies: number;
     projectArtifactDetailProfiles: number;
     projectArtifactReliefSignatures: number;
@@ -411,6 +416,7 @@ type QaSnapshot = {
   lighting: LightingQa;
   routeEncounters: RouteEncountersQa;
   canvas: { width: number; height: number; dpr: number };
+  renderer: { calls: number; triangles: number; geometries: number; textures: number };
   frameCount: number;
   averageFrameMs: number;
   visitedZoneIds: string[];
@@ -576,6 +582,8 @@ class StudioGame {
       projectArtifactActivityTypes: 0,
       projectArtifactSignatures: 0,
       projectArtifactMaterials: 0,
+      projectArtifactManifests: 0,
+      projectArtifactThemeRoles: 0,
       projectArtifactSpecimenFamilies: 0,
       projectArtifactDetailProfiles: 0,
       projectArtifactReliefSignatures: 0,
@@ -836,6 +844,7 @@ class StudioGame {
       maxIntensity: 0
     },
     canvas: { width: 0, height: 0, dpr: 1 },
+    renderer: { calls: 0, triangles: 0, geometries: 0, textures: 0 },
     frameCount: 0,
     averageFrameMs: 0,
     visitedZoneIds: [defaultZone.id],
@@ -2391,6 +2400,8 @@ class StudioGame {
       const projectArtifactSpecimenFamilies = new Set(zoneAssets.flatMap((zone) => zone.projectArtifactSpecimenFamilies));
       const projectArtifactDetailProfiles = new Set(zoneAssets.flatMap((zone) => zone.projectArtifactDetailProfiles));
       const projectArtifactReliefSignatures = new Set(zoneAssets.flatMap((zone) => zone.projectArtifactReliefSignatures));
+      const projectArtifactManifests = new Set(zoneAssets.flatMap((zone) => zone.projectArtifactManifests));
+      const projectArtifactThemeRoles = new Set(zoneAssets.flatMap((zone) => zone.projectArtifactThemeRoles));
       const sceneryRoleCounts: Record<string, number> = {};
       let identityRibbonObjects = 0;
       const identityRibbonSignatures = new Set<string>();
@@ -2441,6 +2452,8 @@ class StudioGame {
         projectArtifactActivityTypes: this.projectArtifactActivityIds.size,
         projectArtifactSignatures: this.projectArtifactSignatureIds.size,
         projectArtifactMaterials: this.projectArtifactMaterialIds.size,
+        projectArtifactManifests: projectArtifactManifests.size,
+        projectArtifactThemeRoles: projectArtifactThemeRoles.size,
         projectArtifactSpecimenFamilies: projectArtifactSpecimenFamilies.size,
         projectArtifactDetailProfiles: projectArtifactDetailProfiles.size,
         projectArtifactReliefSignatures: projectArtifactReliefSignatures.size,
@@ -2686,6 +2699,12 @@ class StudioGame {
       height: this.canvas.height,
       dpr: this.renderer.getPixelRatio()
     };
+    this.qaSnapshot.renderer = {
+      calls: this.renderer.info.render.calls,
+      triangles: this.renderer.info.render.triangles,
+      geometries: this.renderer.info.memory.geometries,
+      textures: this.renderer.info.memory.textures
+    };
     this.qaSnapshot.frameCount = this.frameCount;
     this.qaSnapshot.averageFrameMs = Number(averageFrameMs.toFixed(2));
     this.qaSnapshot.visitedZoneIds = [...this.visitedZoneIds];
@@ -2756,6 +2775,9 @@ class StudioGame {
         projectArtifactActivityTypes: [],
         projectArtifactSignatures: [],
         projectArtifactMaterials: [],
+        projectArtifactManifests: [],
+        projectArtifactThemeRoles: [],
+        projectArtifactRoleReliefSignatures: {},
         projectArtifactSpecimenFamilies: [],
         projectArtifactDetailProfiles: [],
         projectArtifactReliefSignatures: [],
@@ -2817,6 +2839,9 @@ class StudioGame {
     const projectArtifactActivityTypes = new Set<string>();
     const projectArtifactSignatures = new Set<string>();
     const projectArtifactMaterials = new Set<string>();
+    const projectArtifactManifests = new Set<string>();
+    const projectArtifactThemeRoles = new Set<string>();
+    const projectArtifactRoleReliefSignatures: Record<string, Set<string>> = {};
     const projectArtifactSpecimenFamilies = new Set<string>();
     const projectArtifactDetailProfiles = new Set<string>();
     const projectArtifactReliefSignatures = new Set<string>();
@@ -2937,6 +2962,30 @@ class StudioGame {
         }
         if (typeof child.userData.projectArtifactSpecimenFamily === "string") {
           projectArtifactSpecimenFamilies.add(child.userData.projectArtifactSpecimenFamily);
+        }
+        if (typeof child.userData.projectArtifactManifest === "string") {
+          projectArtifactManifests.add(child.userData.projectArtifactManifest);
+        }
+        if (Array.isArray(child.userData.projectArtifactThemeRoles)) {
+          for (const role of child.userData.projectArtifactThemeRoles) {
+            if (typeof role === "string") {
+              projectArtifactThemeRoles.add(role);
+            }
+          }
+        }
+        if (child.userData.projectArtifactRoleReliefSignatures && typeof child.userData.projectArtifactRoleReliefSignatures === "object") {
+          Object.entries(child.userData.projectArtifactRoleReliefSignatures).forEach(([role, signatures]) => {
+            if (!Array.isArray(signatures)) {
+              return;
+            }
+            const roleSignatures = projectArtifactRoleReliefSignatures[role] ?? new Set<string>();
+            signatures.forEach((signature) => {
+              if (typeof signature === "string") {
+                roleSignatures.add(signature);
+              }
+            });
+            projectArtifactRoleReliefSignatures[role] = roleSignatures;
+          });
         }
         if (typeof child.userData.projectArtifactDetailProfile === "string") {
           projectArtifactDetailProfiles.add(child.userData.projectArtifactDetailProfile);
@@ -3084,6 +3133,11 @@ class StudioGame {
       projectArtifactActivityTypes: [...projectArtifactActivityTypes].sort(),
       projectArtifactSignatures: [...projectArtifactSignatures].sort(),
       projectArtifactMaterials: [...projectArtifactMaterials].sort(),
+      projectArtifactManifests: [...projectArtifactManifests].sort(),
+      projectArtifactThemeRoles: [...projectArtifactThemeRoles].sort(),
+      projectArtifactRoleReliefSignatures: Object.fromEntries(
+        Object.entries(projectArtifactRoleReliefSignatures).map(([role, signatures]) => [role, [...signatures].sort()])
+      ),
       projectArtifactSpecimenFamilies: [...projectArtifactSpecimenFamilies].sort(),
       projectArtifactDetailProfiles: [...projectArtifactDetailProfiles].sort(),
       projectArtifactReliefSignatures: [...projectArtifactReliefSignatures].sort(),

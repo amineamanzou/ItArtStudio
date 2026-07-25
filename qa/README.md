@@ -205,6 +205,10 @@ The runner:
   expose detail profiles, relief signatures, procedural part counts and unique
   vertex counts, while preserving `projectArtifactSceneObjects <= 10` and
   `sceneObjects <= 923`.
+- `project-themed-assets` protects the four priority locations from generic
+  props: Observability, Cloud, Design and Contact must expose a themed manifest,
+  exact semantic roles, and role-to-relief signatures that prove each role is
+  carried by actual geometry.
 - `project-artifact-premium-visual-coverage` must prove the sampled mini-map
   specimens are large, unobstructed, bright enough, edge-rich and color-rich
   enough to read as premium 3D assets.
@@ -339,6 +343,9 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
   - `projectArtifactActivityTypes`
   - `projectArtifactSignatures`
   - `projectArtifactMaterials`
+  - `projectArtifactManifests`
+  - `projectArtifactThemeRoles`
+  - `projectArtifactRoleReliefSignatures`
   - `projectArtifactSpecimenFamilies`
   - `projectArtifactDetailProfiles`
   - `projectArtifactReliefSignatures`
@@ -352,6 +359,11 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
 - `camera`
 - `screen`
   - `activeProjectArtifact`
+- `renderer`
+  - `calls`
+  - `triangles`
+  - `geometries`
+  - `textures`
 - `lighting`
 - `canvas`
 - `frameCount`

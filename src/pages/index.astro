@@ -4,6 +4,10 @@ import { defaultZone, zones } from "../game/zones";
 
 const mapRange = 34;
 const mapCoordinate = (value: number) => `${((value + mapRange / 2) / mapRange) * 100}%`;
+const mapPinOffsets: Record<string, [number, number]> = {
+  "cloud-dock": [-10, -8],
+  "contact-portal": [10, 8]
+};
 const homeHref = import.meta.env.BASE_URL;
 ---
 
@@ -56,18 +60,21 @@ const homeHref = import.meta.env.BASE_URL;
         <span class="world-map__axis world-map__axis--x" aria-hidden="true"></span>
         <span class="world-map__axis world-map__axis--y" aria-hidden="true"></span>
         <span class="world-map__player" data-map-player aria-hidden="true"></span>
-        {zones.map((zone) => (
+        {zones.map((zone, index) => {
+          const [offsetX, offsetY] = mapPinOffsets[zone.id] ?? [0, 0];
+          return (
           <button
             class={`world-map__pin world-map__pin--${zone.kind}`}
             type="button"
             data-zone-jump={zone.id}
             aria-label={`Aller a ${zone.label}`}
             aria-pressed={zone.id === defaultZone.id ? "true" : "false"}
-            style={`left: ${mapCoordinate(zone.position[0])}; top: ${mapCoordinate(zone.position[1])};`}
+            style={`left: ${mapCoordinate(zone.position[0])}; top: ${mapCoordinate(zone.position[1])}; --map-order: ${index + 1}; --map-offset-x: ${offsetX}px; --map-offset-y: ${offsetY}px;`}
           >
             <span>{zone.shortLabel}</span>
           </button>
-        ))}
+          );
+        })}
       </nav>
 
       <nav class="mobile-zone-nav" aria-label="Zones du studio">

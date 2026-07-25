@@ -2387,6 +2387,8 @@ async function checkWorldRichness(page) {
     visualSpecZones.flatMap((zone) => zone.projectArtifactActivityTypes ?? [])
   );
   const projectArtifactMaterials = new Set(visualSpecZones.flatMap((zone) => zone.projectArtifactMaterials ?? []));
+  const projectArtifactManifests = new Set(visualSpecZones.flatMap((zone) => zone.projectArtifactManifests ?? []));
+  const projectArtifactThemeRoles = new Set(visualSpecZones.flatMap((zone) => zone.projectArtifactThemeRoles ?? []));
   const projectArtifactSpecimenFamilies = new Set(
     visualSpecZones.flatMap((zone) => zone.projectArtifactSpecimenFamilies ?? [])
   );
@@ -2647,6 +2649,8 @@ async function checkWorldRichness(page) {
       projectArtifactActivityTypes: [...projectArtifactActivityTypes].sort(),
       projectArtifactSignatures: allProjectArtifactSignatures,
       projectArtifactMaterials: [...projectArtifactMaterials].sort(),
+      projectArtifactManifests: [...projectArtifactManifests].sort(),
+      projectArtifactThemeRoles: [...projectArtifactThemeRoles].sort(),
       projectArtifactSpecimenFamilies: [...projectArtifactSpecimenFamilies].sort(),
       projectArtifactDetailProfiles: [...projectArtifactDetailProfiles].sort(),
       projectArtifactReliefSignatures: [...projectArtifactReliefSignatures].sort(),
@@ -2664,6 +2668,8 @@ async function checkWorldRichness(page) {
       projectArtifactActivityTypes: [...projectArtifactActivityTypes].sort(),
       projectArtifactSignatures: world?.projectArtifactSignatures,
       projectArtifactMaterials: world?.projectArtifactMaterials,
+      projectArtifactManifests: [...projectArtifactManifests].sort(),
+      projectArtifactThemeRoles: [...projectArtifactThemeRoles].sort(),
       projectArtifactSpecimenFamilies: [...projectArtifactSpecimenFamilies].sort(),
       projectArtifactDetailProfiles: [...projectArtifactDetailProfiles].sort(),
       projectArtifactReliefSignatures: [...projectArtifactReliefSignatures].sort(),
@@ -2681,6 +2687,8 @@ async function checkWorldRichness(page) {
         projectArtifactActivityTypes: zone.projectArtifactActivityTypes,
         projectArtifactSignatures: zone.projectArtifactSignatures,
         projectArtifactMaterials: zone.projectArtifactMaterials,
+        projectArtifactManifests: zone.projectArtifactManifests,
+        projectArtifactThemeRoles: zone.projectArtifactThemeRoles,
         projectArtifactSpecimenFamilies: zone.projectArtifactSpecimenFamilies,
         projectArtifactDetailProfiles: zone.projectArtifactDetailProfiles,
         projectArtifactReliefSignatures: zone.projectArtifactReliefSignatures,
@@ -2697,6 +2705,8 @@ async function checkWorldRichness(page) {
     world.projectArtifactSceneObjects <= 10 &&
     world.projectArtifactSpecimenFamilies === 5 &&
     world.projectArtifactDetailProfiles >= 5 &&
+    world.projectArtifactManifests >= 5 &&
+    world.projectArtifactThemeRoles >= 12 &&
     world.projectArtifactReliefSignatures >= 24 &&
     world.projectArtifactPartCount >= world.projectArtifactObjects * 4 &&
     world.projectArtifactVertexCount >= 3_000 &&
@@ -2710,6 +2720,8 @@ async function checkWorldRichness(page) {
     pass("project-artifact-materialized", {
       projectArtifactSpecimenFamilies: [...projectArtifactSpecimenFamilies].sort(),
       projectArtifactDetailProfiles: [...projectArtifactDetailProfiles].sort(),
+      projectArtifactManifests: [...projectArtifactManifests].sort(),
+      projectArtifactThemeRoles: [...projectArtifactThemeRoles].sort(),
       projectArtifactReliefSignatures: [...projectArtifactReliefSignatures].sort(),
       projectArtifactPartCount: world.projectArtifactPartCount,
       projectArtifactVertexCount: world.projectArtifactVertexCount,
@@ -2721,11 +2733,85 @@ async function checkWorldRichness(page) {
     scenarioFail("project-artifact-materialized", "Project evidence kits are not detailed enough to read as premium specimens.", {
       projectArtifactSpecimenFamilies: [...projectArtifactSpecimenFamilies].sort(),
       projectArtifactDetailProfiles: [...projectArtifactDetailProfiles].sort(),
+      projectArtifactManifests: [...projectArtifactManifests].sort(),
+      projectArtifactThemeRoles: [...projectArtifactThemeRoles].sort(),
       projectArtifactReliefSignatures: [...projectArtifactReliefSignatures].sort(),
       projectArtifactPartCount: world?.projectArtifactPartCount,
       projectArtifactVertexCount: world?.projectArtifactVertexCount,
       projectArtifactSceneObjects: world?.projectArtifactSceneObjects,
       projectArtifactThinZones,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: 923
+    });
+  }
+
+  const expectedProjectThemes = {
+    "observability-tower": {
+      manifest: "trace-instrument",
+      roles: ["query-ring", "trace-cursor", "telemetry-dot"]
+    },
+    "cloud-dock": {
+      manifest: "release-module",
+      roles: ["deployment-rail", "container-lock", "release-flag"]
+    },
+    "design-atelier": {
+      manifest: "swatch-folio",
+      roles: ["swatch-card", "pattern-grid", "folio-index"]
+    },
+    "contact-portal": {
+      manifest: "reply-folio",
+      roles: ["envelope-flap", "postal-seal", "reply-tab"]
+    }
+  };
+  const projectThemeProofs = Object.entries(expectedProjectThemes).map(([zoneId, expected]) => {
+    const zone = visualSpecZones.find((item) => item.id === zoneId);
+    const roles = new Set(zone?.projectArtifactThemeRoles ?? []);
+    const roleReliefSignatures = zone?.projectArtifactRoleReliefSignatures ?? {};
+    const missingRoleReliefs = expected.roles.filter((role) => {
+      const signatures = roleReliefSignatures[role] ?? [];
+      return !Array.isArray(signatures) || signatures.length === 0;
+    });
+    return {
+      zoneId,
+      expectedManifest: expected.manifest,
+      manifests: zone?.projectArtifactManifests ?? [],
+      expectedRoles: expected.roles,
+      roles: [...roles].sort(),
+      roleReliefSignatures,
+      hasManifest: zone?.projectArtifactManifests?.includes(expected.manifest) === true,
+      missingRoles: expected.roles.filter((role) => !roles.has(role)),
+      missingRoleReliefs,
+      reliefSignatures: zone?.projectArtifactReliefSignatures ?? [],
+      detailProfiles: zone?.projectArtifactDetailProfiles ?? [],
+      bounds: zone?.projectArtifactBounds ?? null
+    };
+  });
+  const projectThemesMaterialized =
+    world &&
+    projectThemeProofs.every(
+      (proof) =>
+        proof.hasManifest &&
+        proof.missingRoles.length === 0 &&
+        proof.missingRoleReliefs.length === 0 &&
+        proof.reliefSignatures.length >= 7 &&
+        (proof.bounds?.width ?? 0) >= 0.55 &&
+        (proof.bounds?.depth ?? 0) >= 0.25
+    ) &&
+    world.projectArtifactSceneObjects <= 10 &&
+    world.sceneObjects <= 923;
+  if (projectThemesMaterialized) {
+    pass("project-themed-assets", {
+      projectThemeProofs,
+      projectArtifactManifests: [...projectArtifactManifests].sort(),
+      projectArtifactThemeRoles: [...projectArtifactThemeRoles].sort(),
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: 923
+    });
+  } else {
+    scenarioFail("project-themed-assets", "Priority zones do not expose themed 3D project assets within budget.", {
+      projectThemeProofs,
+      projectArtifactManifests: [...projectArtifactManifests].sort(),
+      projectArtifactThemeRoles: [...projectArtifactThemeRoles].sort(),
       sceneObjects: world?.sceneObjects,
       sceneObjectBudget: 923
     });
@@ -5072,6 +5158,7 @@ async function ensureSelectorActionable(page, selector, label, options = {}) {
       const centerY = rect.top + rect.height / 2;
       const style = getComputedStyle(element);
       const hit = document.elementFromPoint(centerX, centerY);
+      const hitZoneJump = hit instanceof HTMLElement ? hit.closest("[data-zone-jump]")?.getAttribute("data-zone-jump") ?? null : null;
       return {
         count: matches.length,
         exists: true,
@@ -5096,6 +5183,8 @@ async function ensureSelectorActionable(page, selector, label, options = {}) {
         disabled: element instanceof HTMLButtonElement || element instanceof HTMLAnchorElement ? element.disabled : false,
         hitTag: hit?.tagName?.toLowerCase() ?? null,
         hitClass: hit instanceof HTMLElement ? hit.className : "",
+        hitText: hit instanceof HTMLElement ? hit.textContent?.trim() ?? "" : "",
+        hitZoneJump,
         receivesPointer: hit === element || element.contains(hit)
       };
     }, selector);
@@ -5266,7 +5355,7 @@ async function checkMiniMapJumps(page) {
 
   const targets =
     qaProfile === "quick"
-      ? ["studio-gate", "ai-lab", "design-atelier", "contact-portal"]
+      ? ["studio-gate", "ai-lab", "observability-tower", "cloud-dock", "design-atelier", "contact-portal"]
       : [
           "studio-gate",
           "ai-lab",
@@ -5550,6 +5639,7 @@ async function writeReport() {
   const placeArchitectureScenario = scenarios.find((scenario) => scenario.name === "place-architecture-rendered");
   const projectArtifactsScenario = scenarios.find((scenario) => scenario.name === "project-artifacts-rendered");
   const projectArtifactsMaterializedScenario = scenarios.find((scenario) => scenario.name === "project-artifact-materialized");
+  const projectThemedAssetsScenario = scenarios.find((scenario) => scenario.name === "project-themed-assets");
   const identityRibbonScenario = scenarios.find((scenario) => scenario.name === "identity-ribbon-rendered");
   const identityRibbonVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("identity-ribbon-visible:"));
   const playerScenario = scenarios.find((scenario) => scenario.name === "player-personality");
@@ -5661,9 +5751,12 @@ async function writeReport() {
     `- Project artifact activity types: ${world?.projectArtifactActivityTypes ?? "n/a"}`,
     `- Project artifact signatures: ${world?.projectArtifactSignatures ?? "n/a"}`,
     `- Project artifact materials: ${world?.projectArtifactMaterials ?? "n/a"}`,
+    `- Project artifact manifests: ${world?.projectArtifactManifests ?? "n/a"}`,
+    `- Project artifact theme roles: ${world?.projectArtifactThemeRoles ?? "n/a"}`,
     `- Project artifact specimen families: ${world?.projectArtifactSpecimenFamilies ?? "n/a"}`,
     `- Project artifact detail profiles: ${world?.projectArtifactDetailProfiles ?? "n/a"}`,
     `- Project artifact relief signatures: ${world?.projectArtifactReliefSignatures ?? "n/a"}`,
+    `- Project themed assets: ${projectThemedAssetsScenario?.status ?? "n/a"}`,
     `- Project artifact specimen detail: ${
       projectArtifactsMaterializedScenario?.details
         ? `${projectArtifactsMaterializedScenario.details.projectArtifactPartCount} parts, ${projectArtifactsMaterializedScenario.details.projectArtifactVertexCount} unique vertices, families ${projectArtifactsMaterializedScenario.details.projectArtifactSpecimenFamilies?.length ?? "n/a"}/5, scene ${projectArtifactsMaterializedScenario.details.sceneObjects}/${projectArtifactsMaterializedScenario.details.sceneObjectBudget}`

@@ -14,11 +14,15 @@ type ActivityType =
   | "shared-values"
   | "contact-brief";
 type MotionBehavior = "pulse" | "sweep" | "tilt" | "float" | "blink";
+type ArtifactManifestId = "trace-instrument" | "release-module" | "swatch-folio" | "reply-folio";
 type SpecimenGeometry = {
   geometry: THREE.BufferGeometry;
   family: ProjectArtifactRecipe["form"];
   detailProfile: string;
   reliefSignatures: string[];
+  roleReliefSignatures: Record<string, string[]>;
+  themeRoles: string[];
+  manifestId: ArtifactManifestId | "base";
   partCount: number;
   vertexCount: number;
 };
@@ -32,6 +36,7 @@ type ProjectArtifactRecipe = {
   positions: Array<[number, number, number]>;
   rotations?: Array<[number, number, number]>;
   scales?: Array<[number, number, number]>;
+  manifest?: ArtifactManifestId;
 };
 
 export type RenderedZoneProjectArtifacts = {
@@ -44,7 +49,7 @@ export type RenderedZoneProjectArtifacts = {
   motionObjects: THREE.Object3D[];
 };
 
-const specimenCache = new Map<ProjectArtifactRecipe["form"], SpecimenGeometry>();
+const specimenCache = new Map<string, SpecimenGeometry>();
 
 const projectRecipes: Record<string, ProjectArtifactRecipe> = {
   "studio-gate": artifact("studio-strategy", "dual-discipline-map", "folio", "light", "tilt", [
@@ -57,23 +62,32 @@ const projectRecipes: Record<string, ProjectArtifactRecipe> = {
     [-0.58, 0.38, 1.18],
     [-0.1, 0.3, 1.02]
   ]),
-  "observability-tower": artifact("observability-audit", "signal-trace-pack", "lens", "light", "blink", [
-    [-1.08, 0.34, 0.88],
-    [-0.56, 0.46, 1.12]
-  ]),
+  "observability-tower": {
+    ...artifact("observability-audit", "signal-trace-pack", "lens", "light", "blink", [
+      [-1.08, 0.34, 0.88],
+      [-0.56, 0.46, 1.12]
+    ]),
+    manifest: "trace-instrument"
+  },
   "architecture-bridge": artifact("architecture-review", "decision-stack", "slab", "secondary", "pulse", [
     [-0.92, 0.28, 0.98],
     [-0.34, 0.36, 1.18]
   ]),
-  "cloud-dock": artifact("cloud-delivery", "release-vessel", "capsule", "light", "sweep", [
-    [-0.9, 0.3, 1.04],
-    [-0.34, 0.36, 1.16]
-  ]),
-  "design-atelier": artifact("brand-system", "identity-folio", "folio", "accent", "tilt", [
-    [-0.98, 0.26, 1.02],
-    [-0.4, 0.34, 1.22],
-    [0.18, 0.26, 1.02]
-  ]),
+  "cloud-dock": {
+    ...artifact("cloud-delivery", "release-vessel", "capsule", "light", "sweep", [
+      [-0.9, 0.3, 1.04],
+      [-0.34, 0.36, 1.16]
+    ]),
+    manifest: "release-module"
+  },
+  "design-atelier": {
+    ...artifact("brand-system", "identity-folio", "folio", "accent", "tilt", [
+      [-0.98, 0.26, 1.02],
+      [-0.4, 0.34, 1.22],
+      [0.18, 0.26, 1.02]
+    ]),
+    manifest: "swatch-folio"
+  },
   "three-d-foundry": artifact("product-visualization", "volume-study", "crystal", "secondary", "float", [
     [-0.96, 0.38, 0.98],
     [-0.38, 0.5, 1.18]
@@ -87,10 +101,13 @@ const projectRecipes: Record<string, ProjectArtifactRecipe> = {
     [-0.32, 0.46, 1.32],
     [0.32, 0.34, 1.12]
   ]),
-  "contact-portal": artifact("contact-brief", "first-conversation", "folio", "secondary", "tilt", [
-    [-0.88, 0.72, 1.08],
-    [-0.24, 0.8, 1.26]
-  ])
+  "contact-portal": {
+    ...artifact("contact-brief", "first-conversation", "folio", "secondary", "tilt", [
+      [-0.88, 0.72, 1.08],
+      [-0.24, 0.8, 1.26]
+    ]),
+    manifest: "reply-folio"
+  }
 };
 
 export function createZoneProjectArtifacts(zone: StudioZone, palette: Palette): RenderedZoneProjectArtifacts {
@@ -139,7 +156,7 @@ function artifact(
 }
 
 function createProjectArtifactMesh(zone: StudioZone, palette: Palette, recipe: ProjectArtifactRecipe) {
-  const specimen = geometryFor(recipe.form);
+  const specimen = geometryFor(recipe.form, recipe.manifest);
   const geometry = specimen.geometry;
   const material = materialFor(recipe.tone, zone.kind, palette);
   const mesh = new THREE.InstancedMesh(geometry, material, recipe.positions.length);
@@ -202,29 +219,44 @@ function readableScale(recipe: ProjectArtifactRecipe, index: number): [number, n
   return [emphasis + 0.08, 1.16, 1.04 - index * 0.015];
 }
 
-function geometryFor(form: ProjectArtifactRecipe["form"]): SpecimenGeometry {
-  const cached = specimenCache.get(form);
+function geometryFor(form: ProjectArtifactRecipe["form"], manifestId?: ArtifactManifestId): SpecimenGeometry {
+  const cacheKey = `${form}:${manifestId ?? "base"}`;
+  const cached = specimenCache.get(cacheKey);
   if (cached) {
     return cached;
   }
 
-  const create = (parts: Array<{ signature: string; geometry: THREE.BufferGeometry }>, detailProfile: string) => {
+  const create = (baseParts: Array<{ signature: string; geometry: THREE.BufferGeometry }>, detailProfile: string) => {
+    const manifest = manifestId ? manifestFor(manifestId) : null;
+    const manifestParts = manifestPartsFor(manifestId);
+    const parts = [...baseParts, ...manifestParts];
     const geometry = mergeGeometries(parts.map((part) => part.geometry));
     geometry.computeBoundingBox();
     geometry.computeBoundingSphere();
-    const specimen = {
+    const roleReliefSignatures = manifestParts.reduce<Record<string, string[]>>((roles, part) => {
+      const signature = `${form}:${part.signature}`;
+      roles[part.role] = [...(roles[part.role] ?? []), signature];
+      return roles;
+    }, {});
+    const specimen: SpecimenGeometry = {
       geometry,
       family: form,
-      detailProfile,
+      detailProfile: manifest ? `${detailProfile}; ${manifest.detailProfile}` : detailProfile,
       reliefSignatures: parts.map((part) => `${form}:${part.signature}`),
+      roleReliefSignatures,
+      themeRoles: Object.keys(roleReliefSignatures).sort(),
+      manifestId: manifestId ?? "base",
       partCount: parts.length,
       vertexCount: geometry.getAttribute("position").count
     };
     geometry.userData.detailProfile = specimen.detailProfile;
     geometry.userData.family = specimen.family;
     geometry.userData.reliefSignatures = specimen.reliefSignatures;
+    geometry.userData.roleReliefSignatures = specimen.roleReliefSignatures;
+    geometry.userData.themeRoles = specimen.themeRoles;
+    geometry.userData.manifestId = specimen.manifestId;
     geometry.userData.vertexCount = specimen.vertexCount;
-    specimenCache.set(form, specimen);
+    specimenCache.set(cacheKey, specimen);
     return specimen;
   };
 
@@ -285,6 +317,62 @@ function geometryFor(form: ProjectArtifactRecipe["form"]): SpecimenGeometry {
     ],
     "architectural slab stack with notch, cut line and witness chip"
   );
+}
+
+function manifestFor(manifestId: ArtifactManifestId) {
+  return {
+    "trace-instrument": {
+      detailProfile: "trace instrument with query ring, cursor and sampled telemetry dots",
+      roles: ["query-ring", "trace-cursor", "telemetry-dot"]
+    },
+    "release-module": {
+      detailProfile: "cloud release module with deployment rail, container lock and release flag",
+      roles: ["deployment-rail", "container-lock", "release-flag"]
+    },
+    "swatch-folio": {
+      detailProfile: "atelier swatch folio with layered color cards and pattern grid",
+      roles: ["swatch-card", "pattern-grid", "folio-index"]
+    },
+    "reply-folio": {
+      detailProfile: "postal reply folio with envelope flap, seal and response tab",
+      roles: ["envelope-flap", "postal-seal", "reply-tab"]
+    }
+  }[manifestId];
+}
+
+function manifestPartsFor(manifestId?: ArtifactManifestId) {
+  if (manifestId === "trace-instrument") {
+    return [
+      { role: "query-ring", signature: "query-ring", geometry: transformed(new THREE.TorusGeometry(0.17, 0.012, 8, 36), [0, 0.105, 0], [Math.PI * 0.5, 0, 0]) },
+      { role: "trace-cursor", signature: "trace-cursor", geometry: transformed(new THREE.BoxGeometry(0.26, 0.028, 0.028), [0.08, 0.12, 0.02], [0, 0, 0.42]) },
+      { role: "telemetry-dot", signature: "telemetry-dot-a", geometry: transformed(new THREE.SphereGeometry(0.035, 8, 6), [-0.1, 0.13, 0.11]) },
+      { role: "telemetry-dot", signature: "telemetry-dot-b", geometry: transformed(new THREE.SphereGeometry(0.03, 8, 6), [0.14, 0.13, -0.1]) }
+    ];
+  }
+  if (manifestId === "release-module") {
+    return [
+      { role: "deployment-rail", signature: "deployment-rail", geometry: transformed(new THREE.BoxGeometry(0.48, 0.028, 0.045), [0, 0.16, -0.13], [0, 0.08, 0]) },
+      { role: "container-lock", signature: "container-lock", geometry: transformed(new THREE.BoxGeometry(0.1, 0.08, 0.12), [0.22, 0.12, 0.12], [0, -0.18, 0.12]) },
+      { role: "release-flag", signature: "release-flag", geometry: transformed(new THREE.ConeGeometry(0.07, 0.18, 3), [-0.24, 0.18, 0.1], [0.22, 0, Math.PI * 0.5]) }
+    ];
+  }
+  if (manifestId === "swatch-folio") {
+    return [
+      { role: "swatch-card", signature: "swatch-card-cyan", geometry: transformed(new THREE.BoxGeometry(0.16, 0.032, 0.12), [-0.05, 0.12, -0.11], [0, 0, -0.08]) },
+      { role: "swatch-card", signature: "swatch-card-coral", geometry: transformed(new THREE.BoxGeometry(0.16, 0.032, 0.12), [0.05, 0.14, 0], [0, 0, 0.12]) },
+      { role: "swatch-card", signature: "swatch-card-paper", geometry: transformed(new THREE.BoxGeometry(0.16, 0.032, 0.12), [0.13, 0.16, 0.12], [0, 0, 0.22]) },
+      { role: "pattern-grid", signature: "pattern-grid", geometry: transformed(new THREE.BoxGeometry(0.36, 0.018, 0.026), [0.02, 0.19, -0.02], [0, 0, 0.62]) },
+      { role: "folio-index", signature: "folio-index", geometry: transformed(new THREE.BoxGeometry(0.055, 0.05, 0.22), [-0.18, 0.17, 0.04], [0, 0.05, -0.08]) }
+    ];
+  }
+  if (manifestId === "reply-folio") {
+    return [
+      { role: "envelope-flap", signature: "envelope-flap", geometry: transformed(new THREE.ConeGeometry(0.18, 0.055, 3), [0.08, 0.13, 0], [0, 0, Math.PI * 0.5], [1, 0.5, 1.28]) },
+      { role: "postal-seal", signature: "postal-seal", geometry: transformed(new THREE.CylinderGeometry(0.055, 0.055, 0.026, 16), [0.17, 0.17, 0.1], [Math.PI * 0.5, 0, 0]) },
+      { role: "reply-tab", signature: "reply-tab", geometry: transformed(new THREE.BoxGeometry(0.18, 0.032, 0.09), [-0.14, 0.15, -0.12], [0, 0, -0.26]) }
+    ];
+  }
+  return [];
 }
 
 function transformed(
@@ -372,6 +460,9 @@ function tagProjectArtifact(
   object.userData.projectArtifactMaterials = materialVariants;
   object.userData.projectArtifactObjectCount = signatures.length;
   object.userData.projectArtifactSpecimenFamily = specimen.family;
+  object.userData.projectArtifactManifest = specimen.manifestId;
+  object.userData.projectArtifactThemeRoles = specimen.themeRoles;
+  object.userData.projectArtifactRoleReliefSignatures = specimen.roleReliefSignatures;
   object.userData.projectArtifactDetailProfile = specimen.detailProfile;
   object.userData.projectArtifactReliefSignatures = specimen.reliefSignatures;
   object.userData.projectArtifactPartCount = specimen.partCount;

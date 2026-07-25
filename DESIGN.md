@@ -511,6 +511,20 @@ Gates V4.3:
 - le monde gagne de l'echelle (`mapRange = 34`, terrain et districts agrandis)
   en conservant des hauteurs de couches distinctes pour limiter le z-fighting.
 
+Gates V4.4:
+
+- `project-themed-assets` verrouille les quatre lieux prioritaires:
+  Observability, Cloud, Design et Contact doivent exposer un manifest
+  thematique et des roles lies a de vraies signatures de relief;
+- les manifests restent fusionnes dans les geometries instanciees existantes:
+  aucun nouvel `Object3D`, `projectArtifactSceneObjects <= 10` et
+  `sceneObjects <= 923`;
+- le snapshot QA expose `projectArtifactRoleReliefSignatures` pour refuser les
+  roles fantomes, plus `renderer.info` afin de preparer les plafonds draw calls,
+  geometries, textures et triangles;
+- le profil quick visite aussi Observability et Cloud via mini-map, et la
+  mini-map separe les hitboxes Cloud/Mail sans modifier leurs positions monde.
+
 ## Components
 
 - `game-site`: surface principale.
