@@ -47,6 +47,9 @@ The runner:
   reads as alive instead of globally rotating;
 - verifies that every zone exposes narrative set dressing objects, role names,
   and distinct signatures;
+- verifies that every zone exposes dedicated procedural signature artifacts with
+  unique signatures, roles, and material variants distinct from generic set
+  dressing;
 - verifies that the global world composition exposes terrain layers, route
   lights, district silhouettes, studio thresholds, and animated scenery roles;
 - verifies that keyboard and mini-map zone changes trigger visible 3D
@@ -98,6 +101,9 @@ The runner:
   roles, five set dressing signatures, and a non-empty set dressing fingerprint.
 - The world must expose at least 78 set dressing objects and 58 set dressing
   signatures.
+- The world must expose at least 55 signature artifact objects and 45 signature
+  artifact signatures, with no duplicate signature and every zone carrying its
+  own signature artifact fingerprint.
 - The world must expose at least five terrain layers, 60 scenery objects, 24
   scenery signatures, 20 animated scenery objects, and all expected scenery
   roles: terrain edge, tech skyline, art sculpture, studio threshold, route

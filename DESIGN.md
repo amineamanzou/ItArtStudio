@@ -230,6 +230,17 @@ Gates V2.1:
 - rejet QA si la conduite reste techniquement possible mais devient illisible
   par occlusion UI, cadrage trop serre ou camera qui ne suit pas assez vite.
 
+Gates V2.2:
+
+- nouvelle couche `signature artifacts`: objets proceduraux sculpturaux par
+  zone, separes des landmarks et du set dressing;
+- chaque zone expose des signatures, roles, variantes matiere et fingerprints
+  dedies pour prouver une silhouette reconnaissable;
+- verification QA que les artefacts signature sont presents sur les 10 zones,
+  non dupliques et suffisamment varies pour porter la memoire visuelle du lieu;
+- rejet QA si une zone revient a un simple socle avec decor generique, meme si
+  les anciens compteurs de richesse restent au vert.
+
 ## Components
 
 - `game-site`: surface principale.

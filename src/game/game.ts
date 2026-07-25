@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { createZoneLandmark } from "./procedural-assets";
+import { createZoneSignatureArtifacts } from "./zone-signature-artifacts";
 import { createWorldScenery } from "./world-scenery";
 import { createZoneSetDressing } from "./zone-set-dressing";
 import { zoneVisualSpecs, type ZoneVisualSpec } from "./visual-specs";
@@ -52,6 +53,11 @@ type ZoneAssetQa = {
   setDressingObjects: number;
   setDressingRoles: string[];
   setDressingSignatures: string[];
+  signatureArtifactObjects: number;
+  signatureArtifactFamilies: string[];
+  signatureArtifactRoles: string[];
+  signatureArtifactSignatures: string[];
+  signatureArtifactMaterials: string[];
   materialVariants: number;
   declaredMaterialVariants: string[];
   renderedMaterialVariants: string[];
@@ -65,6 +71,7 @@ type ZoneAssetQa = {
   localMotionBehaviors: Record<string, number>;
   visualFingerprint: string;
   setDressingFingerprint: string;
+  signatureArtifactFingerprint: string;
   hasLabel: boolean;
   bounds: BoundsQa;
 };
@@ -85,6 +92,8 @@ type QaSnapshot = {
     propClusters: number;
     setDressingObjects: number;
     setDressingSignatures: number;
+    signatureArtifactObjects: number;
+    signatureArtifactSignatures: number;
     sceneryObjects: number;
     scenerySignatures: number;
     sceneryMotionObjects: number;
@@ -177,6 +186,7 @@ class StudioGame {
   private visualDecalCount = 0;
   private propClusterCount = 0;
   private setDressingObjectCount = 0;
+  private signatureArtifactObjectCount = 0;
   private sceneryObjectCount = 0;
   private terrainLayerCount = 0;
   private motionRoleCount = 0;
@@ -184,6 +194,7 @@ class StudioGame {
   private readonly renderedVisualSpecIds = new Set<string>();
   private readonly materialVariantIds = new Set<string>();
   private readonly setDressingSignatureIds = new Set<string>();
+  private readonly signatureArtifactSignatureIds = new Set<string>();
   private readonly scenerySignatureIds = new Set<string>();
   private readonly zoneMotionObjects = new Map<string, THREE.Object3D[]>();
   private readonly activationFeedbackByZone = new Map<string, ActivationFeedback>();
@@ -222,6 +233,8 @@ class StudioGame {
       propClusters: 0,
       setDressingObjects: 0,
       setDressingSignatures: 0,
+      signatureArtifactObjects: 0,
+      signatureArtifactSignatures: 0,
       sceneryObjects: 0,
       scenerySignatures: 0,
       sceneryMotionObjects: 0,
@@ -592,6 +605,7 @@ class StudioGame {
     }
 
     this.addZoneSetDressing(group, zone);
+    this.addZoneSignatureArtifacts(group, zone);
 
     const marker = createZoneLandmark(zone, colors);
     marker.userData.zoneId = zone.id;
@@ -702,6 +716,22 @@ class StudioGame {
     this.motionRoleCount += rendered.motionObjects.length;
     for (const signature of rendered.signatures) {
       this.setDressingSignatureIds.add(signature);
+    }
+    const existingMotionObjects = this.zoneMotionObjects.get(zone.id) ?? [];
+    this.zoneMotionObjects.set(zone.id, [...existingMotionObjects, ...rendered.motionObjects]);
+  }
+
+  private addZoneSignatureArtifacts(group: THREE.Group, zone: StudioZone) {
+    const rendered = createZoneSignatureArtifacts(zone, colors);
+    group.add(rendered.group);
+    this.signatureArtifactObjectCount += rendered.objectCount;
+    this.decorativeObjectCount += rendered.objectCount;
+    this.motionRoleCount += rendered.motionObjects.length;
+    for (const signature of rendered.signatures) {
+      this.signatureArtifactSignatureIds.add(signature);
+    }
+    for (const variant of rendered.materialVariants) {
+      this.materialVariantIds.add(variant);
     }
     const existingMotionObjects = this.zoneMotionObjects.get(zone.id) ?? [];
     this.zoneMotionObjects.set(zone.id, [...existingMotionObjects, ...rendered.motionObjects]);
@@ -1453,6 +1483,8 @@ class StudioGame {
       propClusters: this.propClusterCount,
       setDressingObjects: this.setDressingObjectCount,
       setDressingSignatures: this.setDressingSignatureIds.size,
+      signatureArtifactObjects: this.signatureArtifactObjectCount,
+      signatureArtifactSignatures: this.signatureArtifactSignatureIds.size,
       sceneryObjects: this.sceneryObjectCount,
       scenerySignatures: this.scenerySignatureIds.size,
       sceneryMotionObjects: this.worldSceneryMotionObjects.length,
@@ -1581,6 +1613,11 @@ class StudioGame {
         setDressingObjects: 0,
         setDressingRoles: [],
         setDressingSignatures: [],
+        signatureArtifactObjects: 0,
+        signatureArtifactFamilies: [],
+        signatureArtifactRoles: [],
+        signatureArtifactSignatures: [],
+        signatureArtifactMaterials: [],
         materialVariants: 0,
         declaredMaterialVariants: [],
         renderedMaterialVariants: [],
@@ -1594,6 +1631,7 @@ class StudioGame {
         localMotionBehaviors: {},
         visualFingerprint: "",
         setDressingFingerprint: "",
+        signatureArtifactFingerprint: "",
         hasLabel: false,
         bounds: { width: 0, height: 0, depth: 0 }
       };
@@ -1607,7 +1645,12 @@ class StudioGame {
     const propClusters = new Set<string>();
     const setDressingRoles = new Set<string>();
     const setDressingSignatures = new Set<string>();
+    const signatureArtifactRoles = new Set<string>();
+    const signatureArtifactFamilies = new Set<string>();
+    const signatureArtifactSignatures = new Set<string>();
+    const signatureArtifactMaterials = new Set<string>();
     let setDressingObjects = 0;
+    let signatureArtifactObjects = 0;
     const materialVariants = new Set<string>();
     const semanticMaterialVariants = new Set<string>();
     const motionRoleCounts: Record<string, number> = {};
@@ -1646,6 +1689,21 @@ class StudioGame {
           setDressingObjects += 1;
           if (typeof child.userData.setDressingSignature === "string") {
             setDressingSignatures.add(child.userData.setDressingSignature);
+          }
+        }
+      }
+      if (typeof child.userData.signatureArtifactRole === "string") {
+        signatureArtifactRoles.add(child.userData.signatureArtifactRole);
+        if (typeof child.userData.signatureArtifactFamily === "string") {
+          signatureArtifactFamilies.add(child.userData.signatureArtifactFamily);
+        }
+        if (child instanceof THREE.Mesh) {
+          signatureArtifactObjects += 1;
+          if (typeof child.userData.signatureArtifactSignature === "string") {
+            signatureArtifactSignatures.add(child.userData.signatureArtifactSignature);
+          }
+          if (typeof child.userData.signatureArtifactMaterial === "string") {
+            signatureArtifactMaterials.add(child.userData.signatureArtifactMaterial);
           }
         }
       }
@@ -1690,6 +1748,11 @@ class StudioGame {
       setDressingObjects,
       setDressingRoles: [...setDressingRoles].sort(),
       setDressingSignatures: [...setDressingSignatures].sort(),
+      signatureArtifactObjects,
+      signatureArtifactFamilies: [...signatureArtifactFamilies].sort(),
+      signatureArtifactRoles: [...signatureArtifactRoles].sort(),
+      signatureArtifactSignatures: [...signatureArtifactSignatures].sort(),
+      signatureArtifactMaterials: [...signatureArtifactMaterials].sort(),
       materialVariants: materialVariants.size,
       declaredMaterialVariants,
       renderedMaterialVariants,
@@ -1714,6 +1777,7 @@ class StudioGame {
         [...materialVariants].sort().join("+")
       ].join("|"),
       setDressingFingerprint: [...setDressingSignatures].sort().join("|"),
+      signatureArtifactFingerprint: [...signatureArtifactSignatures].sort().join("|"),
       hasLabel,
       bounds: this.measureObject(group)
     };

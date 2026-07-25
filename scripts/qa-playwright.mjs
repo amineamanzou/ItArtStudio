@@ -260,6 +260,16 @@ function assertCanvasDetail(label, canvas) {
   }
 }
 
+function maxPositionSampleStep(samples = []) {
+  let maxStep = 0;
+  for (let index = 1; index < samples.length; index += 1) {
+    const previous = samples[index - 1];
+    const current = samples[index];
+    maxStep = Math.max(maxStep, Math.hypot((current?.x ?? 0) - (previous?.x ?? 0), (current?.z ?? 0) - (previous?.z ?? 0)));
+  }
+  return maxStep;
+}
+
 async function assertReady(page, targetUrl = baseUrl) {
   let lastError;
   const requireQaStep = requiresQaStep(targetUrl);
@@ -669,6 +679,7 @@ async function checkRealDriveTour(browser) {
     const xSpan = xValues.length > 0 ? Math.max(...xValues) - Math.min(...xValues) : 0;
     const zSpan = zValues.length > 0 ? Math.max(...zValues) - Math.min(...zValues) : 0;
     const maxStepDistance = Math.max(...routeResults.map((result) => result.maxSampleStepDistance), 0);
+    const driveTelemetryMaxStep = maxPositionSampleStep(final?.drive?.positionSamples ?? []);
     const cameraSamples = allSamples.filter((sample) => sample.camera && sample.screen);
     const maxCameraLag = Math.max(...cameraSamples.map((sample) => sample.camera.lag ?? 99), 0);
     const maxCameraDistance = Math.max(...cameraSamples.map((sample) => sample.camera.distanceToPlayer ?? 0), 0);
@@ -703,7 +714,7 @@ async function checkRealDriveTour(browser) {
       maxCameraLag <= 5.8 &&
       minCameraDistance >= 10 &&
       maxCameraDistance <= 18 &&
-      maxStepDistance <= 7;
+      driveTelemetryMaxStep <= 3.5;
 
     if (driveGate) {
       pass("real-drive-tour", {
@@ -712,6 +723,7 @@ async function checkRealDriveTour(browser) {
         xSpan: Number(xSpan.toFixed(3)),
         zSpan: Number(zSpan.toFixed(3)),
         maxStepDistance: Number(maxStepDistance.toFixed(3)),
+        driveTelemetryMaxStep: Number(driveTelemetryMaxStep.toFixed(3)),
         maxCameraLag: Number(maxCameraLag.toFixed(3)),
         minCameraDistance: Number(minCameraDistance.toFixed(3)),
         maxCameraDistance: Number(maxCameraDistance.toFixed(3)),
@@ -730,6 +742,7 @@ async function checkRealDriveTour(browser) {
         xSpan,
         zSpan,
         maxStepDistance,
+        driveTelemetryMaxStep,
         maxCameraLag,
         minCameraDistance,
         maxCameraDistance,
@@ -817,6 +830,25 @@ async function checkWorldRichness(page) {
     world.scenerySignatures >= 24 &&
     world.sceneryMotionObjects >= 20 &&
     missingSceneryRoles.length === 0;
+  const allSignatureArtifactSignatures = (world?.zones ?? []).flatMap((zone) => zone.signatureArtifactSignatures ?? []);
+  const duplicateSignatureArtifactSignatures = allSignatureArtifactSignatures.filter(
+    (signature, index, signatures) => signature && signatures.indexOf(signature) !== index
+  );
+  const signatureArtifactRoleTypes = new Set(
+    (world?.zones ?? []).flatMap((zone) => zone.signatureArtifactRoles ?? [])
+  );
+  const signatureArtifactFamilies = new Set(
+    (world?.zones ?? []).flatMap((zone) => zone.signatureArtifactFamilies ?? [])
+  );
+  const thinSignatureArtifactZones = (world?.zones ?? []).filter(
+    (zone) =>
+      (zone.signatureArtifactObjects ?? 0) < 4 ||
+      (zone.signatureArtifactSignatures?.length ?? 0) < 4 ||
+      (zone.signatureArtifactRoles?.length ?? 0) < 3 ||
+      (zone.signatureArtifactFamilies?.length ?? 0) < 1 ||
+      (zone.signatureArtifactMaterials?.length ?? 0) < 2 ||
+      !zone.signatureArtifactFingerprint
+  );
   const thinZones = (world?.zones ?? []).filter(
     (zone) =>
       zone.meshCount < 10 ||
@@ -829,6 +861,10 @@ async function checkWorldRichness(page) {
       zone.setDressingObjects < 7 ||
       zone.setDressingRoles?.length < 3 ||
       zone.setDressingSignatures?.length < 5 ||
+      zone.signatureArtifactObjects < 4 ||
+      zone.signatureArtifactSignatures?.length < 4 ||
+      zone.signatureArtifactRoles?.length < 3 ||
+      zone.signatureArtifactMaterials?.length < 2 ||
       Object.keys(zone.localMotionBehaviors ?? {}).length < 3 ||
       !zone.setDressingFingerprint ||
       zone.materialVariants < Math.max(6, zone.expectedVisuals?.materialVariants ?? 0) ||
@@ -837,6 +873,7 @@ async function checkWorldRichness(page) {
       zone.motionObjectCount <
         Math.max(15, (zone.expectedVisuals?.propObjects ?? 0) + (zone.expectedVisuals?.decals ?? 0)) ||
       !zone.visualFingerprint ||
+      !zone.signatureArtifactFingerprint ||
       !zone.hasLabel ||
       zone.bounds.height < 1.25 ||
       zone.bounds.width < 1.4 ||
@@ -855,15 +892,30 @@ async function checkWorldRichness(page) {
     world.propClusters >= 30 &&
     world.setDressingObjects >= 78 &&
     world.setDressingSignatures >= 58 &&
+    world.signatureArtifactObjects >= 55 &&
+    world.signatureArtifactSignatures >= 45 &&
     world.materialVariants >= 60 &&
+    signatureArtifactFamilies.size >= 10 &&
+    signatureArtifactRoleTypes.size >= 45 &&
+    duplicateSignatureArtifactSignatures.length === 0 &&
+    thinSignatureArtifactZones.length === 0 &&
     thinZones.length === 0
   ) {
-    pass("world-richness", { world, zoneCount: snapshot.zoneCount });
+    pass("world-richness", {
+      world,
+      zoneCount: snapshot.zoneCount,
+      signatureArtifactFamilies: [...signatureArtifactFamilies].sort(),
+      signatureArtifactRoleTypes: [...signatureArtifactRoleTypes].sort()
+    });
   } else {
     scenarioFail("world-richness", "3D world does not expose enough modeled cartography assets.", {
       world,
       zoneCount: snapshot?.zoneCount,
       missingSceneryRoles,
+      duplicateSignatureArtifactSignatures,
+      signatureArtifactFamilies: [...signatureArtifactFamilies].sort(),
+      signatureArtifactRoleTypes: [...signatureArtifactRoleTypes].sort(),
+      thinSignatureArtifactZones,
       thinZones
     });
   }
@@ -891,11 +943,17 @@ async function checkWorldRichness(page) {
     world.materialVariants >= snapshot.zoneCount * 6 &&
     world.setDressingObjects >= 78 &&
     world.setDressingSignatures >= 58 &&
+    world.signatureArtifactObjects >= 55 &&
+    world.signatureArtifactSignatures >= 45 &&
+    signatureArtifactFamilies.size >= 10 &&
+    signatureArtifactRoleTypes.size >= 45 &&
     hasWorldComposition &&
     world.motionRoles >= visualSpecZones.reduce((sum, zone) => sum + (zone.motionObjectCount ?? 0), 0) &&
     duplicateFingerprints.length === 0 &&
     duplicateSetDressingFingerprints.length === 0 &&
     duplicateSetDressingSignatures.length === 0 &&
+    duplicateSignatureArtifactSignatures.length === 0 &&
+    thinSignatureArtifactZones.length === 0 &&
     localMotionBehaviorTypes.size >= 5 &&
     thinZones.length === 0;
 
@@ -907,6 +965,11 @@ async function checkWorldRichness(page) {
       materialVariants: world.materialVariants,
       setDressingObjects: world.setDressingObjects,
       setDressingSignatures: world.setDressingSignatures,
+      signatureArtifactObjects: world.signatureArtifactObjects,
+      signatureArtifactSignatures: world.signatureArtifactSignatures,
+      signatureArtifactFamilies: [...signatureArtifactFamilies].sort(),
+      signatureArtifactRoleTypes: [...signatureArtifactRoleTypes].sort(),
+      signatureArtifactSignatures: allSignatureArtifactSignatures,
       terrainLayers: world.terrainLayers,
       sceneryObjects: world.sceneryObjects,
       scenerySignatures: world.scenerySignatures,
@@ -937,6 +1000,8 @@ async function checkWorldRichness(page) {
       duplicateFingerprints,
       duplicateSetDressingFingerprints,
       duplicateSetDressingSignatures,
+      duplicateSignatureArtifactSignatures,
+      thinSignatureArtifactZones,
       localMotionBehaviorTypes: [...localMotionBehaviorTypes].sort(),
       thinZones,
       zones: visualSpecZones
@@ -1777,6 +1842,8 @@ async function writeReport() {
     `- Prop clusters: ${world?.propClusters ?? "n/a"}`,
     `- Set dressing objects: ${world?.setDressingObjects ?? "n/a"}`,
     `- Set dressing signatures: ${world?.setDressingSignatures ?? "n/a"}`,
+    `- Signature artifact objects: ${world?.signatureArtifactObjects ?? "n/a"}`,
+    `- Signature artifact signatures: ${world?.signatureArtifactSignatures ?? "n/a"}`,
     `- Terrain layers: ${world?.terrainLayers ?? "n/a"}`,
     `- Scenery objects: ${world?.sceneryObjects ?? "n/a"}`,
     `- Scenery signatures: ${world?.scenerySignatures ?? "n/a"}`,
@@ -1801,7 +1868,7 @@ async function writeReport() {
     }`,
     `- Real drive tour: ${
       realDriveScenario?.details
-        ? `${realDriveScenario.details.distanceDelta} units over ${realDriveScenario.details.frameDelta} frames, max step ${realDriveScenario.details.maxStepDistance}, camera lag max ${realDriveScenario.details.maxCameraLag}, camera distance ${realDriveScenario.details.minCameraDistance}-${realDriveScenario.details.maxCameraDistance}, sticky active-zone offscreen samples ${realDriveScenario.details.invisibleActiveZoneSamples}`
+        ? `${realDriveScenario.details.distanceDelta} units over ${realDriveScenario.details.frameDelta} frames, polling max step ${realDriveScenario.details.maxStepDistance}, telemetry max step ${realDriveScenario.details.driveTelemetryMaxStep}, camera lag max ${realDriveScenario.details.maxCameraLag}, camera distance ${realDriveScenario.details.minCameraDistance}-${realDriveScenario.details.maxCameraDistance}, sticky active-zone offscreen samples ${realDriveScenario.details.invisibleActiveZoneSamples}`
         : "n/a"
     }`,
     `- Camera safe-area checks: ${cameraSafeScenarios.filter((scenario) => scenario.status === "pass").length}/${
