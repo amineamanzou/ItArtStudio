@@ -18,7 +18,7 @@ import { zoneVisualSpecs, type ZoneVisualSpec } from "./visual-specs";
 import { renderZoneVisuals } from "./zone-visual-renderer";
 import { defaultZone, worldRoutes, zones, type StudioZone, type ZoneKind } from "./zones";
 
-const mapRange = 20;
+const mapRange = 34;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const angleDelta = (from: number, to: number) => Math.atan2(Math.sin(to - from), Math.cos(to - from));
 const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -28,6 +28,9 @@ const realKeyboardQaMode = searchParams.has("realKeys");
 const playerSpeed = qaMode ? 15.5 : 7.4;
 const playerAcceleration = qaMode ? 46 : 18;
 const playerDrag = qaMode ? 8.4 : 4.1;
+const playerTurnSpeed = qaMode ? 3.6 : 3;
+const worldSoftBoundary = 13.4;
+const worldHardBoundary = 16.2;
 
 const colors: Record<ZoneKind | "ground" | "road" | "ink", number> = {
   tech: 0x17d2ff,
@@ -889,7 +892,7 @@ class StudioGame {
 
   private setWorld() {
     const ground = new THREE.Mesh(
-      new THREE.CircleGeometry(12.8, 7),
+      new THREE.CircleGeometry(18.4, 9),
       new THREE.MeshStandardMaterial({
         color: 0xffffff,
         map: worldTexture,
@@ -900,6 +903,7 @@ class StudioGame {
     ground.rotation.x = -Math.PI * 0.5;
     ground.rotation.z = Math.PI * 0.06;
     ground.scale.set(1.12, 1, 0.88);
+    ground.renderOrder = -4;
     ground.receiveShadow = true;
     this.scene.add(ground);
 
@@ -996,12 +1000,13 @@ class StudioGame {
         roughness: 0.92,
         metalness: 0.02,
         transparent: true,
-        opacity: Math.min(0.2, opacity + 0.055),
+        opacity: Math.min(0.13, opacity + 0.018),
         depthWrite: false
       })
     );
     plate.rotation.x = -Math.PI * 0.5;
-    plate.position.y = 0.018;
+    plate.position.y = 0.012;
+    plate.renderOrder = -2;
     plate.receiveShadow = true;
     this.scene.add(plate);
     this.decorativeObjectCount += 1;
@@ -1547,6 +1552,7 @@ class StudioGame {
         this.playerPartCount += 1;
       }
     });
+    this.player.rotation.y = Math.PI;
     this.player.position.copy(this.playerPosition);
     this.scene.add(this.player);
   }
@@ -1647,21 +1653,22 @@ class StudioGame {
 
   private applyQaKeyboardStep(direction: DriveKey) {
     const step = 1.2;
+    const turnStep = 0.34;
     const previousPosition = this.playerPosition.clone();
     const previousRotationY = this.player.rotation.y;
-    if (direction === "up") this.playerPosition.z -= step;
-    if (direction === "down") this.playerPosition.z += step;
-    if (direction === "left") this.playerPosition.x -= step;
-    if (direction === "right") this.playerPosition.x += step;
+    if (direction === "left") this.player.rotation.y -= turnStep;
+    if (direction === "right") this.player.rotation.y += turnStep;
+    this.normalizePlayerRotation();
+    const throttle = direction === "up" ? 1 : direction === "down" ? -1 : 0;
+    if (throttle !== 0) {
+      this.playerPosition.add(this.forwardVector().multiplyScalar(step * throttle));
+    }
 
-    this.playerPosition.x = clamp(this.playerPosition.x, -9.4, 9.4);
-    this.playerPosition.z = clamp(this.playerPosition.z, -9.4, 9.4);
+    this.applyWorldBoundary(0.08);
     this.targetPosition.copy(this.playerPosition);
     this.player.position.copy(this.playerPosition);
     const travel = this.playerPosition.clone().sub(previousPosition);
-    if (travel.lengthSq() > 0.0001) {
-      const targetRotation = Math.atan2(travel.x, travel.z);
-      this.player.rotation.y += angleDelta(this.player.rotation.y, targetRotation) * 0.42;
+    if (travel.lengthSq() > 0.0001 || direction === "left" || direction === "right") {
       this.playerVelocity.copy(travel).divideScalar(0.08);
       for (const wheel of this.wheelMeshes) {
         wheel.rotation.x += travel.length() * 3.8;
@@ -1697,6 +1704,10 @@ class StudioGame {
     if (this.qaSnapshot.lastInputMode === "none") {
       this.qaSnapshot.lastInputMode = "programmatic";
     }
+    this.playerVelocity.set(0, 0, 0);
+    this.lastDriveSpeed = 0;
+    this.lastDriveAcceleration = 0;
+    this.lastDriveTurnRate = 0;
     this.targetPosition.set(zone.position[0], 0.28, zone.position[1]);
     this.updatePanel(zone);
   }
@@ -1752,19 +1763,23 @@ class StudioGame {
   };
 
   private updatePlayer(delta: number) {
-    const direction = new THREE.Vector3();
-    if (this.keys.has("up")) direction.z -= 1;
-    if (this.keys.has("down")) direction.z += 1;
-    if (this.keys.has("left")) direction.x -= 1;
-    if (this.keys.has("right")) direction.x += 1;
+    const throttle = (this.keys.has("up") ? 1 : 0) - (this.keys.has("down") ? 1 : 0);
+    const turn = (this.keys.has("right") ? 1 : 0) - (this.keys.has("left") ? 1 : 0);
 
     const previousPosition = this.playerPosition.clone();
     const previousRotationY = this.player.rotation.y;
     let allowRoutePull = false;
+    let guidedMove = false;
 
-    if (direction.lengthSq() > 0) {
+    if (turn !== 0) {
+      const reverseTurnFactor = throttle < 0 ? -0.62 : 1;
+      this.player.rotation.y += turn * playerTurnSpeed * reverseTurnFactor * delta;
+      this.normalizePlayerRotation();
+    }
+
+    if (throttle !== 0) {
       allowRoutePull = true;
-      direction.normalize();
+      const direction = this.forwardVector().multiplyScalar(throttle);
       const proposedPosition = this.playerPosition.clone().add(direction.clone().multiplyScalar(delta * playerSpeed));
       const proposedSurface = sampleDriveSurface(proposedPosition);
       const speedMultiplier = proposedSurface.onRoute ? 1 : 0.62;
@@ -1781,8 +1796,12 @@ class StudioGame {
       }
       this.targetPosition.copy(this.playerPosition);
     } else if (this.playerPosition.distanceToSquared(this.targetPosition) > 0.04) {
+      guidedMove = true;
       this.playerVelocity.multiplyScalar(0.35);
       this.playerPosition.lerp(this.targetPosition, 1 - Math.pow(0.0008, delta));
+      if (this.playerPosition.distanceToSquared(this.targetPosition) <= 0.04) {
+        this.playerPosition.copy(this.targetPosition);
+      }
     } else if (this.playerVelocity.lengthSq() > 0.0001) {
       this.playerVelocity.multiplyScalar(Math.exp(-playerDrag * delta));
       if (this.playerVelocity.lengthSq() < 0.0025) {
@@ -1799,30 +1818,52 @@ class StudioGame {
       this.targetPosition.copy(this.playerPosition);
     }
 
-    this.playerPosition.x = clamp(this.playerPosition.x, -9.4, 9.4);
-    this.playerPosition.z = clamp(this.playerPosition.z, -9.4, 9.4);
-    this.targetPosition.x = clamp(this.targetPosition.x, -9.4, 9.4);
-    this.targetPosition.z = clamp(this.targetPosition.z, -9.4, 9.4);
-    if (Math.abs(this.playerPosition.x) >= 9.39) {
-      this.playerVelocity.x = 0;
-    }
-    if (Math.abs(this.playerPosition.z) >= 9.39) {
-      this.playerVelocity.z = 0;
+    this.applyWorldBoundary(delta);
+    if (!guidedMove || this.playerPosition.distanceToSquared(this.targetPosition) <= 0.04) {
+      this.targetPosition.copy(this.playerPosition);
     }
 
     const travel = this.playerPosition.clone().sub(previousPosition);
     this.player.position.copy(this.playerPosition);
-    this.emitTrail(previousPosition, travel);
+    if (!guidedMove) {
+      this.emitTrail(previousPosition, travel);
+    }
 
     if (travel.lengthSq() > 0.0001) {
-      const targetRotation = Math.atan2(travel.x, travel.z);
-      this.player.rotation.y += angleDelta(this.player.rotation.y, targetRotation) * 0.14;
       for (const wheel of this.wheelMeshes) {
         wheel.rotation.x += travel.length() * 3.8;
       }
     }
-    this.recordDriveTelemetry(travel, delta, previousRotationY, direction.lengthSq() > 0);
+    if (!guidedMove) {
+      this.recordDriveTelemetry(travel, delta, previousRotationY, throttle !== 0 || turn !== 0);
+    }
     this.updateTrail(delta);
+  }
+
+  private forwardVector() {
+    return new THREE.Vector3(Math.sin(this.player.rotation.y), 0, Math.cos(this.player.rotation.y)).normalize();
+  }
+
+  private normalizePlayerRotation() {
+    this.player.rotation.y = angleDelta(0, this.player.rotation.y);
+  }
+
+  private applyWorldBoundary(delta: number) {
+    const horizontal = new THREE.Vector2(this.playerPosition.x, this.playerPosition.z);
+    const distance = horizontal.length();
+    if (distance <= worldSoftBoundary) {
+      return;
+    }
+
+    const inward = new THREE.Vector3(-horizontal.x, 0, -horizontal.y).normalize();
+    const overflow = distance - worldSoftBoundary;
+    this.playerVelocity.addScaledVector(inward, Math.min(playerSpeed, overflow * 2.4) * delta);
+    if (distance > worldHardBoundary) {
+      horizontal.setLength(worldHardBoundary);
+      this.playerPosition.x = horizontal.x;
+      this.playerPosition.z = horizontal.y;
+      this.playerVelocity.multiplyScalar(0.24);
+    }
   }
 
   private pullPlayerTowardRoute(surface: ReturnType<typeof sampleDriveSurface>, delta: number) {
@@ -1842,7 +1883,7 @@ class StudioGame {
       return;
     }
 
-    const speed = delta > 0 ? distance / delta : 0;
+    const speed = this.playerVelocity.length();
     const acceleration = delta > 0 ? Math.abs(speed - this.lastDriveSpeed) / delta : 0;
     const turnDelta = Math.abs(angleDelta(previousRotationY, this.player.rotation.y));
     this.totalDriveDistance += distance;

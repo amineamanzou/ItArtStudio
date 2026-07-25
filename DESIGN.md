@@ -73,7 +73,8 @@ La V1.2 ajoute une couche de topographie lisible:
 
 La motion vient du gameplay, pas du scroll:
 
-- Deplacement clavier sur desktop.
+- Deplacement clavier vehicule sur desktop: gauche/droite orientent le rover,
+  haut/bas avancent ou reculent dans l'axe du vehicule.
 - Deplacement via boutons/mini-map sur mobile.
 - Camera isometrique qui suit le joueur.
 - Mise en lumiere de la zone active.
@@ -99,6 +100,18 @@ La V1.1 utilise des assets proceduraux Three.js, un landmark distinct par zone:
 Ces landmarks restent legers et generes en code avant de passer a des GLB. Un
 asset futur doit avoir un role narratif clair, un fallback procedural et un
 budget compresse maitrise.
+
+La prochaine vague d'assets doit remplacer les symboles trop generiques par des
+lieux lisibles:
+
+- Cloud Dock: nuages 3D, racks serveur, liaisons electriques visibles.
+- Design Atelier: atelier vetement, mannequin, matieres, plan de travail.
+- Contact Portal: decor postal, tri courrier, boites et signal de contact.
+- Observability Tower: tour conservee, enrichie par antennes, traces et ecrans.
+
+Les imports GLB doivent passer par un manifest versionne avec licence, poids,
+role narratif, fallback procedural et budget d'objets. Un asset est accepte
+seulement s'il reduit le bruit visuel ou augmente la comprehension du lieu.
 
 ## Architecture
 
@@ -482,6 +495,21 @@ Gates V4.2:
   detail et vertices pour prouver que les routes ne redeviennent pas des traits
   generiques;
 - le budget strict reste `sceneObjects <= 923`.
+
+Gates V4.3:
+
+- `keyboard:directional-controls` verifie une conduite vehicule: `ArrowUp`
+  avance dans l'axe du rover, `ArrowDown` recule, `ArrowLeft` et `ArrowRight`
+  tournent le rover sans translation laterale directe;
+- la mini-map conserve un vrai deplacement guide vers la zone cible, sans
+  contaminer la telemetrie physique du tour clavier reel;
+- la rotation du rover est normalisee pour eviter les accumulations d'angle qui
+  rendent les tests et les outils de debug illisibles;
+- la telemetrie cinematique mesure la vitesse depuis la velocite physique, pas
+  depuis les transitions d'interface, afin de detecter les vrais pics de
+  conduite sans confondre un jump de mini-map avec une acceleration moteur;
+- le monde gagne de l'echelle (`mapRange = 34`, terrain et districts agrandis)
+  en conservant des hauteurs de couches distinctes pour limiter le z-fighting.
 
 ## Components
 

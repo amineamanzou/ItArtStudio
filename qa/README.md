@@ -88,9 +88,10 @@ The runner:
 - runs one real `page.keyboard.press()` smoke test against the production
   keyboard listener;
 - opens an isolated `?qa=1&realKeys=1` page for each directional proof and
-  verifies forward, backward, left, and right movement with real
-  `keyboard.down/up` events, player deltas, frame deltas, input counters, and
-  turn rotation where relevant;
+  verifies vehicle controls with real `keyboard.down/up` events: forward and
+  backward produce movement in the rover axis, left and right rotate the rover
+  without requiring lateral strafing, and every proof records frame deltas and
+  input counters;
 - uses the `?qa=1` keyboard-step hook to keep navigation deterministic in
   headless Chromium while preserving `lastInputMode: keyboard`;
 - opens a separate `?qa=1&realKeys=1` page where the deterministic keyboard
@@ -191,9 +192,10 @@ The runner:
   those are reserved for QA URLs so the public runtime avoids repeated scene
   inventory traversal.
 - Directional keyboard controls must be proven with real `keyboard.down/up`
-  events in `?qa=1&realKeys=1`: ArrowUp moves forward on the z axis, ArrowDown
-  moves backward, ArrowLeft and ArrowRight move laterally and rotate the rover,
-  and every proof must increment keyboard down/up counters over live frames.
+  events in `?qa=1&realKeys=1`: ArrowUp moves forward in the rover axis,
+  ArrowDown moves backward in that same axis, ArrowLeft and ArrowRight rotate
+  the rover without direct lateral strafing, and every proof must increment
+  keyboard down/up counters over live frames.
 - The central identity ribbon must remain a 3D world object: at least 60
   semantic pieces, one `identity-ribbon` role, visible screen-space bounds,
   sampled ROI detail, measurable multi-frame motion, and no scene-object budget
@@ -361,7 +363,9 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
 
 The root `[data-game-root]` also receives `data-active-zone`.
 In QA mode the game also exposes `window.__IT_ART_STUDIO_QA_STEP__()` for
-deterministic keyboard-route scenarios.
+deterministic keyboard-route scenarios. The deterministic driver follows the
+same vehicle contract as real input: turn toward the target first, then drive
+forward.
 
 ## Next Gates
 

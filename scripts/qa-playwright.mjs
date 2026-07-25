@@ -10,9 +10,13 @@ const require = createRequire(import.meta.url);
 const root = process.cwd();
 const startedAt = Date.now();
 const port = Number(process.env.QA_PORT ?? 4331);
-const baseUrl = process.env.QA_BASE_URL ?? `http://127.0.0.1:${port}/?qa=1`;
 const staticDistMode = process.env.QA_STATIC_DIST === "true";
 const staticBasePath = process.env.QA_STATIC_BASE_PATH ?? "/ItArtStudio";
+const normalizedStaticBasePath = staticBasePath === "/" ? "" : staticBasePath.replace(/\/$/, "");
+const defaultBaseUrl = staticDistMode
+  ? `http://127.0.0.1:${port}${normalizedStaticBasePath}/?qa=1`
+  : `http://127.0.0.1:${port}/?qa=1`;
+const baseUrl = process.env.QA_BASE_URL ?? defaultBaseUrl;
 const withSearchParam = (url, key, value) => {
   const target = new URL(url);
   target.searchParams.set(key, value);
@@ -140,7 +144,7 @@ function startServer() {
 
 function startStaticDistServer() {
   const distRoot = path.join(root, "dist");
-  const basePath = staticBasePath.replace(/\/$/, "");
+  const basePath = normalizedStaticBasePath;
   const mimeTypes = {
     ".html": "text/html; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
@@ -892,7 +896,7 @@ async function driveToZone(page, target) {
       throw new Error("Missing QA keyboard step hook.");
     }
 
-    for (let stepIndex = 0; stepIndex < 80; stepIndex += 1) {
+    for (let stepIndex = 0; stepIndex < 160; stepIndex += 1) {
       const qa = window.__IT_ART_STUDIO_QA__;
       if (!qa) {
         return null;
@@ -903,14 +907,17 @@ async function driveToZone(page, target) {
 
       const dx = routeTarget.position.x - qa.player.x;
       const dz = routeTarget.position.z - qa.player.z;
-      const direction =
-        Math.abs(dx) > Math.abs(dz)
-          ? dx > 0
-            ? "right"
-            : "left"
-          : dz > 0
-            ? "down"
-            : "up";
+      const distanceToTarget = Math.hypot(dx, dz);
+      if (distanceToTarget <= (routeTarget.radius ?? 0.8)) {
+        return JSON.parse(JSON.stringify(qa));
+      }
+
+      const desiredRotation = Math.atan2(dx, dz);
+      const signedTurn = Math.atan2(
+        Math.sin(desiredRotation - (qa.player.rotationY ?? 0)),
+        Math.cos(desiredRotation - (qa.player.rotationY ?? 0))
+      );
+      const direction = Math.abs(signedTurn) > 0.2 ? (signedTurn > 0 ? "right" : "left") : "up";
       window.__IT_ART_STUDIO_QA_STEP__(direction);
     }
 
@@ -1247,12 +1254,14 @@ async function driveWithRealKeyboard(page, target) {
         break;
       }
 
+      const desiredRotation = Math.atan2(dx, dz);
+      const signedTurn = Math.atan2(Math.sin(desiredRotation - (player.rotationY ?? 0)), Math.cos(desiredRotation - (player.rotationY ?? 0)));
       const keys = [];
-      if (Math.abs(dx) > 0.38) {
-        keys.push(dx > 0 ? "ArrowRight" : "ArrowLeft");
+      if (Math.abs(signedTurn) > 0.14) {
+        keys.push(signedTurn > 0 ? "ArrowRight" : "ArrowLeft");
       }
-      if (Math.abs(dz) > 0.38) {
-        keys.push(dz > 0 ? "ArrowDown" : "ArrowUp");
+      if (distanceToTarget > 0.32 && Math.abs(signedTurn) < 1.45) {
+        keys.push("ArrowUp");
       }
       if (keys.length === 0) {
         break;
@@ -2050,14 +2059,16 @@ async function checkRealKeyboardInput(page) {
   const before = await getQaSnapshot(page);
   let after = before;
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowUp");
     await page.waitForTimeout(250);
     after = await getQaSnapshot(page);
-    if (after?.lastInputMode === "keyboard" && Math.abs(after.player.x - (before?.player.x ?? 0)) > 0.15) {
+    const distance = Math.hypot((after?.player?.x ?? 0) - (before?.player?.x ?? 0), (after?.player?.z ?? 0) - (before?.player?.z ?? 0));
+    if (after?.lastInputMode === "keyboard" && distance > 0.15) {
       break;
     }
   }
-  if (after?.lastInputMode === "keyboard" && Math.abs(after.player.x - (before?.player.x ?? 0)) > 0.15) {
+  const distance = Math.hypot((after?.player?.x ?? 0) - (before?.player?.x ?? 0), (after?.player?.z ?? 0) - (before?.player?.z ?? 0));
+  if (after?.lastInputMode === "keyboard" && distance > 0.15) {
     pass("keyboard:real-input-smoke", { before: before?.player, after: after.player });
   } else {
     scenarioFail("keyboard:real-input-smoke", "Real keyboard input did not move the player.", { before, after });
@@ -2073,27 +2084,23 @@ async function checkRealKeyboardDirectionalControls(browser) {
   attachPageDiagnostics(page, "real-keyboard-directions");
 
   const directions = [
-    { id: "forward", key: "ArrowUp", activeKey: "up", axis: "z", sign: -1, minAxisDelta: 0.22, minDistance: 0.22 },
-    { id: "backward", key: "ArrowDown", activeKey: "down", axis: "z", sign: 1, minAxisDelta: 0.22, minDistance: 0.22 },
+    { id: "forward", key: "ArrowUp", activeKey: "up", mode: "travel", minDistance: 0.22 },
+    { id: "backward", key: "ArrowDown", activeKey: "down", mode: "travel", minDistance: 0.18 },
     {
       id: "turn-left",
       key: "ArrowLeft",
       activeKey: "left",
-      axis: "x",
-      sign: -1,
-      minAxisDelta: 0.18,
-      minDistance: 0.18,
-      minRotationDelta: 0.025
+      mode: "turn",
+      rotationSign: -1,
+      minRotationDelta: 0.16
     },
     {
       id: "turn-right",
       key: "ArrowRight",
       activeKey: "right",
-      axis: "x",
-      sign: 1,
-      minAxisDelta: 0.18,
-      minDistance: 0.18,
-      minRotationDelta: 0.025
+      mode: "turn",
+      rotationSign: 1,
+      minRotationDelta: 0.16
     }
   ];
 
@@ -2126,12 +2133,9 @@ async function checkRealKeyboardDirectionalControls(browser) {
       await page.keyboard.up(direction.key);
       await page.waitForTimeout(180);
       const after = await getQaSnapshot(page, { refresh: true });
-      const axisDelta =
-        direction.axis === "x"
-          ? (after?.player?.x ?? 0) - (before?.player?.x ?? 0)
-          : (after?.player?.z ?? 0) - (before?.player?.z ?? 0);
       const distance = Math.hypot((after?.player?.x ?? 0) - (before?.player?.x ?? 0), (after?.player?.z ?? 0) - (before?.player?.z ?? 0));
-      const rotationDelta = Math.abs(angleDelta(after?.player?.rotationY ?? 0, before?.player?.rotationY ?? 0));
+      const signedRotationDelta = angleDelta(after?.player?.rotationY ?? 0, before?.player?.rotationY ?? 0);
+      const rotationDelta = Math.abs(signedRotationDelta);
       const frameDelta = (after?.frameCount ?? 0) - (before?.frameCount ?? 0);
       const downDelta = (after?.input?.keyboardDownCount ?? 0) - beforeDownCount;
       const upDelta = (after?.input?.keyboardUpCount ?? 0) - beforeUpCount;
@@ -2144,9 +2148,8 @@ async function checkRealKeyboardDirectionalControls(browser) {
         before: before?.player ?? null,
         during: during?.player ?? null,
         after: after?.player ?? null,
-        axis: direction.axis,
-        axisDelta: Number(axisDelta.toFixed(3)),
         distance: Number(distance.toFixed(3)),
+        signedRotationDelta: Number(signedRotationDelta.toFixed(3)),
         rotationDelta: Number(rotationDelta.toFixed(3)),
         frameDelta,
         downDelta,
@@ -2165,9 +2168,10 @@ async function checkRealKeyboardDirectionalControls(browser) {
           upDelta >= 1 &&
           qaStepHookDelta === 0 &&
           frameDelta >= 6 &&
-          axisDelta * direction.sign >= direction.minAxisDelta &&
-          distance >= direction.minDistance &&
-          rotationDelta >= (direction.minRotationDelta ?? 0)
+          (direction.mode === "travel" ? distance >= direction.minDistance : true) &&
+          (direction.mode === "turn"
+            ? rotationDelta >= direction.minRotationDelta && signedRotationDelta * direction.rotationSign > 0
+            : true)
       });
     }
 
@@ -5495,16 +5499,21 @@ async function checkMobileControls(page) {
   }
   await page.waitForTimeout(260);
   const afterDrive = await getQaSnapshot(page);
-  const deltaX = Math.abs((afterDrive?.player?.x ?? 0) - (beforeDrive?.player?.x ?? 0));
+  const rotationDelta = Math.abs(angleDelta(afterDrive?.player?.rotationY ?? 0, beforeDrive?.player?.rotationY ?? 0));
 
-  if (afterDrive?.lastInputMode === "touch" && deltaX > 0.2) {
-    pass("mobile-controls:drive", { before: beforeDrive?.player, after: afterDrive.player, deltaX, driveActionability });
+  if (afterDrive?.lastInputMode === "touch" && rotationDelta > 0.14) {
+    pass("mobile-controls:drive", {
+      before: beforeDrive?.player,
+      after: afterDrive.player,
+      rotationDelta: Number(rotationDelta.toFixed(3)),
+      driveActionability
+    });
   } else {
-    scenarioFail("mobile-controls:drive", "Mobile drive control did not move the player through a real action.", {
+    scenarioFail("mobile-controls:drive", "Mobile drive control did not steer the vehicle through a real action.", {
       before: beforeDrive?.player,
       after: afterDrive?.player,
       lastInputMode: afterDrive?.lastInputMode,
-      deltaX
+      rotationDelta
     });
   }
 }

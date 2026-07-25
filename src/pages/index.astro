@@ -2,7 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { defaultZone, zones } from "../game/zones";
 
-const mapRange = 20;
+const mapRange = 34;
 const mapCoordinate = (value: number) => `${((value + mapRange / 2) / mapRange) * 100}%`;
 const homeHref = import.meta.env.BASE_URL;
 ---
@@ -86,9 +86,9 @@ const homeHref = import.meta.env.BASE_URL;
 
       <div class="mobile-drive" aria-label="Deplacement mobile">
         <button type="button" data-drive="up" aria-label="Avancer">↑</button>
-        <button type="button" data-drive="left" aria-label="Aller a gauche">←</button>
+        <button type="button" data-drive="left" aria-label="Tourner a gauche">←</button>
         <button type="button" data-drive="down" aria-label="Reculer">↓</button>
-        <button type="button" data-drive="right" aria-label="Aller a droite">→</button>
+        <button type="button" data-drive="right" aria-label="Tourner a droite">→</button>
       </div>
 
       <div class="game-loader" data-game-loader aria-live="polite">Chargement de la carte</div>

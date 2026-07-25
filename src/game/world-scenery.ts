@@ -136,11 +136,11 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
   const inkMat = material(palette.ink, 0.02, 0.1, 0.9);
 
   const terrainSpecs = [
-    ["outer-cut", 13.35, 1.2, 0.92, 0.0, terrainShade, -0.18],
-    ["field-shelf", 12.5, 1.12, 0.88, 0.018, terrainMat, 0.14],
-    ["tech-ledge", 4.2, 1.7, 0.8, 0.045, techMat, -0.16, -6.9, -0.6],
-    ["art-ledge", 4.35, 1.62, 0.86, 0.05, artMat, 0.18, 6.9, -0.4],
-    ["studio-ledge", 4.25, 1.03, 1.12, 0.058, studioMat, 0.06, 0, 1.2]
+    ["outer-cut", 17.8, 1.18, 0.92, -0.012, terrainShade, -0.18],
+    ["field-shelf", 16.7, 1.12, 0.88, 0.0, terrainMat, 0.14],
+    ["tech-ledge", 4.2, 1.7, 0.8, 0.05, techMat, -0.16, -6.9, -0.6],
+    ["art-ledge", 4.35, 1.62, 0.86, 0.065, artMat, 0.18, 6.9, -0.4],
+    ["studio-ledge", 4.25, 1.03, 1.12, 0.08, studioMat, 0.06, 0, 1.2]
   ] as const;
 
   for (const [id, radius, scaleX, scaleZ, y, mat, rotation, x = 0, z = 0] of terrainSpecs) {
@@ -149,6 +149,7 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
     shelf.rotation.z = rotation;
     shelf.position.set(x, y, z);
     shelf.scale.set(scaleX, 1, scaleZ);
+    shelf.renderOrder = -3;
     shelf.receiveShadow = true;
     add(shelf, "terrain-edge", `terrain:${id}`);
     terrainLayers += 1;

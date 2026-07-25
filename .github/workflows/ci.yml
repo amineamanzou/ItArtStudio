@@ -33,11 +33,7 @@ jobs:
         run: npm run build
 
       - name: Build GitHub Pages path
-        run: npm run build
-        env:
-          GITHUB_PAGES: "true"
-          SITE_URL: https://amineamanzou.github.io
-          BASE_PATH: /ItArtStudio
+        run: npm run build:pages
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
