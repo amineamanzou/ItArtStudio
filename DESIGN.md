@@ -391,6 +391,20 @@ Gates V3.5:
 - objectif: sortir du plafond `1075/1080` avant d'ajouter des assets 3D plus
   ambitieux.
 
+Gates V3.6:
+
+- `prop cluster instancing`: convertir les petits props decoratifs des clusters
+  en `THREE.InstancedMesh` pour recuperer du budget scene sans retirer les
+  signes visuels de chaque lieu;
+- les `118` props declaratifs restent comptes semantiquement dans le snapshot
+  QA, tandis que le scene graph ne garde qu'un batch par cluster;
+- verification Playwright `prop-cluster-instancing`: scene sous 955 objets,
+  au moins 78 objets liberes depuis la baseline V3.5, au moins 120 depuis V3.4,
+  `30/30` clusters instancies et `118/118` props instancies;
+- conservation obligatoire de `world-richness`, `visual-specs-rendered`,
+  `place-composition-visible`, `zone-perceptual-distance`, conduite clavier
+  reelle et dominance de la scene jouable.
+
 ## Components
 
 - `game-site`: surface principale.

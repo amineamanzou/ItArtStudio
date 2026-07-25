@@ -2087,6 +2087,73 @@ async function checkWorldRichness(page) {
     });
   }
 
+  const expectedInstancedPropObjects = visualSpecZones.reduce(
+    (sum, zone) => sum + (zone.expectedVisuals?.propObjects ?? 0),
+    0
+  );
+  const expectedInstancedPropClusters = visualSpecZones.reduce(
+    (sum, zone) => sum + (zone.expectedVisuals?.propClusters ?? 0),
+    0
+  );
+  const zonesWithUninstancedProps = visualSpecZones.filter(
+    (zone) =>
+      zone.instancedPropClusters !== (zone.expectedVisuals?.propClusters ?? 0) ||
+      zone.instancedPropObjects !== (zone.expectedVisuals?.propObjects ?? 0) ||
+      zone.propObjects !== (zone.expectedVisuals?.propObjects ?? 0)
+  );
+  const propClusterInstancing =
+    world &&
+    surface &&
+    world.sceneObjects <= 955 &&
+    1033 - world.sceneObjects >= 78 &&
+    1075 - world.sceneObjects >= 120 &&
+    world.propClusters === expectedInstancedPropClusters &&
+    world.propObjects === expectedInstancedPropObjects &&
+    world.instancedPropClusters === expectedInstancedPropClusters &&
+    world.instancedPropObjects === expectedInstancedPropObjects &&
+    zonesWithUninstancedProps.length === 0;
+  if (propClusterInstancing) {
+    pass("prop-cluster-instancing", {
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: 955,
+      baselineV35SceneObjects: 1033,
+      baselineV34SceneObjects: 1075,
+      minFreedSceneObjects: 78,
+      freedFromPreviousBaseline: 1033 - world.sceneObjects,
+      freedFromV34Baseline: 1075 - world.sceneObjects,
+      propClusters: world.propClusters,
+      expectedInstancedPropClusters,
+      propObjects: world.propObjects,
+      expectedInstancedPropObjects,
+      instancedPropClusters: world.instancedPropClusters,
+      instancedPropObjects: world.instancedPropObjects,
+      zones: visualSpecZones.map((zone) => ({
+        id: zone.id,
+        propClusters: zone.propClusters,
+        propObjects: zone.propObjects,
+        instancedPropClusters: zone.instancedPropClusters,
+        instancedPropObjects: zone.instancedPropObjects
+      }))
+    });
+  } else {
+    scenarioFail("prop-cluster-instancing", "Prop clusters are not fully instanced or did not recover enough scene graph budget.", {
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: 955,
+      baselineV35SceneObjects: 1033,
+      baselineV34SceneObjects: 1075,
+      minFreedSceneObjects: 78,
+      freedFromPreviousBaseline: world?.sceneObjects ? 1033 - world.sceneObjects : null,
+      freedFromV34Baseline: world?.sceneObjects ? 1075 - world.sceneObjects : null,
+      propClusters: world?.propClusters,
+      expectedInstancedPropClusters,
+      propObjects: world?.propObjects,
+      expectedInstancedPropObjects,
+      instancedPropClusters: world?.instancedPropClusters,
+      instancedPropObjects: world?.instancedPropObjects,
+      zonesWithUninstancedProps
+    });
+  }
+
   const routeEncountersRendered =
     world &&
     surface &&
@@ -4084,6 +4151,7 @@ async function writeReport() {
   const routeEncounterVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("route-encounter-visible:"));
   const roverReadableScenarios = scenarios.filter((scenario) => scenario.name.startsWith("rover-readable:"));
   const sceneGraphHeadroomScenario = scenarios.find((scenario) => scenario.name === "scene-graph-headroom");
+  const propClusterInstancingScenario = scenarios.find((scenario) => scenario.name === "prop-cluster-instancing");
   const productionRuntimeScenario = scenarios.find((scenario) => scenario.name === "production-runtime-lightweight");
   const cameraSafeScenarios = scenarios.filter((scenario) => scenario.name.startsWith("camera-safe-area:"));
   const signatureVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("signature-artifact-visible:"));
@@ -4145,6 +4213,9 @@ async function writeReport() {
     `- Visual specs: ${world?.visualSpecs ?? "n/a"}`,
     `- Visual decals: ${world?.visualDecals ?? "n/a"}`,
     `- Prop clusters: ${world?.propClusters ?? "n/a"}`,
+    `- Prop objects: ${world?.propObjects ?? "n/a"}`,
+    `- Instanced prop clusters: ${world?.instancedPropClusters ?? "n/a"}`,
+    `- Instanced prop objects: ${world?.instancedPropObjects ?? "n/a"}`,
     `- Set dressing objects: ${world?.setDressingObjects ?? "n/a"}`,
     `- Set dressing signatures: ${world?.setDressingSignatures ?? "n/a"}`,
     `- Place architecture objects: ${world?.placeArchitectureObjects ?? "n/a"}`,
@@ -4208,6 +4279,11 @@ async function writeReport() {
     `- Scene graph headroom: ${
       sceneGraphHeadroomScenario?.details
         ? `${sceneGraphHeadroomScenario.details.sceneObjects}/${sceneGraphHeadroomScenario.details.sceneObjectBudget}, freed ${sceneGraphHeadroomScenario.details.freedFromPreviousBaseline}/${sceneGraphHeadroomScenario.details.minFreedSceneObjects}, route guidance ${sceneGraphHeadroomScenario.details.routeGuidanceObjects}/${sceneGraphHeadroomScenario.details.expectedGuidanceObjects}, route roles chevron:${sceneGraphHeadroomScenario.details.routeGuidanceRoleCounts?.["route-chevron"] ?? "n/a"} stud:${sceneGraphHeadroomScenario.details.routeGuidanceRoleCounts?.["route-stud"] ?? "n/a"} gate:${sceneGraphHeadroomScenario.details.routeGuidanceRoleCounts?.["route-encounter-gate"] ?? "n/a"}, quality preserved ${sceneGraphHeadroomScenario.details.qualityPreserved ? "yes" : "no"}`
+        : "n/a"
+    }`,
+    `- Prop cluster instancing: ${
+      propClusterInstancingScenario?.details
+        ? `${propClusterInstancingScenario.details.sceneObjects}/${propClusterInstancingScenario.details.sceneObjectBudget}, freed ${propClusterInstancingScenario.details.freedFromPreviousBaseline}/${propClusterInstancingScenario.details.minFreedSceneObjects}, clusters ${propClusterInstancingScenario.details.instancedPropClusters}/${propClusterInstancingScenario.details.expectedInstancedPropClusters}, props ${propClusterInstancingScenario.details.instancedPropObjects}/${propClusterInstancingScenario.details.expectedInstancedPropObjects}`
         : "n/a"
     }`,
     `- Route encounter visibility: ${routeEncounterVisibleScenarios.filter((scenario) => scenario.status === "pass").length}/${

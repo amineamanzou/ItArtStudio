@@ -54,6 +54,8 @@ The runner:
   that is visible on screen together with a readable rover;
 - verifies that the scene graph keeps enough object-count headroom for future
   modeled assets while preserving route guidance semantics;
+- verifies that prop clusters are rendered as instanced batches while preserving
+  the declared semantic prop count and perceptual zone evidence;
 - verifies that rendered visual specs expose motion roles for biome-specific
   animation;
 - verifies that every zone exposes multiple local motion behaviors so the world
@@ -211,6 +213,13 @@ The runner:
   objects. Route guidance may optimize implementation details, but it must still
   expose one chevron and one stud per visualized segment, one encounter gate per
   route, matching signatures, motion roles, and all gameplay visibility gates.
+- Prop cluster instancing must keep the full rendered world below 955 scene
+  objects while preserving all declared props semantically: every declared prop
+  cluster must be instanced, the global instanced prop count must match the
+  declared prop count, at least 78 scene objects must be recovered from the V3.5
+  baseline and at least 120 from the V3.4 baseline, and all visual richness,
+  composition, perceptual and real keyboard gameplay gates must remain green in
+  the full profile.
 - The real keyboard tour must prove kinematic driving: at least 90 physics
   samples over 120 frames, 75 moving samples, 35 input samples, 18 coasting
   samples, peak speed between 8 and 18 units/s, bounded acceleration and turn

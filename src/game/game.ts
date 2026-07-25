@@ -146,6 +146,8 @@ type ZoneAssetQa = {
   visualDecals: number;
   propClusters: number;
   propObjects: number;
+  instancedPropClusters: number;
+  instancedPropObjects: number;
   setDressingObjects: number;
   setDressingRoles: string[];
   setDressingSignatures: string[];
@@ -208,6 +210,9 @@ type QaSnapshot = {
     visualSpecs: number;
     visualDecals: number;
     propClusters: number;
+    propObjects: number;
+    instancedPropClusters: number;
+    instancedPropObjects: number;
     surfaceObjects: number;
     surfaceSignatures: number;
     setDressingObjects: number;
@@ -423,6 +428,9 @@ class StudioGame {
       visualSpecs: 0,
       visualDecals: 0,
       propClusters: 0,
+      propObjects: 0,
+      instancedPropClusters: 0,
+      instancedPropObjects: 0,
       surfaceObjects: 0,
       surfaceSignatures: 0,
       setDressingObjects: 0,
@@ -2098,6 +2106,10 @@ class StudioGame {
         });
         return summary;
       }, {});
+      const semanticMotionRoles = Object.values(motionRolesByType).reduce((sum, count) => sum + count, 0);
+      const propObjects = zoneAssets.reduce((sum, zone) => sum + zone.propObjects, 0);
+      const instancedPropClusters = zoneAssets.reduce((sum, zone) => sum + zone.instancedPropClusters, 0);
+      const instancedPropObjects = zoneAssets.reduce((sum, zone) => sum + zone.instancedPropObjects, 0);
       const sceneryRoleCounts: Record<string, number> = {};
       this.scene.traverse((object) => {
         const role = object.userData.worldSceneryRole;
@@ -2115,6 +2127,9 @@ class StudioGame {
         visualSpecs: this.renderedVisualSpecIds.size,
         visualDecals: this.visualDecalCount,
         propClusters: this.propClusterCount,
+        propObjects,
+        instancedPropClusters,
+        instancedPropObjects,
         surfaceObjects: this.surfaceObjectCount,
         surfaceSignatures: this.surfaceSignatureIds.size,
         setDressingObjects: this.setDressingObjectCount,
@@ -2137,7 +2152,7 @@ class StudioGame {
         routeEncounterObjects: this.routeEncounterObjectCount,
         routeEncounterGates: this.routeEncounterGates.length,
         materialVariants: this.materialVariantIds.size,
-        motionRoles: this.motionRoleCount,
+        motionRoles: semanticMotionRoles,
         motionRolesByType,
         zones: zoneAssets
       };
@@ -2393,6 +2408,8 @@ class StudioGame {
         visualDecals: 0,
         propClusters: 0,
         propObjects: 0,
+        instancedPropClusters: 0,
+        instancedPropObjects: 0,
         setDressingObjects: 0,
         setDressingRoles: [],
         setDressingSignatures: [],
@@ -2448,6 +2465,8 @@ class StudioGame {
     let propObjects = 0;
     const decalIds = new Set<string>();
     const propClusters = new Set<string>();
+    const instancedPropClusters = new Set<string>();
+    let instancedPropObjects = 0;
     const setDressingRoles = new Set<string>();
     const setDressingSignatures = new Set<string>();
     const placeArchitectureFamilies = new Set<string>();
@@ -2479,8 +2498,16 @@ class StudioGame {
     }
     let hasLabel = false;
     group.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        meshCount += 1;
+      const visualMeshCount =
+        child instanceof THREE.InstancedMesh
+          ? typeof child.userData.propObjectCount === "number"
+            ? child.userData.propObjectCount
+            : child.count
+          : child instanceof THREE.Mesh
+            ? 1
+            : 0;
+      if (visualMeshCount > 0) {
+        meshCount += visualMeshCount;
       }
       if (typeof child.userData.landmarkZone === "string") {
         landmarkObjects += 1;
@@ -2491,13 +2518,25 @@ class StudioGame {
       }
       if (typeof child.userData.propCluster === "string") {
         propClusters.add(child.userData.propCluster);
-        if (child instanceof THREE.Mesh && child.userData.visualSpecRole === "prop") {
-          propObjects += 1;
+        if (child.userData.visualSpecRole === "prop") {
+          if (child instanceof THREE.InstancedMesh) {
+            const instanceCount = typeof child.userData.propObjectCount === "number" ? child.userData.propObjectCount : child.count;
+            propObjects += instanceCount;
+            instancedPropObjects += instanceCount;
+            instancedPropClusters.add(child.userData.propCluster);
+          } else if (child instanceof THREE.Mesh) {
+            propObjects += 1;
+          }
         }
       }
       if (typeof child.userData.setDressingRole === "string") {
         setDressingRoles.add(child.userData.setDressingRole);
-        if (child instanceof THREE.Mesh) {
+        if (child instanceof THREE.InstancedMesh) {
+          setDressingObjects += child.count;
+          if (typeof child.userData.setDressingSignature === "string") {
+            setDressingSignatures.add(child.userData.setDressingSignature);
+          }
+        } else if (child instanceof THREE.Mesh) {
           setDressingObjects += 1;
           if (typeof child.userData.setDressingSignature === "string") {
             setDressingSignatures.add(child.userData.setDressingSignature);
@@ -2509,7 +2548,12 @@ class StudioGame {
         if (typeof child.userData.placeArchitectureFamily === "string") {
           placeArchitectureFamilies.add(child.userData.placeArchitectureFamily);
         }
-        if (child instanceof THREE.Mesh) {
+        if (child instanceof THREE.InstancedMesh) {
+          placeArchitectureObjects += child.count;
+          if (typeof child.userData.placeArchitectureSignature === "string") {
+            placeArchitectureSignatures.add(child.userData.placeArchitectureSignature);
+          }
+        } else if (child instanceof THREE.Mesh) {
           placeArchitectureObjects += 1;
           if (typeof child.userData.placeArchitectureSignature === "string") {
             placeArchitectureSignatures.add(child.userData.placeArchitectureSignature);
@@ -2521,7 +2565,15 @@ class StudioGame {
         if (typeof child.userData.signatureArtifactFamily === "string") {
           signatureArtifactFamilies.add(child.userData.signatureArtifactFamily);
         }
-        if (child instanceof THREE.Mesh) {
+        if (child instanceof THREE.InstancedMesh) {
+          signatureArtifactObjects += child.count;
+          if (typeof child.userData.signatureArtifactSignature === "string") {
+            signatureArtifactSignatures.add(child.userData.signatureArtifactSignature);
+          }
+          if (typeof child.userData.signatureArtifactMaterial === "string") {
+            signatureArtifactMaterials.add(child.userData.signatureArtifactMaterial);
+          }
+        } else if (child instanceof THREE.Mesh) {
           signatureArtifactObjects += 1;
           if (typeof child.userData.signatureArtifactSignature === "string") {
             signatureArtifactSignatures.add(child.userData.signatureArtifactSignature);
@@ -2533,7 +2585,12 @@ class StudioGame {
       }
       if (typeof child.userData.surfaceRole === "string") {
         surfaceRoles.add(child.userData.surfaceRole);
-        if (child instanceof THREE.Mesh) {
+        if (child instanceof THREE.InstancedMesh) {
+          surfaceObjects += child.count;
+          if (typeof child.userData.surfaceSignature === "string") {
+            surfaceSignatures.add(child.userData.surfaceSignature);
+          }
+        } else if (child instanceof THREE.Mesh) {
           surfaceObjects += 1;
           if (typeof child.userData.surfaceSignature === "string") {
             surfaceSignatures.add(child.userData.surfaceSignature);
@@ -2547,7 +2604,13 @@ class StudioGame {
         semanticMaterialVariants.add(child.userData.semanticMaterialVariant);
       }
       if (typeof child.userData.motionRole === "string") {
-        motionRoleCounts[child.userData.motionRole] = (motionRoleCounts[child.userData.motionRole] ?? 0) + 1;
+        const motionCount =
+          child instanceof THREE.InstancedMesh && child.userData.visualSpecRole === "prop"
+            ? typeof child.userData.propObjectCount === "number"
+              ? child.userData.propObjectCount
+              : child.count
+            : 1;
+        motionRoleCounts[child.userData.motionRole] = (motionRoleCounts[child.userData.motionRole] ?? 0) + motionCount;
       }
       if (typeof child.userData.localMotionBehavior === "string") {
         localMotionBehaviors[child.userData.localMotionBehavior] =
@@ -2581,6 +2644,8 @@ class StudioGame {
       visualDecals,
       propClusters: propClusters.size,
       propObjects,
+      instancedPropClusters: instancedPropClusters.size,
+      instancedPropObjects,
       setDressingObjects,
       setDressingRoles: [...setDressingRoles].sort(),
       setDressingSignatures: [...setDressingSignatures].sort(),

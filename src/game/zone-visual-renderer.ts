@@ -185,51 +185,63 @@ function addZonePropCluster(
   clusterGroup.userData.motionRole = "cluster";
   clusterGroup.userData.motionBaseY = clusterGroup.position.y;
 
+  const geometry = createPropGeometry(cluster.form, cluster.scale, cluster.scale);
+  const propBatch = new THREE.InstancedMesh(geometry, mat, cluster.count);
+  propBatch.userData.zoneId = zone.id;
+  propBatch.userData.visualSpecId = spec.id;
+  propBatch.userData.visualSpecRole = "prop";
+  propBatch.userData.propCluster = cluster.id;
+  propBatch.userData.propObjectCount = cluster.count;
+  propBatch.userData.motionRole = cluster.form;
+  propBatch.userData.motionInstanceCount = cluster.count;
+  propBatch.userData.materialVariant = `${spec.id}:${cluster.tone}:${cluster.form}`;
+  propBatch.userData.semanticMaterialVariant = semanticVariant;
+  propBatch.userData.motionBaseY = propBatch.position.y;
+  propBatch.castShadow = false;
+  propBatch.receiveShadow = true;
+
+  const transform = new THREE.Matrix4();
+  const position = new THREE.Vector3();
+  const euler = new THREE.Euler();
+  const rotation = new THREE.Quaternion();
+  const scale = new THREE.Vector3(1, 1, 1);
   for (let index = 0; index < cluster.count; index += 1) {
     const angle = (index / cluster.count) * Math.PI * 2 + zone.position[0] * 0.07;
     const distance = cluster.spread * (0.45 + (index % 3) * 0.22);
     const x = Math.cos(angle) * distance;
     const z = Math.sin(angle) * distance;
     const height = cluster.scale * (0.42 + (index % 2) * 0.18);
-    const prop = createPropPrimitive(cluster.form, mat, cluster.scale, height);
-    prop.position.set(x, 0.34 + height * 0.35, z);
-    prop.rotation.y = angle;
-    prop.userData.zoneId = zone.id;
-    prop.userData.visualSpecId = spec.id;
-    prop.userData.visualSpecRole = "prop";
-    prop.userData.propCluster = cluster.id;
-    prop.userData.motionRole = cluster.form;
-    prop.userData.materialVariant = `${spec.id}:${cluster.tone}:${cluster.form}`;
-    prop.userData.semanticMaterialVariant = semanticVariant;
-    prop.userData.motionBaseY = prop.position.y;
-    clusterGroup.add(prop);
-    motionObjects.push(prop);
-    materialVariants.add(String(prop.userData.materialVariant));
+    euler.set(0, angle, 0);
+    rotation.setFromEuler(euler);
+    scale.set(1, cluster.form === "beacon" ? 1 : height / cluster.scale, 1);
+    position.set(x, 0.34 + height * 0.35, z);
+    transform.compose(position, rotation, scale);
+    propBatch.setMatrixAt(index, transform);
   }
 
-  clusterGroup.traverse((child) => {
-    if (child instanceof THREE.Mesh) {
-      child.castShadow = false;
-      child.receiveShadow = true;
-    }
-  });
+  propBatch.instanceMatrix.needsUpdate = true;
+  propBatch.computeBoundingBox();
+  propBatch.computeBoundingSphere();
+  clusterGroup.add(propBatch);
   group.add(clusterGroup);
+  motionObjects.push(propBatch);
   motionObjects.push(clusterGroup);
+  materialVariants.add(String(propBatch.userData.materialVariant));
 
   return { propObjects: cluster.count, materialVariants, motionObjects };
 }
 
-function createPropPrimitive(form: ZonePropClusterSpec["form"], mat: THREE.Material, scale: number, height: number) {
+function createPropGeometry(form: ZonePropClusterSpec["form"], scale: number, baseHeight: number) {
   if (form === "stack") {
-    return new THREE.Mesh(new THREE.BoxGeometry(scale * 0.26, height, scale * 0.26), mat);
+    return new THREE.BoxGeometry(scale * 0.26, baseHeight, scale * 0.26);
   }
   if (form === "totem") {
-    return new THREE.Mesh(new THREE.CylinderGeometry(scale * 0.08, scale * 0.13, height, 7), mat);
+    return new THREE.CylinderGeometry(scale * 0.08, scale * 0.13, baseHeight, 7);
   }
   if (form === "pin") {
-    return new THREE.Mesh(new THREE.ConeGeometry(scale * 0.13, height, 8), mat);
+    return new THREE.ConeGeometry(scale * 0.13, baseHeight, 8);
   }
-  return new THREE.Mesh(new THREE.SphereGeometry(scale * 0.14, 10, 6), mat);
+  return new THREE.SphereGeometry(scale * 0.14, 10, 6);
 }
 
 function createToneMaterial(
