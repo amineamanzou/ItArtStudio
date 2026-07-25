@@ -30,6 +30,9 @@ The runner:
 - opens Chromium through Playwright;
 - waits for `html.game-ready` and `window.__IT_ART_STUDIO_QA__`;
 - verifies that the WebGL canvas renders non-dark pixels;
+- verifies that the WebGL canvas is a visible full-screen surface;
+- verifies that the page exposes the `IT / ART / STUDIO` identity through
+  visible DOM typography and distinct colors;
 - gates every screenshot on visible canvas detail, edge transitions, and color
   buckets;
 - verifies that the rendered canvas exposes tech, art, and studio color families;
@@ -40,6 +43,8 @@ The runner:
   distinct visual fingerprint;
 - verifies that rendered visual specs expose motion roles for biome-specific
   animation;
+- verifies that every zone exposes narrative set dressing objects, role names,
+  and distinct signatures;
 - records frame telemetry before gameplay scenarios;
 - drives the player with keyboard input through tech, art, and contact zones;
 - runs one real `page.keyboard.press()` smoke test against the production
@@ -71,6 +76,10 @@ The runner:
   prop clusters, nine prop objects, six material variants, and a distinct
   fingerprint. The rendered counts must also meet or exceed the expectations
   derived from that zone's spec.
+- Every zone must expose at least seven set dressing objects, three set dressing
+  roles, five set dressing signatures, and a non-empty set dressing fingerprint.
+- The world must expose at least 78 set dressing objects and 58 set dressing
+  signatures.
 - Rendered semantic material variants must cover the variants declared by the
   zone spec.
 - Applied animation hints must match the zone spec.
@@ -84,6 +93,8 @@ The runner:
   - `design-atelier`
   - `contact-portal`
 - Contact zone must expose a focusable `mailto:` CTA.
+- The visible brand must expose exact `IT`, `ART`, and `STUDIO` tokens with
+  distinct colors, and the hero title must remain visible.
 - Desktop mini-map pins must synchronize all ten zones, active state, pointer
   input mode, and `aria-pressed`.
 - Visible zone navigation groups must expose exactly one active zone.

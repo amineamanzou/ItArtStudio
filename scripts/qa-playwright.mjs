@@ -296,6 +296,103 @@ async function assertReady(page) {
   }
 }
 
+async function assertCanvasGeometry(page) {
+  const geometry = await page.evaluate(() => {
+    const canvas = document.querySelector("#studio-map-canvas");
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      return { exists: false };
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const style = getComputedStyle(canvas);
+    return {
+      exists: true,
+      display: style.display,
+      visibility: style.visibility,
+      opacity: Number(style.opacity),
+      width: rect.width,
+      height: rect.height,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      widthRatio: Number((rect.width / window.innerWidth).toFixed(3)),
+      heightRatio: Number((rect.height / window.innerHeight).toFixed(3))
+    };
+  });
+
+  if (
+    geometry.exists &&
+    geometry.display !== "none" &&
+    geometry.visibility !== "hidden" &&
+    geometry.opacity >= 0.95 &&
+    geometry.widthRatio >= 0.98 &&
+    geometry.heightRatio >= 0.98
+  ) {
+    pass("canvas-geometry", geometry);
+  } else {
+    scenarioFail("canvas-geometry", "WebGL canvas is not a visible full-screen surface.", geometry);
+  }
+}
+
+async function assertBrandIdentity(page) {
+  const identity = await page.evaluate(() => {
+    const brand = document.querySelector(".game-brand");
+    const title = document.querySelector("#game-title");
+    if (!(brand instanceof HTMLElement) || !(title instanceof HTMLElement)) {
+      return { exists: false };
+    }
+
+    const tokens = [...brand.querySelectorAll("span, strong, em")]
+      .filter((node) => node instanceof HTMLElement)
+      .map((node) => ({
+        text: node.textContent?.trim() ?? "",
+        color: getComputedStyle(node).color,
+        display: getComputedStyle(node).display,
+        visibility: getComputedStyle(node).visibility,
+        opacity: Number(getComputedStyle(node).opacity)
+      }));
+    const brandRect = brand.getBoundingClientRect();
+    const titleRect = title.getBoundingClientRect();
+    const brandStyle = getComputedStyle(brand);
+    const titleStyle = getComputedStyle(title);
+    return {
+      exists: true,
+      tokens,
+      tokenText: tokens.map((token) => token.text).join("|"),
+      distinctColors: new Set(tokens.map((token) => token.color)).size,
+      titleText: title.textContent?.trim() ?? "",
+      brandVisible:
+        brandRect.width > 0 &&
+        brandRect.height > 0 &&
+        brandStyle.display !== "none" &&
+        brandStyle.visibility !== "hidden" &&
+        Number(brandStyle.opacity) > 0.95,
+      titleVisible:
+        titleRect.width > 0 &&
+        titleRect.height > 0 &&
+        titleStyle.display !== "none" &&
+        titleStyle.visibility !== "hidden" &&
+        Number(titleStyle.opacity) > 0.95,
+      tokensVisible: tokens.every(
+        (token) => token.display !== "none" && token.visibility !== "hidden" && token.opacity > 0.95
+      )
+    };
+  });
+
+  if (
+    identity.exists &&
+    identity.tokenText === "IT|ART|STUDIO" &&
+    identity.distinctColors === 3 &&
+    identity.titleText === "IT Art Studio" &&
+    identity.brandVisible &&
+    identity.titleVisible &&
+    identity.tokensVisible
+  ) {
+    pass("brand-identity", identity);
+  } else {
+    scenarioFail("brand-identity", "IT / ART / STUDIO identity is not visibly encoded in the page.", identity);
+  }
+}
+
 async function capture(page, label, extra = {}) {
   screenshotIndex += 1;
   const filename = `${String(screenshotIndex).padStart(2, "0")}-${label}.png`;
@@ -394,12 +491,29 @@ async function checkContact(page) {
     return {
       exists: true,
       href: cta.href,
+      rawHref: cta.getAttribute("href"),
       ariaHidden: cta.getAttribute("aria-hidden"),
-      text: cta.textContent?.trim() ?? ""
+      text: cta.textContent?.trim() ?? "",
+      tabIndex: cta.tabIndex,
+      visible: cta.offsetWidth > 0 && cta.offsetHeight > 0,
+      display: getComputedStyle(cta).display,
+      visibility: getComputedStyle(cta).visibility,
+      opacity: Number(getComputedStyle(cta).opacity)
     };
   });
 
-  if (contact.exists && contact.href.startsWith("mailto:") && contact.ariaHidden === "false") {
+  if (
+    contact.exists &&
+    contact.rawHref === "mailto:contact@itart.studio" &&
+    contact.href === "mailto:contact@itart.studio" &&
+    contact.ariaHidden === "false" &&
+    contact.tabIndex === 0 &&
+    contact.visible &&
+    contact.display !== "none" &&
+    contact.visibility !== "hidden" &&
+    contact.opacity > 0.95 &&
+    contact.text === "Contactez-nous"
+  ) {
     pass("contact-cta", contact);
   } else {
     scenarioFail("contact-cta", "Contact CTA is not active on contact zone.", contact);
@@ -418,6 +532,10 @@ async function checkWorldRichness(page) {
       zone.visualDecals < Math.max(3, zone.expectedVisuals?.decals ?? 0) ||
       zone.propClusters < Math.max(3, zone.expectedVisuals?.propClusters ?? 0) ||
       zone.propObjects < Math.max(9, zone.expectedVisuals?.propObjects ?? 0) ||
+      zone.setDressingObjects < 7 ||
+      zone.setDressingRoles?.length < 3 ||
+      zone.setDressingSignatures?.length < 5 ||
+      !zone.setDressingFingerprint ||
       zone.materialVariants < Math.max(6, zone.expectedVisuals?.materialVariants ?? 0) ||
       zone.missingMaterialVariants?.length > 0 ||
       !zone.animationMatchesSpec ||
@@ -439,6 +557,8 @@ async function checkWorldRichness(page) {
     world.visualSpecs === 10 &&
     world.visualDecals >= 30 &&
     world.propClusters >= 30 &&
+    world.setDressingObjects >= 78 &&
+    world.setDressingSignatures >= 58 &&
     world.materialVariants >= 60 &&
     thinZones.length === 0
   ) {
@@ -455,6 +575,13 @@ async function checkWorldRichness(page) {
   const duplicateFingerprints = visualSpecZones
     .map((zone) => zone.visualFingerprint)
     .filter((fingerprint, index, fingerprints) => fingerprint && fingerprints.indexOf(fingerprint) !== index);
+  const duplicateSetDressingFingerprints = visualSpecZones
+    .map((zone) => zone.setDressingFingerprint)
+    .filter((fingerprint, index, fingerprints) => fingerprint && fingerprints.indexOf(fingerprint) !== index);
+  const allSetDressingSignatures = visualSpecZones.flatMap((zone) => zone.setDressingSignatures ?? []);
+  const duplicateSetDressingSignatures = allSetDressingSignatures.filter(
+    (signature, index, signatures) => signature && signatures.indexOf(signature) !== index
+  );
   const visualSpecRendered =
     world &&
     visualSpecZones.length === snapshot.zoneCount &&
@@ -462,8 +589,12 @@ async function checkWorldRichness(page) {
     world.visualDecals >= snapshot.zoneCount * 3 &&
     world.propClusters >= snapshot.zoneCount * 3 &&
     world.materialVariants >= snapshot.zoneCount * 6 &&
+    world.setDressingObjects >= 78 &&
+    world.setDressingSignatures >= 58 &&
     world.motionRoles >= visualSpecZones.reduce((sum, zone) => sum + (zone.motionObjectCount ?? 0), 0) &&
     duplicateFingerprints.length === 0 &&
+    duplicateSetDressingFingerprints.length === 0 &&
+    duplicateSetDressingSignatures.length === 0 &&
     thinZones.length === 0;
 
   if (visualSpecRendered) {
@@ -472,8 +603,11 @@ async function checkWorldRichness(page) {
       visualDecals: world.visualDecals,
       propClusters: world.propClusters,
       materialVariants: world.materialVariants,
+      setDressingObjects: world.setDressingObjects,
+      setDressingSignatures: world.setDressingSignatures,
       motionRoles: world.motionRoles,
       motionRolesByType: world.motionRolesByType,
+      setDressingSignatures: allSetDressingSignatures,
       fingerprints: visualSpecZones.map((zone) => zone.visualFingerprint)
     });
   } else {
@@ -482,9 +616,13 @@ async function checkWorldRichness(page) {
       visualDecals: world?.visualDecals,
       propClusters: world?.propClusters,
       materialVariants: world?.materialVariants,
+      setDressingObjects: world?.setDressingObjects,
+      setDressingSignatures: world?.setDressingSignatures,
       motionRoles: world?.motionRoles,
       motionRolesByType: world?.motionRolesByType,
       duplicateFingerprints,
+      duplicateSetDressingFingerprints,
+      duplicateSetDressingSignatures,
       thinZones,
       zones: visualSpecZones
     });
@@ -624,10 +762,49 @@ async function checkVisibleZoneControls(page, label) {
 
   const visibleGroups = state.filter((group) => group.visible);
   const invalidGroups = visibleGroups.filter((group) => group.pressed.length !== 1);
-  if (invalidGroups.length === 0) {
+  if (visibleGroups.length > 0 && invalidGroups.length === 0) {
     pass(`zone-controls:${label}`, { visibleGroups });
   } else {
     scenarioFail(`zone-controls:${label}`, "Visible zone controls must each expose exactly one active zone.", { state });
+  }
+}
+
+async function waitForViewportReady(page, viewport, label) {
+  try {
+    await page.waitForFunction(
+      ({ width, height }) =>
+        window.innerWidth === width &&
+        window.innerHeight === height &&
+        document.documentElement.classList.contains("game-ready") &&
+        window.__IT_ART_STUDIO_QA__?.canvas.width > 0,
+      viewport,
+      { timeout: 15_000 }
+    );
+    return true;
+  } catch (error) {
+    let diagnostics = { unavailable: true };
+    try {
+      diagnostics = await page.evaluate(() => ({
+        unavailable: false,
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
+        ready: document.documentElement.classList.contains("game-ready"),
+        gameState: document.documentElement.dataset.gameState,
+        canvas: window.__IT_ART_STUDIO_QA__?.canvas ?? null,
+        frameCount: window.__IT_ART_STUDIO_QA__?.frameCount ?? null
+      }));
+    } catch (diagnosticError) {
+      diagnostics = {
+        unavailable: true,
+        message: diagnosticError instanceof Error ? diagnosticError.message : String(diagnosticError)
+      };
+    }
+    scenarioFail(`viewport-ready:${label}`, "Viewport did not reach a ready rendered state.", {
+      expected: viewport,
+      diagnostics,
+      message: error instanceof Error ? error.message : String(error)
+    });
+    return false;
   }
 }
 
@@ -635,15 +812,10 @@ async function checkViewport(page, viewport, label, options = {}) {
   await page.emulateMedia({ reducedMotion: options.reducedMotion ?? "no-preference" });
   await page.setViewportSize(viewport);
   await page.waitForTimeout(450);
-  await page.waitForFunction(
-    ({ width, height }) =>
-      window.innerWidth === width &&
-      window.innerHeight === height &&
-      document.documentElement.classList.contains("game-ready") &&
-      window.__IT_ART_STUDIO_QA__?.canvas.width > 0,
-    viewport,
-    { timeout: 5_000 }
-  );
+  const viewportReady = await waitForViewportReady(page, viewport, label);
+  if (!viewportReady) {
+    return;
+  }
 
   const layout = await measureLayout(page);
   await capture(page, label, { layout, reducedMotion: options.reducedMotion ?? "no-preference" });
@@ -830,6 +1002,8 @@ async function writeReport() {
     `- Visual specs: ${world?.visualSpecs ?? "n/a"}`,
     `- Visual decals: ${world?.visualDecals ?? "n/a"}`,
     `- Prop clusters: ${world?.propClusters ?? "n/a"}`,
+    `- Set dressing objects: ${world?.setDressingObjects ?? "n/a"}`,
+    `- Set dressing signatures: ${world?.setDressingSignatures ?? "n/a"}`,
     `- Material variants: ${world?.materialVariants ?? "n/a"}`,
     `- Motion roles: ${world?.motionRoles ?? "n/a"}`,
     `- Player parts: ${player?.meshCount ?? "n/a"} (${player?.wheelCount ?? "n/a"} wheels)`,
@@ -870,6 +1044,8 @@ async function main() {
     attachPageDiagnostics(page, "desktop");
 
     await assertReady(page);
+    await assertCanvasGeometry(page);
+    await assertBrandIdentity(page);
     const home = await capture(page, "home-loaded");
     await checkVisibleZoneControls(page, "desktop");
     const desktopLayout = await measureLayout(page);

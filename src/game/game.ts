@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { createZoneLandmark } from "./procedural-assets";
+import { createZoneSetDressing } from "./zone-set-dressing";
 import { zoneVisualSpecs, type ZoneVisualSpec } from "./visual-specs";
 import { renderZoneVisuals } from "./zone-visual-renderer";
 import { defaultZone, worldRoutes, zones, type StudioZone, type ZoneKind } from "./zones";
@@ -32,6 +33,9 @@ type ZoneAssetQa = {
   visualDecals: number;
   propClusters: number;
   propObjects: number;
+  setDressingObjects: number;
+  setDressingRoles: string[];
+  setDressingSignatures: string[];
   materialVariants: number;
   declaredMaterialVariants: string[];
   renderedMaterialVariants: string[];
@@ -43,6 +47,7 @@ type ZoneAssetQa = {
   motionObjectCount: number;
   motionRoleCounts: Record<string, number>;
   visualFingerprint: string;
+  setDressingFingerprint: string;
   hasLabel: boolean;
   bounds: BoundsQa;
 };
@@ -61,6 +66,8 @@ type QaSnapshot = {
     visualSpecs: number;
     visualDecals: number;
     propClusters: number;
+    setDressingObjects: number;
+    setDressingSignatures: number;
     materialVariants: number;
     motionRoles: number;
     motionRolesByType: Record<string, number>;
@@ -105,10 +112,12 @@ class StudioGame {
   private roadSegmentCount = 0;
   private visualDecalCount = 0;
   private propClusterCount = 0;
+  private setDressingObjectCount = 0;
   private motionRoleCount = 0;
   private playerPartCount = 0;
   private readonly renderedVisualSpecIds = new Set<string>();
   private readonly materialVariantIds = new Set<string>();
+  private readonly setDressingSignatureIds = new Set<string>();
   private readonly zoneMotionObjects = new Map<string, THREE.Object3D[]>();
   private readonly wheelMeshes: THREE.Mesh[] = [];
   private readonly frameDeltas: number[] = [];
@@ -127,6 +136,8 @@ class StudioGame {
       visualSpecs: 0,
       visualDecals: 0,
       propClusters: 0,
+      setDressingObjects: 0,
+      setDressingSignatures: 0,
       materialVariants: 0,
       motionRoles: 0,
       motionRolesByType: {},
@@ -442,6 +453,8 @@ class StudioGame {
       this.addZoneVisualSpec(group, zone, visualSpec);
     }
 
+    this.addZoneSetDressing(group, zone);
+
     const marker = createZoneLandmark(zone, colors);
     marker.userData.zoneId = zone.id;
     marker.traverse((child) => {
@@ -470,6 +483,19 @@ class StudioGame {
     for (const variant of rendered.materialVariants) {
       this.materialVariantIds.add(variant);
     }
+  }
+
+  private addZoneSetDressing(group: THREE.Group, zone: StudioZone) {
+    const rendered = createZoneSetDressing(zone, colors);
+    group.add(rendered.group);
+    this.setDressingObjectCount += rendered.objectCount;
+    this.decorativeObjectCount += rendered.objectCount;
+    this.motionRoleCount += rendered.motionObjects.length;
+    for (const signature of rendered.signatures) {
+      this.setDressingSignatureIds.add(signature);
+    }
+    const existingMotionObjects = this.zoneMotionObjects.get(zone.id) ?? [];
+    this.zoneMotionObjects.set(zone.id, [...existingMotionObjects, ...rendered.motionObjects]);
   }
 
   private createLabel(text: string, accent: number) {
@@ -936,6 +962,8 @@ class StudioGame {
       visualSpecs: this.renderedVisualSpecIds.size,
       visualDecals: this.visualDecalCount,
       propClusters: this.propClusterCount,
+      setDressingObjects: this.setDressingObjectCount,
+      setDressingSignatures: this.setDressingSignatureIds.size,
       materialVariants: this.materialVariantIds.size,
       motionRoles: this.motionRoleCount,
       motionRolesByType,
@@ -974,6 +1002,9 @@ class StudioGame {
         visualDecals: 0,
         propClusters: 0,
         propObjects: 0,
+        setDressingObjects: 0,
+        setDressingRoles: [],
+        setDressingSignatures: [],
         materialVariants: 0,
         declaredMaterialVariants: [],
         renderedMaterialVariants: [],
@@ -985,6 +1016,7 @@ class StudioGame {
         motionObjectCount: 0,
         motionRoleCounts: {},
         visualFingerprint: "",
+        setDressingFingerprint: "",
         hasLabel: false,
         bounds: { width: 0, height: 0, depth: 0 }
       };
@@ -996,6 +1028,9 @@ class StudioGame {
     let propObjects = 0;
     const decalIds = new Set<string>();
     const propClusters = new Set<string>();
+    const setDressingRoles = new Set<string>();
+    const setDressingSignatures = new Set<string>();
+    let setDressingObjects = 0;
     const materialVariants = new Set<string>();
     const semanticMaterialVariants = new Set<string>();
     const motionRoleCounts: Record<string, number> = {};
@@ -1025,6 +1060,15 @@ class StudioGame {
         propClusters.add(child.userData.propCluster);
         if (child instanceof THREE.Mesh && child.userData.visualSpecRole === "prop") {
           propObjects += 1;
+        }
+      }
+      if (typeof child.userData.setDressingRole === "string") {
+        setDressingRoles.add(child.userData.setDressingRole);
+        if (child instanceof THREE.Mesh) {
+          setDressingObjects += 1;
+          if (typeof child.userData.setDressingSignature === "string") {
+            setDressingSignatures.add(child.userData.setDressingSignature);
+          }
         }
       }
       if (typeof child.userData.materialVariant === "string") {
@@ -1061,6 +1105,9 @@ class StudioGame {
       visualDecals,
       propClusters: propClusters.size,
       propObjects,
+      setDressingObjects,
+      setDressingRoles: [...setDressingRoles].sort(),
+      setDressingSignatures: [...setDressingSignatures].sort(),
       materialVariants: materialVariants.size,
       declaredMaterialVariants,
       renderedMaterialVariants,
@@ -1083,6 +1130,7 @@ class StudioGame {
         [...propClusters].sort().join("+"),
         [...materialVariants].sort().join("+")
       ].join("|"),
+      setDressingFingerprint: [...setDressingSignatures].sort().join("|"),
       hasLabel,
       bounds: this.measureObject(group)
     };
