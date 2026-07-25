@@ -205,6 +205,20 @@ Gates V1.9:
 - hors rayon de zone, conservation de la derniere zone active pour eviter le
   flicker narratif vers `studio-gate` pendant les traversees.
 
+Gates V2.0:
+
+- mode QA `?qa=1&realKeys=1`: snapshot actif, mais hook
+  `window.__IT_ART_STUDIO_QA_STEP__` absent pour prouver une vraie conduite;
+- tour clavier reel via `keyboard.down/up` sur `ai-lab`,
+  `observability-tower`, `design-atelier` et `contact-portal`;
+- telemetrie de conduite exposee dans `drive`: distance totale, samples de
+  position, vitesse moyenne, rotation cumulee et distance camera;
+- telemetrie d'input exposee dans `input`: touches actives, compteurs
+  `keydown`/`keyup`, dernier code clavier et appels au hook deterministe;
+- rejet QA si la route ressemble a un teleport: trop peu de frames, distance
+  insuffisante, saut d'echantillon trop grand, trail trop faible ou camera hors
+  budget.
+
 ## Components
 
 - `game-site`: surface principale.

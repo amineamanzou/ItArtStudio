@@ -10,14 +10,21 @@ const root = process.cwd();
 const startedAt = Date.now();
 const port = Number(process.env.QA_PORT ?? 4331);
 const baseUrl = process.env.QA_BASE_URL ?? `http://127.0.0.1:${port}/?qa=1`;
-const qaProfile = process.env.QA_PROFILE === "quick" ? "quick" : "full";
-const qaMode = (() => {
+const withSearchParam = (url, key, value) => {
+  const target = new URL(url);
+  target.searchParams.set(key, value);
+  return target.toString();
+};
+const realDriveUrl = withSearchParam(baseUrl, "realKeys", "1");
+const requiresQaStep = (url) => {
   try {
-    return new URL(baseUrl).searchParams.has("qa");
+    const params = new URL(url).searchParams;
+    return params.has("qa") && !params.has("realKeys");
   } catch {
-    return /[?&]qa(?:=|&|$)/.test(baseUrl);
+    return /[?&]qa(?:=|&|$)/.test(url) && !/[?&]realKeys(?:=|&|=1|$)/.test(url);
   }
-})();
+};
+const qaProfile = process.env.QA_PROFILE === "quick" ? "quick" : "full";
 const outputRoot = path.join(root, "qa", "artifacts", new Date().toISOString().replace(/[:.]/g, "-"));
 const screenshotsDir = path.join(outputRoot, "screenshots");
 const reportJsonPath = path.join(outputRoot, "report.json");
@@ -253,11 +260,12 @@ function assertCanvasDetail(label, canvas) {
   }
 }
 
-async function assertReady(page) {
+async function assertReady(page, targetUrl = baseUrl) {
   let lastError;
+  const requireQaStep = requiresQaStep(targetUrl);
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
-      await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 8_000 });
+      await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 8_000 });
       lastError = null;
       break;
     } catch (error) {
@@ -287,7 +295,7 @@ async function assertReady(page) {
         readyState: document.readyState
       }));
 
-      if (lastState.ready && lastState.frameCount > 2 && (!qaMode || lastState.hasQaStep)) {
+      if (lastState.ready && lastState.frameCount > 2 && (!requireQaStep || lastState.hasQaStep)) {
         return;
       }
     } catch (error) {
@@ -295,7 +303,7 @@ async function assertReady(page) {
     }
 
     if (Date.now() >= nextGotoAt) {
-      await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 15_000 }).catch((error) => {
+      await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 15_000 }).catch((error) => {
         lastError = error;
       });
       nextGotoAt = Date.now() + 28_000;
@@ -304,7 +312,7 @@ async function assertReady(page) {
   }
 
   throw new Error(
-    `Game did not reach ready state. Last state: ${JSON.stringify(lastState)}. Last error: ${
+    `Game did not reach ready state at ${targetUrl}. Last state: ${JSON.stringify(lastState)}. Last error: ${
       lastError instanceof Error ? lastError.message : String(lastError ?? "none")
     }`
   );
@@ -527,6 +535,187 @@ async function checkActivationFeedback(page, targetId, previousSequence = 0) {
       previousSequence,
       samples
     });
+  }
+}
+
+async function releaseDriveKeys(page) {
+  await Promise.all(
+    ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].map((key) => page.keyboard.up(key).catch(() => {}))
+  );
+}
+
+async function holdDriveKeys(page, keys, durationMs = 130) {
+  await releaseDriveKeys(page);
+  for (const key of keys) {
+    await page.keyboard.down(key);
+  }
+  await page.waitForTimeout(durationMs);
+  await releaseDriveKeys(page);
+  await page.waitForTimeout(50);
+}
+
+async function driveWithRealKeyboard(page, target) {
+  const samples = [];
+  let reached = false;
+  const started = Date.now();
+  let maxSampleStepDistance = 0;
+  let previousPlayer = null;
+
+  while (Date.now() - started < (target.timeoutMs ?? 10_000)) {
+    const snapshot = await getQaSnapshot(page);
+    if (snapshot?.player) {
+      const player = snapshot.player;
+      if (previousPlayer) {
+        maxSampleStepDistance = Math.max(
+          maxSampleStepDistance,
+          Math.hypot(player.x - previousPlayer.x, player.z - previousPlayer.z)
+        );
+      }
+      previousPlayer = player;
+      samples.push({
+        frameCount: snapshot.frameCount,
+        activeZoneId: snapshot.activeZoneId,
+        player,
+        trail: snapshot.trail,
+        drive: snapshot.drive
+      });
+
+      if (snapshot.activeZoneId === target.id) {
+        reached = true;
+        break;
+      }
+
+      const dx = target.position.x - player.x;
+      const dz = target.position.z - player.z;
+      const keys = [];
+      if (Math.abs(dx) > 0.38) {
+        keys.push(dx > 0 ? "ArrowRight" : "ArrowLeft");
+      }
+      if (Math.abs(dz) > 0.38) {
+        keys.push(dz > 0 ? "ArrowDown" : "ArrowUp");
+      }
+      if (keys.length === 0) {
+        break;
+      }
+      await holdDriveKeys(page, keys, 120);
+    } else {
+      await page.waitForTimeout(120);
+    }
+  }
+
+  await releaseDriveKeys(page);
+  return { reached, elapsedMs: Date.now() - started, samples, maxSampleStepDistance };
+}
+
+async function checkRealDriveTour(browser) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+  attachPageDiagnostics(page, "real-drive");
+
+  try {
+    await assertReady(page, realDriveUrl);
+    await assertCanvasGeometry(page);
+    const hookState = await page.evaluate(() => ({
+      hasQaStep: typeof window.__IT_ART_STUDIO_QA_STEP__ === "function",
+      href: window.location.href
+    }));
+    if (!hookState.hasQaStep) {
+      pass("real-drive:no-step-hook", hookState);
+    } else {
+      scenarioFail("real-drive:no-step-hook", "Real keyboard route must not expose the deterministic QA step hook.", hookState);
+    }
+
+    const initial = await getQaSnapshot(page);
+    const targets = [
+      { id: "ai-lab", position: { x: -7, z: -3 }, timeoutMs: 10_000 },
+      { id: "observability-tower", position: { x: -8, z: 3 }, timeoutMs: 10_000 },
+      { id: "design-atelier", position: { x: 6.9, z: -3.2 }, timeoutMs: 12_000 },
+      { id: "contact-portal", position: { x: 0, z: -8.2 }, timeoutMs: 10_000 }
+    ];
+    const routeResults = [];
+
+    for (const target of targets) {
+      const beforeActivation = await getQaSnapshot(page);
+      const result = await driveWithRealKeyboard(page, target);
+      routeResults.push({ target: target.id, ...result });
+      const snapshot = await getQaSnapshot(page);
+      if (result.reached && snapshot?.lastInputMode === "keyboard") {
+        pass(`real-drive:${target.id}`, {
+          elapsedMs: result.elapsedMs,
+          sampleCount: result.samples.length,
+          maxSampleStepDistance: Number(result.maxSampleStepDistance.toFixed(3)),
+          player: snapshot.player,
+          drive: snapshot.drive
+        });
+        await checkActivationFeedback(page, target.id, beforeActivation?.activeFeedback?.sequence ?? 0);
+      } else {
+        scenarioFail(`real-drive:${target.id}`, "Real keyboard drive did not reach the target zone.", {
+          result,
+          snapshot
+        });
+      }
+    }
+
+    await page.waitForTimeout(320);
+    const final = await getQaSnapshot(page);
+    const allSamples = routeResults.flatMap((result) => result.samples);
+    const xValues = allSamples.map((sample) => sample.player.x);
+    const zValues = allSamples.map((sample) => sample.player.z);
+    const distanceDelta = Number(((final?.drive?.totalDistance ?? 0) - (initial?.drive?.totalDistance ?? 0)).toFixed(3));
+    const frameDelta = (final?.frameCount ?? 0) - (initial?.frameCount ?? 0);
+    const xSpan = xValues.length > 0 ? Math.max(...xValues) - Math.min(...xValues) : 0;
+    const zSpan = zValues.length > 0 ? Math.max(...zValues) - Math.min(...zValues) : 0;
+    const maxStepDistance = Math.max(...routeResults.map((result) => result.maxSampleStepDistance), 0);
+    const visitedTargets = targets.filter((target) => final?.visitedZoneIds?.includes(target.id)).map((target) => target.id);
+    const driveGate =
+      final?.activeZoneId === "contact-portal" &&
+      final.lastInputMode === "keyboard" &&
+      (final.input?.qaStepHookCalls ?? 0) === (initial?.input?.qaStepHookCalls ?? 0) &&
+      (final.input?.keyboardDownCount ?? 0) >= targets.length &&
+      (final.input?.keyboardUpCount ?? 0) >= targets.length &&
+      (final.input?.activeKeys?.length ?? 99) === 0 &&
+      frameDelta >= 40 &&
+      routeResults.every((result) => result.reached && result.samples.length >= 3) &&
+      visitedTargets.length === targets.length &&
+      distanceDelta >= 26 &&
+      xSpan >= 10 &&
+      zSpan >= 8 &&
+      (final.drive?.rotationChange ?? 0) >= 0.8 &&
+      (final.drive?.averageSpeed ?? 0) >= 3 &&
+      (final.trail?.activeMarks ?? 0) >= 10 &&
+      (final.drive?.cameraDistance ?? 0) >= 10 &&
+      (final.drive?.cameraDistance ?? 0) <= 18 &&
+      maxStepDistance <= 7;
+
+    if (driveGate) {
+      pass("real-drive-tour", {
+        distanceDelta,
+        frameDelta,
+        xSpan: Number(xSpan.toFixed(3)),
+        zSpan: Number(zSpan.toFixed(3)),
+        maxStepDistance: Number(maxStepDistance.toFixed(3)),
+        visitedTargets,
+        input: final.input,
+        drive: final.drive,
+        trail: final.trail
+      });
+    } else {
+      scenarioFail("real-drive-tour", "Real keyboard tour did not prove fluid controllable traversal.", {
+        distanceDelta,
+        frameDelta,
+        xSpan,
+        zSpan,
+        maxStepDistance,
+        visitedTargets,
+        input: final?.input,
+        final,
+        routeResults
+      });
+    }
+
+    await capture(page, "real-drive-tour");
+  } finally {
+    await releaseDriveKeys(page);
+    await page.close();
   }
 }
 
@@ -1413,6 +1602,7 @@ async function writeReport() {
   const playerScenario = scenarios.find((scenario) => scenario.name === "player-personality");
   const trailScenario = scenarios.find((scenario) => scenario.name === "rover-trail:keyboard-route");
   const activationScenarios = scenarios.filter((scenario) => scenario.name.startsWith("activation-feedback:"));
+  const realDriveScenario = scenarios.find((scenario) => scenario.name === "real-drive-tour");
   const world = worldScenario?.details?.world;
   const player = playerScenario?.details?.player;
   const localMotionBehaviorTypes = visualScenario?.details?.localMotionBehaviorTypes ?? [];
@@ -1472,6 +1662,11 @@ async function writeReport() {
     `- Last activation feedback: ${
       lastActivation
         ? `${lastActivation.zoneId}, sequence ${lastActivation.sequence}, visible ${lastActivation.visibleObjects}, opacity ${lastActivation.maxOpacity}, scale ${lastActivation.maxScale}`
+        : "n/a"
+    }`,
+    `- Real drive tour: ${
+      realDriveScenario?.details
+        ? `${realDriveScenario.details.distanceDelta} units over ${realDriveScenario.details.frameDelta} frames, max step ${realDriveScenario.details.maxStepDistance}`
         : "n/a"
     }`,
     "",
@@ -1540,6 +1735,7 @@ async function main() {
     await checkWorldRichness(page);
     await checkFrameBudget(page);
     await checkRealKeyboardInput(page);
+    await checkRealDriveTour(browser);
 
     const targets = [
       { id: "ai-lab", position: { x: -7, z: -3 }, radius: 1.8, timeoutMs: 8_000 },

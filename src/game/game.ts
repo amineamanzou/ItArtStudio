@@ -8,8 +8,11 @@ import { defaultZone, worldRoutes, zones, type StudioZone, type ZoneKind } from 
 
 const mapRange = 20;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const angleDelta = (from: number, to: number) => Math.atan2(Math.sin(to - from), Math.cos(to - from));
 const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-const qaMode = new URLSearchParams(window.location.search).has("qa");
+const searchParams = new URLSearchParams(window.location.search);
+const qaMode = searchParams.has("qa");
+const realKeyboardQaMode = searchParams.has("realKeys");
 const playerSpeed = qaMode ? 15.5 : 7.4;
 
 const colors: Record<ZoneKind | "ground" | "road" | "ink", number> = {
@@ -92,6 +95,20 @@ type QaSnapshot = {
   };
   player: { x: number; z: number; rotationY: number; meshCount: number; wheelCount: number; bounds: BoundsQa };
   trail: { totalMarks: number; activeMarks: number; maxOpacity: number };
+  drive: {
+    totalDistance: number;
+    positionSamples: Array<{ frame: number; x: number; z: number }>;
+    averageSpeed: number;
+    rotationChange: number;
+    cameraDistance: number;
+  };
+  input: {
+    activeKeys: DriveKey[];
+    keyboardDownCount: number;
+    keyboardUpCount: number;
+    lastKeyboardCode: string | null;
+    qaStepHookCalls: number;
+  };
   activeFeedback: {
     zoneId: string;
     sequence: number;
@@ -163,6 +180,14 @@ class StudioGame {
   private readonly visitedZoneIds = new Set<string>([defaultZone.id]);
   private trailCursor = 0;
   private trailDistance = 0;
+  private totalDriveDistance = 0;
+  private driveElapsedTime = 0;
+  private totalRotationChange = 0;
+  private readonly drivePositionSamples: Array<{ frame: number; x: number; z: number }> = [];
+  private keyboardDownCount = 0;
+  private keyboardUpCount = 0;
+  private lastKeyboardCode: string | null = null;
+  private qaStepHookCallCount = 0;
   private activationSequence = 0;
   private lastActivationFrame = 0;
   private cameraImpulse = 0;
@@ -194,6 +219,8 @@ class StudioGame {
     },
     player: { x: 0, z: 0, rotationY: 0, meshCount: 0, wheelCount: 0, bounds: { width: 0, height: 0, depth: 0 } },
     trail: { totalMarks: 0, activeMarks: 0, maxOpacity: 0 },
+    drive: { totalDistance: 0, positionSamples: [], averageSpeed: 0, rotationChange: 0, cameraDistance: 0 },
+    input: { activeKeys: [], keyboardDownCount: 0, keyboardUpCount: 0, lastKeyboardCode: null, qaStepHookCalls: 0 },
     activeFeedback: {
       zoneId: defaultZone.id,
       sequence: 0,
@@ -816,8 +843,12 @@ class StudioGame {
       if (key) {
         event.preventDefault();
         this.qaSnapshot.lastInputMode = "keyboard";
+        if (!event.repeat) {
+          this.keyboardDownCount += 1;
+        }
+        this.lastKeyboardCode = event.code;
         this.keys.add(key);
-        if (qaMode && !event.repeat) {
+        if (qaMode && !realKeyboardQaMode && !event.repeat) {
           this.applyQaKeyboardStep(key);
         }
       }
@@ -826,6 +857,8 @@ class StudioGame {
     window.addEventListener("keyup", (event) => {
       const key = this.keyFromEvent(event);
       if (key) {
+        this.keyboardUpCount += 1;
+        this.lastKeyboardCode = event.code;
         this.keys.delete(key);
       }
     });
@@ -873,6 +906,7 @@ class StudioGame {
   private applyQaKeyboardStep(direction: DriveKey) {
     const step = 1.2;
     const previousPosition = this.playerPosition.clone();
+    const previousRotationY = this.player.rotation.y;
     if (direction === "up") this.playerPosition.z -= step;
     if (direction === "down") this.playerPosition.z += step;
     if (direction === "left") this.playerPosition.x -= step;
@@ -882,7 +916,16 @@ class StudioGame {
     this.playerPosition.z = clamp(this.playerPosition.z, -9.4, 9.4);
     this.targetPosition.copy(this.playerPosition);
     this.player.position.copy(this.playerPosition);
-    this.emitTrail(previousPosition, this.playerPosition.clone().sub(previousPosition));
+    const travel = this.playerPosition.clone().sub(previousPosition);
+    if (travel.lengthSq() > 0.0001) {
+      const targetRotation = Math.atan2(travel.x, travel.z);
+      this.player.rotation.y += angleDelta(this.player.rotation.y, targetRotation) * 0.42;
+      for (const wheel of this.wheelMeshes) {
+        wheel.rotation.x += travel.length() * 3.8;
+      }
+    }
+    this.recordDriveTelemetry(travel, 0.08, previousRotationY);
+    this.emitTrail(previousPosition, travel);
     this.updateTrail(0.08);
     this.updateActiveZone();
     this.updateMiniMap();
@@ -965,6 +1008,7 @@ class StudioGame {
     if (this.keys.has("right")) direction.x += 1;
 
     const previousPosition = this.playerPosition.clone();
+    const previousRotationY = this.player.rotation.y;
 
     if (direction.lengthSq() > 0) {
       direction.normalize();
@@ -985,12 +1029,32 @@ class StudioGame {
 
     if (travel.lengthSq() > 0.0001) {
       const targetRotation = Math.atan2(travel.x, travel.z);
-      this.player.rotation.y += (targetRotation - this.player.rotation.y) * 0.14;
+      this.player.rotation.y += angleDelta(this.player.rotation.y, targetRotation) * 0.14;
       for (const wheel of this.wheelMeshes) {
         wheel.rotation.x += travel.length() * 3.8;
       }
     }
+    this.recordDriveTelemetry(travel, delta, previousRotationY);
     this.updateTrail(delta);
+  }
+
+  private recordDriveTelemetry(travel: THREE.Vector3, delta: number, previousRotationY: number) {
+    const distance = travel.length();
+    if (distance <= 0.001) {
+      return;
+    }
+
+    this.totalDriveDistance += distance;
+    this.driveElapsedTime += delta;
+    this.totalRotationChange += Math.abs(angleDelta(previousRotationY, this.player.rotation.y));
+    this.drivePositionSamples.push({
+      frame: this.frameCount,
+      x: Number(this.playerPosition.x.toFixed(3)),
+      z: Number(this.playerPosition.z.toFixed(3))
+    });
+    if (this.drivePositionSamples.length > 80) {
+      this.drivePositionSamples.shift();
+    }
   }
 
   private emitTrail(previousPosition: THREE.Vector3, travel: THREE.Vector3) {
@@ -1300,10 +1364,11 @@ class StudioGame {
   }
 
   private exposeQaControls() {
-    if (!qaMode) {
+    if (!qaMode || realKeyboardQaMode) {
       return;
     }
     window.__IT_ART_STUDIO_QA_STEP__ = (direction: DriveKey) => {
+      this.qaStepHookCallCount += 1;
       this.qaSnapshot.lastInputMode = "keyboard";
       this.applyQaKeyboardStep(direction);
     };
@@ -1380,6 +1445,20 @@ class StudioGame {
       maxOpacity: Number(
         activeTrailMarks.reduce((max, mark) => Math.max(max, mark.mesh.material.opacity), 0).toFixed(3)
       )
+    };
+    this.qaSnapshot.drive = {
+      totalDistance: Number(this.totalDriveDistance.toFixed(3)),
+      positionSamples: [...this.drivePositionSamples],
+      averageSpeed: Number((this.driveElapsedTime > 0 ? this.totalDriveDistance / this.driveElapsedTime : 0).toFixed(3)),
+      rotationChange: Number(this.totalRotationChange.toFixed(3)),
+      cameraDistance: Number(this.camera.position.distanceTo(this.playerPosition).toFixed(3))
+    };
+    this.qaSnapshot.input = {
+      activeKeys: [...this.keys],
+      keyboardDownCount: this.keyboardDownCount,
+      keyboardUpCount: this.keyboardUpCount,
+      lastKeyboardCode: this.lastKeyboardCode,
+      qaStepHookCalls: this.qaStepHookCallCount
     };
     const activeFeedback = this.activationFeedbackByZone.get(activeZone.id);
     const feedbackMeshes = activeFeedback

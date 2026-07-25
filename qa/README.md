@@ -60,6 +60,8 @@ The runner:
   keyboard listener;
 - uses the `?qa=1` keyboard-step hook to keep navigation deterministic in
   headless Chromium while preserving `lastInputMode: keyboard`;
+- opens a separate `?qa=1&realKeys=1` page where the deterministic keyboard
+  hook is absent, then drives a tour with real `keyboard.down/up` events;
 - clicks mini-map buttons with real pointer coordinates after a DOM hit-test and
   verifies active zone state, `aria-pressed`, pointer input mode, and player
   marker convergence;
@@ -112,6 +114,13 @@ The runner:
   `activeFeedback.sequence`, expose at least three activation rings, eight
   sparks, nine visible feedback objects, max opacity >= 0.12, and max scale >=
   1.06 in the short activation window.
+- Real keyboard tour must run without `window.__IT_ART_STUDIO_QA_STEP__`, visit
+  `ai-lab`, `observability-tower`, `design-atelier`, and `contact-portal`, span
+  at least 40 rendered frames and 26 world units, cover both axes, rotate the
+  player, leave visible trail marks, keep camera distance in budget, and avoid
+  single-sample jumps larger than the physical threshold. Input telemetry must
+  show balanced real keydown/keyup events, no active keys left behind, and no
+  deterministic hook calls during the route.
 - Frame telemetry must be present in the QA snapshot.
 - Runtime frame budget warms up briefly, then must record at least 85 rendered
   frames over a 6s live window before screenshot sampling begins, with
