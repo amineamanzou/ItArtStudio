@@ -339,7 +339,9 @@ class StudioGame {
     this.setEvents();
     this.resize();
     this.updatePanel(defaultZone);
-    this.exposeQaSnapshot();
+    if (qaMode) {
+      this.exposeQaSnapshot();
+    }
     this.exposeQaControls();
     this.animate();
   }
@@ -1026,7 +1028,9 @@ class StudioGame {
     this.updateActiveZone();
     this.updateMiniMap();
     this.updateCamera(0.08);
-    this.syncQaSnapshot();
+    if (qaMode) {
+      this.syncQaSnapshot();
+    }
   }
 
   private handleCanvasPointer(event: PointerEvent) {
@@ -1066,7 +1070,9 @@ class StudioGame {
 
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
     this.renderer.setSize(width, height);
-    this.syncQaSnapshot();
+    if (qaMode) {
+      this.syncQaSnapshot();
+    }
   }
 
   private animate = () => {
@@ -1090,7 +1096,7 @@ class StudioGame {
     this.updateCamera(delta);
     this.updateMiniMap();
     this.renderer.render(this.scene, this.camera);
-    const shouldSyncQa = !this.qaSnapshot.ready || now - this.lastQaSyncTime > 250;
+    const shouldSyncQa = qaMode && (!this.qaSnapshot.ready || now - this.lastQaSyncTime > 250);
     this.markReady();
     if (shouldSyncQa) {
       this.syncQaSnapshot();

@@ -16,6 +16,12 @@ const withSearchParam = (url, key, value) => {
   return target.toString();
 };
 const realDriveUrl = withSearchParam(baseUrl, "realKeys", "1");
+const productionUrl = (() => {
+  const target = new URL(baseUrl);
+  target.searchParams.delete("qa");
+  target.searchParams.delete("realKeys");
+  return target.toString();
+})();
 const requiresQaStep = (url) => {
   try {
     const params = new URL(url).searchParams;
@@ -759,6 +765,77 @@ async function checkRealDriveTour(browser) {
     await capture(page, "real-drive-tour");
   } finally {
     await releaseDriveKeys(page);
+    await page.close();
+  }
+}
+
+async function checkProductionRuntimeLightweight(browser) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+  attachPageDiagnostics(page, "production-runtime");
+
+  try {
+    await page.goto(productionUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.waitForFunction(
+      () => {
+        const canvas = document.querySelector("#studio-map-canvas");
+        return (
+          document.documentElement.classList.contains("game-ready") &&
+          document.documentElement.dataset.gameState === "ready" &&
+          canvas instanceof HTMLCanvasElement &&
+          canvas.width > 0 &&
+          canvas.height > 0
+        );
+      },
+      { timeout: 20_000 }
+    );
+    const state = await page.evaluate(async () => {
+      const started = performance.now();
+      let frames = 0;
+      await new Promise((resolve) => {
+        const tick = () => {
+          frames += 1;
+          if (performance.now() - started >= 650) {
+            resolve(undefined);
+          } else {
+            requestAnimationFrame(tick);
+          }
+        };
+        requestAnimationFrame(tick);
+      });
+      const canvas = document.querySelector("#studio-map-canvas");
+      return {
+        url: window.location.href,
+        ready: document.documentElement.classList.contains("game-ready"),
+        gameState: document.documentElement.dataset.gameState ?? null,
+        hasQaSnapshot: "__IT_ART_STUDIO_QA__" in window,
+        hasQaStep: "__IT_ART_STUDIO_QA_STEP__" in window,
+        frames,
+        canvas:
+          canvas instanceof HTMLCanvasElement
+            ? { width: canvas.width, height: canvas.height, clientWidth: canvas.clientWidth, clientHeight: canvas.clientHeight }
+            : null
+      };
+    });
+
+    if (
+      state.ready &&
+      state.gameState === "ready" &&
+      state.hasQaSnapshot === false &&
+      state.hasQaStep === false &&
+      state.frames >= 4 &&
+      state.canvas?.width > 0 &&
+      state.canvas?.height > 0
+    ) {
+      pass("production-runtime-lightweight", state);
+    } else {
+      scenarioFail("production-runtime-lightweight", "Production runtime exposes QA hooks or did not animate.", state);
+    }
+  } catch (error) {
+    scenarioFail("production-runtime-lightweight", "Production runtime did not reach ready state.", {
+      url: productionUrl,
+      message: error instanceof Error ? error.message : String(error)
+    });
+  } finally {
     await page.close();
   }
 }
@@ -1852,6 +1929,8 @@ async function checkMiniMapJumps(page) {
           message: error instanceof Error ? error.message : String(error)
         });
         await checkActivationFeedback(page, targetId, beforeActivation?.activeFeedback?.sequence ?? 0);
+        await page.waitForTimeout(300);
+        await inspectSignatureArtifactVisibility(page, `mini-map:${targetId}`);
         continue;
       }
       scenarioFail(`mini-map:${targetId}`, "Mini-map jump did not settle near the requested pin in time.", {
@@ -1874,6 +1953,8 @@ async function checkMiniMapJumps(page) {
         actionability
       });
       await checkActivationFeedback(page, targetId, beforeActivation?.activeFeedback?.sequence ?? 0);
+      await page.waitForTimeout(300);
+      await inspectSignatureArtifactVisibility(page, `mini-map:${targetId}`);
     } else {
       scenarioFail(`mini-map:${targetId}`, "Mini-map jump did not synchronize active zone and aria state.", {
         snapshot,
@@ -2059,8 +2140,12 @@ async function writeReport() {
   const trailScenario = scenarios.find((scenario) => scenario.name === "rover-trail:keyboard-route");
   const activationScenarios = scenarios.filter((scenario) => scenario.name.startsWith("activation-feedback:"));
   const realDriveScenario = scenarios.find((scenario) => scenario.name === "real-drive-tour");
+  const productionRuntimeScenario = scenarios.find((scenario) => scenario.name === "production-runtime-lightweight");
   const cameraSafeScenarios = scenarios.filter((scenario) => scenario.name.startsWith("camera-safe-area:"));
   const signatureVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("signature-artifact-visible:"));
+  const miniMapSignatureVisibleScenarios = signatureVisibleScenarios.filter((scenario) =>
+    scenario.name.startsWith("signature-artifact-visible:mini-map:")
+  );
   const weakestSignatureScenario = signatureVisibleScenarios
     .filter((scenario) => typeof scenario.details?.visibleAfterUiRatio === "number")
     .sort((a, b) => a.details.visibleAfterUiRatio - b.details.visibleAfterUiRatio)[0];
@@ -2132,11 +2217,19 @@ async function writeReport() {
         ? `${realDriveScenario.details.distanceDelta} units over ${realDriveScenario.details.frameDelta} frames, polling max step ${realDriveScenario.details.maxStepDistance}, telemetry max step ${realDriveScenario.details.driveTelemetryMaxStep}, camera lag max ${realDriveScenario.details.maxCameraLag}, camera distance ${realDriveScenario.details.minCameraDistance}-${realDriveScenario.details.maxCameraDistance}, sticky active-zone offscreen samples ${realDriveScenario.details.invisibleActiveZoneSamples}`
         : "n/a"
     }`,
+    `- Production runtime lightweight: ${
+      productionRuntimeScenario?.details
+        ? `ready ${productionRuntimeScenario.details.ready}, QA snapshot ${productionRuntimeScenario.details.hasQaSnapshot}, QA step ${productionRuntimeScenario.details.hasQaStep}, frames ${productionRuntimeScenario.details.frames}`
+        : "n/a"
+    }`,
     `- Camera safe-area checks: ${cameraSafeScenarios.filter((scenario) => scenario.status === "pass").length}/${
       cameraSafeScenarios.length
     }`,
     `- Signature artifact visible checks: ${signatureVisibleScenarios.filter((scenario) => scenario.status === "pass").length}/${
       signatureVisibleScenarios.length
+    }`,
+    `- Mini-map signature artifact visible checks: ${miniMapSignatureVisibleScenarios.filter((scenario) => scenario.status === "pass").length}/${
+      miniMapSignatureVisibleScenarios.length
     }`,
     `- Weakest signature artifact visibility: ${
       weakestSignatureScenario
@@ -2217,6 +2310,7 @@ async function main() {
     await checkFrameBudget(page);
     await checkRealKeyboardInput(page);
     await checkRealDriveTour(browser);
+    await checkProductionRuntimeLightweight(browser);
 
     const targets = [
       { id: "ai-lab", position: { x: -7, z: -3 }, radius: 1.8, timeoutMs: 8_000 },

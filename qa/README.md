@@ -53,6 +53,8 @@ The runner:
 - verifies that the active zone's signature artifact projects to a readable
   screen rectangle, remains visible after UI occlusion, and exposes a local
   pixel ROI with enough brightness, edge transitions, and color buckets;
+- reuses that signature artifact visibility proof after mini-map jumps so the
+  wider cartography is validated, not only the real keyboard route;
 - verifies that the global world composition exposes terrain layers, route
   lights, district silhouettes, studio thresholds, and animated scenery roles;
 - verifies that keyboard and mini-map zone changes trigger visible 3D
@@ -68,6 +70,8 @@ The runner:
   headless Chromium while preserving `lastInputMode: keyboard`;
 - opens a separate `?qa=1&realKeys=1` page where the deterministic keyboard
   hook is absent, then drives a tour with real `keyboard.down/up` events;
+- opens the production URL without `?qa=1` and verifies that the game reaches
+  `game-ready` without exposing the heavy QA snapshot or deterministic step hook;
 - projects the rover and active zone into screen coordinates, then checks that
   they stay readable and outside visible HUD, panel, mini-map, and mobile
   controls;
@@ -111,6 +115,11 @@ The runner:
   keyboard checkpoint, with minimum screen size, visible canvas ratio, limited
   UI occlusion, no center occlusion by HUD/panel/mini-map/mobile controls, and
   a sampled canvas ROI proving rendered contrast and color detail.
+- Mini-map destination checks must run the same signature artifact visibility
+  gate for each zone covered by the active QA profile.
+- The production URL must not expose `window.__IT_ART_STUDIO_QA__` or
+  `window.__IT_ART_STUDIO_QA_STEP__`; those are reserved for QA URLs so the
+  public runtime avoids repeated scene inventory traversal.
 - The world must expose at least five terrain layers, 60 scenery objects, 24
   scenery signatures, 20 animated scenery objects, and all expected scenery
   roles: terrain edge, tech skyline, art sculpture, studio threshold, route

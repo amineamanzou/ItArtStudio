@@ -252,6 +252,17 @@ Gates V2.3:
 - preuve aux checkpoints du vrai tour clavier, pour eviter une carte dense mais
   illisible pendant l'exploration.
 
+Gates V2.4:
+
+- extension du gate `signature-artifact-visible` aux sauts mini-map, avec les
+  10 zones couvertes en profil full;
+- rapport QA distinct pour les preuves mini-map afin de verifier toute la
+  cartographie et pas seulement le trajet clavier principal;
+- runtime public sans snapshot QA lourd: `window.__IT_ART_STUDIO_QA__` et
+  `window.__IT_ART_STUDIO_QA_STEP__` restent reserves aux URLs `?qa=1`;
+- rejet QA si la production n'atteint pas `game-ready` sans exposer les hooks de
+  test ou si le canvas cesse d'animer.
+
 ## Components
 
 - `game-site`: surface principale.
