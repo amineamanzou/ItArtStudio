@@ -304,6 +304,21 @@ Gates V2.9:
   les zones proches ont des hashes dupliques, ou si les preuves pixel manquent
   de contraste local.
 
+Gates V3.0:
+
+- couche `zone-place-architecture`: micro-architecture de lieu autour de chaque
+  landmark, avec 10 familles distinctes (`neural-rack`, `gallery-canopy`,
+  `scanner-forge`, etc.) et 4 objets par zone;
+- les architectures de lieu encadrent les landmarks existants au lieu de les
+  remplacer: portiques, racks, grues, colonnades, gantries, rails et champs de
+  portail;
+- snapshot QA enrichi avec `placeArchitectureObjects`,
+  `placeArchitectureFamilies`, `placeArchitectureSignatures`, famille par zone,
+  roles, bounds et fingerprint;
+- rejet QA si une zone perd sa famille, si une signature se duplique, si les
+  bounds ne forment pas une silhouette lisible, ou si le budget scene depasse le
+  cap V3 fixe a 1080 objets.
+
 ## Components
 
 - `game-site`: surface principale.

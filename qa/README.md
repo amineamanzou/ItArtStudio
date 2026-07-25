@@ -126,6 +126,13 @@ The runner:
   roles, five set dressing signatures, and a non-empty set dressing fingerprint.
 - The world must expose at least 78 set dressing objects and 58 set dressing
   signatures.
+- Every zone must expose a distinct place-architecture family, four to five
+  place-architecture objects, at least three place-architecture roles, at least
+  four place-architecture signatures, a non-empty fingerprint, and local bounds
+  tall/wide/deep enough to read as a mini-place rather than loose props.
+- The world must expose at least 40 and at most 50 place-architecture objects,
+  one unique family per zone, at least 40 place-architecture signatures, no
+  duplicate signatures, and keep the total scene object count <= 1080 for V3.0.
 - The world must expose at least 55 signature artifact objects and 45 signature
   artifact signatures, with no duplicate signature and every zone carrying its
   own signature artifact fingerprint.
@@ -233,6 +240,9 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
 - `activeZoneLabel`
 - `zoneCount`
 - `world`
+  - `placeArchitectureObjects`
+  - `placeArchitectureFamilies`
+  - `placeArchitectureSignatures`
 - `player`
 - `trail`
 - `drive`

@@ -1277,6 +1277,13 @@ async function checkWorldRichness(page) {
   const duplicateSetDressingSignatures = allSetDressingSignatures.filter(
     (signature, index, signatures) => signature && signatures.indexOf(signature) !== index
   );
+  const allPlaceArchitectureSignatures = visualSpecZones.flatMap((zone) => zone.placeArchitectureSignatures ?? []);
+  const duplicatePlaceArchitectureSignatures = allPlaceArchitectureSignatures.filter(
+    (signature, index, signatures) => signature && signatures.indexOf(signature) !== index
+  );
+  const placeArchitectureFamilies = new Set(
+    visualSpecZones.map((zone) => zone.placeArchitectureFamily).filter((family) => typeof family === "string")
+  );
   const localMotionBehaviorTypes = new Set(
     visualSpecZones.flatMap((zone) => Object.keys(zone.localMotionBehaviors ?? {}))
   );
@@ -1382,6 +1389,18 @@ async function checkWorldRichness(page) {
       (zone.surfaceRoles?.length ?? 0) < 4 ||
       !zone.surfaceFingerprint
   );
+  const placeArchitectureThinZones = visualSpecZones.filter(
+    (zone) =>
+      (zone.placeArchitectureObjects ?? 0) < 4 ||
+      (zone.placeArchitectureObjects ?? 0) > 5 ||
+      !zone.placeArchitectureFamily ||
+      (zone.placeArchitectureRoles?.length ?? 0) < 3 ||
+      (zone.placeArchitectureSignatures?.length ?? 0) < 4 ||
+      !zone.placeArchitectureFingerprint ||
+      (zone.placeArchitectureBounds?.height ?? 0) < 1 ||
+      (zone.placeArchitectureBounds?.width ?? 0) < 1.4 ||
+      (zone.placeArchitectureBounds?.depth ?? 0) < 1.2
+  );
   if (
     world &&
     visualSpecZones.length === snapshot.zoneCount &&
@@ -1406,6 +1425,40 @@ async function checkWorldRichness(page) {
     });
   }
 
+  const placeArchitectureRendered =
+    world &&
+    visualSpecZones.length === snapshot.zoneCount &&
+    world.placeArchitectureObjects >= snapshot.zoneCount * 4 &&
+    world.placeArchitectureObjects <= snapshot.zoneCount * 5 &&
+    world.placeArchitectureFamilies === snapshot.zoneCount &&
+    placeArchitectureFamilies.size === snapshot.zoneCount &&
+    world.placeArchitectureSignatures >= snapshot.zoneCount * 4 &&
+    duplicatePlaceArchitectureSignatures.length === 0 &&
+    placeArchitectureThinZones.length === 0 &&
+    world.sceneObjects <= 1080;
+  if (placeArchitectureRendered) {
+    pass("place-architecture-rendered", {
+      placeArchitectureObjects: world.placeArchitectureObjects,
+      placeArchitectureFamilies: world.placeArchitectureFamilies,
+      placeArchitectureSignatures: world.placeArchitectureSignatures,
+      families: [...placeArchitectureFamilies].sort(),
+      signatures: allPlaceArchitectureSignatures,
+      fingerprints: visualSpecZones.map((zone) => zone.placeArchitectureFingerprint),
+      sceneObjects: world.sceneObjects
+    });
+  } else {
+    scenarioFail("place-architecture-rendered", "Zone place architecture is not sufficiently modeled or bounded.", {
+      placeArchitectureObjects: world?.placeArchitectureObjects,
+      placeArchitectureFamilies: world?.placeArchitectureFamilies,
+      families: [...placeArchitectureFamilies].sort(),
+      placeArchitectureSignatures: world?.placeArchitectureSignatures,
+      duplicatePlaceArchitectureSignatures,
+      placeArchitectureThinZones,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: 1080
+    });
+  }
+
   const surface = snapshot?.drive?.surface;
   const routeRoles = world?.routeGuidanceRoleCounts ?? {};
   const routeGuidanceRendered =
@@ -1419,7 +1472,7 @@ async function checkWorldRichness(page) {
     surface.guidanceMarkerCount === world.routeGuidanceObjects &&
     routeRoles["route-chevron"] >= surface.segmentCount &&
     routeRoles["route-stud"] >= surface.segmentCount &&
-    world.sceneObjects <= 1040;
+    world.sceneObjects <= 1080;
   if (routeGuidanceRendered) {
     pass("route-guidance-rendered", {
       routeGuidanceObjects: world.routeGuidanceObjects,
@@ -2821,6 +2874,7 @@ async function writeReport() {
   });
   const worldScenario = scenarios.find((scenario) => scenario.name === "world-richness");
   const visualScenario = scenarios.find((scenario) => scenario.name === "visual-specs-rendered");
+  const placeArchitectureScenario = scenarios.find((scenario) => scenario.name === "place-architecture-rendered");
   const playerScenario = scenarios.find((scenario) => scenario.name === "player-personality");
   const trailScenario = scenarios.find((scenario) => scenario.name === "rover-trail:keyboard-route");
   const activationScenarios = scenarios.filter((scenario) => scenario.name.startsWith("activation-feedback:"));
@@ -2879,6 +2933,10 @@ async function writeReport() {
     `- Prop clusters: ${world?.propClusters ?? "n/a"}`,
     `- Set dressing objects: ${world?.setDressingObjects ?? "n/a"}`,
     `- Set dressing signatures: ${world?.setDressingSignatures ?? "n/a"}`,
+    `- Place architecture objects: ${world?.placeArchitectureObjects ?? "n/a"}`,
+    `- Place architecture families: ${world?.placeArchitectureFamilies ?? "n/a"}`,
+    `- Place architecture signatures: ${world?.placeArchitectureSignatures ?? "n/a"}`,
+    `- Place architecture checks: ${placeArchitectureScenario?.status ?? "n/a"}`,
     `- Signature artifact objects: ${world?.signatureArtifactObjects ?? "n/a"}`,
     `- Signature artifact signatures: ${world?.signatureArtifactSignatures ?? "n/a"}`,
     `- Terrain layers: ${world?.terrainLayers ?? "n/a"}`,
