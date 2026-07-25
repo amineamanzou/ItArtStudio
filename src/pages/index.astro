@@ -4,6 +4,7 @@ import { defaultZone, zones } from "../game/zones";
 
 const mapRange = 20;
 const mapCoordinate = (value: number) => `${((value + mapRange / 2) / mapRange) * 100}%`;
+const homeHref = import.meta.env.BASE_URL;
 ---
 
 <BaseLayout
@@ -15,7 +16,7 @@ const mapCoordinate = (value: number) => `${((value + mapRange / 2) / mapRange) 
       <canvas id="studio-map-canvas" class="studio-map-canvas" aria-hidden="true"></canvas>
 
       <header class="game-hud" aria-label="Navigation principale">
-        <a class="game-brand" href="/" aria-label="IT Art Studio">
+        <a class="game-brand" href={homeHref} aria-label="IT Art Studio">
           <span>IT</span>
           <strong>ART</strong>
           <em>STUDIO</em>

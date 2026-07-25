@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
+import http from "node:http";
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import Module from "node:module";
@@ -10,6 +11,8 @@ const root = process.cwd();
 const startedAt = Date.now();
 const port = Number(process.env.QA_PORT ?? 4331);
 const baseUrl = process.env.QA_BASE_URL ?? `http://127.0.0.1:${port}/?qa=1`;
+const staticDistMode = process.env.QA_STATIC_DIST === "true";
+const staticBasePath = process.env.QA_STATIC_BASE_PATH ?? "/ItArtStudio";
 const withSearchParam = (url, key, value) => {
   const target = new URL(url);
   target.searchParams.set(key, value);
@@ -95,6 +98,10 @@ function loadPlaywright() {
 }
 
 function startServer() {
+  if (staticDistMode) {
+    return startStaticDistServer();
+  }
+
   const child = spawn("npm", ["run", "dev", "--", "--host", "127.0.0.1", "--port", String(port)], {
     cwd: root,
     env: { ...process.env, BROWSER: "none" },
@@ -113,6 +120,74 @@ function startServer() {
   child.stderr.on("data", record);
 
   return { child, logs };
+}
+
+function startStaticDistServer() {
+  const distRoot = path.join(root, "dist");
+  const basePath = staticBasePath.replace(/\/$/, "");
+  const mimeTypes = {
+    ".html": "text/html; charset=utf-8",
+    ".js": "text/javascript; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".svg": "image/svg+xml",
+    ".mp4": "video/mp4",
+    ".webp": "image/webp",
+    ".woff": "font/woff",
+    ".woff2": "font/woff2"
+  };
+  const logs = [];
+  const child = {
+    exitCode: null,
+    pid: process.pid,
+    once(event, callback) {
+      if (event === "exit") {
+        this.exitCallback = callback;
+      }
+    },
+    kill() {
+      server.close(() => {
+        child.exitCode = 0;
+        child.exitCallback?.(0);
+      });
+    }
+  };
+  const server = http.createServer((request, response) => {
+    const url = new URL(request.url ?? "/", `http://127.0.0.1:${port}`);
+    let pathname = decodeURIComponent(url.pathname);
+    if (pathname === basePath) {
+      response.writeHead(301, { Location: `${basePath}/` });
+      response.end();
+      return;
+    }
+    if (!pathname.startsWith(`${basePath}/`)) {
+      response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("not found");
+      return;
+    }
+    const relativePath = pathname.slice(basePath.length + 1) || "index.html";
+    let filePath = path.join(distRoot, relativePath);
+    if (!filePath.startsWith(distRoot)) {
+      response.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end("forbidden");
+      return;
+    }
+    if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+      filePath = path.join(distRoot, "index.html");
+    }
+    response.writeHead(200, { "Content-Type": mimeTypes[path.extname(filePath)] ?? "application/octet-stream" });
+    fs.createReadStream(filePath).pipe(response);
+  });
+
+  server.listen(port, "127.0.0.1", () => {
+    const message = `Static dist server ready at http://127.0.0.1:${port}${basePath}/\n`;
+    logs.push(message);
+    process.stdout.write(message);
+  });
+
+  return { child, logs, server };
 }
 
 async function waitForServer(server) {
@@ -150,6 +225,12 @@ async function waitForServer(server) {
 }
 
 async function stopServer(server) {
+  if (server.server) {
+    await new Promise((resolve) => server.server.close(resolve));
+    server.child.exitCode = 0;
+    return;
+  }
+
   if (server.child.exitCode !== null) {
     return;
   }
@@ -5778,6 +5859,35 @@ async function main() {
 
     await assertReady(page);
     await assertCanvasGeometry(page);
+    if (staticDistMode) {
+      await page.waitForFunction(
+        () =>
+          document.documentElement.dataset.gameState === "ready" &&
+          !document.querySelector("[data-game-loader]") &&
+          window.__IT_ART_STUDIO_QA__?.ready === true &&
+          window.__IT_ART_STUDIO_QA__?.frameCount > 2,
+        { timeout: 12_000 }
+      );
+      pass("static-dist-runtime-ready", await page.evaluate(() => ({
+        location: window.location.href,
+        gameState: document.documentElement.dataset.gameState,
+        loaderPresent: Boolean(document.querySelector("[data-game-loader]")),
+        scriptSources: [...document.scripts].map((script) => script.src).filter(Boolean),
+        qa: {
+          ready: window.__IT_ART_STUDIO_QA__?.ready ?? false,
+          frameCount: window.__IT_ART_STUDIO_QA__?.frameCount ?? 0,
+          canvas: window.__IT_ART_STUDIO_QA__?.canvas ?? null,
+          activeZoneId: window.__IT_ART_STUDIO_QA__?.activeZoneId ?? null
+        }
+      })));
+      const home = await capture(page, "static-dist-home-loaded");
+      if (home.canvas.ok) {
+        pass("static-dist-canvas-nonblank", home.canvas);
+      } else {
+        scenarioFail("static-dist-canvas-nonblank", "Static dist canvas did not render enough non-dark sampled pixels.", home.canvas);
+      }
+      await page.close();
+    } else {
     await assertBrandIdentity(page);
     await checkRuntimeFrameBudget(page, "pre-capture");
     const home = await capture(page, "home-loaded");
@@ -5857,6 +5967,7 @@ async function main() {
       await checkViewport(page, { width: 1024, height: 768 }, "reduced-motion", { reducedMotion: "reduce" });
     }
     await page.close();
+    }
   } catch (error) {
     fail("qa-runner-crash", {
       message: error instanceof Error ? error.message : String(error),

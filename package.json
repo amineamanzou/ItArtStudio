@@ -6,11 +6,12 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro build",
+    "build": "astro build && node scripts/assert-production-bundle.mjs",
     "preview": "astro preview",
     "check": "astro check",
     "qa:game": "node scripts/qa-playwright.mjs",
-    "qa:game:quick": "QA_PROFILE=quick node scripts/qa-playwright.mjs"
+    "qa:game:quick": "QA_PROFILE=quick node scripts/qa-playwright.mjs",
+    "qa:game:static": "QA_STATIC_DIST=true QA_STATIC_BASE_PATH=/ItArtStudio node scripts/qa-playwright.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.8",
