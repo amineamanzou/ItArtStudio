@@ -4,6 +4,7 @@ import type { StudioZone, ZoneKind } from "./zones";
 type Palette = Record<ZoneKind | "road" | "ink", number>;
 type Tone = "accent" | "secondary" | "light" | "dark";
 type PrimitiveKind = "block" | "cylinder" | "sphere" | "cone" | "ring" | "beam" | "sign";
+type LocalMotionBehavior = "pulse" | "sweep" | "tilt" | "float" | "blink";
 
 type DressingPrimitive = {
   id: string;
@@ -15,6 +16,7 @@ type DressingPrimitive = {
   rotation?: [number, number, number];
   text?: string;
   to?: [number, number, number];
+  motion?: LocalMotionBehavior;
 };
 
 type ZoneDressingRecipe = {
@@ -341,24 +343,62 @@ function createToneMaterial(tone: Tone, kind: ZoneKind, palette: Palette) {
 }
 
 function tagObject(object: THREE.Object3D, zoneId: string, signature: string, primitive: DressingPrimitive) {
+  const motionBehavior = primitive.motion ?? motionBehaviorFor(primitive);
   object.userData.zoneId = zoneId;
   object.userData.setDressingZone = zoneId;
   object.userData.setDressingRole = primitive.role;
   object.userData.setDressingSignature = `${signature}:${primitive.id}`;
   object.userData.motionRole = `dressing:${primitive.role}`;
+  object.userData.localMotionBehavior = motionBehavior;
   object.userData.motionBaseY = object.position.y;
+  object.userData.motionBaseX = object.position.x;
+  object.userData.motionBaseZ = object.position.z;
+  object.userData.motionBaseRotationX = object.rotation.x;
+  object.userData.motionBaseRotationY = object.rotation.y;
+  object.userData.motionBaseRotationZ = object.rotation.z;
   object.traverse((child) => {
     child.userData.zoneId = zoneId;
     child.userData.setDressingZone = zoneId;
     child.userData.setDressingRole = primitive.role;
     child.userData.setDressingSignature = `${signature}:${primitive.id}`;
     child.userData.motionRole = `dressing:${primitive.role}`;
+    child.userData.localMotionBehavior = motionBehavior;
     child.userData.motionBaseY = child.position.y;
+    child.userData.motionBaseX = child.position.x;
+    child.userData.motionBaseZ = child.position.z;
+    child.userData.motionBaseRotationX = child.rotation.x;
+    child.userData.motionBaseRotationY = child.rotation.y;
+    child.userData.motionBaseRotationZ = child.rotation.z;
     if (child instanceof THREE.Mesh) {
       child.castShadow = true;
       child.receiveShadow = true;
     }
   });
+}
+
+function motionBehaviorFor(primitive: DressingPrimitive): LocalMotionBehavior {
+  if (primitive.role.includes("stage-light") || primitive.role.includes("runway-rail")) {
+    return "sweep";
+  }
+  if (primitive.role.includes("color-swatch") || primitive.role.includes("paint-tool")) {
+    return "pulse";
+  }
+  if (primitive.role.includes("fabric-panel")) {
+    return "float";
+  }
+  if (primitive.kind === "ring" || primitive.role.includes("orbit") || primitive.role.includes("field")) {
+    return "sweep";
+  }
+  if (primitive.kind === "beam" || primitive.role.includes("link") || primitive.role.includes("axis")) {
+    return "pulse";
+  }
+  if (primitive.kind === "sign" || primitive.role.includes("panel") || primitive.role.includes("screen")) {
+    return "tilt";
+  }
+  if (primitive.kind === "sphere" || primitive.role.includes("puff") || primitive.role.includes("node")) {
+    return "float";
+  }
+  return "blink";
 }
 
 function countTaggedObjects(object: THREE.Object3D) {

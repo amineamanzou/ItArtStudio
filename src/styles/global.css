@@ -372,6 +372,7 @@ button {
   height: 13px;
   background: var(--ink);
   box-shadow: 0 0 0 4px oklch(96% 0.02 92 / 18%);
+  pointer-events: none;
 }
 
 .mobile-zone-nav {

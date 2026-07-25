@@ -535,6 +535,7 @@ async function checkWorldRichness(page) {
       zone.setDressingObjects < 7 ||
       zone.setDressingRoles?.length < 3 ||
       zone.setDressingSignatures?.length < 5 ||
+      Object.keys(zone.localMotionBehaviors ?? {}).length < 3 ||
       !zone.setDressingFingerprint ||
       zone.materialVariants < Math.max(6, zone.expectedVisuals?.materialVariants ?? 0) ||
       zone.missingMaterialVariants?.length > 0 ||
@@ -582,6 +583,9 @@ async function checkWorldRichness(page) {
   const duplicateSetDressingSignatures = allSetDressingSignatures.filter(
     (signature, index, signatures) => signature && signatures.indexOf(signature) !== index
   );
+  const localMotionBehaviorTypes = new Set(
+    visualSpecZones.flatMap((zone) => Object.keys(zone.localMotionBehaviors ?? {}))
+  );
   const visualSpecRendered =
     world &&
     visualSpecZones.length === snapshot.zoneCount &&
@@ -595,6 +599,7 @@ async function checkWorldRichness(page) {
     duplicateFingerprints.length === 0 &&
     duplicateSetDressingFingerprints.length === 0 &&
     duplicateSetDressingSignatures.length === 0 &&
+    localMotionBehaviorTypes.size >= 5 &&
     thinZones.length === 0;
 
   if (visualSpecRendered) {
@@ -608,6 +613,7 @@ async function checkWorldRichness(page) {
       motionRoles: world.motionRoles,
       motionRolesByType: world.motionRolesByType,
       setDressingSignatures: allSetDressingSignatures,
+      localMotionBehaviorTypes: [...localMotionBehaviorTypes].sort(),
       fingerprints: visualSpecZones.map((zone) => zone.visualFingerprint)
     });
   } else {
@@ -623,6 +629,7 @@ async function checkWorldRichness(page) {
       duplicateFingerprints,
       duplicateSetDressingFingerprints,
       duplicateSetDressingSignatures,
+      localMotionBehaviorTypes: [...localMotionBehaviorTypes].sort(),
       thinZones,
       zones: visualSpecZones
     });
@@ -641,6 +648,21 @@ async function checkWorldRichness(page) {
     pass("player-personality", { player });
   } else {
     scenarioFail("player-personality", "Playable avatar is not detailed enough for the studio world.", { player });
+  }
+}
+
+async function checkRoverTrail(page, label) {
+  const snapshot = await getQaSnapshot(page);
+  const trail = snapshot?.trail;
+  const hasTrailFeedback = trail && trail.totalMarks >= 18 && trail.activeMarks >= 3 && trail.maxOpacity >= 0.05;
+
+  if (hasTrailFeedback) {
+    pass(`rover-trail:${label}`, { trail, player: snapshot?.player });
+  } else {
+    scenarioFail(`rover-trail:${label}`, "Playable rover did not leave enough visible trail feedback.", {
+      trail,
+      player: snapshot?.player
+    });
   }
 }
 
@@ -808,6 +830,114 @@ async function waitForViewportReady(page, viewport, label) {
   }
 }
 
+async function ensureSelectorActionable(page, selector, label, options = {}) {
+  const minWidth = options.minWidth ?? 30;
+  const minHeight = options.minHeight ?? 30;
+  let latest = null;
+  const started = Date.now();
+
+  while (Date.now() - started < 5_000) {
+    latest = await page.evaluate((targetSelector) => {
+      const matches = [...document.querySelectorAll(targetSelector)];
+      const element = matches[0];
+      if (!(element instanceof HTMLElement)) {
+        return { count: matches.length, exists: false };
+      }
+      const rect = element.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const style = getComputedStyle(element);
+      const hit = document.elementFromPoint(centerX, centerY);
+      return {
+        count: matches.length,
+        exists: true,
+        display: style.display,
+        visibility: style.visibility,
+        opacity: Number(style.opacity),
+        rect: {
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          left: rect.left
+        },
+        inViewport:
+          rect.right >= 0 &&
+          rect.bottom >= 0 &&
+          rect.left <= window.innerWidth &&
+          rect.top <= window.innerHeight,
+        disabled: element instanceof HTMLButtonElement || element instanceof HTMLAnchorElement ? element.disabled : false,
+        hitTag: hit?.tagName?.toLowerCase() ?? null,
+        hitClass: hit instanceof HTMLElement ? hit.className : "",
+        receivesPointer: hit === element || element.contains(hit)
+      };
+    }, selector);
+
+    const box = latest.rect;
+    const ok =
+      latest.count === 1 &&
+      latest.exists &&
+      box &&
+      box.width >= minWidth &&
+      box.height >= minHeight &&
+      latest.inViewport &&
+      latest.display !== "none" &&
+      latest.visibility !== "hidden" &&
+      latest.opacity > 0.95 &&
+      !latest.disabled &&
+      latest.receivesPointer;
+
+    if (ok) {
+      return { box, actionability: latest };
+    }
+
+    await wait(100);
+  }
+
+  scenarioFail(`actionable:${label}`, "Element is missing, hidden, or not safely clickable.", {
+    selector,
+    box: latest?.rect ?? null,
+    actionability: latest,
+    minWidth,
+    minHeight
+  });
+  return null;
+}
+
+async function clickActionable(page, selector, label, options = {}) {
+  const actionability = await ensureSelectorActionable(page, selector, label, options);
+  if (!actionability) {
+    return null;
+  }
+
+  const center = {
+    x: actionability.box.x + actionability.box.width / 2,
+    y: actionability.box.y + actionability.box.height / 2
+  };
+  await page.mouse.click(center.x, center.y);
+  return { ...actionability, center };
+}
+
+async function holdActionable(page, selector, label, options = {}) {
+  const actionability = await ensureSelectorActionable(page, selector, label, options);
+  if (!actionability) {
+    return null;
+  }
+
+  const center = {
+    x: actionability.box.x + actionability.box.width / 2,
+    y: actionability.box.y + actionability.box.height / 2
+  };
+  await page.mouse.move(center.x, center.y);
+  await page.mouse.down();
+  await page.waitForTimeout(options.delay ?? 550);
+  await page.mouse.up();
+  return { ...actionability, center };
+}
+
 async function checkViewport(page, viewport, label, options = {}) {
   await page.emulateMedia({ reducedMotion: options.reducedMotion ?? "no-preference" });
   await page.setViewportSize(viewport);
@@ -867,6 +997,15 @@ async function checkViewport(page, viewport, label, options = {}) {
 }
 
 async function checkMiniMapJumps(page) {
+  const desktopViewport = { width: 1280, height: 900 };
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize(desktopViewport);
+  await page.waitForTimeout(450);
+  const viewportReady = await waitForViewportReady(page, desktopViewport, "mini-map-desktop");
+  if (!viewportReady) {
+    return;
+  }
+
   const targets =
     qaProfile === "quick"
       ? ["studio-gate", "ai-lab", "design-atelier", "contact-portal"]
@@ -884,47 +1023,64 @@ async function checkMiniMapJumps(page) {
         ];
 
   for (const targetId of targets) {
-    const clickResult = await page.evaluate((zoneId) => {
-      const button = document.querySelector(`.world-map [data-zone-jump="${zoneId}"]`);
-      if (!(button instanceof HTMLButtonElement)) {
-        return { clicked: false, reason: "missing-button" };
-      }
-      button.click();
-      return { clicked: true };
-    }, targetId);
-
-    if (!clickResult.clicked) {
+    const pinSelector = `.world-map [data-zone-jump="${targetId}"]`;
+    const actionability = await clickActionable(page, pinSelector, `mini-map:${targetId}`, {
+      minWidth: 30,
+      minHeight: 30
+    });
+    if (!actionability) {
       const snapshot = await getQaSnapshot(page);
-      scenarioFail(`mini-map:${targetId}`, "Mini-map pin could not be clicked through the DOM.", {
-        clickResult,
-        snapshot
+      scenarioFail(`mini-map:${targetId}`, "Mini-map pin is not actionable.", { snapshot });
+      continue;
+    }
+
+    try {
+      await page.waitForFunction(
+        (zoneId) => {
+          const qa = window.__IT_ART_STUDIO_QA__;
+          const pin = document.querySelector(`.world-map [data-zone-jump="${zoneId}"]`);
+          const marker = document.querySelector(".world-map__player");
+          if (!qa || qa.activeZoneId !== zoneId || !(pin instanceof HTMLElement) || !(marker instanceof HTMLElement)) {
+            return false;
+          }
+          const pinRect = pin.getBoundingClientRect();
+          const markerRect = marker.getBoundingClientRect();
+          const distance = Math.hypot(
+            pinRect.left + pinRect.width / 2 - (markerRect.left + markerRect.width / 2),
+            pinRect.top + pinRect.height / 2 - (markerRect.top + markerRect.height / 2)
+          );
+          return distance <= 26;
+        },
+        targetId,
+        { timeout: 12_000 }
+      );
+    } catch (error) {
+      const snapshot = await getQaSnapshot(page);
+      const pressed = await inspectMiniMapState(page, targetId);
+      scenarioFail(`mini-map:${targetId}`, "Mini-map jump did not settle near the requested pin in time.", {
+        snapshot,
+        pressed,
+        message: error instanceof Error ? error.message : String(error)
       });
       continue;
     }
 
-    await page.waitForFunction((zoneId) => window.__IT_ART_STUDIO_QA__?.activeZoneId === zoneId, targetId, {
-      timeout: 12_000
-    });
-
     const snapshot = await getQaSnapshot(page);
-    const pressed = await page.evaluate((zoneId) => {
-      const visiblePressed = [...document.querySelectorAll(".world-map [data-zone-jump][aria-pressed='true']")].map(
-        (node) => (node instanceof HTMLElement ? node.dataset.zoneJump : null)
-      );
-      return { zoneId, visiblePressed };
-    }, targetId);
+    const pressed = await inspectMiniMapState(page, targetId);
 
     if (
       snapshot?.activeZoneId === targetId &&
       snapshot.lastInputMode === "pointer" &&
       pressed.visiblePressed.length === 1 &&
-      pressed.visiblePressed[0] === targetId
+      pressed.visiblePressed[0] === targetId &&
+      pressed.markerDistancePx <= 26
     ) {
       pass(`mini-map:${targetId}`, {
         activeZoneId: snapshot.activeZoneId,
         player: snapshot.player,
         pressed,
-        lastInputMode: snapshot.lastInputMode
+        lastInputMode: snapshot.lastInputMode,
+        actionability
       });
     } else {
       scenarioFail(`mini-map:${targetId}`, "Mini-map jump did not synchronize active zone and aria state.", {
@@ -935,8 +1091,137 @@ async function checkMiniMapJumps(page) {
   }
 }
 
+async function inspectMiniMapState(page, targetId) {
+  return page.evaluate((zoneId) => {
+    const visiblePressed = [...document.querySelectorAll(".world-map [data-zone-jump][aria-pressed='true']")].map(
+      (node) => (node instanceof HTMLElement ? node.dataset.zoneJump : null)
+    );
+    const pin = document.querySelector(`.world-map [data-zone-jump="${zoneId}"]`);
+    const marker = document.querySelector(".world-map__player");
+    const pinRect = pin instanceof HTMLElement ? pin.getBoundingClientRect() : null;
+    const markerRect = marker instanceof HTMLElement ? marker.getBoundingClientRect() : null;
+    const distance =
+      pinRect && markerRect
+        ? Math.hypot(
+            pinRect.left + pinRect.width / 2 - (markerRect.left + markerRect.width / 2),
+            pinRect.top + pinRect.height / 2 - (markerRect.top + markerRect.height / 2)
+          )
+        : Number.POSITIVE_INFINITY;
+    return {
+      zoneId,
+      visiblePressed,
+      markerDistancePx: Number(distance.toFixed(2)),
+      pinRect,
+      markerRect
+    };
+  }, targetId);
+}
+
 async function checkMobileLayout(page) {
   await checkViewport(page, { width: 390, height: 844 }, "mobile-layout");
+}
+
+async function checkMobileControls(page) {
+  const controls = await page.evaluate(() => {
+    const worldMap = document.querySelector(".world-map");
+    const mobileNav = document.querySelector(".mobile-zone-nav");
+    const mobileDrive = document.querySelector(".mobile-drive");
+    const stateFor = (node) => {
+      if (!(node instanceof HTMLElement)) {
+        return { exists: false };
+      }
+      const style = getComputedStyle(node);
+      const rect = node.getBoundingClientRect();
+      return {
+        exists: true,
+        display: style.display,
+        visibility: style.visibility,
+        opacity: Number(style.opacity),
+        width: rect.width,
+        height: rect.height
+      };
+    };
+    return {
+      worldMap: stateFor(worldMap),
+      mobileNav: stateFor(mobileNav),
+      mobileDrive: stateFor(mobileDrive)
+    };
+  });
+
+  const mobileChromeVisible =
+    controls.worldMap.exists &&
+    controls.worldMap.display === "none" &&
+    controls.mobileNav.exists &&
+    controls.mobileNav.display !== "none" &&
+    controls.mobileNav.visibility !== "hidden" &&
+    controls.mobileNav.width > 0 &&
+    controls.mobileDrive.exists &&
+    controls.mobileDrive.display !== "none" &&
+    controls.mobileDrive.visibility !== "hidden" &&
+    controls.mobileDrive.width > 0;
+
+  if (mobileChromeVisible) {
+    pass("mobile-controls:chrome", controls);
+  } else {
+    scenarioFail("mobile-controls:chrome", "Mobile controls are not visible while desktop mini-map is hidden.", controls);
+    return;
+  }
+
+  const navActionability = await clickActionable(
+    page,
+    '.mobile-zone-nav [data-zone-jump="ai-lab"]',
+    "mobile-zone-nav:ai-lab",
+    {
+      minWidth: 44,
+      minHeight: 44
+    }
+  );
+  if (!navActionability) {
+    return;
+  }
+  await page.waitForFunction(() => window.__IT_ART_STUDIO_QA__?.activeZoneId === "ai-lab", { timeout: 8_000 });
+  const navState = await page.evaluate(() => ({
+    activeZoneId: window.__IT_ART_STUDIO_QA__?.activeZoneId,
+    lastInputMode: window.__IT_ART_STUDIO_QA__?.lastInputMode,
+    visiblePressed: [...document.querySelectorAll(".mobile-zone-nav [data-zone-jump][aria-pressed='true']")].map((node) =>
+      node instanceof HTMLElement ? node.dataset.zoneJump : null
+    )
+  }));
+
+  if (
+    navState.activeZoneId === "ai-lab" &&
+    navState.lastInputMode === "pointer" &&
+    navState.visiblePressed.length === 1 &&
+    navState.visiblePressed[0] === "ai-lab"
+  ) {
+    pass("mobile-controls:zone-nav", { navState, navActionability });
+  } else {
+    scenarioFail("mobile-controls:zone-nav", "Mobile zone nav did not activate the requested zone.", { navState });
+  }
+
+  const beforeDrive = await getQaSnapshot(page);
+  const driveActionability = await holdActionable(page, '.mobile-drive [data-drive="right"]', "mobile-drive:right", {
+    minWidth: 44,
+    minHeight: 44,
+    delay: 550
+  });
+  if (!driveActionability) {
+    return;
+  }
+  await page.waitForTimeout(260);
+  const afterDrive = await getQaSnapshot(page);
+  const deltaX = Math.abs((afterDrive?.player?.x ?? 0) - (beforeDrive?.player?.x ?? 0));
+
+  if (afterDrive?.lastInputMode === "touch" && deltaX > 0.2) {
+    pass("mobile-controls:drive", { before: beforeDrive?.player, after: afterDrive.player, deltaX, driveActionability });
+  } else {
+    scenarioFail("mobile-controls:drive", "Mobile drive control did not move the player through a real action.", {
+      before: beforeDrive?.player,
+      after: afterDrive?.player,
+      lastInputMode: afterDrive?.lastInputMode,
+      deltaX
+    });
+  }
 }
 
 async function writeReport() {
@@ -967,9 +1252,13 @@ async function writeReport() {
     } | ${canvas?.colorBuckets ?? "n/a"} |`;
   });
   const worldScenario = scenarios.find((scenario) => scenario.name === "world-richness");
+  const visualScenario = scenarios.find((scenario) => scenario.name === "visual-specs-rendered");
   const playerScenario = scenarios.find((scenario) => scenario.name === "player-personality");
+  const trailScenario = scenarios.find((scenario) => scenario.name === "rover-trail:keyboard-route");
   const world = worldScenario?.details?.world;
   const player = playerScenario?.details?.player;
+  const localMotionBehaviorTypes = visualScenario?.details?.localMotionBehaviorTypes ?? [];
+  const trail = trailScenario?.details?.trail;
 
   const lines = [
     "# IT Art Studio QA Report",
@@ -1006,7 +1295,13 @@ async function writeReport() {
     `- Set dressing signatures: ${world?.setDressingSignatures ?? "n/a"}`,
     `- Material variants: ${world?.materialVariants ?? "n/a"}`,
     `- Motion roles: ${world?.motionRoles ?? "n/a"}`,
+    `- Local motion behaviors: ${
+      localMotionBehaviorTypes.length > 0 ? localMotionBehaviorTypes.join(", ") : "n/a"
+    }`,
     `- Player parts: ${player?.meshCount ?? "n/a"} (${player?.wheelCount ?? "n/a"} wheels)`,
+    `- Rover trail: ${trail?.activeMarks ?? "n/a"}/${trail?.totalMarks ?? "n/a"} active, max opacity ${
+      trail?.maxOpacity ?? "n/a"
+    }`,
     "",
     "## Screenshots",
     "",
@@ -1083,6 +1378,7 @@ async function main() {
       await driveToZone(page, target);
       await capture(page, target.id);
     }
+    await checkRoverTrail(page, "keyboard-route");
 
     await checkContact(page);
     await checkMiniMapJumps(page);
@@ -1090,6 +1386,7 @@ async function main() {
     if (qaProfile === "quick") {
       await checkViewport(page, { width: 1280, height: 720 }, "desktop-wide");
       await checkMobileLayout(page);
+      await checkMobileControls(page);
       await checkViewport(page, { width: 1024, height: 768 }, "reduced-motion", { reducedMotion: "reduce" });
     } else {
       await checkViewport(page, { width: 1280, height: 720 }, "desktop-wide");
@@ -1097,6 +1394,7 @@ async function main() {
       await checkViewport(page, { width: 821, height: 900 }, "tablet-boundary-desktop");
       await checkViewport(page, { width: 820, height: 900 }, "tablet-portrait");
       await checkMobileLayout(page);
+      await checkMobileControls(page);
       await checkViewport(page, { width: 320, height: 700 }, "mobile-small");
       await checkViewport(page, { width: 1024, height: 768 }, "reduced-motion", { reducedMotion: "reduce" });
     }

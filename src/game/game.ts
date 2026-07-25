@@ -23,6 +23,7 @@ const colors: Record<ZoneKind | "ground" | "road" | "ink", number> = {
 type DriveKey = "up" | "down" | "left" | "right";
 
 type BoundsQa = { width: number; height: number; depth: number };
+type TrailMark = { mesh: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>; age: number; maxAge: number };
 
 type ZoneAssetQa = {
   id: string;
@@ -46,6 +47,7 @@ type ZoneAssetQa = {
   animationMatchesSpec: boolean;
   motionObjectCount: number;
   motionRoleCounts: Record<string, number>;
+  localMotionBehaviors: Record<string, number>;
   visualFingerprint: string;
   setDressingFingerprint: string;
   hasLabel: boolean;
@@ -74,6 +76,7 @@ type QaSnapshot = {
     zones: ZoneAssetQa[];
   };
   player: { x: number; z: number; rotationY: number; meshCount: number; wheelCount: number; bounds: BoundsQa };
+  trail: { totalMarks: number; activeMarks: number; maxOpacity: number };
   canvas: { width: number; height: number; dpr: number };
   frameCount: number;
   averageFrameMs: number;
@@ -100,6 +103,7 @@ class StudioGame {
   private readonly zoneMeshes = new Map<string, THREE.Object3D>();
   private readonly keys = new Set<DriveKey>();
   private readonly player = new THREE.Group();
+  private readonly trailGroup = new THREE.Group();
   private readonly errors: string[] = [];
   private readonly playerPosition = new THREE.Vector3(0, 0.28, 0);
   private readonly targetPosition = new THREE.Vector3(0, 0.28, 0);
@@ -120,8 +124,11 @@ class StudioGame {
   private readonly setDressingSignatureIds = new Set<string>();
   private readonly zoneMotionObjects = new Map<string, THREE.Object3D[]>();
   private readonly wheelMeshes: THREE.Mesh[] = [];
+  private readonly trailMarks: TrailMark[] = [];
   private readonly frameDeltas: number[] = [];
   private readonly visitedZoneIds = new Set<string>([defaultZone.id]);
+  private trailCursor = 0;
+  private trailDistance = 0;
   private readonly qaSnapshot: QaSnapshot = {
     ready: false,
     activeZoneId: defaultZone.id,
@@ -144,6 +151,7 @@ class StudioGame {
       zones: []
     },
     player: { x: 0, z: 0, rotationY: 0, meshCount: 0, wheelCount: 0, bounds: { width: 0, height: 0, depth: 0 } },
+    trail: { totalMarks: 0, activeMarks: 0, maxOpacity: 0 },
     canvas: { width: 0, height: 0, dpr: 1 },
     frameCount: 0,
     averageFrameMs: 0,
@@ -163,13 +171,14 @@ class StudioGame {
       powerPreference: "high-performance"
     });
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
   }
 
   start() {
     this.setScene();
     this.setWorld();
     this.setPlayer();
+    this.setPlayerTrail();
     this.setEvents();
     this.resize();
     this.updatePanel(defaultZone);
@@ -629,6 +638,31 @@ class StudioGame {
     this.scene.add(this.player);
   }
 
+  private setPlayerTrail() {
+    this.trailGroup.name = "studio-rover-trail";
+    this.trailGroup.userData.trailGroup = true;
+    const geometry = new THREE.CircleGeometry(0.18, 18);
+
+    for (let index = 0; index < 18; index += 1) {
+      const material = new THREE.MeshBasicMaterial({
+        color: colors.studio,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false
+      });
+      const mark = new THREE.Mesh(geometry, material);
+      mark.rotation.x = -Math.PI * 0.5;
+      mark.position.y = 0.04;
+      mark.visible = false;
+      mark.userData.trailMark = true;
+      this.trailGroup.add(mark);
+      this.trailMarks.push({ mesh: mark, age: 12, maxAge: 12 });
+    }
+
+    this.decorativeObjectCount += this.trailMarks.length;
+    this.scene.add(this.trailGroup);
+  }
+
   private setEvents() {
     window.addEventListener("resize", () => this.resize());
 
@@ -693,6 +727,7 @@ class StudioGame {
 
   private applyQaKeyboardStep(direction: DriveKey) {
     const step = 1.2;
+    const previousPosition = this.playerPosition.clone();
     if (direction === "up") this.playerPosition.z -= step;
     if (direction === "down") this.playerPosition.z += step;
     if (direction === "left") this.playerPosition.x -= step;
@@ -702,6 +737,8 @@ class StudioGame {
     this.playerPosition.z = clamp(this.playerPosition.z, -9.4, 9.4);
     this.targetPosition.copy(this.playerPosition);
     this.player.position.copy(this.playerPosition);
+    this.emitTrail(previousPosition, this.playerPosition.clone().sub(previousPosition));
+    this.updateTrail(0.08);
     this.updateActiveZone();
     this.updateMiniMap();
     this.syncQaSnapshot();
@@ -794,12 +831,54 @@ class StudioGame {
 
     const travel = this.playerPosition.clone().sub(previousPosition);
     this.player.position.copy(this.playerPosition);
+    this.emitTrail(previousPosition, travel);
 
     if (travel.lengthSq() > 0.0001) {
       const targetRotation = Math.atan2(travel.x, travel.z);
       this.player.rotation.y += (targetRotation - this.player.rotation.y) * 0.14;
       for (const wheel of this.wheelMeshes) {
         wheel.rotation.x += travel.length() * 3.8;
+      }
+    }
+    this.updateTrail(delta);
+  }
+
+  private emitTrail(previousPosition: THREE.Vector3, travel: THREE.Vector3) {
+    const distance = travel.length();
+    if (distance <= 0.001) {
+      return;
+    }
+
+    this.trailDistance += distance;
+    if (this.trailDistance < 0.26) {
+      return;
+    }
+    this.trailDistance = 0;
+
+    const activeZone = zones.find((zone) => zone.id === this.activeZoneId) ?? defaultZone;
+    const mark = this.trailMarks[this.trailCursor];
+    this.trailCursor = (this.trailCursor + 1) % this.trailMarks.length;
+    mark.age = 0;
+    mark.maxAge = 12;
+    mark.mesh.visible = true;
+    mark.mesh.position.set(previousPosition.x, 0.04, previousPosition.z);
+    mark.mesh.rotation.z = this.player.rotation.y;
+    mark.mesh.scale.setScalar(0.64 + Math.min(distance, 0.8) * 0.5);
+    mark.mesh.material.color.setHex(colors[activeZone.kind]);
+    mark.mesh.material.opacity = 0.38;
+  }
+
+  private updateTrail(delta: number) {
+    for (const mark of this.trailMarks) {
+      if (!mark.mesh.visible) {
+        continue;
+      }
+      mark.age += delta;
+      const life = clamp(1 - mark.age / mark.maxAge, 0, 1);
+      mark.mesh.material.opacity = life * 0.38;
+      mark.mesh.scale.multiplyScalar(1 + delta * 0.08);
+      if (life <= 0.02) {
+        mark.mesh.visible = false;
       }
     }
   }
@@ -817,7 +896,7 @@ class StudioGame {
       const active = zone.id === this.activeZoneId;
       const spec = zoneVisualSpecs[zone.id];
       const animation = spec?.animation ?? { idleSpin: 0.12, activeSpin: 0.45, activeScale: 1.12, pulse: 0.1 };
-      mesh.rotation.y += delta * (active ? animation.activeSpin : animation.idleSpin);
+      mesh.rotation.y += delta * (active ? animation.activeSpin * 0.08 : animation.idleSpin * 0.04);
       const targetScale = active ? animation.activeScale : 1;
       mesh.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 1 - Math.pow(0.002, delta));
       mesh.userData.appliedAnimation = animation;
@@ -831,8 +910,35 @@ class StudioGame {
     objects.forEach((object, index) => {
       const role = object.userData.motionRole;
       const baseY = typeof object.userData.motionBaseY === "number" ? object.userData.motionBaseY : object.position.y;
+      const baseX = typeof object.userData.motionBaseX === "number" ? object.userData.motionBaseX : object.position.x;
+      const baseZ = typeof object.userData.motionBaseZ === "number" ? object.userData.motionBaseZ : object.position.z;
+      const baseRotationX =
+        typeof object.userData.motionBaseRotationX === "number" ? object.userData.motionBaseRotationX : object.rotation.x;
+      const baseRotationY =
+        typeof object.userData.motionBaseRotationY === "number" ? object.userData.motionBaseRotationY : object.rotation.y;
+      const baseRotationZ =
+        typeof object.userData.motionBaseRotationZ === "number" ? object.userData.motionBaseRotationZ : object.rotation.z;
       const phase = this.elapsedTime * (1.6 + (index % 5) * 0.08) + index * 0.7;
-      if (role === "surface-detail") {
+      const behavior = object.userData.localMotionBehavior;
+      if (behavior === "sweep") {
+        object.rotation.y += (active ? 1.25 : 0.42) * delta;
+        object.position.y = baseY + Math.sin(phase) * amplitude * 0.06;
+      } else if (behavior === "pulse") {
+        const pulseScale = 1 + Math.sin(phase) * amplitude * (active ? 0.16 : 0.05);
+        object.scale.setScalar(Math.max(0.82, pulseScale));
+        object.position.y = baseY + Math.sin(phase * 0.8) * amplitude * 0.05;
+      } else if (behavior === "tilt") {
+        object.rotation.x = baseRotationX + Math.sin(phase) * amplitude * 0.42;
+        object.rotation.y = baseRotationY + Math.cos(phase * 0.7) * amplitude * 0.28;
+        object.rotation.z = baseRotationZ + Math.sin(phase * 0.9) * amplitude * 0.18;
+      } else if (behavior === "float") {
+        object.position.x = baseX + Math.cos(phase * 0.7) * amplitude * 0.1;
+        object.position.y = baseY + Math.sin(phase) * amplitude * 0.2;
+        object.position.z = baseZ + Math.sin(phase * 0.55) * amplitude * 0.1;
+      } else if (behavior === "blink") {
+        object.position.y = baseY + Math.sin(phase) * amplitude * 0.08;
+        object.rotation.y = baseRotationY + Math.sin(phase * 0.75) * amplitude * 0.28;
+      } else if (role === "surface-detail") {
         object.position.y = baseY + Math.sin(phase) * amplitude * 0.03;
       } else if (role === "cluster") {
         object.rotation.y += (active ? 0.72 : 0.24) * delta * (1 + (index % 2) * 0.4);
@@ -978,6 +1084,14 @@ class StudioGame {
       wheelCount: this.wheelMeshes.length,
       bounds: playerBounds
     };
+    const activeTrailMarks = this.trailMarks.filter((mark) => mark.mesh.visible && mark.mesh.material.opacity > 0.02);
+    this.qaSnapshot.trail = {
+      totalMarks: this.trailMarks.length,
+      activeMarks: activeTrailMarks.length,
+      maxOpacity: Number(
+        activeTrailMarks.reduce((max, mark) => Math.max(max, mark.mesh.material.opacity), 0).toFixed(3)
+      )
+    };
     this.qaSnapshot.canvas = {
       width: this.canvas.width,
       height: this.canvas.height,
@@ -1015,6 +1129,7 @@ class StudioGame {
         animationMatchesSpec: false,
         motionObjectCount: 0,
         motionRoleCounts: {},
+        localMotionBehaviors: {},
         visualFingerprint: "",
         setDressingFingerprint: "",
         hasLabel: false,
@@ -1034,6 +1149,7 @@ class StudioGame {
     const materialVariants = new Set<string>();
     const semanticMaterialVariants = new Set<string>();
     const motionRoleCounts: Record<string, number> = {};
+    const localMotionBehaviors: Record<string, number> = {};
     const spec = zoneVisualSpecs[zone.id];
     const expectedMaterialVariants = new Set<string>();
     if (spec) {
@@ -1080,6 +1196,10 @@ class StudioGame {
       if (typeof child.userData.motionRole === "string") {
         motionRoleCounts[child.userData.motionRole] = (motionRoleCounts[child.userData.motionRole] ?? 0) + 1;
       }
+      if (typeof child.userData.localMotionBehavior === "string") {
+        localMotionBehaviors[child.userData.localMotionBehavior] =
+          (localMotionBehaviors[child.userData.localMotionBehavior] ?? 0) + 1;
+      }
       if (child instanceof THREE.Sprite) {
         hasLabel = true;
       }
@@ -1123,6 +1243,7 @@ class StudioGame {
       animationMatchesSpec,
       motionObjectCount: Object.values(motionRoleCounts).reduce((sum, count) => sum + count, 0),
       motionRoleCounts,
+      localMotionBehaviors,
       visualFingerprint: [
         group.userData.visualSpecId ?? "missing",
         group.userData.visualBiome ?? "missing-biome",

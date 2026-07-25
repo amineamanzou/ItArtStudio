@@ -170,6 +170,18 @@ Gates V1.6:
   signatures non dupliquees et un canvas full-screen visible;
 - preuve DOM de l'identite `IT / ART / STUDIO` en plus de la preuve pixel.
 
+Gates V1.7:
+
+- comportements locaux par asset (`pulse`, `sweep`, `tilt`, `float`, `blink`)
+  pour eviter une carte qui donne seulement l'impression de tourner en bloc;
+- trail visible du rover apres une route clavier, expose dans le snapshot QA;
+- clics reels sur la mini-map avec hit-test DOM, synchronisation du marqueur,
+  `aria-pressed` unique et mode d'input `pointer`;
+- nav mobile et pad mobile testes par actions pointeur reelles, pas par
+  mutation DOM;
+- dev toolbar Astro desactivee pour que les tests de bas d'ecran mesurent la
+  surface utilisateur finale.
+
 ## Components
 
 - `game-site`: surface principale.

@@ -6,6 +6,9 @@ const base = process.env.BASE_PATH ?? (isGitHubPages ? "/ItArtStudio" : undefine
 
 export default defineConfig({
   output: "static",
+  devToolbar: {
+    enabled: false
+  },
   ...(site ? { site } : {}),
   ...(base ? { base } : {})
 });

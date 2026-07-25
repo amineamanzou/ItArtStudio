@@ -43,15 +43,22 @@ The runner:
   distinct visual fingerprint;
 - verifies that rendered visual specs expose motion roles for biome-specific
   animation;
+- verifies that every zone exposes multiple local motion behaviors so the world
+  reads as alive instead of globally rotating;
 - verifies that every zone exposes narrative set dressing objects, role names,
   and distinct signatures;
 - records frame telemetry before gameplay scenarios;
 - drives the player with keyboard input through tech, art, and contact zones;
+- verifies that the rover leaves visible trail feedback after a played route;
 - runs one real `page.keyboard.press()` smoke test against the production
   keyboard listener;
 - uses the `?qa=1` keyboard-step hook to keep navigation deterministic in
   headless Chromium while preserving `lastInputMode: keyboard`;
-- clicks mini-map buttons through the DOM and verifies the active zone state;
+- clicks mini-map buttons with real pointer coordinates after a DOM hit-test and
+  verifies active zone state, `aria-pressed`, pointer input mode, and player
+  marker convergence;
+- taps mobile zone navigation and holds the mobile drive control through real
+  pointer coordinates after a DOM hit-test;
 - runs responsive captures for desktop, tablet, mobile, and small mobile in
   full mode;
 - runs a reduced-motion viewport;
@@ -85,8 +92,12 @@ The runner:
 - Applied animation hints must match the zone spec.
 - The world must expose enough motion roles to prove visual details are
   animation-ready, not static decoration only.
+- Every zone must expose at least three local motion behavior families, and the
+  world must expose at least five behavior families overall.
 - The playable avatar must expose modeled parts, four wheels, and minimum 3D
   bounds.
+- The playable avatar must leave at least 18 reusable trail marks, with active
+  visible marks after keyboard traversal.
 - Frame telemetry must be present in the QA snapshot.
 - Keyboard route must reach:
   - `ai-lab`
@@ -96,7 +107,9 @@ The runner:
 - The visible brand must expose exact `IT`, `ART`, and `STUDIO` tokens with
   distinct colors, and the hero title must remain visible.
 - Desktop mini-map pins must synchronize all ten zones, active state, pointer
-  input mode, and `aria-pressed`.
+  input mode, marker position, and `aria-pressed`.
+- Actionable UI controls must pass DOM rectangle, viewport, CSS visibility,
+  disabled-state, and hit-test gates before Playwright clicks them.
 - Visible zone navigation groups must expose exactly one active zone.
 - Responsive visible UI controls must not overlap.
 - Responsive UI coverage must stay below the configured desktop/mobile budget.
@@ -115,6 +128,7 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
 - `zoneCount`
 - `world`
 - `player`
+- `trail`
 - `canvas`
 - `frameCount`
 - `averageFrameMs`
