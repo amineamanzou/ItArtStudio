@@ -1830,6 +1830,18 @@ async function checkWorldRichness(page) {
   const duplicatePlaceArchitectureSignatures = allPlaceArchitectureSignatures.filter(
     (signature, index, signatures) => signature && signatures.indexOf(signature) !== index
   );
+  const allProjectArtifactSignatures = visualSpecZones.flatMap((zone) => zone.projectArtifactSignatures ?? []);
+  const duplicateProjectArtifactSignatures = allProjectArtifactSignatures.filter(
+    (signature, index, signatures) => signature && signatures.indexOf(signature) !== index
+  );
+  const projectArtifactActivityTypes = new Set(
+    visualSpecZones.flatMap((zone) => zone.projectArtifactActivityTypes ?? [])
+  );
+  const projectArtifactMaterials = new Set(visualSpecZones.flatMap((zone) => zone.projectArtifactMaterials ?? []));
+  const projectArtifactZones = visualSpecZones.filter((zone) => (zone.projectArtifactObjects ?? 0) > 0);
+  const forbiddenProjectArtifactSignatures = allProjectArtifactSignatures.filter((signature) =>
+    /@|https?:\/\/|www\.|\.(?:com|fr|io|dev)\b|client|customer|brand|logo|testimonial|revenue|kpi/i.test(signature)
+  );
   const placeArchitectureFamilies = new Set(
     visualSpecZones.map((zone) => zone.placeArchitectureFamily).filter((family) => typeof family === "string")
   );
@@ -1950,6 +1962,18 @@ async function checkWorldRichness(page) {
       (zone.placeArchitectureBounds?.width ?? 0) < 1.4 ||
       (zone.placeArchitectureBounds?.depth ?? 0) < 1.2
   );
+  const projectArtifactThinZones = visualSpecZones.filter(
+    (zone) =>
+      (zone.projectArtifactObjects ?? 0) < 2 ||
+      (zone.projectArtifactSceneObjects ?? 0) !== 1 ||
+      (zone.projectArtifactActivityTypes?.length ?? 0) < 1 ||
+      (zone.projectArtifactSignatures?.length ?? 0) < (zone.projectArtifactObjects ?? 0) ||
+      (zone.projectArtifactMaterials?.length ?? 0) < 2 ||
+      !zone.projectArtifactFingerprint ||
+      (zone.projectArtifactBounds?.height ?? 0) < 0.08 ||
+      (zone.projectArtifactBounds?.width ?? 0) < 0.55 ||
+      (zone.projectArtifactBounds?.depth ?? 0) < 0.25
+  );
   if (
     world &&
     visualSpecZones.length === snapshot.zoneCount &&
@@ -2005,6 +2029,59 @@ async function checkWorldRichness(page) {
       placeArchitectureThinZones,
       sceneObjects: world?.sceneObjects,
       sceneObjectBudget: 1080
+    });
+  }
+
+  const projectArtifactsRendered =
+    world &&
+    visualSpecZones.length === snapshot.zoneCount &&
+    world.projectArtifactZones === snapshot.zoneCount &&
+    world.projectArtifactObjects >= 20 &&
+    world.projectArtifactObjects <= 30 &&
+    world.projectArtifactSceneObjects <= 10 &&
+    world.projectArtifactActivityTypes >= 10 &&
+    world.projectArtifactSignatures >= world.projectArtifactObjects &&
+    world.projectArtifactMaterials >= snapshot.zoneCount * 2 &&
+    duplicateProjectArtifactSignatures.length === 0 &&
+    forbiddenProjectArtifactSignatures.length === 0 &&
+    projectArtifactActivityTypes.size >= 10 &&
+    projectArtifactZones.length === snapshot.zoneCount &&
+    projectArtifactThinZones.length === 0 &&
+    world.sceneObjects <= 955;
+  if (projectArtifactsRendered) {
+    pass("project-artifacts-rendered", {
+      projectArtifactObjects: world.projectArtifactObjects,
+      projectArtifactSceneObjects: world.projectArtifactSceneObjects,
+      projectArtifactZones: world.projectArtifactZones,
+      projectArtifactActivityTypes: [...projectArtifactActivityTypes].sort(),
+      projectArtifactSignatures: allProjectArtifactSignatures,
+      projectArtifactMaterials: [...projectArtifactMaterials].sort(),
+      fingerprints: visualSpecZones.map((zone) => zone.projectArtifactFingerprint),
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: 955
+    });
+  } else {
+    scenarioFail("project-artifacts-rendered", "Anonymized project evidence kits are not present across the whole playable map.", {
+      projectArtifactObjects: world?.projectArtifactObjects,
+      projectArtifactSceneObjects: world?.projectArtifactSceneObjects,
+      projectArtifactZones: world?.projectArtifactZones,
+      projectArtifactActivityTypes: [...projectArtifactActivityTypes].sort(),
+      projectArtifactSignatures: world?.projectArtifactSignatures,
+      projectArtifactMaterials: world?.projectArtifactMaterials,
+      duplicateProjectArtifactSignatures,
+      forbiddenProjectArtifactSignatures,
+      projectArtifactThinZones,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: 955,
+      zones: visualSpecZones.map((zone) => ({
+        id: zone.id,
+        projectArtifactObjects: zone.projectArtifactObjects,
+        projectArtifactSceneObjects: zone.projectArtifactSceneObjects,
+        projectArtifactActivityTypes: zone.projectArtifactActivityTypes,
+        projectArtifactSignatures: zone.projectArtifactSignatures,
+        projectArtifactMaterials: zone.projectArtifactMaterials,
+        projectArtifactBounds: zone.projectArtifactBounds
+      }))
     });
   }
 
@@ -2101,12 +2178,16 @@ async function checkWorldRichness(page) {
       zone.instancedPropObjects !== (zone.expectedVisuals?.propObjects ?? 0) ||
       zone.propObjects !== (zone.expectedVisuals?.propObjects ?? 0)
   );
+  const sceneObjectsNetOfProjectArtifacts =
+    world?.sceneObjects && typeof world.projectArtifactSceneObjects === "number"
+      ? world.sceneObjects - world.projectArtifactSceneObjects
+      : world?.sceneObjects;
   const propClusterInstancing =
     world &&
     surface &&
-    world.sceneObjects <= 955 &&
-    1033 - world.sceneObjects >= 78 &&
-    1075 - world.sceneObjects >= 120 &&
+    sceneObjectsNetOfProjectArtifacts <= 955 &&
+    1033 - sceneObjectsNetOfProjectArtifacts >= 78 &&
+    1075 - sceneObjectsNetOfProjectArtifacts >= 120 &&
     world.propClusters === expectedInstancedPropClusters &&
     world.propObjects === expectedInstancedPropObjects &&
     world.instancedPropClusters === expectedInstancedPropClusters &&
@@ -2115,12 +2196,14 @@ async function checkWorldRichness(page) {
   if (propClusterInstancing) {
     pass("prop-cluster-instancing", {
       sceneObjects: world.sceneObjects,
+      sceneObjectsNetOfProjectArtifacts,
+      projectArtifactSceneObjects: world.projectArtifactSceneObjects,
       sceneObjectBudget: 955,
       baselineV35SceneObjects: 1033,
       baselineV34SceneObjects: 1075,
       minFreedSceneObjects: 78,
-      freedFromPreviousBaseline: 1033 - world.sceneObjects,
-      freedFromV34Baseline: 1075 - world.sceneObjects,
+      freedFromPreviousBaseline: 1033 - sceneObjectsNetOfProjectArtifacts,
+      freedFromV34Baseline: 1075 - sceneObjectsNetOfProjectArtifacts,
       propClusters: world.propClusters,
       expectedInstancedPropClusters,
       propObjects: world.propObjects,
@@ -2138,12 +2221,14 @@ async function checkWorldRichness(page) {
   } else {
     scenarioFail("prop-cluster-instancing", "Prop clusters are not fully instanced or did not recover enough scene graph budget.", {
       sceneObjects: world?.sceneObjects,
+      sceneObjectsNetOfProjectArtifacts,
+      projectArtifactSceneObjects: world?.projectArtifactSceneObjects,
       sceneObjectBudget: 955,
       baselineV35SceneObjects: 1033,
       baselineV34SceneObjects: 1075,
       minFreedSceneObjects: 78,
-      freedFromPreviousBaseline: world?.sceneObjects ? 1033 - world.sceneObjects : null,
-      freedFromV34Baseline: world?.sceneObjects ? 1075 - world.sceneObjects : null,
+      freedFromPreviousBaseline: sceneObjectsNetOfProjectArtifacts ? 1033 - sceneObjectsNetOfProjectArtifacts : null,
+      freedFromV34Baseline: sceneObjectsNetOfProjectArtifacts ? 1075 - sceneObjectsNetOfProjectArtifacts : null,
       propClusters: world?.propClusters,
       expectedInstancedPropClusters,
       propObjects: world?.propObjects,
@@ -4139,6 +4224,7 @@ async function writeReport() {
   const worldScenario = scenarios.find((scenario) => scenario.name === "world-richness");
   const visualScenario = scenarios.find((scenario) => scenario.name === "visual-specs-rendered");
   const placeArchitectureScenario = scenarios.find((scenario) => scenario.name === "place-architecture-rendered");
+  const projectArtifactsScenario = scenarios.find((scenario) => scenario.name === "project-artifacts-rendered");
   const playerScenario = scenarios.find((scenario) => scenario.name === "player-personality");
   const trailScenario = scenarios.find((scenario) => scenario.name === "rover-trail:keyboard-route");
   const activationScenarios = scenarios.filter((scenario) => scenario.name.startsWith("activation-feedback:"));
@@ -4224,6 +4310,17 @@ async function writeReport() {
     `- Place architecture checks: ${placeArchitectureScenario?.status ?? "n/a"}`,
     `- Signature artifact objects: ${world?.signatureArtifactObjects ?? "n/a"}`,
     `- Signature artifact signatures: ${world?.signatureArtifactSignatures ?? "n/a"}`,
+    `- Project artifact objects: ${world?.projectArtifactObjects ?? "n/a"}`,
+    `- Project artifact scene objects: ${world?.projectArtifactSceneObjects ?? "n/a"}`,
+    `- Project artifact zones: ${world?.projectArtifactZones ?? "n/a"}`,
+    `- Project artifact activity types: ${world?.projectArtifactActivityTypes ?? "n/a"}`,
+    `- Project artifact signatures: ${world?.projectArtifactSignatures ?? "n/a"}`,
+    `- Project artifact materials: ${world?.projectArtifactMaterials ?? "n/a"}`,
+    `- Project artifact checks: ${
+      projectArtifactsScenario?.details
+        ? `${projectArtifactsScenario.details.projectArtifactObjects} pieces, ${projectArtifactsScenario.details.projectArtifactSceneObjects} scene objects, ${projectArtifactsScenario.details.projectArtifactZones} zones, scene ${projectArtifactsScenario.details.sceneObjects}/${projectArtifactsScenario.details.sceneObjectBudget}`
+        : (projectArtifactsScenario?.status ?? "n/a")
+    }`,
     `- Terrain layers: ${world?.terrainLayers ?? "n/a"}`,
     `- Scenery objects: ${world?.sceneryObjects ?? "n/a"}`,
     `- Scenery signatures: ${world?.scenerySignatures ?? "n/a"}`,
@@ -4283,7 +4380,7 @@ async function writeReport() {
     }`,
     `- Prop cluster instancing: ${
       propClusterInstancingScenario?.details
-        ? `${propClusterInstancingScenario.details.sceneObjects}/${propClusterInstancingScenario.details.sceneObjectBudget}, freed ${propClusterInstancingScenario.details.freedFromPreviousBaseline}/${propClusterInstancingScenario.details.minFreedSceneObjects}, clusters ${propClusterInstancingScenario.details.instancedPropClusters}/${propClusterInstancingScenario.details.expectedInstancedPropClusters}, props ${propClusterInstancingScenario.details.instancedPropObjects}/${propClusterInstancingScenario.details.expectedInstancedPropObjects}`
+        ? `${propClusterInstancingScenario.details.sceneObjectsNetOfProjectArtifacts}/${propClusterInstancingScenario.details.sceneObjectBudget} net, total ${propClusterInstancingScenario.details.sceneObjects}, project scene ${propClusterInstancingScenario.details.projectArtifactSceneObjects}, freed ${propClusterInstancingScenario.details.freedFromPreviousBaseline}/${propClusterInstancingScenario.details.minFreedSceneObjects}, clusters ${propClusterInstancingScenario.details.instancedPropClusters}/${propClusterInstancingScenario.details.expectedInstancedPropClusters}, props ${propClusterInstancingScenario.details.instancedPropObjects}/${propClusterInstancingScenario.details.expectedInstancedPropObjects}`
         : "n/a"
     }`,
     `- Route encounter visibility: ${routeEncounterVisibleScenarios.filter((scenario) => scenario.status === "pass").length}/${

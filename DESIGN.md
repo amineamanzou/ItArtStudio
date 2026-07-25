@@ -405,6 +405,23 @@ Gates V3.6:
   `place-composition-visible`, `zone-perceptual-distance`, conduite clavier
   reelle et dominance de la scene jouable.
 
+Gates V3.7:
+
+- `project-artifacts-rendered`: ajouter une couche de preuves projet
+  anonymisees sous forme de kits 3D proceduraux, un kit par zone;
+- les kits utilisent `THREE.InstancedMesh`: `24` pieces semantiques visibles
+  pour seulement `10` objets de scene, afin de garder le plafond V3.6 sous
+  controle;
+- chaque signature suit le format `project:<kind>:<zone>:<case>:<index>` et ne
+  doit contenir ni client, logo, URL, domaine, metrique commerciale ni promesse
+  non validee;
+- verification Playwright `project-artifacts-rendered`: `10/10` zones couvertes,
+  `20-30` pieces semantiques, `<=10` objets de scene, `>=10` familles
+  d'activite, signatures sans doublon, materiaux par zone et scene totale
+  `<=955`;
+- le gate `prop-cluster-instancing` continue de reporter le budget net des
+  artefacts projet pour prouver que les gains V3.6 restent intacts.
+
 ## Components
 
 - `game-site`: surface principale.

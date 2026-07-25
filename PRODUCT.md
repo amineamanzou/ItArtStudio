@@ -33,6 +33,14 @@ ni a une landing page remplie de capsules, metrics hero, gradients et cartes
 interchangeables. Les preuves sensibles restent anonymisees tant qu'elles ne sont
 pas validées.
 
+## Proof Policy
+
+Les projets presentes dans la carte sont des artefacts anonymises: dossiers,
+kits, signaux et micro-maquettes qui montrent une famille de livrable sans citer
+de client, logo, URL, chiffre de resultat, secteur reconnaissable ou promesse
+non sourcee. Les vraies references ne seront ajoutees qu'apres validation
+explicite.
+
 ## Design Principles
 
 1. Faire comprendre pourquoi deux pratiques cohabitent sous une meme marque.

@@ -9,6 +9,7 @@ import {
 } from "./drive-surfaces";
 import { createRouteGuidance, type RouteEncounterGate } from "./route-guidance";
 import { createZoneSignatureArtifacts } from "./zone-signature-artifacts";
+import { createZoneProjectArtifacts } from "./zone-project-artifacts";
 import { createZonePlaceArchitecture } from "./zone-place-architecture";
 import { createWorldScenery } from "./world-scenery";
 import { createZoneSetDressing } from "./zone-set-dressing";
@@ -163,6 +164,12 @@ type ZoneAssetQa = {
   signatureArtifactMaterials: string[];
   signatureArtifactBounds: BoundsQa;
   signatureArtifactScreen: ScreenRectQa;
+  projectArtifactObjects: number;
+  projectArtifactSceneObjects: number;
+  projectArtifactActivityTypes: string[];
+  projectArtifactSignatures: string[];
+  projectArtifactMaterials: string[];
+  projectArtifactBounds: BoundsQa;
   materialVariants: number;
   surfaceProfileId: string | null;
   surfaceFinish: string | null;
@@ -192,6 +199,7 @@ type ZoneAssetQa = {
   setDressingFingerprint: string;
   placeArchitectureFingerprint: string;
   signatureArtifactFingerprint: string;
+  projectArtifactFingerprint: string;
   hasLabel: boolean;
   bounds: BoundsQa;
 };
@@ -222,6 +230,12 @@ type QaSnapshot = {
     placeArchitectureSignatures: number;
     signatureArtifactObjects: number;
     signatureArtifactSignatures: number;
+    projectArtifactObjects: number;
+    projectArtifactSceneObjects: number;
+    projectArtifactZones: number;
+    projectArtifactActivityTypes: number;
+    projectArtifactSignatures: number;
+    projectArtifactMaterials: number;
     sceneryObjects: number;
     scenerySignatures: number;
     sceneryMotionObjects: number;
@@ -345,6 +359,8 @@ class StudioGame {
   private setDressingObjectCount = 0;
   private placeArchitectureObjectCount = 0;
   private signatureArtifactObjectCount = 0;
+  private projectArtifactObjectCount = 0;
+  private projectArtifactSceneObjectCount = 0;
   private sceneryObjectCount = 0;
   private terrainLayerCount = 0;
   private routeGuidanceObjectCount = 0;
@@ -359,6 +375,10 @@ class StudioGame {
   private readonly placeArchitectureFamilyIds = new Set<string>();
   private readonly placeArchitectureSignatureIds = new Set<string>();
   private readonly signatureArtifactSignatureIds = new Set<string>();
+  private readonly projectArtifactSignatureIds = new Set<string>();
+  private readonly projectArtifactZoneIds = new Set<string>();
+  private readonly projectArtifactActivityIds = new Set<string>();
+  private readonly projectArtifactMaterialIds = new Set<string>();
   private readonly scenerySignatureIds = new Set<string>();
   private readonly routeGuidanceSignatureIds = new Set<string>();
   private readonly routeGuidanceRoleCounts: Record<string, number> = {};
@@ -367,6 +387,7 @@ class StudioGame {
   private readonly landmarkMeshes = new Map<string, THREE.Object3D>();
   private readonly placeArchitectureGroups = new Map<string, THREE.Object3D>();
   private readonly signatureArtifactGroups = new Map<string, THREE.Object3D>();
+  private readonly projectArtifactGroups = new Map<string, THREE.Object3D>();
   private readonly worldSceneryMotionObjects: THREE.Object3D[] = [];
   private readonly routeGuidanceMotionObjects: THREE.Object3D[] = [];
   private readonly routeEncounterGates: RouteEncounterGate[] = [];
@@ -440,6 +461,12 @@ class StudioGame {
       placeArchitectureSignatures: 0,
       signatureArtifactObjects: 0,
       signatureArtifactSignatures: 0,
+      projectArtifactObjects: 0,
+      projectArtifactSceneObjects: 0,
+      projectArtifactZones: 0,
+      projectArtifactActivityTypes: 0,
+      projectArtifactSignatures: 0,
+      projectArtifactMaterials: 0,
       sceneryObjects: 0,
       scenerySignatures: 0,
       sceneryMotionObjects: 0,
@@ -1040,6 +1067,7 @@ class StudioGame {
     this.addZoneSetDressing(group, zone);
     this.addZonePlaceArchitecture(group, zone);
     this.addZoneSignatureArtifacts(group, zone);
+    this.addZoneProjectArtifacts(group, zone);
 
     const marker = createZoneLandmark(zone, colors);
     marker.userData.zoneId = zone.id;
@@ -1185,6 +1213,32 @@ class StudioGame {
       this.signatureArtifactSignatureIds.add(signature);
     }
     for (const variant of rendered.materialVariants) {
+      this.materialVariantIds.add(variant);
+    }
+    const existingMotionObjects = this.zoneMotionObjects.get(zone.id) ?? [];
+    this.zoneMotionObjects.set(zone.id, [...existingMotionObjects, ...rendered.motionObjects]);
+  }
+
+  private addZoneProjectArtifacts(group: THREE.Group, zone: StudioZone) {
+    const rendered = createZoneProjectArtifacts(zone, colors);
+    if (rendered.objectCount === 0) {
+      return;
+    }
+    group.add(rendered.group);
+    this.projectArtifactGroups.set(zone.id, rendered.group);
+    this.projectArtifactObjectCount += rendered.objectCount;
+    this.projectArtifactSceneObjectCount += rendered.sceneObjectCount;
+    this.projectArtifactZoneIds.add(zone.id);
+    this.decorativeObjectCount += rendered.objectCount;
+    this.motionRoleCount += rendered.motionObjects.length;
+    for (const activityType of rendered.activityTypes) {
+      this.projectArtifactActivityIds.add(activityType);
+    }
+    for (const signature of rendered.signatures) {
+      this.projectArtifactSignatureIds.add(signature);
+    }
+    for (const variant of rendered.materialVariants) {
+      this.projectArtifactMaterialIds.add(variant);
       this.materialVariantIds.add(variant);
     }
     const existingMotionObjects = this.zoneMotionObjects.get(zone.id) ?? [];
@@ -2139,6 +2193,12 @@ class StudioGame {
         placeArchitectureSignatures: this.placeArchitectureSignatureIds.size,
         signatureArtifactObjects: this.signatureArtifactObjectCount,
         signatureArtifactSignatures: this.signatureArtifactSignatureIds.size,
+        projectArtifactObjects: this.projectArtifactObjectCount,
+        projectArtifactSceneObjects: this.projectArtifactSceneObjectCount,
+        projectArtifactZones: this.projectArtifactZoneIds.size,
+        projectArtifactActivityTypes: this.projectArtifactActivityIds.size,
+        projectArtifactSignatures: this.projectArtifactSignatureIds.size,
+        projectArtifactMaterials: this.projectArtifactMaterialIds.size,
         sceneryObjects: this.sceneryObjectCount,
         scenerySignatures: this.scenerySignatureIds.size,
         sceneryMotionObjects: this.worldSceneryMotionObjects.length,
@@ -2425,6 +2485,12 @@ class StudioGame {
         signatureArtifactMaterials: [],
         signatureArtifactBounds: { width: 0, height: 0, depth: 0 },
         signatureArtifactScreen: this.emptyScreenRect(),
+        projectArtifactObjects: 0,
+        projectArtifactSceneObjects: 0,
+        projectArtifactActivityTypes: [],
+        projectArtifactSignatures: [],
+        projectArtifactMaterials: [],
+        projectArtifactBounds: { width: 0, height: 0, depth: 0 },
         materialVariants: 0,
         surfaceProfileId: null,
         surfaceFinish: null,
@@ -2454,6 +2520,7 @@ class StudioGame {
         setDressingFingerprint: "",
         placeArchitectureFingerprint: "",
         signatureArtifactFingerprint: "",
+        projectArtifactFingerprint: "",
         hasLabel: false,
         bounds: { width: 0, height: 0, depth: 0 }
       };
@@ -2476,11 +2543,16 @@ class StudioGame {
     const signatureArtifactFamilies = new Set<string>();
     const signatureArtifactSignatures = new Set<string>();
     const signatureArtifactMaterials = new Set<string>();
+    const projectArtifactActivityTypes = new Set<string>();
+    const projectArtifactSignatures = new Set<string>();
+    const projectArtifactMaterials = new Set<string>();
     const surfaceRoles = new Set<string>();
     const surfaceSignatures = new Set<string>();
     let setDressingObjects = 0;
     let placeArchitectureObjects = 0;
     let signatureArtifactObjects = 0;
+    let projectArtifactObjects = 0;
+    let projectArtifactSceneObjects = 0;
     let surfaceObjects = 0;
     const materialVariants = new Set<string>();
     const semanticMaterialVariants = new Set<string>();
@@ -2583,6 +2655,52 @@ class StudioGame {
           }
         }
       }
+      if (typeof child.userData.projectArtifactRole === "string") {
+        if (typeof child.userData.projectArtifactActivity === "string") {
+          projectArtifactActivityTypes.add(child.userData.projectArtifactActivity);
+        }
+        if (child instanceof THREE.InstancedMesh) {
+          projectArtifactSceneObjects += 1;
+          projectArtifactObjects +=
+            typeof child.userData.projectArtifactObjectCount === "number"
+              ? child.userData.projectArtifactObjectCount
+              : child.count;
+          if (Array.isArray(child.userData.projectArtifactActivities)) {
+            for (const activityType of child.userData.projectArtifactActivities) {
+              if (typeof activityType === "string") {
+                projectArtifactActivityTypes.add(activityType);
+              }
+            }
+          }
+          if (Array.isArray(child.userData.projectArtifactSignatures)) {
+            for (const signature of child.userData.projectArtifactSignatures) {
+              if (typeof signature === "string") {
+                projectArtifactSignatures.add(signature);
+              }
+            }
+          } else if (typeof child.userData.projectArtifactSignature === "string") {
+            projectArtifactSignatures.add(child.userData.projectArtifactSignature);
+          }
+          if (Array.isArray(child.userData.projectArtifactMaterials)) {
+            for (const material of child.userData.projectArtifactMaterials) {
+              if (typeof material === "string") {
+                projectArtifactMaterials.add(material);
+              }
+            }
+          } else if (typeof child.userData.projectArtifactMaterial === "string") {
+            projectArtifactMaterials.add(child.userData.projectArtifactMaterial);
+          }
+        } else if (child instanceof THREE.Mesh) {
+          projectArtifactSceneObjects += 1;
+          projectArtifactObjects += 1;
+          if (typeof child.userData.projectArtifactSignature === "string") {
+            projectArtifactSignatures.add(child.userData.projectArtifactSignature);
+          }
+          if (typeof child.userData.projectArtifactMaterial === "string") {
+            projectArtifactMaterials.add(child.userData.projectArtifactMaterial);
+          }
+        }
+      }
       if (typeof child.userData.surfaceRole === "string") {
         surfaceRoles.add(child.userData.surfaceRole);
         if (child instanceof THREE.InstancedMesh) {
@@ -2634,6 +2752,7 @@ class StudioGame {
 
     const signatureArtifactGroup = this.signatureArtifactGroups.get(zone.id);
     const placeArchitectureGroup = this.placeArchitectureGroups.get(zone.id);
+    const projectArtifactGroup = this.projectArtifactGroups.get(zone.id);
 
     return {
       id: zone.id,
@@ -2662,6 +2781,12 @@ class StudioGame {
       signatureArtifactBounds: signatureArtifactGroup ? this.measureObject(signatureArtifactGroup) : { width: 0, height: 0, depth: 0 },
       signatureArtifactScreen:
         qaMode && signatureArtifactGroup ? this.projectObjectToScreenRect(signatureArtifactGroup) : this.emptyScreenRect(),
+      projectArtifactObjects,
+      projectArtifactSceneObjects,
+      projectArtifactActivityTypes: [...projectArtifactActivityTypes].sort(),
+      projectArtifactSignatures: [...projectArtifactSignatures].sort(),
+      projectArtifactMaterials: [...projectArtifactMaterials].sort(),
+      projectArtifactBounds: projectArtifactGroup ? this.measureObject(projectArtifactGroup) : { width: 0, height: 0, depth: 0 },
       materialVariants: materialVariants.size,
       surfaceProfileId: typeof group.userData.surfaceProfileId === "string" ? group.userData.surfaceProfileId : null,
       surfaceFinish: typeof group.userData.surfaceFinish === "string" ? group.userData.surfaceFinish : null,
@@ -2703,13 +2828,49 @@ class StudioGame {
       setDressingFingerprint: [...setDressingSignatures].sort().join("|"),
       placeArchitectureFingerprint: [...placeArchitectureSignatures].sort().join("|"),
       signatureArtifactFingerprint: [...signatureArtifactSignatures].sort().join("|"),
+      projectArtifactFingerprint: [...projectArtifactSignatures].sort().join("|"),
       hasLabel,
       bounds: this.measureObject(group)
     };
   }
 
   private measureObject(object: THREE.Object3D): BoundsQa {
-    const box = new THREE.Box3().setFromObject(object);
+    object.updateWorldMatrix(true, true);
+    const box = new THREE.Box3();
+    const childBox = new THREE.Box3();
+    const instanceMatrix = new THREE.Matrix4();
+    const worldInstanceMatrix = new THREE.Matrix4();
+    let hasBounds = false;
+
+    object.traverse((child) => {
+      if (child instanceof THREE.InstancedMesh && child.geometry) {
+        child.geometry.computeBoundingBox();
+        const geometryBounds = child.geometry.boundingBox;
+        if (!geometryBounds) {
+          return;
+        }
+        for (let index = 0; index < child.count; index += 1) {
+          child.getMatrixAt(index, instanceMatrix);
+          worldInstanceMatrix.multiplyMatrices(child.matrixWorld, instanceMatrix);
+          childBox.copy(geometryBounds).applyMatrix4(worldInstanceMatrix);
+          box.union(childBox);
+          hasBounds = true;
+        }
+        return;
+      }
+
+      if (child instanceof THREE.Mesh || child instanceof THREE.Sprite) {
+        childBox.setFromObject(child);
+        if (!childBox.isEmpty()) {
+          box.union(childBox);
+          hasBounds = true;
+        }
+      }
+    });
+
+    if (!hasBounds) {
+      box.setFromObject(object);
+    }
     const size = new THREE.Vector3();
     box.getSize(size);
     return {

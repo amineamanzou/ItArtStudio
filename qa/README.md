@@ -297,6 +297,12 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
   - `placeArchitectureObjects`
   - `placeArchitectureFamilies`
   - `placeArchitectureSignatures`
+  - `projectArtifactObjects`
+  - `projectArtifactSceneObjects`
+  - `projectArtifactZones`
+  - `projectArtifactActivityTypes`
+  - `projectArtifactSignatures`
+  - `projectArtifactMaterials`
 - `player`
 - `trail`
 - `drive`
