@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { createZoneLandmark } from "./procedural-assets";
+import { zoneVisualSpecs, type VisualTone, type ZonePropClusterSpec, type ZoneVisualSpec } from "./visual-specs";
 import { defaultZone, worldRoutes, zones, type StudioZone, type ZoneKind } from "./zones";
 
 const mapRange = 20;
@@ -25,6 +26,14 @@ type ZoneAssetQa = {
   id: string;
   meshCount: number;
   landmarkObjects: number;
+  visualSpecId: string | null;
+  biome: string | null;
+  visualDecals: number;
+  propClusters: number;
+  propObjects: number;
+  materialVariants: number;
+  expectedVisuals: { decals: number; propClusters: number; propObjects: number; materialVariants: number };
+  visualFingerprint: string;
   hasLabel: boolean;
   bounds: BoundsQa;
 };
@@ -40,6 +49,10 @@ type QaSnapshot = {
     roadSegments: number;
     landmarkObjects: number;
     playerParts: number;
+    visualSpecs: number;
+    visualDecals: number;
+    propClusters: number;
+    materialVariants: number;
     zones: ZoneAssetQa[];
   };
   player: { x: number; z: number; rotationY: number; meshCount: number; wheelCount: number; bounds: BoundsQa };
@@ -78,7 +91,11 @@ class StudioGame {
   private frameCount = 0;
   private decorativeObjectCount = 0;
   private roadSegmentCount = 0;
+  private visualDecalCount = 0;
+  private propClusterCount = 0;
   private playerPartCount = 0;
+  private readonly renderedVisualSpecIds = new Set<string>();
+  private readonly materialVariantIds = new Set<string>();
   private readonly wheelMeshes: THREE.Mesh[] = [];
   private readonly frameDeltas: number[] = [];
   private readonly visitedZoneIds = new Set<string>([defaultZone.id]);
@@ -87,7 +104,18 @@ class StudioGame {
     activeZoneId: defaultZone.id,
     activeZoneLabel: defaultZone.label,
     zoneCount: zones.length,
-    world: { sceneObjects: 0, decorativeObjects: 0, roadSegments: 0, landmarkObjects: 0, playerParts: 0, zones: [] },
+    world: {
+      sceneObjects: 0,
+      decorativeObjects: 0,
+      roadSegments: 0,
+      landmarkObjects: 0,
+      playerParts: 0,
+      visualSpecs: 0,
+      visualDecals: 0,
+      propClusters: 0,
+      materialVariants: 0,
+      zones: []
+    },
     player: { x: 0, z: 0, rotationY: 0, meshCount: 0, wheelCount: 0, bounds: { width: 0, height: 0, depth: 0 } },
     canvas: { width: 0, height: 0, dpr: 1 },
     frameCount: 0,
@@ -393,6 +421,11 @@ class StudioGame {
     rim.userData.zoneId = zone.id;
     group.add(rim);
 
+    const visualSpec = zoneVisualSpecs[zone.id];
+    if (visualSpec) {
+      this.addZoneVisualSpec(group, zone, visualSpec, accent);
+    }
+
     const marker = createZoneLandmark(zone, colors);
     marker.userData.zoneId = zone.id;
     marker.traverse((child) => {
@@ -407,6 +440,106 @@ class StudioGame {
 
     this.zoneMeshes.set(zone.id, group);
     this.scene.add(group);
+  }
+
+  private addZoneVisualSpec(group: THREE.Group, zone: StudioZone, spec: ZoneVisualSpec, accent: number) {
+    group.userData.visualSpecId = spec.id;
+    group.userData.visualBiome = spec.biome;
+    this.renderedVisualSpecIds.add(spec.id);
+
+    for (const decal of spec.decals) {
+      const mat = this.createToneMaterial(decal.tone, accent, zone.kind, 0.2);
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(decal.size[0], 0.035, decal.size[1]), mat);
+      mesh.position.set(decal.offset[0], 0.285, decal.offset[1]);
+      mesh.rotation.y = decal.rotation;
+      mesh.userData.zoneId = zone.id;
+      mesh.userData.visualSpecId = spec.id;
+      mesh.userData.visualSpecRole = "decal";
+      mesh.userData.visualDecal = decal.id;
+      mesh.userData.materialVariant = `${spec.id}:${decal.tone}:decal`;
+      mesh.castShadow = false;
+      mesh.receiveShadow = true;
+      group.add(mesh);
+      this.visualDecalCount += 1;
+      this.decorativeObjectCount += 1;
+      this.materialVariantIds.add(String(mesh.userData.materialVariant));
+    }
+
+    for (const cluster of spec.propClusters) {
+      this.addZonePropCluster(group, zone, spec, cluster, accent);
+    }
+  }
+
+  private addZonePropCluster(
+    group: THREE.Group,
+    zone: StudioZone,
+    spec: ZoneVisualSpec,
+    cluster: ZonePropClusterSpec,
+    accent: number
+  ) {
+    const mat = this.createToneMaterial(cluster.tone, accent, zone.kind, 0.16);
+    const clusterGroup = new THREE.Group();
+    clusterGroup.position.set(cluster.offset[0], 0, cluster.offset[1]);
+    clusterGroup.userData.zoneId = zone.id;
+    clusterGroup.userData.visualSpecId = spec.id;
+    clusterGroup.userData.visualSpecRole = "cluster";
+    clusterGroup.userData.propCluster = cluster.id;
+
+    for (let index = 0; index < cluster.count; index += 1) {
+      const angle = (index / cluster.count) * Math.PI * 2 + zone.position[0] * 0.07;
+      const distance = cluster.spread * (0.45 + (index % 3) * 0.22);
+      const x = Math.cos(angle) * distance;
+      const z = Math.sin(angle) * distance;
+      const height = cluster.scale * (0.42 + (index % 2) * 0.18);
+      const prop = this.createPropPrimitive(cluster.form, mat, cluster.scale, height);
+      prop.position.set(x, 0.34 + height * 0.35, z);
+      prop.rotation.y = angle;
+      prop.userData.zoneId = zone.id;
+      prop.userData.visualSpecId = spec.id;
+      prop.userData.visualSpecRole = "prop";
+      prop.userData.propCluster = cluster.id;
+      prop.userData.materialVariant = `${spec.id}:${cluster.tone}:${cluster.form}`;
+      clusterGroup.add(prop);
+      this.decorativeObjectCount += 1;
+      this.materialVariantIds.add(String(prop.userData.materialVariant));
+    }
+
+    clusterGroup.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+    group.add(clusterGroup);
+    this.propClusterCount += 1;
+  }
+
+  private createPropPrimitive(form: ZonePropClusterSpec["form"], mat: THREE.Material, scale: number, height: number) {
+    if (form === "stack") {
+      return new THREE.Mesh(new THREE.BoxGeometry(scale * 0.26, height, scale * 0.26), mat);
+    }
+    if (form === "totem") {
+      return new THREE.Mesh(new THREE.CylinderGeometry(scale * 0.08, scale * 0.13, height, 7), mat);
+    }
+    if (form === "pin") {
+      return new THREE.Mesh(new THREE.ConeGeometry(scale * 0.13, height, 8), mat);
+    }
+    return new THREE.Mesh(new THREE.SphereGeometry(scale * 0.14, 10, 6), mat);
+  }
+
+  private createToneMaterial(tone: VisualTone, accent: number, kind: ZoneKind, emissiveIntensity: number) {
+    const secondary = kind === "tech" ? colors.art : colors.tech;
+    const color =
+      tone === "accent" ? accent : tone === "secondary" ? secondary : tone === "light" ? colors.road : colors.ink;
+    return new THREE.MeshStandardMaterial({
+      color,
+      roughness: tone === "dark" ? 0.82 : 0.48,
+      metalness: tone === "light" ? 0.16 : 0.24,
+      emissive: color,
+      emissiveIntensity: tone === "dark" ? 0.03 : emissiveIntensity,
+      transparent: tone === "dark",
+      opacity: tone === "dark" ? 0.8 : 1
+    });
   }
 
   private createLabel(text: string, accent: number) {
@@ -839,6 +972,10 @@ class StudioGame {
       roadSegments: this.roadSegmentCount,
       landmarkObjects,
       playerParts: this.playerPartCount,
+      visualSpecs: this.renderedVisualSpecIds.size,
+      visualDecals: this.visualDecalCount,
+      propClusters: this.propClusterCount,
+      materialVariants: this.materialVariantIds.size,
       zones: zones.map((zone) => this.inspectZoneAsset(zone))
     };
     const playerBounds = this.measureObject(this.player);
@@ -869,6 +1006,14 @@ class StudioGame {
         id: zone.id,
         meshCount: 0,
         landmarkObjects: 0,
+        visualSpecId: null,
+        biome: null,
+        visualDecals: 0,
+        propClusters: 0,
+        propObjects: 0,
+        materialVariants: 0,
+        expectedVisuals: { decals: 0, propClusters: 0, propObjects: 0, materialVariants: 0 },
+        visualFingerprint: "",
         hasLabel: false,
         bounds: { width: 0, height: 0, depth: 0 }
       };
@@ -876,6 +1021,21 @@ class StudioGame {
 
     let meshCount = 0;
     let landmarkObjects = 0;
+    let visualDecals = 0;
+    let propObjects = 0;
+    const decalIds = new Set<string>();
+    const propClusters = new Set<string>();
+    const materialVariants = new Set<string>();
+    const spec = zoneVisualSpecs[zone.id];
+    const expectedMaterialVariants = new Set<string>();
+    if (spec) {
+      for (const decal of spec.decals) {
+        expectedMaterialVariants.add(`${spec.id}:${decal.tone}:decal`);
+      }
+      for (const cluster of spec.propClusters) {
+        expectedMaterialVariants.add(`${spec.id}:${cluster.tone}:${cluster.form}`);
+      }
+    }
     let hasLabel = false;
     group.traverse((child) => {
       if (child instanceof THREE.Mesh) {
@@ -883,6 +1043,19 @@ class StudioGame {
       }
       if (typeof child.userData.landmarkZone === "string") {
         landmarkObjects += 1;
+      }
+      if (typeof child.userData.visualDecal === "string") {
+        visualDecals += 1;
+        decalIds.add(child.userData.visualDecal);
+      }
+      if (typeof child.userData.propCluster === "string") {
+        propClusters.add(child.userData.propCluster);
+        if (child instanceof THREE.Mesh && child.userData.visualSpecRole === "prop") {
+          propObjects += 1;
+        }
+      }
+      if (typeof child.userData.materialVariant === "string") {
+        materialVariants.add(child.userData.materialVariant);
       }
       if (child instanceof THREE.Sprite) {
         hasLabel = true;
@@ -893,6 +1066,25 @@ class StudioGame {
       id: zone.id,
       meshCount,
       landmarkObjects,
+      visualSpecId: typeof group.userData.visualSpecId === "string" ? group.userData.visualSpecId : null,
+      biome: typeof group.userData.visualBiome === "string" ? group.userData.visualBiome : null,
+      visualDecals,
+      propClusters: propClusters.size,
+      propObjects,
+      materialVariants: materialVariants.size,
+      expectedVisuals: {
+        decals: spec?.decals.length ?? 0,
+        propClusters: spec?.propClusters.length ?? 0,
+        propObjects: spec?.propClusters.reduce((sum, cluster) => sum + cluster.count, 0) ?? 0,
+        materialVariants: expectedMaterialVariants.size
+      },
+      visualFingerprint: [
+        group.userData.visualSpecId ?? "missing",
+        group.userData.visualBiome ?? "missing-biome",
+        [...decalIds].sort().join("+"),
+        [...propClusters].sort().join("+"),
+        [...materialVariants].sort().join("+")
+      ].join("|"),
       hasLabel,
       bounds: this.measureObject(group)
     };

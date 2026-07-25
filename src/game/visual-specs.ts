@@ -1,0 +1,186 @@
+export type VisualTone = "accent" | "light" | "dark" | "secondary";
+
+export type ZoneDecalSpec = {
+  id: string;
+  offset: [number, number];
+  size: [number, number];
+  rotation: number;
+  tone: VisualTone;
+};
+
+export type ZonePropClusterSpec = {
+  id: string;
+  offset: [number, number];
+  count: number;
+  spread: number;
+  scale: number;
+  tone: VisualTone;
+  form: "beacon" | "stack" | "pin" | "totem";
+};
+
+export type ZoneVisualSpec = {
+  id: string;
+  biome: "threshold" | "lab" | "tower" | "bridge" | "dock" | "atelier" | "foundry" | "runway" | "plaza" | "portal";
+  materialVariants: string[];
+  decals: ZoneDecalSpec[];
+  propClusters: ZonePropClusterSpec[];
+};
+
+const decals = (zone: string, items: Array<Omit<ZoneDecalSpec, "id">>): ZoneDecalSpec[] =>
+  items.map((item, index) => ({ ...item, id: `${zone}-decal-${index + 1}` }));
+
+const clusters = (zone: string, items: Array<Omit<ZonePropClusterSpec, "id">>): ZonePropClusterSpec[] =>
+  items.map((item, index) => ({ ...item, id: `${zone}-cluster-${index + 1}` }));
+
+export const zoneVisualSpecs: Record<string, ZoneVisualSpec> = {
+  "studio-gate": {
+    id: "studio-gate",
+    biome: "threshold",
+    materialVariants: ["studio-glow", "tech-edge", "art-edge", "warm-stone"],
+    decals: decals("studio-gate", [
+      { offset: [-0.78, 0.18], size: [0.72, 0.08], rotation: -0.18, tone: "secondary" },
+      { offset: [0.78, -0.18], size: [0.72, 0.08], rotation: -0.18, tone: "accent" },
+      { offset: [0, 0.72], size: [1.12, 0.08], rotation: 0, tone: "light" }
+    ]),
+    propClusters: clusters("studio-gate", [
+      { offset: [-1.18, 0.72], count: 4, spread: 0.36, scale: 0.72, tone: "secondary", form: "beacon" },
+      { offset: [1.18, -0.72], count: 4, spread: 0.36, scale: 0.72, tone: "accent", form: "beacon" },
+      { offset: [0, -1.08], count: 3, spread: 0.28, scale: 0.62, tone: "light", form: "pin" }
+    ])
+  },
+  "ai-lab": {
+    id: "ai-lab",
+    biome: "lab",
+    materialVariants: ["cyan-glass", "black-console", "warm-screen", "signal-dot"],
+    decals: decals("ai-lab", [
+      { offset: [-0.72, -0.62], size: [0.92, 0.07], rotation: 0.42, tone: "light" },
+      { offset: [0.66, 0.54], size: [0.74, 0.07], rotation: -0.36, tone: "accent" },
+      { offset: [0.04, 1.08], size: [1.04, 0.06], rotation: 0.02, tone: "dark" }
+    ]),
+    propClusters: clusters("ai-lab", [
+      { offset: [-1.08, -0.8], count: 5, spread: 0.42, scale: 0.66, tone: "accent", form: "totem" },
+      { offset: [1.08, 0.74], count: 4, spread: 0.36, scale: 0.62, tone: "light", form: "stack" },
+      { offset: [-0.08, 1.22], count: 4, spread: 0.34, scale: 0.58, tone: "accent", form: "beacon" }
+    ])
+  },
+  "observability-tower": {
+    id: "observability-tower",
+    biome: "tower",
+    materialVariants: ["radar-cyan", "deep-console", "trace-line", "cream-signal"],
+    decals: decals("observability-tower", [
+      { offset: [-0.82, 0.42], size: [0.88, 0.06], rotation: 1.18, tone: "accent" },
+      { offset: [0.74, -0.48], size: [0.82, 0.06], rotation: 1.18, tone: "light" },
+      { offset: [0, 1.04], size: [1.18, 0.05], rotation: 0.28, tone: "dark" }
+    ]),
+    propClusters: clusters("observability-tower", [
+      { offset: [-1.16, 0.06], count: 4, spread: 0.34, scale: 0.72, tone: "accent", form: "pin" },
+      { offset: [1.1, -0.18], count: 4, spread: 0.34, scale: 0.72, tone: "light", form: "pin" },
+      { offset: [0.16, 1.18], count: 3, spread: 0.26, scale: 0.64, tone: "accent", form: "beacon" }
+    ])
+  },
+  "architecture-bridge": {
+    id: "architecture-bridge",
+    biome: "bridge",
+    materialVariants: ["structural-cyan", "cream-truss", "black-span", "cool-shadow"],
+    decals: decals("architecture-bridge", [
+      { offset: [-0.92, -0.14], size: [0.82, 0.07], rotation: -0.74, tone: "light" },
+      { offset: [0.92, 0.14], size: [0.82, 0.07], rotation: -0.74, tone: "accent" },
+      { offset: [0, -1.02], size: [1.02, 0.06], rotation: 0.12, tone: "dark" }
+    ]),
+    propClusters: clusters("architecture-bridge", [
+      { offset: [-1.2, -0.72], count: 3, spread: 0.3, scale: 0.7, tone: "light", form: "stack" },
+      { offset: [1.2, 0.72], count: 3, spread: 0.3, scale: 0.7, tone: "accent", form: "stack" },
+      { offset: [0.1, 1.12], count: 4, spread: 0.34, scale: 0.58, tone: "accent", form: "pin" }
+    ])
+  },
+  "cloud-dock": {
+    id: "cloud-dock",
+    biome: "dock",
+    materialVariants: ["dock-cyan", "cargo-cream", "harbor-black", "cold-signal"],
+    decals: decals("cloud-dock", [
+      { offset: [-0.9, 0.78], size: [0.8, 0.06], rotation: 0.04, tone: "dark" },
+      { offset: [0.85, 0.8], size: [0.7, 0.06], rotation: 0.04, tone: "light" },
+      { offset: [0.14, -0.92], size: [1.18, 0.07], rotation: -0.36, tone: "accent" }
+    ]),
+    propClusters: clusters("cloud-dock", [
+      { offset: [-1.1, 0.98], count: 4, spread: 0.34, scale: 0.68, tone: "light", form: "stack" },
+      { offset: [1.08, 0.98], count: 4, spread: 0.34, scale: 0.68, tone: "accent", form: "stack" },
+      { offset: [0.08, -1.18], count: 4, spread: 0.36, scale: 0.58, tone: "accent", form: "beacon" }
+    ])
+  },
+  "design-atelier": {
+    id: "design-atelier",
+    biome: "atelier",
+    materialVariants: ["coral-canvas", "cream-paper", "cyan-swatch", "ink-table"],
+    decals: decals("design-atelier", [
+      { offset: [-0.86, -0.48], size: [0.76, 0.08], rotation: -0.18, tone: "light" },
+      { offset: [0.84, 0.46], size: [0.76, 0.08], rotation: 0.26, tone: "accent" },
+      { offset: [0, 1.04], size: [1.14, 0.06], rotation: -0.08, tone: "secondary" }
+    ]),
+    propClusters: clusters("design-atelier", [
+      { offset: [-1.16, -0.72], count: 4, spread: 0.36, scale: 0.6, tone: "light", form: "pin" },
+      { offset: [1.1, 0.72], count: 5, spread: 0.38, scale: 0.56, tone: "accent", form: "beacon" },
+      { offset: [0.16, 1.18], count: 4, spread: 0.3, scale: 0.54, tone: "secondary", form: "stack" }
+    ])
+  },
+  "three-d-foundry": {
+    id: "three-d-foundry",
+    biome: "foundry",
+    materialVariants: ["molten-coral", "cream-form", "cyan-grid", "dark-crane"],
+    decals: decals("three-d-foundry", [
+      { offset: [-0.76, 0.72], size: [0.92, 0.07], rotation: 0.72, tone: "accent" },
+      { offset: [0.76, -0.72], size: [0.92, 0.07], rotation: 0.72, tone: "light" },
+      { offset: [0, 0.02], size: [1.24, 0.05], rotation: -0.22, tone: "secondary" }
+    ]),
+    propClusters: clusters("three-d-foundry", [
+      { offset: [-1.12, 0.78], count: 4, spread: 0.34, scale: 0.64, tone: "accent", form: "totem" },
+      { offset: [1.12, -0.78], count: 4, spread: 0.34, scale: 0.64, tone: "light", form: "totem" },
+      { offset: [0.1, 1.12], count: 4, spread: 0.32, scale: 0.58, tone: "secondary", form: "pin" }
+    ])
+  },
+  "fashion-room": {
+    id: "fashion-room",
+    biome: "runway",
+    materialVariants: ["runway-coral", "cream-fabric", "cyan-stitch", "black-rail"],
+    decals: decals("fashion-room", [
+      { offset: [-0.94, 0], size: [0.82, 0.06], rotation: 1.57, tone: "light" },
+      { offset: [0.94, 0], size: [0.82, 0.06], rotation: 1.57, tone: "accent" },
+      { offset: [0, -0.94], size: [1.12, 0.06], rotation: 0, tone: "dark" }
+    ]),
+    propClusters: clusters("fashion-room", [
+      { offset: [-1.16, 0.8], count: 4, spread: 0.34, scale: 0.62, tone: "light", form: "totem" },
+      { offset: [1.16, 0.8], count: 4, spread: 0.34, scale: 0.62, tone: "accent", form: "totem" },
+      { offset: [0, -1.18], count: 4, spread: 0.28, scale: 0.54, tone: "secondary", form: "pin" }
+    ])
+  },
+  "values-plaza": {
+    id: "values-plaza",
+    biome: "plaza",
+    materialVariants: ["warm-plaza", "cream-ring", "cyan-axis", "coral-axis"],
+    decals: decals("values-plaza", [
+      { offset: [-0.88, 0.56], size: [0.92, 0.07], rotation: -0.38, tone: "secondary" },
+      { offset: [0.88, -0.56], size: [0.92, 0.07], rotation: -0.38, tone: "accent" },
+      { offset: [0, 0], size: [1.28, 0.06], rotation: 0.78, tone: "light" }
+    ]),
+    propClusters: clusters("values-plaza", [
+      { offset: [-1.2, 0.12], count: 4, spread: 0.36, scale: 0.64, tone: "secondary", form: "beacon" },
+      { offset: [1.2, -0.12], count: 4, spread: 0.36, scale: 0.64, tone: "accent", form: "beacon" },
+      { offset: [0, 1.18], count: 4, spread: 0.3, scale: 0.56, tone: "light", form: "pin" }
+    ])
+  },
+  "contact-portal": {
+    id: "contact-portal",
+    biome: "portal",
+    materialVariants: ["portal-gold", "cream-mail", "cyan-entry", "coral-entry"],
+    decals: decals("contact-portal", [
+      { offset: [-0.9, -0.64], size: [0.82, 0.07], rotation: 0.36, tone: "secondary" },
+      { offset: [0.9, -0.64], size: [0.82, 0.07], rotation: -0.36, tone: "accent" },
+      { offset: [0, 1.02], size: [1.14, 0.06], rotation: 0, tone: "light" }
+    ]),
+    propClusters: clusters("contact-portal", [
+      { offset: [-1.12, -0.96], count: 4, spread: 0.34, scale: 0.62, tone: "secondary", form: "pin" },
+      { offset: [1.12, -0.96], count: 4, spread: 0.34, scale: 0.62, tone: "accent", form: "pin" },
+      { offset: [0, 1.2], count: 4, spread: 0.28, scale: 0.58, tone: "light", form: "beacon" }
+    ])
+  }
+};

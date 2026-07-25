@@ -35,6 +35,9 @@ The runner:
 - verifies that the rendered canvas exposes tech, art, and studio color families;
 - verifies that the world exposes enough 3D cartography assets, per-zone
   landmark inventory, and playable avatar parts;
+- verifies that every `ZoneVisualSpec` is materialized in the rendered scene
+  graph with decals, prop clusters, prop objects, material variants, and a
+  distinct visual fingerprint;
 - records frame telemetry before gameplay scenarios;
 - drives the player with keyboard input through tech, art, and contact zones;
 - runs one real `page.keyboard.press()` smoke test against the production
@@ -62,6 +65,10 @@ The runner:
   objects, 225 scene objects, and 135 landmark objects.
 - Every zone must expose a label, modeled landmark objects, mesh count, and
   minimum 3D bounds.
+- Every zone must expose one rendered visual spec, at least three decals, three
+  prop clusters, nine prop objects, six material variants, and a distinct
+  fingerprint. The rendered counts must also meet or exceed the expectations
+  derived from that zone's spec.
 - The playable avatar must expose modeled parts, four wheels, and minimum 3D
   bounds.
 - Frame telemetry must be present in the QA snapshot.

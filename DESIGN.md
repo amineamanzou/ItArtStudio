@@ -108,6 +108,7 @@ Le moteur V1 reste volontairement simple:
 - Three.js pour la carte.
 - Deplacement kinematique sans Rapier.
 - Zones declaratives dans `src/game/zones.ts`.
+- Specs visuelles declaratives dans `src/game/visual-specs.ts`.
 - Landmarks proceduraux dans `src/game/procedural-assets.ts`.
 - UI HTML synchronisee depuis le moteur.
 - Pas d'asset 3D lourd avant validation par QA.
@@ -142,6 +143,15 @@ Gates V1.3:
 - telemetrie de frame exposee avant les scenarios de gameplay;
 - rapport Markdown enrichi avec zone active, frame time, canvas et inventaire
   3D.
+
+Gates V1.4:
+
+- `ZoneVisualSpec` declaratif pour chaque lieu: biome, decals, prop clusters et
+  variantes de materiaux;
+- preuve QA tiree du scene graph rendu: specs materialisees, decals visibles,
+  clusters de props, objets de props et fingerprints distincts par zone;
+- refus des zones qui partagent la meme empreinte visuelle ou qui n'exposent
+  que le landmark central.
 
 ## Components
 

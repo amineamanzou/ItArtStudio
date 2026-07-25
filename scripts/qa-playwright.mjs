@@ -353,16 +353,15 @@ async function driveToZone(page, target) {
 
 async function checkRealKeyboardInput(page) {
   const before = await getQaSnapshot(page);
-  await page.keyboard.press("ArrowRight");
-  await page.waitForFunction(
-    (startX) => {
-      const qa = window.__IT_ART_STUDIO_QA__;
-      return qa?.lastInputMode === "keyboard" && Math.abs(qa.player.x - startX) > 0.15;
-    },
-    before?.player.x ?? 0,
-    { timeout: 5_000 }
-  );
-  const after = await getQaSnapshot(page);
+  let after = before;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(250);
+    after = await getQaSnapshot(page);
+    if (after?.lastInputMode === "keyboard" && Math.abs(after.player.x - (before?.player.x ?? 0)) > 0.15) {
+      break;
+    }
+  }
   if (after?.lastInputMode === "keyboard" && Math.abs(after.player.x - (before?.player.x ?? 0)) > 0.15) {
     pass("keyboard:real-input-smoke", { before: before?.player, after: after.player });
   } else {
@@ -398,6 +397,13 @@ async function checkWorldRichness(page) {
     (zone) =>
       zone.meshCount < 10 ||
       zone.landmarkObjects < 8 ||
+      !zone.visualSpecId ||
+      !zone.biome ||
+      zone.visualDecals < Math.max(3, zone.expectedVisuals?.decals ?? 0) ||
+      zone.propClusters < Math.max(3, zone.expectedVisuals?.propClusters ?? 0) ||
+      zone.propObjects < Math.max(9, zone.expectedVisuals?.propObjects ?? 0) ||
+      zone.materialVariants < Math.max(6, zone.expectedVisuals?.materialVariants ?? 0) ||
+      !zone.visualFingerprint ||
       !zone.hasLabel ||
       zone.bounds.height < 1.25 ||
       zone.bounds.width < 1.4 ||
@@ -410,6 +416,10 @@ async function checkWorldRichness(page) {
     world.decorativeObjects >= 45 &&
     world.roadSegments >= 18 &&
     world.landmarkObjects >= 135 &&
+    world.visualSpecs === 10 &&
+    world.visualDecals >= 30 &&
+    world.propClusters >= 30 &&
+    world.materialVariants >= 60 &&
     thinZones.length === 0
   ) {
     pass("world-richness", { world, zoneCount: snapshot.zoneCount });
@@ -418,6 +428,40 @@ async function checkWorldRichness(page) {
       world,
       zoneCount: snapshot?.zoneCount,
       thinZones
+    });
+  }
+
+  const visualSpecZones = world?.zones ?? [];
+  const duplicateFingerprints = visualSpecZones
+    .map((zone) => zone.visualFingerprint)
+    .filter((fingerprint, index, fingerprints) => fingerprint && fingerprints.indexOf(fingerprint) !== index);
+  const visualSpecRendered =
+    world &&
+    visualSpecZones.length === snapshot.zoneCount &&
+    world.visualSpecs === snapshot.zoneCount &&
+    world.visualDecals >= snapshot.zoneCount * 3 &&
+    world.propClusters >= snapshot.zoneCount * 3 &&
+    world.materialVariants >= snapshot.zoneCount * 6 &&
+    duplicateFingerprints.length === 0 &&
+    thinZones.length === 0;
+
+  if (visualSpecRendered) {
+    pass("visual-specs-rendered", {
+      visualSpecs: world.visualSpecs,
+      visualDecals: world.visualDecals,
+      propClusters: world.propClusters,
+      materialVariants: world.materialVariants,
+      fingerprints: visualSpecZones.map((zone) => zone.visualFingerprint)
+    });
+  } else {
+    scenarioFail("visual-specs-rendered", "ZoneVisualSpec declarations are not fully materialized in the scene graph.", {
+      visualSpecs: world?.visualSpecs,
+      visualDecals: world?.visualDecals,
+      propClusters: world?.propClusters,
+      materialVariants: world?.materialVariants,
+      duplicateFingerprints,
+      thinZones,
+      zones: visualSpecZones
     });
   }
 
@@ -758,6 +802,10 @@ async function writeReport() {
     `- Scene objects: ${world?.sceneObjects ?? "n/a"}`,
     `- Landmark objects: ${world?.landmarkObjects ?? "n/a"}`,
     `- Road segments: ${world?.roadSegments ?? "n/a"}`,
+    `- Visual specs: ${world?.visualSpecs ?? "n/a"}`,
+    `- Visual decals: ${world?.visualDecals ?? "n/a"}`,
+    `- Prop clusters: ${world?.propClusters ?? "n/a"}`,
+    `- Material variants: ${world?.materialVariants ?? "n/a"}`,
     `- Player parts: ${player?.meshCount ?? "n/a"} (${player?.wheelCount ?? "n/a"} wheels)`,
     "",
     "## Screenshots",
