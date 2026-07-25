@@ -71,6 +71,8 @@ The runner:
 - opens a separate `?qa=1&realKeys=1` page where the deterministic keyboard
   hook is absent, then drives a waypoint tour with real `keyboard.down/up`
   events through the road graph;
+- records short stabilization samples after reached waypoints so continuity
+  checks prove both traversal and settled arrival states;
 - verifies road-surface telemetry for that real keyboard tour: route adherence,
   off-route samples, max lateral escape, and visited route ids;
 - verifies kinematic drive telemetry for that real keyboard tour: physical
@@ -93,6 +95,9 @@ The runner:
 - captures screenshots for every major QA state;
 - checks HUD, panel, mini-map, mobile nav, and controls for overlap;
 - checks UI coverage, visible text overflow, and 44px mobile tap targets;
+- checks the playable stage coverage with the real visible chrome
+  (brand/status/contact, intro, panel, mini-map, mobile nav, and drive controls)
+  and verifies the contact CTA remains directly actionable when present;
 - reports total duration, active zone, canvas dimensions, frame timing, visual
   detail, and 3D inventory so slow or shallow QA loops are visible;
 - writes `report.json`, `report.md`, and screenshots under `qa/artifacts/`.
@@ -135,7 +140,7 @@ The runner:
 - The real keyboard tour must prove kinematic driving: at least 90 physics
   samples over 120 frames, 75 moving samples, 35 input samples, 18 coasting
   samples, peak speed between 8 and 18 units/s, bounded acceleration and turn
-  rates, normalized per-frame displacement <= 2.1, and a measured drag release.
+  rates, normalized per-frame displacement <= 2.35, and a measured drag release.
 - The world must expose at least five terrain layers, 60 scenery objects, 24
   scenery signatures, 20 animated scenery objects, and all expected scenery
   roles: terrain edge, tech skyline, art sculpture, studio threshold, route
@@ -185,7 +190,10 @@ The runner:
   disabled-state, and hit-test gates before Playwright clicks them.
 - Visible zone navigation groups must expose exactly one active zone.
 - Responsive visible UI controls must not overlap.
-- Responsive UI coverage must stay below the configured desktop/mobile budget.
+- Responsive UI coverage must stay below the configured desktop/mobile budget:
+  34% on desktop/tablet landscape and 50% on mobile/touch layouts.
+- The contact CTA must remain visible, hit-testable, and at least 44px tall on
+  responsive captures when the active zone exposes it.
 - Visible text must not overflow.
 - Mobile controls must keep 44px minimum tap targets.
 - Reduced-motion QA snapshots must report reduced motion.

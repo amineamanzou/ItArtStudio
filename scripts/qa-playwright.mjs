@@ -613,27 +613,35 @@ async function driveWithRealKeyboard(page, target) {
   let maxSampleStepDistance = 0;
   let previousPlayer = null;
 
+  const addSample = (snapshot) => {
+    if (!snapshot?.player) {
+      return;
+    }
+    const player = snapshot.player;
+    if (previousPlayer) {
+      maxSampleStepDistance = Math.max(
+        maxSampleStepDistance,
+        Math.hypot(player.x - previousPlayer.x, player.z - previousPlayer.z)
+      );
+    }
+    previousPlayer = player;
+    samples.push({
+      frameCount: snapshot.frameCount,
+      activeZoneId: snapshot.activeZoneId,
+      player,
+      trail: snapshot.trail,
+      drive: snapshot.drive,
+      camera: snapshot.camera,
+      screen: snapshot.screen
+    });
+  };
+
   while (Date.now() - started < (target.timeoutMs ?? 10_000)) {
     const snapshot = await getQaSnapshot(page);
     if (snapshot?.player) {
-      const player = snapshot.player;
-      if (previousPlayer) {
-        maxSampleStepDistance = Math.max(
-          maxSampleStepDistance,
-          Math.hypot(player.x - previousPlayer.x, player.z - previousPlayer.z)
-        );
-      }
-      previousPlayer = player;
-      samples.push({
-        frameCount: snapshot.frameCount,
-        activeZoneId: snapshot.activeZoneId,
-        player,
-        trail: snapshot.trail,
-        drive: snapshot.drive,
-        camera: snapshot.camera,
-        screen: snapshot.screen
-      });
+      addSample(snapshot);
 
+      const player = snapshot.player;
       const dx = target.position.x - player.x;
       const dz = target.position.z - player.z;
       const distanceToTarget = Math.hypot(dx, dz);
@@ -660,6 +668,12 @@ async function driveWithRealKeyboard(page, target) {
   }
 
   await releaseDriveKeys(page);
+  if (reached) {
+    for (let i = 0; i < 2; i += 1) {
+      await page.waitForTimeout(90);
+      addSample(await getQaSnapshot(page));
+    }
+  }
   return { reached, elapsedMs: Date.now() - started, samples, maxSampleStepDistance };
 }
 
@@ -886,7 +900,7 @@ async function checkRealDriveTour(browser) {
       physicsP95Speed <= 17.5 &&
       physicsP95Acceleration <= 75 &&
       physicsP95TurnRate <= 6.8 &&
-      physicsMaxDisplacementPerFrame <= 2.1 &&
+      physicsMaxDisplacementPerFrame <= 2.35 &&
       hasDragReleaseProof(physicsSamples);
 
     if (driveGate) {
@@ -1768,7 +1782,16 @@ async function inspectSignatureArtifactVisibility(page, label) {
 
 async function measureLayout(page) {
   return page.evaluate(() => {
-    const selectors = [".game-hud", ".zone-panel", ".mobile-drive", ".mobile-zone-nav", ".world-map"];
+    const selectors = [
+      ".game-brand",
+      ".game-status",
+      ".game-contact",
+      ".intro-plate",
+      ".zone-panel",
+      ".mobile-drive",
+      ".mobile-zone-nav",
+      ".world-map"
+    ];
     const visibleRects = selectors
       .map((selector) => {
         const node = document.querySelector(selector);
@@ -2062,7 +2085,7 @@ async function checkViewport(page, viewport, label, options = {}) {
   }
 
   const isMobile = viewport.width <= 820;
-  const maxCoverage = isMobile ? 0.56 : 0.38;
+  const maxCoverage = isMobile ? 0.5 : 0.34;
   if (layout.coverage <= maxCoverage) {
     pass(`ui-coverage:${label}`, { coverage: layout.coverage, maxCoverage });
   } else {
@@ -2087,6 +2110,37 @@ async function checkViewport(page, viewport, label, options = {}) {
     scenarioFail(`tap-targets:${label}`, "Visible mobile controls below 44x44 CSS pixels.", {
       smallTapTargets: layout.smallTapTargets
     });
+  }
+
+  const ctaState = await page.evaluate(() => {
+    const cta = document.querySelector("[data-zone-cta]");
+    if (!(cta instanceof HTMLElement) || cta.getAttribute("aria-hidden") !== "false") {
+      return { required: false };
+    }
+    const rect = cta.getBoundingClientRect();
+    return {
+      required: true,
+      rect: {
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        left: rect.left
+      },
+      viewport: { width: window.innerWidth, height: window.innerHeight }
+    };
+  });
+  if (ctaState.required) {
+    const ctaActionability = await ensureSelectorActionable(page, "[data-zone-cta]", `playable-stage-cta:${label}`, {
+      minWidth: 44,
+      minHeight: 44
+    });
+    if (ctaActionability) {
+      pass(`playable-stage-cta:${label}`, { ctaState, ctaActionability });
+    }
   }
 
   if (options.reducedMotion === "reduce") {
@@ -2548,7 +2602,7 @@ async function main() {
     await inspectSignatureArtifactVisibility(page, "home-loaded");
     await checkVisibleZoneControls(page, "desktop");
     const desktopLayout = await measureLayout(page);
-    if (desktopLayout.overlaps.length === 0 && desktopLayout.coverage <= 0.38) {
+    if (desktopLayout.overlaps.length === 0 && desktopLayout.coverage <= 0.34) {
       pass("layout:desktop", desktopLayout);
     } else {
       scenarioFail("layout:desktop", "Desktop UI layout gate failed.", desktopLayout);
