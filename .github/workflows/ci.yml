@@ -62,12 +62,16 @@ jobs:
 
       - name: Smoke test home
         run: |
-          for attempt in 1 2 3 4 5; do
-            if curl -fsSI http://127.0.0.1:8080/ | tee headers.txt; then
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsSI http://127.0.0.1:8080/ -o headers.txt; then
               break
+            fi
+            if [ "$attempt" = "10" ]; then
+              exit 1
             fi
             sleep 2
           done
+          cat headers.txt
           curl -fsS http://127.0.0.1:8080/ | grep -q "IT Art Studio"
           grep -qi "x-content-type-options: nosniff" headers.txt
 
