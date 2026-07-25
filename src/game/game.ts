@@ -19,13 +19,30 @@ const colors: Record<ZoneKind | "ground" | "road" | "ink", number> = {
 
 type DriveKey = "up" | "down" | "left" | "right";
 
+type BoundsQa = { width: number; height: number; depth: number };
+
+type ZoneAssetQa = {
+  id: string;
+  meshCount: number;
+  landmarkObjects: number;
+  hasLabel: boolean;
+  bounds: BoundsQa;
+};
+
 type QaSnapshot = {
   ready: boolean;
   activeZoneId: string;
   activeZoneLabel: string;
   zoneCount: number;
-  world: { sceneObjects: number; decorativeObjects: number; roadSegments: number };
-  player: { x: number; z: number };
+  world: {
+    sceneObjects: number;
+    decorativeObjects: number;
+    roadSegments: number;
+    landmarkObjects: number;
+    playerParts: number;
+    zones: ZoneAssetQa[];
+  };
+  player: { x: number; z: number; rotationY: number; meshCount: number; wheelCount: number; bounds: BoundsQa };
   canvas: { width: number; height: number; dpr: number };
   frameCount: number;
   averageFrameMs: number;
@@ -61,6 +78,8 @@ class StudioGame {
   private frameCount = 0;
   private decorativeObjectCount = 0;
   private roadSegmentCount = 0;
+  private playerPartCount = 0;
+  private readonly wheelMeshes: THREE.Mesh[] = [];
   private readonly frameDeltas: number[] = [];
   private readonly visitedZoneIds = new Set<string>([defaultZone.id]);
   private readonly qaSnapshot: QaSnapshot = {
@@ -68,8 +87,8 @@ class StudioGame {
     activeZoneId: defaultZone.id,
     activeZoneLabel: defaultZone.label,
     zoneCount: zones.length,
-    world: { sceneObjects: 0, decorativeObjects: 0, roadSegments: 0 },
-    player: { x: 0, z: 0 },
+    world: { sceneObjects: 0, decorativeObjects: 0, roadSegments: 0, landmarkObjects: 0, playerParts: 0, zones: [] },
+    player: { x: 0, z: 0, rotationY: 0, meshCount: 0, wheelCount: 0, bounds: { width: 0, height: 0, depth: 0 } },
     canvas: { width: 0, height: 0, dpr: 1 },
     frameCount: 0,
     averageFrameMs: 0,
@@ -376,6 +395,10 @@ class StudioGame {
 
     const marker = createZoneLandmark(zone, colors);
     marker.userData.zoneId = zone.id;
+    marker.traverse((child) => {
+      child.userData.zoneId = zone.id;
+      child.userData.landmarkZone = zone.id;
+    });
     group.add(marker);
 
     const label = this.createLabel(zone.shortLabel, accent);
@@ -427,15 +450,73 @@ class StudioGame {
       emissive: 0xffc847,
       emissiveIntensity: 0.18
     });
+    const techMaterial = new THREE.MeshStandardMaterial({
+      color: colors.tech,
+      roughness: 0.42,
+      metalness: 0.24,
+      emissive: colors.tech,
+      emissiveIntensity: 0.2
+    });
+    const artMaterial = new THREE.MeshStandardMaterial({
+      color: colors.art,
+      roughness: 0.5,
+      metalness: 0.14,
+      emissive: colors.art,
+      emissiveIntensity: 0.18
+    });
+    const glassMaterial = new THREE.MeshStandardMaterial({
+      color: 0xfff7df,
+      roughness: 0.22,
+      metalness: 0.08,
+      transparent: true,
+      opacity: 0.86,
+      emissive: 0xffe38a,
+      emissiveIntensity: 0.12
+    });
     const wheelMaterial = new THREE.MeshStandardMaterial({ color: 0x121217, roughness: 0.8 });
 
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.34, 1.08), bodyMaterial);
-    body.position.y = 0.42;
-    this.player.add(body);
+    const chassis = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.28, 1.16), bodyMaterial);
+    chassis.position.y = 0.4;
+    this.player.add(chassis);
 
     const nose = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.25, 0.42), bodyMaterial);
-    nose.position.set(0, 0.54, -0.42);
+    nose.position.set(0, 0.52, -0.48);
     this.player.add(nose);
+
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.3, 0.44), glassMaterial);
+    cabin.position.set(0, 0.72, -0.02);
+    cabin.rotation.x = -0.08;
+    this.player.add(cabin);
+
+    const techFin = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.22, 0.62), techMaterial);
+    techFin.position.set(-0.48, 0.58, 0.06);
+    techFin.rotation.z = -0.16;
+    this.player.add(techFin);
+
+    const artFin = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.22, 0.62), artMaterial);
+    artFin.position.set(0.48, 0.58, 0.06);
+    artFin.rotation.z = 0.16;
+    this.player.add(artFin);
+
+    const brush = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.34, 12), artMaterial);
+    brush.position.set(0.32, 0.92, 0.3);
+    brush.rotation.x = Math.PI * 0.58;
+    this.player.add(brush);
+
+    const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.024, 0.54, 8), techMaterial);
+    antenna.position.set(-0.28, 0.98, 0.24);
+    antenna.rotation.z = -0.24;
+    this.player.add(antenna);
+
+    const antennaCap = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 6), techMaterial);
+    antennaCap.position.set(-0.34, 1.24, 0.24);
+    this.player.add(antennaCap);
+
+    for (const x of [-0.22, 0.22]) {
+      const headlight = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 6), glassMaterial);
+      headlight.position.set(x, 0.54, -0.72);
+      this.player.add(headlight);
+    }
 
     for (const x of [-0.48, 0.48]) {
       for (const z of [-0.42, 0.42]) {
@@ -443,9 +524,18 @@ class StudioGame {
         wheel.rotation.z = Math.PI * 0.5;
         wheel.position.set(x, 0.22, z);
         this.player.add(wheel);
+        this.wheelMeshes.push(wheel);
       }
     }
 
+    this.player.traverse((child) => {
+      child.userData.playerPart = true;
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        this.playerPartCount += 1;
+      }
+    });
     this.player.position.copy(this.playerPosition);
     this.scene.add(this.player);
   }
@@ -618,6 +708,9 @@ class StudioGame {
     if (travel.lengthSq() > 0.0001) {
       const targetRotation = Math.atan2(travel.x, travel.z);
       this.player.rotation.y += (targetRotation - this.player.rotation.y) * 0.14;
+      for (const wheel of this.wheelMeshes) {
+        wheel.rotation.x += travel.length() * 3.8;
+      }
     }
   }
 
@@ -723,26 +816,39 @@ class StudioGame {
   }
 
   private syncQaSnapshot() {
+    const stableFrameDeltas = this.frameDeltas.filter((item) => item > 0 && item < 120);
     const averageFrameMs =
-      this.frameDeltas.length > 0
-        ? this.frameDeltas.reduce((sum, item) => sum + item, 0) / this.frameDeltas.length
+      stableFrameDeltas.length > 0
+        ? stableFrameDeltas.reduce((sum, item) => sum + item, 0) / stableFrameDeltas.length
         : 0;
     const activeZone = zones.find((zone) => zone.id === this.activeZoneId) ?? defaultZone;
 
     this.qaSnapshot.activeZoneId = activeZone.id;
     this.qaSnapshot.activeZoneLabel = activeZone.label;
     let sceneObjects = 0;
-    this.scene.traverse(() => {
+    let landmarkObjects = 0;
+    this.scene.traverse((object) => {
       sceneObjects += 1;
+      if (typeof object.userData.landmarkZone === "string") {
+        landmarkObjects += 1;
+      }
     });
     this.qaSnapshot.world = {
       sceneObjects,
       decorativeObjects: this.decorativeObjectCount,
-      roadSegments: this.roadSegmentCount
+      roadSegments: this.roadSegmentCount,
+      landmarkObjects,
+      playerParts: this.playerPartCount,
+      zones: zones.map((zone) => this.inspectZoneAsset(zone))
     };
+    const playerBounds = this.measureObject(this.player);
     this.qaSnapshot.player = {
       x: Number(this.playerPosition.x.toFixed(3)),
-      z: Number(this.playerPosition.z.toFixed(3))
+      z: Number(this.playerPosition.z.toFixed(3)),
+      rotationY: Number(this.player.rotation.y.toFixed(3)),
+      meshCount: this.playerPartCount,
+      wheelCount: this.wheelMeshes.length,
+      bounds: playerBounds
     };
     this.qaSnapshot.canvas = {
       width: this.canvas.width,
@@ -754,6 +860,53 @@ class StudioGame {
     this.qaSnapshot.visitedZoneIds = [...this.visitedZoneIds];
     this.qaSnapshot.reducedMotion = motionQuery.matches;
     this.qaSnapshot.errors = [...this.errors];
+  }
+
+  private inspectZoneAsset(zone: StudioZone): ZoneAssetQa {
+    const group = this.zoneMeshes.get(zone.id);
+    if (!group) {
+      return {
+        id: zone.id,
+        meshCount: 0,
+        landmarkObjects: 0,
+        hasLabel: false,
+        bounds: { width: 0, height: 0, depth: 0 }
+      };
+    }
+
+    let meshCount = 0;
+    let landmarkObjects = 0;
+    let hasLabel = false;
+    group.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        meshCount += 1;
+      }
+      if (typeof child.userData.landmarkZone === "string") {
+        landmarkObjects += 1;
+      }
+      if (child instanceof THREE.Sprite) {
+        hasLabel = true;
+      }
+    });
+
+    return {
+      id: zone.id,
+      meshCount,
+      landmarkObjects,
+      hasLabel,
+      bounds: this.measureObject(group)
+    };
+  }
+
+  private measureObject(object: THREE.Object3D): BoundsQa {
+    const box = new THREE.Box3().setFromObject(object);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    return {
+      width: Number(size.x.toFixed(3)),
+      height: Number(size.y.toFixed(3)),
+      depth: Number(size.z.toFixed(3))
+    };
   }
 
   private updateMiniMap() {

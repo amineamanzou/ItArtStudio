@@ -133,6 +133,16 @@ Gates V1.2:
 - responsive desktop, tablet, mobile et reduced-motion sans overlap ni texte
   coupe.
 
+Gates V1.3:
+
+- inventaire 3D par zone: mesh count, landmark objects, label et dimensions;
+- personnalite du vehicule: nombre de pieces, roues et volume minimal;
+- detail visuel de chaque capture: ratio de pixels visibles, transitions et
+  buckets couleur;
+- telemetrie de frame exposee avant les scenarios de gameplay;
+- rapport Markdown enrichi avec zone active, frame time, canvas et inventaire
+  3D.
+
 ## Components
 
 - `game-site`: surface principale.

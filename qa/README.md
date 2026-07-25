@@ -30,8 +30,12 @@ The runner:
 - opens Chromium through Playwright;
 - waits for `html.game-ready` and `window.__IT_ART_STUDIO_QA__`;
 - verifies that the WebGL canvas renders non-dark pixels;
+- gates every screenshot on visible canvas detail, edge transitions, and color
+  buckets;
 - verifies that the rendered canvas exposes tech, art, and studio color families;
-- verifies that the world exposes enough 3D cartography assets;
+- verifies that the world exposes enough 3D cartography assets, per-zone
+  landmark inventory, and playable avatar parts;
+- records frame telemetry before gameplay scenarios;
 - drives the player with keyboard input through tech, art, and contact zones;
 - runs one real `page.keyboard.press()` smoke test against the production
   keyboard listener;
@@ -45,15 +49,22 @@ The runner:
 - captures screenshots for every major QA state;
 - checks HUD, panel, mini-map, mobile nav, and controls for overlap;
 - checks UI coverage, visible text overflow, and 44px mobile tap targets;
-- reports total duration so slow QA loops are visible;
+- reports total duration, active zone, canvas dimensions, frame timing, visual
+  detail, and 3D inventory so slow or shallow QA loops are visible;
 - writes `report.json`, `report.md`, and screenshots under `qa/artifacts/`.
 
 ## Current Gates
 
 - Canvas must be non-blank.
 - Canvas must expose visible tech, art, and studio color families.
+- Every screenshot capture must pass visible detail gates.
 - World richness must report at least 10 zones, 18 road segments, 45 decorative
-  objects, and 145 scene objects.
+  objects, 225 scene objects, and 135 landmark objects.
+- Every zone must expose a label, modeled landmark objects, mesh count, and
+  minimum 3D bounds.
+- The playable avatar must expose modeled parts, four wheels, and minimum 3D
+  bounds.
+- Frame telemetry must be present in the QA snapshot.
 - Keyboard route must reach:
   - `ai-lab`
   - `design-atelier`
@@ -94,5 +105,4 @@ deterministic keyboard-route scenarios.
 ## Next Gates
 
 - Add production preview mode.
-- Add screenshot color-family checks.
 - Run against a production preview server once Playwright is available in CI.

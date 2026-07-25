@@ -181,8 +181,11 @@ async function sampleCanvas(page) {
     const pixels = new Uint8Array(4);
     let brightPixels = 0;
     let totalLuma = 0;
+    let edgeTransitions = 0;
+    const colorBuckets = new Set();
     const colorFamilies = { tech: 0, art: 0, studio: 0 };
     const sampleCount = 121;
+    let previousSample = null;
 
     for (let yIndex = 1; yIndex <= 11; yIndex += 1) {
       for (let xIndex = 1; xIndex <= 11; xIndex += 1) {
@@ -191,6 +194,17 @@ async function sampleCanvas(page) {
         gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
         const luma = pixels[0] + pixels[1] + pixels[2];
         totalLuma += luma;
+        colorBuckets.add(`${pixels[0] >> 4}-${pixels[1] >> 4}-${pixels[2] >> 4}`);
+        if (previousSample) {
+          const colorDistance =
+            Math.abs(pixels[0] - previousSample.r) +
+            Math.abs(pixels[1] - previousSample.g) +
+            Math.abs(pixels[2] - previousSample.b);
+          if (Math.abs(luma - previousSample.luma) > 38 || colorDistance > 86) {
+            edgeTransitions += 1;
+          }
+        }
+        previousSample = { r: pixels[0], g: pixels[1], b: pixels[2], luma };
         if (luma > 28) {
           brightPixels += 1;
         }
@@ -212,10 +226,31 @@ async function sampleCanvas(page) {
       height,
       brightPixels,
       sampleCount,
+      brightRatio: Number((brightPixels / sampleCount).toFixed(3)),
+      edgeTransitions,
+      colorBuckets: colorBuckets.size,
       colorFamilies,
       averageLuma: Number((totalLuma / sampleCount).toFixed(2))
     };
   });
+}
+
+function assertCanvasDetail(label, canvas) {
+  if (!canvas?.ok) {
+    scenarioFail(`canvas:${label}`, "Canvas is blank, missing, or too dark for this QA capture.", canvas);
+    return;
+  }
+
+  const hasDetail = canvas.brightRatio >= 0.18 && canvas.edgeTransitions >= 18 && canvas.colorBuckets >= 9;
+  if (hasDetail) {
+    pass(`canvas-detail:${label}`, {
+      brightRatio: canvas.brightRatio,
+      edgeTransitions: canvas.edgeTransitions,
+      colorBuckets: canvas.colorBuckets
+    });
+  } else {
+    scenarioFail(`canvas-detail:${label}`, "Canvas capture lacks enough visible detail variation.", canvas);
+  }
 }
 
 async function assertReady(page) {
@@ -264,6 +299,7 @@ async function capture(page, label, extra = {}) {
   };
 
   scenarios.push({ name: `screenshot:${label}`, status: "capture", details: entry });
+  assertCanvasDetail(label, canvas);
   return entry;
 }
 
@@ -358,19 +394,61 @@ async function checkContact(page) {
 async function checkWorldRichness(page) {
   const snapshot = await getQaSnapshot(page);
   const world = snapshot?.world;
+  const thinZones = (world?.zones ?? []).filter(
+    (zone) =>
+      zone.meshCount < 10 ||
+      zone.landmarkObjects < 8 ||
+      !zone.hasLabel ||
+      zone.bounds.height < 1.25 ||
+      zone.bounds.width < 1.4 ||
+      zone.bounds.depth < 0.75
+  );
   if (
     world &&
     snapshot.zoneCount === 10 &&
-    world.sceneObjects >= 145 &&
+    world.sceneObjects >= 225 &&
     world.decorativeObjects >= 45 &&
-    world.roadSegments >= 18
+    world.roadSegments >= 18 &&
+    world.landmarkObjects >= 135 &&
+    thinZones.length === 0
   ) {
     pass("world-richness", { world, zoneCount: snapshot.zoneCount });
   } else {
     scenarioFail("world-richness", "3D world does not expose enough modeled cartography assets.", {
       world,
-      zoneCount: snapshot?.zoneCount
+      zoneCount: snapshot?.zoneCount,
+      thinZones
     });
+  }
+
+  const player = snapshot?.player;
+  const hasPlayerPersonality =
+    player &&
+    player.meshCount >= 13 &&
+    player.wheelCount === 4 &&
+    player.bounds.width >= 1 &&
+    player.bounds.height >= 0.8 &&
+    player.bounds.depth >= 1;
+
+  if (hasPlayerPersonality) {
+    pass("player-personality", { player });
+  } else {
+    scenarioFail("player-personality", "Playable avatar is not detailed enough for the studio world.", { player });
+  }
+}
+
+async function checkFrameBudget(page) {
+  const snapshot = await getQaSnapshot(page);
+  const stats = {
+    frameCount: snapshot?.frameCount ?? 0,
+    averageFrameMs: snapshot?.averageFrameMs ?? 0,
+    approxFps: snapshot?.averageFrameMs ? Number((1000 / snapshot.averageFrameMs).toFixed(1)) : 0
+  };
+
+  if (stats.frameCount > 0 && stats.averageFrameMs > 0) {
+    pass("performance:telemetry", stats);
+  } else {
+    scenarioFail("performance:telemetry", "Frame telemetry is missing from the playable world.", stats);
   }
 }
 
@@ -636,6 +714,22 @@ async function writeReport() {
 
   await fsp.writeFile(reportJsonPath, `${JSON.stringify(summary, null, 2)}\n`);
 
+  const captures = scenarios.filter((scenario) => scenario.status === "capture");
+  const evidenceRows = captures.map((scenario) => {
+    const details = scenario.details;
+    const snapshot = details.snapshot;
+    const canvas = details.canvas;
+    return `| ${details.label} | ${snapshot?.activeZoneId ?? "n/a"} | ${
+      snapshot?.averageFrameMs ?? "n/a"
+    } | ${canvas?.width ?? 0}x${canvas?.height ?? 0} | ${canvas?.brightRatio ?? "n/a"} | ${
+      canvas?.edgeTransitions ?? "n/a"
+    } | ${canvas?.colorBuckets ?? "n/a"} |`;
+  });
+  const worldScenario = scenarios.find((scenario) => scenario.name === "world-richness");
+  const playerScenario = scenarios.find((scenario) => scenario.name === "player-personality");
+  const world = worldScenario?.details?.world;
+  const player = playerScenario?.details?.player;
+
   const lines = [
     "# IT Art Studio QA Report",
     "",
@@ -653,11 +747,22 @@ async function writeReport() {
       return `- ${scenario.status}: ${scenario.name}${suffix}`;
     }),
     "",
+    "## Evidence",
+    "",
+    "| Capture | Active zone | Avg frame ms | Canvas | Bright ratio | Edges | Buckets |",
+    "|---|---:|---:|---:|---:|---:|---:|",
+    ...evidenceRows,
+    "",
+    "## 3D Inventory",
+    "",
+    `- Scene objects: ${world?.sceneObjects ?? "n/a"}`,
+    `- Landmark objects: ${world?.landmarkObjects ?? "n/a"}`,
+    `- Road segments: ${world?.roadSegments ?? "n/a"}`,
+    `- Player parts: ${player?.meshCount ?? "n/a"} (${player?.wheelCount ?? "n/a"} wheels)`,
+    "",
     "## Screenshots",
     "",
-    ...scenarios
-      .filter((scenario) => scenario.status === "capture")
-      .map((scenario) => `- ${scenario.details.label}: ${scenario.details.relativePath}`),
+    ...captures.map((scenario) => `- ${scenario.details.label}: ${scenario.details.relativePath}`),
     "",
     "## Failures",
     "",
@@ -715,6 +820,7 @@ async function main() {
       scenarioFail("canvas-color-families", "Canvas did not expose the tech/art/studio color families.", home.canvas);
     }
     await checkWorldRichness(page);
+    await checkFrameBudget(page);
     await checkRealKeyboardInput(page);
 
     const targets = [
