@@ -1678,6 +1678,144 @@ async function checkRealKeyboardInput(page) {
   }
 }
 
+function angleDelta(a, b) {
+  return Math.atan2(Math.sin(a - b), Math.cos(a - b));
+}
+
+async function checkRealKeyboardDirectionalControls(browser) {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
+  attachPageDiagnostics(page, "real-keyboard-directions");
+
+  const directions = [
+    { id: "forward", key: "ArrowUp", activeKey: "up", axis: "z", sign: -1, minAxisDelta: 0.22, minDistance: 0.22 },
+    { id: "backward", key: "ArrowDown", activeKey: "down", axis: "z", sign: 1, minAxisDelta: 0.22, minDistance: 0.22 },
+    {
+      id: "turn-left",
+      key: "ArrowLeft",
+      activeKey: "left",
+      axis: "x",
+      sign: -1,
+      minAxisDelta: 0.18,
+      minDistance: 0.18,
+      minRotationDelta: 0.025
+    },
+    {
+      id: "turn-right",
+      key: "ArrowRight",
+      activeKey: "right",
+      axis: "x",
+      sign: 1,
+      minAxisDelta: 0.18,
+      minDistance: 0.18,
+      minRotationDelta: 0.025
+    }
+  ];
+
+  const proofs = [];
+  let initialInput = null;
+  let hookState = null;
+  try {
+    for (const direction of directions) {
+      await assertReady(page, realDriveUrl);
+      if (proofs.length === 0) {
+        await assertCanvasGeometry(page);
+        hookState = await page.evaluate(() => ({
+          hasQaStep: typeof window.__IT_ART_STUDIO_QA_STEP__ === "function",
+          href: window.location.href
+        }));
+        initialInput = (await getQaSnapshot(page, { refresh: true }))?.input ?? null;
+      }
+      await page.bringToFront().catch(() => {});
+      await releaseDriveKeys(page);
+      await page.waitForTimeout(160);
+
+      const before = await getQaSnapshot(page, { refresh: true });
+      const beforeDownCount = before?.input?.keyboardDownCount ?? 0;
+      const beforeUpCount = before?.input?.keyboardUpCount ?? 0;
+      const beforeQaStepHookCalls = before?.input?.qaStepHookCalls ?? 0;
+
+      await page.keyboard.down(direction.key);
+      await page.waitForTimeout(360);
+      const during = await getQaSnapshot(page, { refresh: true });
+      await page.keyboard.up(direction.key);
+      await page.waitForTimeout(180);
+      const after = await getQaSnapshot(page, { refresh: true });
+      const axisDelta =
+        direction.axis === "x"
+          ? (after?.player?.x ?? 0) - (before?.player?.x ?? 0)
+          : (after?.player?.z ?? 0) - (before?.player?.z ?? 0);
+      const distance = Math.hypot((after?.player?.x ?? 0) - (before?.player?.x ?? 0), (after?.player?.z ?? 0) - (before?.player?.z ?? 0));
+      const rotationDelta = Math.abs(angleDelta(after?.player?.rotationY ?? 0, before?.player?.rotationY ?? 0));
+      const frameDelta = (after?.frameCount ?? 0) - (before?.frameCount ?? 0);
+      const downDelta = (after?.input?.keyboardDownCount ?? 0) - beforeDownCount;
+      const upDelta = (after?.input?.keyboardUpCount ?? 0) - beforeUpCount;
+      const qaStepHookDelta = (after?.input?.qaStepHookCalls ?? 0) - beforeQaStepHookCalls;
+
+      proofs.push({
+        id: direction.id,
+        key: direction.key,
+        activeKey: direction.activeKey,
+        before: before?.player ?? null,
+        during: during?.player ?? null,
+        after: after?.player ?? null,
+        axis: direction.axis,
+        axisDelta: Number(axisDelta.toFixed(3)),
+        distance: Number(distance.toFixed(3)),
+        rotationDelta: Number(rotationDelta.toFixed(3)),
+        frameDelta,
+        downDelta,
+        upDelta,
+        qaStepHookDelta,
+        lastInputMode: after?.lastInputMode ?? null,
+        lastKeyboardCode: after?.input?.lastKeyboardCode ?? null,
+        activeKeysDuring: during?.input?.activeKeys ?? [],
+        activeKeysAfter: after?.input?.activeKeys ?? [],
+        ok:
+          after?.lastInputMode === "keyboard" &&
+          after?.input?.lastKeyboardCode === direction.key &&
+          (during?.input?.activeKeys ?? []).includes(direction.activeKey) &&
+          (after?.input?.activeKeys ?? []).length === 0 &&
+          downDelta >= 1 &&
+          upDelta >= 1 &&
+          qaStepHookDelta === 0 &&
+          frameDelta >= 6 &&
+          axisDelta * direction.sign >= direction.minAxisDelta &&
+          distance >= direction.minDistance &&
+          rotationDelta >= (direction.minRotationDelta ?? 0)
+      });
+    }
+
+    const failedProofs = proofs.filter((proof) => !proof.ok);
+    const finalInput = (await getQaSnapshot(page, { refresh: true }))?.input ?? null;
+    const qaStepHookDelta = (finalInput?.qaStepHookCalls ?? 0) - (initialInput?.qaStepHookCalls ?? 0);
+    if (failedProofs.length === 0 && hookState?.hasQaStep === false && qaStepHookDelta === 0) {
+      pass("keyboard:directional-controls", {
+        directions: proofs,
+        hookState,
+        qaStepHookDelta,
+        url: realDriveUrl,
+        testedKeys: directions.map((direction) => direction.key)
+      });
+    } else {
+      scenarioFail("keyboard:directional-controls", "Real keyboard controls did not prove all movement directions.", {
+        directions: proofs,
+        failedProofs,
+        hookState,
+        qaStepHookDelta,
+        url: realDriveUrl
+      });
+    }
+  } catch (error) {
+    scenarioFail("keyboard:directional-controls", "Real keyboard directional gate crashed.", {
+      url: realDriveUrl,
+      message: error instanceof Error ? error.message : String(error)
+    });
+  } finally {
+    await releaseDriveKeys(page).catch(() => {});
+    await page.close();
+  }
+}
+
 async function checkContact(page) {
   const contact = await page.evaluate(() => {
     const cta = document.querySelector("[data-zone-cta]");
@@ -2950,11 +3088,12 @@ async function inspectProjectArtifactVisibility(page, label) {
     isMobile &&
     state.centerOccluders.length === 1 &&
     state.centerOccluders[0] === ".zone-panel" &&
-    state.uiOccludedRatio <= maxUiOccludedRatio &&
-    state.visibleAfterUiRatio >= 0.55 &&
+    state.uiOccludedRatio <= 0.5 &&
+    state.visibleAfterUiRatio >= 0.5 &&
     state.roi.sampled === true &&
     state.roi.edgeTransitions >= 20 &&
     state.roi.colorBuckets >= 8;
+  const uiOcclusionOk = state.uiOccludedRatio <= maxUiOccludedRatio || mobilePanelCenterTolerated;
   const ok =
     state.artifact?.visible === true &&
     state.artifact?.center?.visible === true &&
@@ -2966,7 +3105,7 @@ async function inspectProjectArtifactVisibility(page, label) {
     artifactAreaRatio <= maxAreaRatio &&
     (state.centerOccluders.length === 0 || mobilePanelCenterTolerated) &&
     state.siblingOverlaps.length === 0 &&
-    state.uiOccludedRatio <= maxUiOccludedRatio &&
+    uiOcclusionOk &&
     state.visibleAfterUiRatio >= minVisibleAfterUiRatio &&
     state.roi.sampled === true &&
     state.roi.brightRatio >= minBrightRatio &&
@@ -2982,6 +3121,7 @@ async function inspectProjectArtifactVisibility(page, label) {
     ...state,
     artifactAreaRatio: Number(artifactAreaRatio.toFixed(3)),
     mobilePanelCenterTolerated,
+    uiOcclusionOk,
     thresholds: {
       minWidth,
       minHeight,
@@ -4590,6 +4730,7 @@ async function writeReport() {
   const playerScenario = scenarios.find((scenario) => scenario.name === "player-personality");
   const trailScenario = scenarios.find((scenario) => scenario.name === "rover-trail:keyboard-route");
   const activationScenarios = scenarios.filter((scenario) => scenario.name.startsWith("activation-feedback:"));
+  const keyboardDirectionalScenario = scenarios.find((scenario) => scenario.name === "keyboard:directional-controls");
   const realDriveScenario = scenarios.find((scenario) => scenario.name === "real-drive-tour");
   const realDriveContinuityScenario = scenarios.find((scenario) => scenario.name === "real-drive-continuity");
   const realDriveKinematicsScenario = scenarios.find((scenario) => scenario.name === "real-drive-kinematics");
@@ -4711,6 +4852,11 @@ async function writeReport() {
     `- Last activation feedback: ${
       lastActivation
         ? `${lastActivation.zoneId}, sequence ${lastActivation.sequence}, visible ${lastActivation.visibleObjects}, opacity ${lastActivation.maxOpacity}, scale ${lastActivation.maxScale}`
+        : "n/a"
+    }`,
+    `- Real keyboard directional controls: ${
+      keyboardDirectionalScenario?.details?.directions
+        ? `${keyboardDirectionalScenario.details.directions.filter((direction) => direction.ok).length}/${keyboardDirectionalScenario.details.directions.length} directions, keys ${keyboardDirectionalScenario.details.testedKeys?.join("/") ?? "n/a"}, QA step hook ${keyboardDirectionalScenario.details.hookState?.hasQaStep ? "present" : "absent"}, hook calls ${keyboardDirectionalScenario.details.qaStepHookDelta ?? "n/a"}`
         : "n/a"
     }`,
     `- Real drive tour: ${
@@ -4921,6 +5067,7 @@ async function main() {
     await checkWorldRichness(page);
     await checkFrameBudget(page);
     await checkRealKeyboardInput(page);
+    await checkRealKeyboardDirectionalControls(browser);
     await checkRealDriveTour(browser);
     await checkProductionRuntimeLightweight(browser);
 

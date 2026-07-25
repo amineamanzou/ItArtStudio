@@ -436,6 +436,15 @@ Gates V3.8:
 - contrainte conservee: aucun nouvel objet de scene, `sceneObjects <= 955` et
   `projectArtifactSceneObjects <= 10`.
 
+Gates V3.9:
+
+- `keyboard:directional-controls`: verifier sur une page `?qa=1&realKeys=1`
+  que `ArrowUp`, `ArrowDown`, `ArrowLeft` et `ArrowRight` produisent de vrais
+  deltas joueur avec `keyboard.down/up`, compteurs d'input, frames rendues et
+  rotation du rover sur les directions laterales;
+- le rapport QA doit exposer le score directionnel pour que la qualite
+  "site jouable" soit lisible avant les parcours longs vers les zones.
+
 ## Components
 
 - `game-site`: surface principale.

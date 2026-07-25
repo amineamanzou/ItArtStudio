@@ -87,6 +87,10 @@ The runner:
 - verifies that the rover leaves visible trail feedback after a played route;
 - runs one real `page.keyboard.press()` smoke test against the production
   keyboard listener;
+- opens an isolated `?qa=1&realKeys=1` page for each directional proof and
+  verifies forward, backward, left, and right movement with real
+  `keyboard.down/up` events, player deltas, frame deltas, input counters, and
+  turn rotation where relevant;
 - uses the `?qa=1` keyboard-step hook to keep navigation deterministic in
   headless Chromium while preserving `lastInputMode: keyboard`;
 - opens a separate `?qa=1&realKeys=1` page where the deterministic keyboard
@@ -183,6 +187,10 @@ The runner:
   `window.__IT_ART_STUDIO_QA_STEP__` or `window.__IT_ART_STUDIO_QA_REFRESH__`;
   those are reserved for QA URLs so the public runtime avoids repeated scene
   inventory traversal.
+- Directional keyboard controls must be proven with real `keyboard.down/up`
+  events in `?qa=1&realKeys=1`: ArrowUp moves forward on the z axis, ArrowDown
+  moves backward, ArrowLeft and ArrowRight move laterally and rotate the rover,
+  and every proof must increment keyboard down/up counters over live frames.
 - The real keyboard tour must prove route continuity: at least 180 frames, 60
   units travelled, 16 active trail marks, stable camera distance/lag, and no
   invisible player samples.
