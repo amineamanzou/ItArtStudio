@@ -182,6 +182,18 @@ Gates V1.7:
 - dev toolbar Astro desactivee pour que les tests de bas d'ecran mesurent la
   surface utilisateur finale.
 
+Gates V1.8:
+
+- scenographie globale du monde: couches de terrain, ledges IT/ART/STUDIO,
+  silhouettes tech, sculptures art, seuils studio et lumieres de routes;
+- decor global anime separement des zones pour donner une respiration au monde
+  entier sans augmenter la rotation du plateau;
+- snapshot QA enrichi avec `terrainLayers`, `sceneryObjects`,
+  `scenerySignatures`, `sceneryMotionObjects` et `sceneryRoleCounts`;
+- rejet QA si la carte redevient un plateau plat ou si les roles de
+  scenographie (`terrain-edge`, `tech-skyline`, `art-sculpture`,
+  `studio-threshold`, `route-light`) disparaissent.
+
 ## Components
 
 - `game-site`: surface principale.

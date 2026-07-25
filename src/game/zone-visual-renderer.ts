@@ -119,7 +119,7 @@ function addZonePropCluster(
 
   clusterGroup.traverse((child) => {
     if (child instanceof THREE.Mesh) {
-      child.castShadow = true;
+      child.castShadow = false;
       child.receiveShadow = true;
     }
   });

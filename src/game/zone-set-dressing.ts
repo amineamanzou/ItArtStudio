@@ -370,7 +370,7 @@ function tagObject(object: THREE.Object3D, zoneId: string, signature: string, pr
     child.userData.motionBaseRotationY = child.rotation.y;
     child.userData.motionBaseRotationZ = child.rotation.z;
     if (child instanceof THREE.Mesh) {
-      child.castShadow = true;
+      child.castShadow = false;
       child.receiveShadow = true;
     }
   });

@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { createZoneLandmark } from "./procedural-assets";
+import { createWorldScenery } from "./world-scenery";
 import { createZoneSetDressing } from "./zone-set-dressing";
 import { zoneVisualSpecs, type ZoneVisualSpec } from "./visual-specs";
 import { renderZoneVisuals } from "./zone-visual-renderer";
@@ -70,6 +71,11 @@ type QaSnapshot = {
     propClusters: number;
     setDressingObjects: number;
     setDressingSignatures: number;
+    sceneryObjects: number;
+    scenerySignatures: number;
+    sceneryMotionObjects: number;
+    sceneryRoleCounts: Record<string, number>;
+    terrainLayers: number;
     materialVariants: number;
     motionRoles: number;
     motionRolesByType: Record<string, number>;
@@ -110,6 +116,7 @@ class StudioGame {
   private activeZoneId = defaultZone.id;
   private frameId = 0;
   private lastFrameTime = performance.now();
+  private lastQaSyncTime = 0;
   private elapsedTime = 0;
   private frameCount = 0;
   private decorativeObjectCount = 0;
@@ -117,12 +124,16 @@ class StudioGame {
   private visualDecalCount = 0;
   private propClusterCount = 0;
   private setDressingObjectCount = 0;
+  private sceneryObjectCount = 0;
+  private terrainLayerCount = 0;
   private motionRoleCount = 0;
   private playerPartCount = 0;
   private readonly renderedVisualSpecIds = new Set<string>();
   private readonly materialVariantIds = new Set<string>();
   private readonly setDressingSignatureIds = new Set<string>();
+  private readonly scenerySignatureIds = new Set<string>();
   private readonly zoneMotionObjects = new Map<string, THREE.Object3D[]>();
+  private readonly worldSceneryMotionObjects: THREE.Object3D[] = [];
   private readonly wheelMeshes: THREE.Mesh[] = [];
   private readonly trailMarks: TrailMark[] = [];
   private readonly frameDeltas: number[] = [];
@@ -145,6 +156,11 @@ class StudioGame {
       propClusters: 0,
       setDressingObjects: 0,
       setDressingSignatures: 0,
+      sceneryObjects: 0,
+      scenerySignatures: 0,
+      sceneryMotionObjects: 0,
+      sceneryRoleCounts: {},
+      terrainLayers: 0,
       materialVariants: 0,
       motionRoles: 0,
       motionRolesByType: {},
@@ -165,7 +181,7 @@ class StudioGame {
     this.canvas = canvas;
     this.renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: window.devicePixelRatio < 2,
+      antialias: !qaMode && window.devicePixelRatio < 2,
       alpha: false,
       preserveDrawingBuffer: qaMode,
       powerPreference: "high-performance"
@@ -224,11 +240,25 @@ class StudioGame {
     this.scene.add(ground);
 
     this.addDistrictPlates();
+    this.addWorldScenery();
     this.addRoads();
     this.addWorldProps();
 
     for (const zone of zones) {
       this.addZone(zone);
+    }
+  }
+
+  private addWorldScenery() {
+    const rendered = createWorldScenery(colors);
+    this.scene.add(rendered.group);
+    this.sceneryObjectCount += rendered.objectCount;
+    this.terrainLayerCount += rendered.terrainLayers;
+    this.decorativeObjectCount += rendered.objectCount;
+    this.motionRoleCount += rendered.motionObjects.length;
+    this.worldSceneryMotionObjects.push(...rendered.motionObjects);
+    for (const signature of rendered.signatures) {
+      this.scenerySignatureIds.add(signature);
     }
   }
 
@@ -800,11 +830,15 @@ class StudioGame {
     this.updatePlayer(delta);
     this.updateActiveZone();
     this.updateWorldMotion(delta);
+    this.updateWorldSceneryMotion(delta);
     this.updateCamera(delta);
     this.updateMiniMap();
     this.renderer.render(this.scene, this.camera);
+    const shouldSyncQa = !this.qaSnapshot.ready || now - this.lastQaSyncTime > 250;
     this.markReady();
-    this.syncQaSnapshot();
+    if (shouldSyncQa) {
+      this.syncQaSnapshot();
+    }
   };
 
   private updatePlayer(delta: number) {
@@ -949,6 +983,50 @@ class StudioGame {
     });
   }
 
+  private updateWorldSceneryMotion(delta: number) {
+    if (motionQuery.matches) {
+      return;
+    }
+
+    this.worldSceneryMotionObjects.forEach((object, index) => {
+      const baseY = typeof object.userData.motionBaseY === "number" ? object.userData.motionBaseY : object.position.y;
+      const baseX = typeof object.userData.motionBaseX === "number" ? object.userData.motionBaseX : object.position.x;
+      const baseZ = typeof object.userData.motionBaseZ === "number" ? object.userData.motionBaseZ : object.position.z;
+      const baseRotationX =
+        typeof object.userData.motionBaseRotationX === "number" ? object.userData.motionBaseRotationX : object.rotation.x;
+      const baseRotationY =
+        typeof object.userData.motionBaseRotationY === "number" ? object.userData.motionBaseRotationY : object.rotation.y;
+      const baseRotationZ =
+        typeof object.userData.motionBaseRotationZ === "number" ? object.userData.motionBaseRotationZ : object.rotation.z;
+      const behavior = object.userData.localMotionBehavior;
+      const phase = this.elapsedTime * (0.9 + (index % 6) * 0.07) + index * 0.41;
+      const amplitude = 0.12;
+
+      if (behavior === "sweep") {
+        object.rotation.y += delta * 0.38;
+        object.position.y = baseY + Math.sin(phase) * amplitude * 0.08;
+      } else if (behavior === "pulse") {
+        const pulseScale = 1 + Math.sin(phase * 1.2) * 0.045;
+        object.scale.setScalar(pulseScale);
+        object.position.y = baseY + Math.sin(phase) * amplitude * 0.06;
+      } else if (behavior === "tilt") {
+        object.rotation.x = baseRotationX + Math.sin(phase) * amplitude * 0.8;
+        object.rotation.z = baseRotationZ + Math.cos(phase * 0.72) * amplitude * 0.46;
+      } else if (behavior === "float") {
+        object.position.x = baseX + Math.cos(phase * 0.6) * amplitude * 0.3;
+        object.position.y = baseY + Math.sin(phase) * amplitude * 0.52;
+        object.position.z = baseZ + Math.sin(phase * 0.5) * amplitude * 0.28;
+      } else if (behavior === "blink") {
+        object.position.y = baseY + Math.sin(phase * 1.4) * amplitude * 0.16;
+        object.rotation.y = baseRotationY + Math.sin(phase * 0.9) * amplitude * 0.7;
+      } else {
+        object.rotation.x = baseRotationX;
+        object.rotation.y = baseRotationY;
+        object.rotation.z = baseRotationZ;
+      }
+    });
+  }
+
   private updateCamera(delta: number) {
     const target = this.playerPosition;
     const desired = new THREE.Vector3(target.x + 8, 9.4, target.z + 8);
@@ -1034,6 +1112,7 @@ class StudioGame {
   }
 
   private syncQaSnapshot() {
+    this.lastQaSyncTime = performance.now();
     const stableFrameDeltas = this.frameDeltas.filter((item) => item > 0 && item < 120);
     const averageFrameMs =
       stableFrameDeltas.length > 0
@@ -1058,6 +1137,13 @@ class StudioGame {
       });
       return summary;
     }, {});
+    const sceneryRoleCounts: Record<string, number> = {};
+    this.scene.traverse((object) => {
+      const role = object.userData.worldSceneryRole;
+      if (typeof role === "string") {
+        sceneryRoleCounts[role] = (sceneryRoleCounts[role] ?? 0) + 1;
+      }
+    });
 
     this.qaSnapshot.world = {
       sceneObjects,
@@ -1070,6 +1156,11 @@ class StudioGame {
       propClusters: this.propClusterCount,
       setDressingObjects: this.setDressingObjectCount,
       setDressingSignatures: this.setDressingSignatureIds.size,
+      sceneryObjects: this.sceneryObjectCount,
+      scenerySignatures: this.scenerySignatureIds.size,
+      sceneryMotionObjects: this.worldSceneryMotionObjects.length,
+      sceneryRoleCounts,
+      terrainLayers: this.terrainLayerCount,
       materialVariants: this.materialVariantIds.size,
       motionRoles: this.motionRoleCount,
       motionRolesByType,

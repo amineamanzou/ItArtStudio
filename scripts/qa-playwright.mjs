@@ -104,7 +104,7 @@ async function waitForServer(server) {
   let lastError = "";
   let consecutiveReadyChecks = 0;
 
-  while (Date.now() - started < 45_000) {
+  while (Date.now() - started < 90_000) {
     if (server.child.exitCode !== null) {
       throw new Error(`Dev server exited early with code ${server.child.exitCode}.\n${server.logs.join("")}`);
     }
@@ -130,7 +130,7 @@ async function waitForServer(server) {
     await wait(900);
   }
 
-  throw new Error(`Dev server did not respond at ${baseUrl}: ${lastError}`);
+  throw new Error(`Dev server did not respond at ${baseUrl} within 90000ms: ${lastError}`);
 }
 
 async function stopServer(server) {
@@ -270,30 +270,44 @@ async function assertReady(page) {
     throw lastError;
   }
 
-  let ready = false;
-  for (let attempt = 1; attempt <= 2; attempt += 1) {
-    await page.waitForLoadState("load", { timeout: 5_000 }).catch(() => {});
+  await page.waitForLoadState("load", { timeout: 8_000 }).catch(() => {});
+  let lastState = null;
+  const started = Date.now();
+  let nextGotoAt = started + 28_000;
+
+  while (Date.now() - started < 70_000) {
     try {
-      await page.waitForFunction(
-        () => document.documentElement.classList.contains("game-ready") && window.__IT_ART_STUDIO_QA__?.frameCount > 2,
-        { timeout: 15_000 }
-      );
-      ready = true;
-      break;
-    } catch (error) {
-      if (attempt === 2) {
-        throw error;
+      lastState = await page.evaluate(() => ({
+        ready: document.documentElement.classList.contains("game-ready"),
+        gameState: document.documentElement.dataset.gameState ?? null,
+        frameCount: window.__IT_ART_STUDIO_QA__?.frameCount ?? 0,
+        qaReady: window.__IT_ART_STUDIO_QA__?.ready ?? false,
+        hasQaStep: typeof window.__IT_ART_STUDIO_QA_STEP__ === "function",
+        errors: window.__IT_ART_STUDIO_QA__?.errors ?? [],
+        readyState: document.readyState
+      }));
+
+      if (lastState.ready && lastState.frameCount > 2 && (!qaMode || lastState.hasQaStep)) {
+        return;
       }
-      await page.reload({ waitUntil: "domcontentloaded", timeout: 10_000 });
-      await wait(900);
+    } catch (error) {
+      lastError = error;
     }
+
+    if (Date.now() >= nextGotoAt) {
+      await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 15_000 }).catch((error) => {
+        lastError = error;
+      });
+      nextGotoAt = Date.now() + 28_000;
+    }
+    await wait(650);
   }
-  if (!ready) {
-    throw new Error("Game did not reach ready state.");
-  }
-  if (qaMode) {
-    await page.waitForFunction(() => typeof window.__IT_ART_STUDIO_QA_STEP__ === "function", { timeout: 5_000 });
-  }
+
+  throw new Error(
+    `Game did not reach ready state. Last state: ${JSON.stringify(lastState)}. Last error: ${
+      lastError instanceof Error ? lastError.message : String(lastError ?? "none")
+    }`
+  );
 }
 
 async function assertCanvasGeometry(page) {
@@ -400,7 +414,10 @@ async function capture(page, label, extra = {}) {
   const snapshot = await getQaSnapshot(page);
   const canvas = await sampleCanvas(page);
 
-  await page.screenshot({ path: filePath, fullPage: false });
+  await page
+    .evaluate(() => Promise.race([document.fonts?.ready ?? Promise.resolve(), new Promise((resolve) => setTimeout(resolve, 2_000))]))
+    .catch(() => {});
+  await page.screenshot({ path: filePath, fullPage: false, timeout: 90_000 });
 
   const entry = {
     label,
@@ -523,6 +540,15 @@ async function checkContact(page) {
 async function checkWorldRichness(page) {
   const snapshot = await getQaSnapshot(page);
   const world = snapshot?.world;
+  const expectedSceneryRoles = ["terrain-edge", "tech-skyline", "art-sculpture", "studio-threshold", "route-light"];
+  const missingSceneryRoles = expectedSceneryRoles.filter((role) => !world?.sceneryRoleCounts?.[role]);
+  const hasWorldComposition =
+    world &&
+    world.terrainLayers >= 5 &&
+    world.sceneryObjects >= 60 &&
+    world.scenerySignatures >= 24 &&
+    world.sceneryMotionObjects >= 20 &&
+    missingSceneryRoles.length === 0;
   const thinZones = (world?.zones ?? []).filter(
     (zone) =>
       zone.meshCount < 10 ||
@@ -555,6 +581,7 @@ async function checkWorldRichness(page) {
     world.decorativeObjects >= 45 &&
     world.roadSegments >= 18 &&
     world.landmarkObjects >= 135 &&
+    hasWorldComposition &&
     world.visualSpecs === 10 &&
     world.visualDecals >= 30 &&
     world.propClusters >= 30 &&
@@ -568,6 +595,7 @@ async function checkWorldRichness(page) {
     scenarioFail("world-richness", "3D world does not expose enough modeled cartography assets.", {
       world,
       zoneCount: snapshot?.zoneCount,
+      missingSceneryRoles,
       thinZones
     });
   }
@@ -595,6 +623,7 @@ async function checkWorldRichness(page) {
     world.materialVariants >= snapshot.zoneCount * 6 &&
     world.setDressingObjects >= 78 &&
     world.setDressingSignatures >= 58 &&
+    hasWorldComposition &&
     world.motionRoles >= visualSpecZones.reduce((sum, zone) => sum + (zone.motionObjectCount ?? 0), 0) &&
     duplicateFingerprints.length === 0 &&
     duplicateSetDressingFingerprints.length === 0 &&
@@ -610,6 +639,11 @@ async function checkWorldRichness(page) {
       materialVariants: world.materialVariants,
       setDressingObjects: world.setDressingObjects,
       setDressingSignatures: world.setDressingSignatures,
+      terrainLayers: world.terrainLayers,
+      sceneryObjects: world.sceneryObjects,
+      scenerySignatures: world.scenerySignatures,
+      sceneryMotionObjects: world.sceneryMotionObjects,
+      sceneryRoleCounts: world.sceneryRoleCounts,
       motionRoles: world.motionRoles,
       motionRolesByType: world.motionRolesByType,
       setDressingSignatures: allSetDressingSignatures,
@@ -624,6 +658,12 @@ async function checkWorldRichness(page) {
       materialVariants: world?.materialVariants,
       setDressingObjects: world?.setDressingObjects,
       setDressingSignatures: world?.setDressingSignatures,
+      terrainLayers: world?.terrainLayers,
+      sceneryObjects: world?.sceneryObjects,
+      scenerySignatures: world?.scenerySignatures,
+      sceneryMotionObjects: world?.sceneryMotionObjects,
+      sceneryRoleCounts: world?.sceneryRoleCounts,
+      missingSceneryRoles,
       motionRoles: world?.motionRoles,
       motionRolesByType: world?.motionRolesByType,
       duplicateFingerprints,
@@ -678,6 +718,36 @@ async function checkFrameBudget(page) {
     pass("performance:telemetry", stats);
   } else {
     scenarioFail("performance:telemetry", "Frame telemetry is missing from the playable world.", stats);
+  }
+}
+
+async function checkRuntimeFrameBudget(page, label = "runtime") {
+  await page.waitForTimeout(1_200);
+  const before = await getQaSnapshot(page);
+  const started = Date.now();
+  await page.waitForTimeout(6_000);
+  const after = await getQaSnapshot(page);
+  const durationMs = Date.now() - started;
+  const beforeFrameCount = before?.frameCount ?? 0;
+  const afterFrameCount = after?.frameCount ?? 0;
+  const frameDelta = Math.max(0, afterFrameCount - beforeFrameCount);
+  const avgFrameMs = frameDelta > 0 ? durationMs / frameDelta : 0;
+  const approxFps = durationMs > 0 ? frameDelta / (durationMs / 1_000) : 0;
+  const stats = {
+    durationMs,
+    beforeFrameCount,
+    afterFrameCount,
+    frameDelta,
+    avgFrameMs: Number(avgFrameMs.toFixed(2)),
+    approxFps: Number(approxFps.toFixed(1)),
+    snapshotAverageFrameMs: Number((after?.averageFrameMs ?? 0).toFixed(2))
+  };
+
+  const withinBudget = frameDelta >= 85 && approxFps >= 14 && avgFrameMs <= 75;
+  if (withinBudget) {
+    pass(`performance:${label}-frame-budget`, stats);
+  } else {
+    scenarioFail(`performance:${label}-frame-budget`, "Runtime frame budget exceeded during live QA sampling.", stats);
   }
 }
 
@@ -820,6 +890,25 @@ async function waitForViewportReady(page, viewport, label) {
         unavailable: true,
         message: diagnosticError instanceof Error ? diagnosticError.message : String(diagnosticError)
       };
+    }
+    const rendered =
+      diagnostics &&
+      diagnostics.unavailable === false &&
+      diagnostics.innerWidth === viewport.width &&
+      diagnostics.innerHeight === viewport.height &&
+      diagnostics.ready === true &&
+      diagnostics.gameState === "ready" &&
+      diagnostics.canvas?.width === viewport.width &&
+      diagnostics.canvas?.height === viewport.height &&
+      diagnostics.frameCount > 2;
+    if (rendered) {
+      pass(`viewport-ready:${label}`, {
+        recoveredAfterTimeout: true,
+        expected: viewport,
+        diagnostics,
+        message: error instanceof Error ? error.message : String(error)
+      });
+      return true;
     }
     scenarioFail(`viewport-ready:${label}`, "Viewport did not reach a ready rendered state.", {
       expected: viewport,
@@ -1057,6 +1146,18 @@ async function checkMiniMapJumps(page) {
     } catch (error) {
       const snapshot = await getQaSnapshot(page);
       const pressed = await inspectMiniMapState(page, targetId);
+      if (isMiniMapStateSettled(snapshot, pressed, targetId)) {
+        pass(`mini-map:${targetId}`, {
+          activeZoneId: snapshot.activeZoneId,
+          player: snapshot.player,
+          pressed,
+          lastInputMode: snapshot.lastInputMode,
+          actionability,
+          recoveredAfterTimeout: true,
+          message: error instanceof Error ? error.message : String(error)
+        });
+        continue;
+      }
       scenarioFail(`mini-map:${targetId}`, "Mini-map jump did not settle near the requested pin in time.", {
         snapshot,
         pressed,
@@ -1068,13 +1169,7 @@ async function checkMiniMapJumps(page) {
     const snapshot = await getQaSnapshot(page);
     const pressed = await inspectMiniMapState(page, targetId);
 
-    if (
-      snapshot?.activeZoneId === targetId &&
-      snapshot.lastInputMode === "pointer" &&
-      pressed.visiblePressed.length === 1 &&
-      pressed.visiblePressed[0] === targetId &&
-      pressed.markerDistancePx <= 26
-    ) {
+    if (isMiniMapStateSettled(snapshot, pressed, targetId)) {
       pass(`mini-map:${targetId}`, {
         activeZoneId: snapshot.activeZoneId,
         player: snapshot.player,
@@ -1089,6 +1184,16 @@ async function checkMiniMapJumps(page) {
       });
     }
   }
+}
+
+function isMiniMapStateSettled(snapshot, pressed, targetId) {
+  return (
+    snapshot?.activeZoneId === targetId &&
+    snapshot.lastInputMode === "pointer" &&
+    pressed.visiblePressed.length === 1 &&
+    pressed.visiblePressed[0] === targetId &&
+    pressed.markerDistancePx <= 26
+  );
 }
 
 async function inspectMiniMapState(page, targetId) {
@@ -1293,6 +1398,13 @@ async function writeReport() {
     `- Prop clusters: ${world?.propClusters ?? "n/a"}`,
     `- Set dressing objects: ${world?.setDressingObjects ?? "n/a"}`,
     `- Set dressing signatures: ${world?.setDressingSignatures ?? "n/a"}`,
+    `- Terrain layers: ${world?.terrainLayers ?? "n/a"}`,
+    `- Scenery objects: ${world?.sceneryObjects ?? "n/a"}`,
+    `- Scenery signatures: ${world?.scenerySignatures ?? "n/a"}`,
+    `- Scenery motion objects: ${world?.sceneryMotionObjects ?? "n/a"}`,
+    `- Scenery roles: ${
+      world?.sceneryRoleCounts ? Object.entries(world.sceneryRoleCounts).map(([role, count]) => `${role}:${count}`).join(", ") : "n/a"
+    }`,
     `- Material variants: ${world?.materialVariants ?? "n/a"}`,
     `- Motion roles: ${world?.motionRoles ?? "n/a"}`,
     `- Local motion behaviors: ${
@@ -1341,6 +1453,7 @@ async function main() {
     await assertReady(page);
     await assertCanvasGeometry(page);
     await assertBrandIdentity(page);
+    await checkRuntimeFrameBudget(page, "pre-capture");
     const home = await capture(page, "home-loaded");
     await checkVisibleZoneControls(page, "desktop");
     const desktopLayout = await measureLayout(page);

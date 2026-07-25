@@ -47,7 +47,11 @@ The runner:
   reads as alive instead of globally rotating;
 - verifies that every zone exposes narrative set dressing objects, role names,
   and distinct signatures;
+- verifies that the global world composition exposes terrain layers, route
+  lights, district silhouettes, studio thresholds, and animated scenery roles;
 - records frame telemetry before gameplay scenarios;
+- measures a live runtime budget from the game's frame counter before
+  screenshot sampling so WebGL stalls from pixel reads do not hide low FPS;
 - drives the player with keyboard input through tech, art, and contact zones;
 - verifies that the rover leaves visible trail feedback after a played route;
 - runs one real `page.keyboard.press()` smoke test against the production
@@ -87,6 +91,10 @@ The runner:
   roles, five set dressing signatures, and a non-empty set dressing fingerprint.
 - The world must expose at least 78 set dressing objects and 58 set dressing
   signatures.
+- The world must expose at least five terrain layers, 60 scenery objects, 24
+  scenery signatures, 20 animated scenery objects, and all expected scenery
+  roles: terrain edge, tech skyline, art sculpture, studio threshold, route
+  light.
 - Rendered semantic material variants must cover the variants declared by the
   zone spec.
 - Applied animation hints must match the zone spec.
@@ -99,6 +107,11 @@ The runner:
 - The playable avatar must leave at least 18 reusable trail marks, with active
   visible marks after keyboard traversal.
 - Frame telemetry must be present in the QA snapshot.
+- Runtime frame budget warms up briefly, then must record at least 85 rendered
+  frames over a 6s live window before screenshot sampling begins, with
+  approximate FPS >= 14 and average frame time <= 75ms. The report still keeps
+  the raw frame count, FPS, and average frame time visible for performance
+  tracking.
 - Keyboard route must reach:
   - `ai-lab`
   - `design-atelier`
