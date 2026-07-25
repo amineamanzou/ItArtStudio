@@ -134,7 +134,7 @@ button {
   left: 50%;
   z-index: 20;
   min-width: 0;
-  width: min(520px, calc(100vw - 430px));
+  width: min(440px, calc(100vw - 430px));
   min-height: 42px;
   display: flex;
   align-items: center;
@@ -241,52 +241,52 @@ button {
   right: var(--pad);
   bottom: var(--pad);
   z-index: 18;
-  width: min(390px, calc(100vw - var(--pad) * 2));
-  padding: clamp(16px, 2.2vw, 22px);
+  width: min(340px, calc(100vw - var(--pad) * 2));
+  padding: clamp(14px, 1.8vw, 18px);
   background: linear-gradient(180deg, var(--panel-strong), var(--panel));
   clip-path: polygon(0 0, 96% 0, 100% 12%, 100% 100%, 4% 100%, 0 88%);
 }
 
 .zone-panel h2 {
   margin: 0;
-  font-size: 2.5rem;
+  font-size: 2.18rem;
   letter-spacing: 0;
   line-height: 0.94;
   text-wrap: balance;
 }
 
 .zone-panel__summary {
-  margin: 14px 0 0;
+  margin: 12px 0 0;
   color: var(--ink);
-  font-size: 1.02rem;
+  font-size: 0.96rem;
   font-weight: 750;
   line-height: 1.38;
 }
 
 .zone-panel__details {
-  margin: 12px 0 0;
+  margin: 10px 0 0;
   color: var(--ink-soft);
-  font-size: 0.95rem;
-  line-height: 1.58;
+  font-size: 0.88rem;
+  line-height: 1.5;
 }
 
 .zone-panel__signals {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 18px 0 0;
+  margin: 14px 0 0;
   padding: 0;
   list-style: none;
 }
 
 .zone-panel__signals li {
-  min-height: 32px;
+  min-height: 28px;
   display: inline-flex;
   align-items: center;
   padding: 0 10px;
   color: var(--ink);
   background: oklch(100% 0 0 / 10%);
-  font-size: 0.84rem;
+  font-size: 0.78rem;
   font-weight: 760;
 }
 
@@ -294,9 +294,9 @@ button {
   display: inline-flex;
   min-height: 44px;
   align-items: center;
-  margin-top: 18px;
+  margin-top: 14px;
   color: var(--studio);
-  font-size: 1.9rem;
+  font-size: 1.62rem;
   font-weight: 850;
   letter-spacing: 0;
 }
@@ -315,7 +315,7 @@ button {
   left: var(--pad);
   bottom: var(--pad);
   z-index: 18;
-  width: min(258px, 40vw);
+  width: min(220px, 32vw);
   aspect-ratio: 1;
   background:
     radial-gradient(circle at 50% 50%, oklch(88% 0.12 88 / 13%), transparent 45%),
@@ -407,12 +407,12 @@ button {
   }
 
   .zone-panel {
-    width: min(340px, calc(100vw - var(--pad) * 2));
-    padding: 16px;
+    width: min(310px, calc(100vw - var(--pad) * 2));
+    padding: 14px;
   }
 
   .zone-panel h2 {
-    font-size: 2.08rem;
+    font-size: 1.92rem;
   }
 
   .zone-panel__summary {
@@ -439,11 +439,11 @@ button {
 
   .zone-panel__cta {
     margin-top: 12px;
-    font-size: 1.5rem;
+    font-size: 1.36rem;
   }
 
   .world-map {
-    width: min(220px, 30vw);
+    width: min(190px, 26vw);
   }
 }
 
@@ -601,14 +601,14 @@ button {
   .zone-panel {
     left: var(--pad);
     right: var(--pad);
-    bottom: 210px;
-    max-height: 27svh;
+    bottom: 192px;
+    max-height: 21svh;
     overflow: auto;
-    padding: 14px 14px 56px;
+    padding: 12px 12px 46px;
   }
 
   .zone-panel h2 {
-    font-size: 1.72rem;
+    font-size: 1.48rem;
   }
 
   .zone-panel__details {
@@ -617,19 +617,12 @@ button {
 
   .zone-panel__summary {
     margin-top: 8px;
-    font-size: 0.9rem;
+    font-size: 0.82rem;
     line-height: 1.28;
   }
 
   .zone-panel__signals {
-    gap: 6px;
-    margin-top: 10px;
-  }
-
-  .zone-panel__signals li {
-    min-height: 28px;
-    padding-inline: 9px;
-    font-size: 0.74rem;
+    display: none;
   }
 
   .zone-panel__cta {
@@ -658,10 +651,15 @@ button {
 
   .mobile-drive {
     display: grid;
+    grid-template-columns: repeat(3, 44px);
+    grid-template-rows: repeat(2, 44px);
+    gap: 3px;
+    padding: 5px;
   }
 
   .mobile-zone-nav {
     display: flex;
+    bottom: 128px;
   }
 }
 

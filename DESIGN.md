@@ -352,6 +352,19 @@ Gates V3.2:
   clavier pour prouver que les seuils sont decouverts par conduite, avec
   couverture studio, tech et art.
 
+Gates V3.3:
+
+- `playable stage dominance`: l'interface doit laisser la scene 3D dominer le
+  viewport, pas seulement rester sous un budget de couverture UI;
+- panneaux plus compacts: panneau de zone, mini-map, nav mobile et pad mobile
+  reduisent leur empreinte sans perdre le contact, les labels de zone ou les
+  cibles tactiles;
+- verification Playwright sur desktop, tablet, mobile et reduced-motion:
+  dominance de scene, centre de viewport degage, rover lisible et composition
+  active non masquee par l'UI;
+- rapport QA enrichi avec le plus faible score de dominance et le ratio de
+  centre jouable degage.
+
 ## Components
 
 - `game-site`: surface principale.

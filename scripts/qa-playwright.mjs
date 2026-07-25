@@ -2734,6 +2734,222 @@ async function measureLayout(page) {
   });
 }
 
+async function checkPlayableStageDominance(page, label, layout = null) {
+  const snapshot = await getQaSnapshot(page, { refresh: true });
+  const state = await page.evaluate((qa) => {
+    const selectors = [
+      ".game-brand",
+      ".game-status",
+      ".game-contact",
+      ".intro-plate",
+      ".zone-panel",
+      ".mobile-drive",
+      ".mobile-zone-nav",
+      ".world-map"
+    ];
+    const round = (value, digits = 4) => Number(value.toFixed(digits));
+    const viewport = { width: window.innerWidth, height: window.innerHeight };
+    const viewportRect = { left: 0, top: 0, right: viewport.width, bottom: viewport.height };
+    const visibleRects = selectors
+      .map((selector) => {
+        const node = document.querySelector(selector);
+        if (!(node instanceof HTMLElement)) {
+          return null;
+        }
+        const style = getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        if (
+          style.display === "none" ||
+          style.visibility === "hidden" ||
+          Number(style.opacity) === 0 ||
+          rect.width === 0 ||
+          rect.height === 0
+        ) {
+          return null;
+        }
+        return {
+          selector,
+          left: Math.max(0, rect.left),
+          top: Math.max(0, rect.top),
+          right: Math.min(viewport.width, rect.right),
+          bottom: Math.min(viewport.height, rect.bottom),
+          width: rect.width,
+          height: rect.height
+        };
+      })
+      .filter(Boolean)
+      .filter((rect) => rect.right > rect.left && rect.bottom > rect.top);
+
+    const unionArea = (rects, bounds = viewportRect) => {
+      const clipped = rects
+        .map((rect) => ({
+          left: Math.max(bounds.left, rect.left),
+          top: Math.max(bounds.top, rect.top),
+          right: Math.min(bounds.right, rect.right),
+          bottom: Math.min(bounds.bottom, rect.bottom)
+        }))
+        .filter((rect) => rect.right > rect.left && rect.bottom > rect.top);
+      if (clipped.length === 0) {
+        return 0;
+      }
+      const xEdges = [...new Set(clipped.flatMap((rect) => [rect.left, rect.right]))].sort((a, b) => a - b);
+      let area = 0;
+      for (let index = 0; index < xEdges.length - 1; index += 1) {
+        const left = xEdges[index];
+        const right = xEdges[index + 1];
+        const width = right - left;
+        if (width <= 0) {
+          continue;
+        }
+        const yRanges = clipped
+          .filter((rect) => rect.left < right && rect.right > left)
+          .map((rect) => [rect.top, rect.bottom])
+          .sort((a, b) => a[0] - b[0]);
+        let coveredTop = null;
+        let coveredBottom = null;
+        let coveredHeight = 0;
+        for (const [top, bottom] of yRanges) {
+          if (coveredTop === null || coveredBottom === null) {
+            coveredTop = top;
+            coveredBottom = bottom;
+            continue;
+          }
+          if (top > coveredBottom) {
+            coveredHeight += coveredBottom - coveredTop;
+            coveredTop = top;
+            coveredBottom = bottom;
+          } else {
+            coveredBottom = Math.max(coveredBottom, bottom);
+          }
+        }
+        if (coveredTop !== null && coveredBottom !== null) {
+          coveredHeight += coveredBottom - coveredTop;
+        }
+        area += width * coveredHeight;
+      }
+      return area;
+    };
+
+    const pointOccluders = (point, padding = 0) => {
+      if (!point || point.visible !== true) {
+        return ["offscreen"];
+      }
+      return visibleRects
+        .filter(
+          (rect) =>
+            point.x >= rect.left - padding &&
+            point.x <= rect.right + padding &&
+            point.y >= rect.top - padding &&
+            point.y <= rect.bottom + padding
+        )
+        .map((rect) => rect.selector);
+    };
+
+    const composition = qa?.screen?.activeZoneComposition ?? null;
+    const compositionUnion = composition?.union ?? null;
+    const compositionRect = compositionUnion
+      ? {
+          left: compositionUnion.clippedX,
+          top: compositionUnion.clippedY,
+          right: compositionUnion.clippedX + compositionUnion.clippedWidth,
+          bottom: compositionUnion.clippedY + compositionUnion.clippedHeight
+        }
+      : null;
+    const compositionUiArea = compositionRect
+      ? unionArea(
+          visibleRects
+            .map((rect) => ({
+              left: Math.max(compositionRect.left, rect.left),
+              top: Math.max(compositionRect.top, rect.top),
+              right: Math.min(compositionRect.right, rect.right),
+              bottom: Math.min(compositionRect.bottom, rect.bottom)
+            }))
+            .filter((rect) => rect.right > rect.left && rect.bottom > rect.top),
+          compositionRect
+        )
+      : 0;
+    const compositionArea = compositionUnion?.clippedArea ?? 0;
+    const compositionUiOccludedRatio =
+      compositionArea > 0 ? Math.min(1, compositionUiArea / compositionArea) : 1;
+    const centerStage =
+      viewport.width <= 820
+        ? {
+            left: viewport.width * 0.24,
+            top: viewport.height * 0.2,
+            right: viewport.width * 0.76,
+            bottom: viewport.height * 0.54
+          }
+        : {
+            left: viewport.width * 0.25,
+            top: viewport.height * 0.2,
+            right: viewport.width * 0.75,
+            bottom: viewport.height * 0.72
+          };
+    const centerStageArea = Math.max(0, centerStage.right - centerStage.left) * Math.max(0, centerStage.bottom - centerStage.top);
+    const centerStageOccludedArea = unionArea(visibleRects, centerStage);
+    const uiUnionArea = unionArea(visibleRects);
+    const viewportArea = viewport.width * viewport.height;
+
+    return {
+      viewport,
+      activeZoneId: qa?.activeZoneId ?? null,
+      visibleRects,
+      uiUnionArea: round(uiUnionArea, 1),
+      stageDominance: round(1 - uiUnionArea / viewportArea),
+      centerStage: {
+        ...centerStage,
+        area: round(centerStageArea, 1),
+        occludedArea: round(centerStageOccludedArea, 1),
+        clearRatio: round(centerStageArea > 0 ? 1 - centerStageOccludedArea / centerStageArea : 0)
+      },
+      player: qa?.screen?.player ?? null,
+      playerOccluders: pointOccluders(qa?.screen?.player ?? null, viewport.width <= 820 ? 0 : 8),
+      composition,
+      compositionUiOccludedRatio: round(compositionUiOccludedRatio),
+      compositionVisibleAfterUiRatio: round((compositionUnion?.visibleRatio ?? 0) * (1 - compositionUiOccludedRatio)),
+      compositionCenterOccluders: pointOccluders(compositionUnion?.center ?? null, viewport.width <= 820 ? 0 : 8)
+    };
+  }, snapshot);
+
+  const isMobile = state.viewport.width <= 820;
+  const minDominance = isMobile ? 0.56 : 0.76;
+  const minCenterClearRatio = isMobile ? 0.78 : 0.88;
+  const maxCompositionOcclusion = isMobile ? 0.42 : 0.22;
+  const minCompositionVisibleAfterUi = isMobile ? 0.42 : 0.56;
+  const playerReadable = isMobile
+    ? state.player?.visible === true
+    : state.player?.visible === true && state.playerOccluders.length === 0;
+  const centerReadable = isMobile
+    ? state.compositionCenterOccluders.filter((selector) => selector !== ".zone-panel").length === 0
+    : state.compositionCenterOccluders.length === 0;
+  const ok =
+    state.stageDominance >= minDominance &&
+    state.centerStage.clearRatio >= minCenterClearRatio &&
+    playerReadable &&
+    centerReadable &&
+    (state.composition?.visibleLayerCount ?? 0) >= 2 &&
+    state.compositionUiOccludedRatio <= maxCompositionOcclusion &&
+    state.compositionVisibleAfterUiRatio >= minCompositionVisibleAfterUi;
+
+  const details = {
+    ...state,
+    coverage: layout?.coverage ?? null,
+    thresholds: {
+      minDominance,
+      minCenterClearRatio,
+      maxCompositionOcclusion,
+      minCompositionVisibleAfterUi,
+      requireUnoccludedPlayer: !isMobile
+    }
+  };
+
+  if (ok) {
+    pass(`playable-stage-dominance:${label}`, details);
+  } else {
+    scenarioFail(`playable-stage-dominance:${label}`, "Playable 3D stage is not dominant or readable enough.", details);
+  }
+}
+
 async function checkVisibleZoneControls(page, label) {
   const state = await page.evaluate(() => {
     const groups = [".world-map", ".mobile-zone-nav"];
@@ -2956,6 +3172,8 @@ async function checkViewport(page, viewport, label, options = {}) {
       visibleRects: layout.visibleRects
     });
   }
+
+  await checkPlayableStageDominance(page, label, layout);
 
   if (layout.textOverflow.length === 0) {
     pass(`text-overflow:${label}`);
@@ -3319,6 +3537,10 @@ async function writeReport() {
   const perceptualProofScenarios = scenarios.filter((scenario) => scenario.name.startsWith("zone-perceptual-proof:"));
   const placeCompositionCoverageScenario = scenarios.find((scenario) => scenario.name === "place-composition-coverage");
   const perceptualDistanceScenario = scenarios.find((scenario) => scenario.name === "zone-perceptual-distance");
+  const playableStageScenarios = scenarios.filter((scenario) => scenario.name.startsWith("playable-stage-dominance:"));
+  const weakestPlayableStageScenario = playableStageScenarios
+    .filter((scenario) => typeof scenario.details?.stageDominance === "number")
+    .sort((a, b) => a.details.stageDominance - b.details.stageDominance)[0];
   const miniMapSignatureVisibleScenarios = signatureVisibleScenarios.filter((scenario) =>
     scenario.name.startsWith("signature-artifact-visible:mini-map:")
   );
@@ -3436,6 +3658,13 @@ async function writeReport() {
     `- Camera safe-area checks: ${cameraSafeScenarios.filter((scenario) => scenario.status === "pass").length}/${
       cameraSafeScenarios.length
     }`,
+    `- Playable stage dominance: ${playableStageScenarios.filter((scenario) => scenario.status === "pass").length}/${
+      playableStageScenarios.length
+    }${
+      weakestPlayableStageScenario?.details
+        ? `, weakest ${weakestPlayableStageScenario.name} dominance ${weakestPlayableStageScenario.details.stageDominance}, center clear ${weakestPlayableStageScenario.details.centerStage?.clearRatio}`
+        : ""
+    }`,
     `- Fake lighting checks: ${lightingScenarios.filter((scenario) => scenario.status === "pass").length}/${
       lightingScenarios.length
     }`,
@@ -3541,6 +3770,7 @@ async function main() {
     } else {
       scenarioFail("layout:desktop", "Desktop UI layout gate failed.", desktopLayout);
     }
+    await checkPlayableStageDominance(page, "desktop", desktopLayout);
 
     if (home.canvas.ok) {
       pass("canvas-nonblank", home.canvas);
@@ -3594,8 +3824,8 @@ async function main() {
       await checkViewport(page, { width: 821, height: 900 }, "tablet-boundary-desktop");
       await checkViewport(page, { width: 820, height: 900 }, "tablet-portrait");
       await checkMobileLayout(page);
-      await checkMobileControls(page);
       await checkViewport(page, { width: 320, height: 700 }, "mobile-small");
+      await checkMobileControls(page);
       await checkViewport(page, { width: 1024, height: 768 }, "reduced-motion", { reducedMotion: "reduce" });
     }
     await page.close();

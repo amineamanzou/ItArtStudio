@@ -48,6 +48,8 @@ The runner:
 - verifies that the road graph exposes lightweight route encounter gates and
   that the real keyboard route triggers discovery moments across studio, tech,
   and art routes;
+- verifies that the visible UI leaves the playable 3D stage dominant across
+  desktop, tablet, mobile, and reduced-motion viewports;
 - verifies that rendered visual specs expose motion roles for biome-specific
   animation;
 - verifies that every zone exposes multiple local motion behaviors so the world
@@ -190,6 +192,12 @@ The runner:
   real keyboard tour. The tour must visit at least five route encounters, reach
   a measured max intensity >= 0.45, and include studio, tech, and art route
   families.
+- Playable stage dominance must prove more than low aggregate UI coverage. The
+  runner measures unioned UI occlusion, a clear center-stage rectangle, rover
+  projection, and active place-composition occlusion. Desktop/tablet views must
+  keep at least 76% of the viewport free for the 3D world; mobile views must
+  keep at least 56% free while preserving touch targets and simplified zone
+  navigation.
 - The real keyboard tour must prove kinematic driving: at least 90 physics
   samples over 120 frames, 75 moving samples, 35 input samples, 18 coasting
   samples, peak speed between 8 and 18 units/s, bounded acceleration and turn
