@@ -3,18 +3,18 @@
 Site one-page public d'IT Art Studio, studio de conseil et de creation pour
 projets exigeants.
 
-La V1 reste un site Astro statique: pas de backend, pas de base de donnees, pas
-de SPA. Le container final sert les fichiers generes avec Nginx unprivileged sur
-le port `8080`, derriere le reverse proxy de l'infra.
+La V1 reste un site Astro statique: pas de backend, pas de base de donnees. Le
+site est une experience jouable WebGL, servie en fichiers statiques. Le
+container final sert les fichiers generes avec Nginx unprivileged sur le port
+`8080`, derriere le reverse proxy de l'infra.
 
 ## Stack
 
 - Astro en output statique
 - CSS sur mesure
-- GSAP ScrollTrigger pour la narration au scroll
-- Lenis pour le scroll lisse
-- Three.js pour la scene WebGL du split IT / ART
-- Image editoriale locale dans `public/assets/`
+- Three.js pour la carte jouable
+- Donnees de zones dans `src/game/zones.ts`
+- Fallback HTML pour les contextes sans WebGL
 - Runtime production `nginxinc/nginx-unprivileged:alpine`
 
 ## Commandes locales
@@ -61,11 +61,11 @@ l'onglet **Actions**.
 
 ## Structure
 
-- `src/pages/index.astro` : contenu de la one-page cinematic
+- `src/pages/index.astro` : shell HTML de l'experience jouable
 - `src/layouts/BaseLayout.astro` : layout HTML, SEO de base, runtime client
-- `src/scripts/cinematic.ts` : GSAP, Lenis, Three.js et switch mobile
-- `src/styles/global.css` : design system, scenes, responsive
-- `public/assets/studio-artefacts.png` : visuel hero/projets V1
+- `src/game/game.ts` : moteur Three.js leger, deplacement et interactions
+- `src/game/zones.ts` : contenu editorial de la cartographie
+- `src/styles/global.css` : design system, HUD, carte, mobile et fallback
 - `PRODUCT.md` : contexte strategique pour agents et design
 - `DESIGN.md` : systeme visuel courant
 

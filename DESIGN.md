@@ -2,80 +2,94 @@
 
 ## Visual Theme
 
-IT Art Studio utilise maintenant une direction cinematic dark: une scene noire
-travaillee par un split central IT / ART, des particules WebGL sur desktop, une
-image d'atelier assombrie et une frontiere lumineuse ou `STUDIO` sert de
-passage. Le site doit se lire comme une sequence en scroll, avec peu de
-composants visibles et une forte impression de mouvement.
+IT Art Studio adopte une direction ludique: une agence tech creative presentee
+comme une carte de jeu video miniature. Le visiteur ne scrolle plus une
+sequence cinematic; il arrive directement dans un monde jouable ou chaque
+activite du studio devient un lieu a explorer.
+
+La reference assumee est `https://bruno-simon.com/`, mais l'intention n'est pas
+de copier son vehicule, sa physique ou son univers. On reprend la logique
+"contenu = lieu", la carte, les zones interactives et la memoire du geste.
 
 ## Color
 
-Tokens principaux en OKLCH:
+La palette devient plus lisible et plus jouable:
 
-- `--void`: fond noir principal.
-- `--tech`: accent cyan du cote IT.
-- `--art`: accent corail du cote ART.
-- `--studio`: blanc chaud pour le point commun et les CTAs.
-- `--glass`: surfaces translucides pour navigation, liens et contact.
+- `--ink`: texte principal sur fond sombre.
+- `--field`: vert-noir de carte miniature.
+- `--tech`: cyan electrique pour les zones IT.
+- `--art`: corail/rose pour les zones ART.
+- `--studio`: jaune chaud pour le centre commun.
+- `--panel`: surface de panneau lisible, non glass par defaut.
 
-Le contraste texte/fond doit rester AA. Les accents ne portent pas seuls une
-information critique.
+Les couleurs servent a comprendre la topologie: IT, ART et STUDIO doivent etre
+identifiables sans imposer un split strict.
 
 ## Typography
 
-Le site garde une pile systeme pour rester rapide et eviter les choix de polices
-trop reflexes:
+La V2 evite l'esthetique editorial-serieuse. Le ton devient plus joueur, mais
+reste precis:
 
-- UI et corps: `Avenir Next`, `Segoe UI`, `Helvetica Neue`, Arial, sans-serif.
-- Display ponctuel: `Bodoni 72`, Didot, `Times New Roman`, serif.
-
-Le hero reserve la serif a `STUDIO` et au CTA final. Les mots IT / ART restent
-plus directs, proches de la frontiere centrale.
+- UI et corps: pile systeme rapide.
+- Titres: graisse forte, formes nettes, pas de serif editorial.
+- Labels de carte: courts, lisibles et fonctionnels.
 
 ## Layout
 
-La page est une one-page statique composee de scenes:
+La home est une interface de jeu:
 
-1. Hero split IT / ART proche de la frontiere, avec `STUDIO` en dessous.
-2. Founder reveal avec abstractions temporaires pour tester le mouvement de tete.
-3. Pont de reseaux sociaux cliquables avec carrousel de videos en background,
-   pret a recevoir les assets reels des reseaux.
-4. Domain split plus ouvert: IA, observabilite, architecture, scaling, cloud a
-   gauche; design, 3D, collection, image et matiere a droite.
-5. Valeurs communes en trois lignes horizontales, vitesses opposees et
-   differentes.
-6. Contact final en texte pur, avec surbrillance au hover.
+1. Canvas 3D full viewport.
+2. HUD minimal: marque, statut de zone, action contact.
+3. Mini-map cliquable.
+4. Panneau HTML de zone, accessible et indexable.
+5. Controle mobile simplifie.
+6. Fallback HTML si WebGL ou JavaScript est indisponible.
 
-Le split simultane est reserve au desktop. Sur mobile, un switch fixe IT /
-Studio / Art sert de repere et le contenu reste empile, lisible et stable.
+Le site doit s'utiliser comme une carte. Le scroll devient secondaire.
 
-## Imagery
+## Cartography
 
-L'image source V1 `/public/assets/studio-artefacts.png` reste la matiere de
-fond. Les portraits fondateurs sont volontairement abstraits dans ce prototype:
-ils servent a tester le timing et l'alignement avant de consommer des credits de
-generation video ou de produire des portraits definitifs.
+Zones V1:
+
+- Studio Gate: entree et promesse.
+- AI Lab: innovation IA et prototypes.
+- Observability Tower: diagnostic, traces, logs, metriques.
+- Architecture Bridge: arbitrages systeme et design technique.
+- Cloud Dock: scaling, delivery, infrastructure.
+- Design Atelier: direction creative, image, marque.
+- 3D Foundry: volumes, objets, modelisation.
+- Fashion Room: collection, matiere, desirabilite.
+- Values Plaza: exigence, clarte, audace, transmission.
+- Contact Portal: prise de contact.
 
 ## Motion
 
-La motion est une amelioration progressive:
+La motion vient du gameplay, pas du scroll:
 
-- GSAP ScrollTrigger pour pin/scrub du hero et transitions de sections.
-- Lenis pour le scroll lisse.
-- Three.js pour les particules et le motif central sur desktop seulement.
-- `prefers-reduced-motion` supprime le runtime lourd et garde un recit statique.
-- Les ancres sont recalculees apres `ScrollTrigger.refresh()` pour tenir compte
-  du pinning et de la navigation fixe.
+- Deplacement clavier sur desktop.
+- Deplacement via boutons/mini-map sur mobile.
+- Camera isometrique qui suit le joueur.
+- Mise en lumiere de la zone active.
+- Animation douce des objets de carte.
 
-Aucune information importante ne depend de l'animation: le contenu reste present
-par defaut.
+`prefers-reduced-motion` conserve la carte et limite les mouvements decoratifs.
+
+## Architecture
+
+Le moteur V1 reste volontairement simple:
+
+- Astro pour le shell, SEO, GitHub Pages.
+- Three.js pour la carte.
+- Deplacement kinematique sans Rapier.
+- Zones declaratives dans `src/game/zones.ts`.
+- UI HTML synchronisee depuis le moteur.
+- Pas d'asset 3D lourd avant validation de la navigation.
 
 ## Components
 
-- `cinematic-nav`: navigation fixe compacte.
-- `hero-cinematic`: split principal, canvas WebGL, marque centrale.
-- `founder-reveal`: scene de test pour les futurs portraits.
-- `social-bridge`: liens reseaux.
-- `domain-split`: deux colonnes IT / ART.
-- `shared-values`: valeurs transverses.
-- `contact-final`: CTA mailto.
+- `game-site`: surface principale.
+- `studio-game`: canvas + HUD + panels.
+- `world-map`: mini-map.
+- `zone-panel`: contenu de la zone active.
+- `mobile-drive`: controles tactiles.
+- `fallback-zone-list`: contenu lisible sans WebGL.

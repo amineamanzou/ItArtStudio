@@ -1,6 +1,6 @@
 ---
 import "../styles/global.css";
-import cinematicScriptUrl from "../scripts/cinematic.ts?url";
+import gameScriptUrl from "../game/game.ts?url";
 
 interface Props {
   title?: string;
@@ -30,6 +30,6 @@ const {
   </head>
   <body>
     <slot />
-    <script is:inline type="module" src={cinematicScriptUrl}></script>
+    <script is:inline type="module" src={gameScriptUrl}></script>
   </body>
 </html>
