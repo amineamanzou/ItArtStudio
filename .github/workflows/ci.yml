@@ -39,6 +39,15 @@ jobs:
           SITE_URL: https://amineamanzou.github.io
           BASE_PATH: /ItArtStudio
 
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Smoke GitHub Pages artifact
+        run: npm run qa:game:static
+        env:
+          QA_PORT: "4333"
+          QA_BASE_URL: "http://127.0.0.1:4333/ItArtStudio/?qa=1"
+
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4
         with:

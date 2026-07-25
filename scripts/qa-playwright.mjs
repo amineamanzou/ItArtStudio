@@ -34,6 +34,7 @@ const requiresQaStep = (url) => {
   }
 };
 const qaProfile = process.env.QA_PROFILE === "quick" ? "quick" : "full";
+const browserChannel = process.env.QA_BROWSER_CHANNEL ?? (process.env.GITHUB_ACTIONS === "true" ? undefined : "chrome");
 const outputRoot = path.join(root, "qa", "artifacts", new Date().toISOString().replace(/[:.]/g, "-"));
 const screenshotsDir = path.join(outputRoot, "screenshots");
 const reportJsonPath = path.join(outputRoot, "report.json");
@@ -75,26 +76,41 @@ function attachPageDiagnostics(page, label) {
 }
 
 function loadPlaywright() {
+  if (process.env.GITHUB_ACTIONS !== "true") {
+    delete process.env.PLAYWRIGHT_BROWSERS_PATH;
+    delete process.env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD;
+  }
+
+  const systemPlaywright = loadSystemPlaywright();
+  if (systemPlaywright && process.env.GITHUB_ACTIONS !== "true") {
+    return systemPlaywright;
+  }
+
   try {
     return require("playwright");
   } catch {
-    const wrapperPath = "/run/current-system/sw/bin/playwright";
-    if (!fs.existsSync(wrapperPath)) {
-      throw new Error("Playwright module not found and system playwright wrapper is unavailable.");
+    if (systemPlaywright) {
+      return systemPlaywright;
     }
-
-    const wrapper = fs.readFileSync(wrapperPath, "utf8");
-    const nodePathMatch = wrapper.match(/export NODE_PATH="([^$"]+)/);
-    if (!nodePathMatch) {
-      throw new Error(`Could not infer NODE_PATH from ${wrapperPath}.`);
-    }
-
-    process.env.NODE_PATH = process.env.NODE_PATH
-      ? `${nodePathMatch[1]}:${process.env.NODE_PATH}`
-      : nodePathMatch[1];
-    Module._initPaths();
-    return require("playwright");
+    throw new Error("Playwright module not found and system playwright wrapper is unavailable.");
   }
+}
+
+function loadSystemPlaywright() {
+  const wrapperPath = "/run/current-system/sw/bin/playwright";
+  if (!fs.existsSync(wrapperPath)) {
+    return null;
+  }
+
+  const wrapper = fs.readFileSync(wrapperPath, "utf8");
+  const nodePathMatch = wrapper.match(/export NODE_PATH="([^$"]+)/);
+  if (!nodePathMatch) {
+    throw new Error(`Could not infer NODE_PATH from ${wrapperPath}.`);
+  }
+
+  process.env.NODE_PATH = process.env.NODE_PATH ? `${nodePathMatch[1]}:${process.env.NODE_PATH}` : nodePathMatch[1];
+  Module._initPaths();
+  return require("playwright");
 }
 
 function startServer() {
@@ -5847,6 +5863,7 @@ async function main() {
     await waitForServer(server);
     browser = await chromium.launch({
       headless: true,
+      ...(browserChannel ? { channel: browserChannel } : {}),
       args: [
         "--disable-background-timer-throttling",
         "--disable-backgrounding-occluded-windows",
