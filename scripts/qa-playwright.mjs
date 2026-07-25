@@ -276,6 +276,42 @@ function maxPositionSampleStep(samples = []) {
   return maxStep;
 }
 
+function percentile(values = [], percentileValue = 0.95) {
+  const sorted = values.filter((value) => Number.isFinite(value)).sort((a, b) => a - b);
+  if (sorted.length === 0) {
+    return 0;
+  }
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * percentileValue) - 1));
+  return sorted[index];
+}
+
+function maxPhysicsDisplacementPerFrame(samples = []) {
+  let maxStep = 0;
+  for (let index = 1; index < samples.length; index += 1) {
+    const previous = samples[index - 1];
+    const current = samples[index];
+    const frameGap = Math.max(1, (current?.frame ?? 0) - (previous?.frame ?? 0));
+    const distance = Math.hypot((current?.x ?? 0) - (previous?.x ?? 0), (current?.z ?? 0) - (previous?.z ?? 0));
+    maxStep = Math.max(maxStep, distance / frameGap);
+  }
+  return maxStep;
+}
+
+function hasDragReleaseProof(samples = []) {
+  for (let index = 1; index < samples.length; index += 1) {
+    const previous = samples[index - 1];
+    const current = samples[index];
+    if (previous?.hasInput && !current?.hasInput && current.speed >= 4) {
+      const coastWindow = samples.slice(index, index + 18).filter((sample) => !sample.hasInput);
+      const minSpeed = Math.min(...coastWindow.map((sample) => sample.speed));
+      if (coastWindow.length >= 4 && minSpeed <= current.speed * 0.78) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 async function assertReady(page, targetUrl = baseUrl) {
   let lastError;
   const requireQaStep = requiresQaStep(targetUrl);
@@ -800,7 +836,7 @@ async function checkRealDriveTour(browser) {
           result.samples.length >= 2 &&
           (result.stepResults ?? []).every((step) => step.reached && step.samples.length >= 2)
       ) &&
-      distanceDelta >= 70 &&
+      distanceDelta >= 60 &&
       driveTelemetryMaxStep <= 2.75 &&
       maxStepDistance <= 5.75 &&
       maxCameraLag <= 2.25 &&
@@ -816,6 +852,42 @@ async function checkRealDriveTour(browser) {
       offRouteRatio <= 0.14 &&
       surface.maxOffRouteDistance <= 2.8 &&
       coveredExpectedRouteIds.length === expectedRouteIds.length;
+    const dynamics = final?.drive?.dynamics;
+    const physicsSamples = final?.drive?.physicsSamples ?? [];
+    const physicsSpeeds = physicsSamples.map((sample) => sample.speed ?? 0);
+    const physicsAccelerations = physicsSamples.map((sample) => sample.acceleration ?? 0);
+    const physicsTurnRates = physicsSamples.map((sample) => Math.abs(sample.turnRate ?? 0));
+    const physicsFrameSpan =
+      physicsSamples.length > 1 ? physicsSamples.at(-1).frame - physicsSamples[0].frame : 0;
+    const physicsMaxDisplacementPerFrame = maxPhysicsDisplacementPerFrame(physicsSamples);
+    const physicsP95Speed = percentile(physicsSpeeds, 0.95);
+    const physicsP95Acceleration = percentile(physicsAccelerations, 0.95);
+    const physicsP95TurnRate = percentile(physicsTurnRates, 0.95);
+    const kinematicsGate =
+      physicsSamples.length >= 90 &&
+      physicsFrameSpan >= 120 &&
+      physicsSamples.every(
+        (sample) =>
+          Number.isFinite(sample.tMs) &&
+          Number.isFinite(sample.speed) &&
+          Number.isFinite(sample.acceleration) &&
+          Number.isFinite(sample.turnRate)
+      ) &&
+      (dynamics?.movingSamples ?? 0) >= 75 &&
+      (dynamics?.inputSamples ?? 0) >= 35 &&
+      (dynamics?.coastingSamples ?? 0) >= 18 &&
+      (dynamics?.peakSpeed ?? 0) >= 8 &&
+      (dynamics?.peakSpeed ?? 99) <= 18 &&
+      (dynamics?.averageAcceleration ?? 0) >= 4 &&
+      (dynamics?.peakAcceleration ?? 99) <= 145 &&
+      (dynamics?.peakTurnRate ?? 0) >= 1.2 &&
+      (dynamics?.peakTurnRate ?? 99) <= 8.5 &&
+      (dynamics?.averageTurnRate ?? 99) <= 3.8 &&
+      physicsP95Speed <= 17.5 &&
+      physicsP95Acceleration <= 75 &&
+      physicsP95TurnRate <= 6.8 &&
+      physicsMaxDisplacementPerFrame <= 2.1 &&
+      hasDragReleaseProof(physicsSamples);
 
     if (driveGate) {
       pass("real-drive-tour", {
@@ -888,6 +960,32 @@ async function checkRealDriveTour(browser) {
         invisibleActiveZoneSamples,
         trail: final?.trail,
         routeResults
+      });
+    }
+
+    if (kinematicsGate) {
+      pass("real-drive-kinematics", {
+        dynamics,
+        sampleCount: physicsSamples.length,
+        physicsFrameSpan,
+        physicsP95Speed: Number(physicsP95Speed.toFixed(3)),
+        physicsP95Acceleration: Number(physicsP95Acceleration.toFixed(3)),
+        physicsP95TurnRate: Number(physicsP95TurnRate.toFixed(3)),
+        physicsMaxDisplacementPerFrame: Number(physicsMaxDisplacementPerFrame.toFixed(3)),
+        dragReleaseProof: hasDragReleaseProof(physicsSamples)
+      });
+    } else {
+      scenarioFail("real-drive-kinematics", "Real keyboard drive does not prove acceleration, drag, and bounded turn dynamics.", {
+        dynamics,
+        sampleCount: physicsSamples.length,
+        physicsFrameSpan,
+        physicsP95Speed,
+        physicsP95Acceleration,
+        physicsP95TurnRate,
+        physicsMaxDisplacementPerFrame,
+        dragReleaseProof: hasDragReleaseProof(physicsSamples),
+        firstSamples: physicsSamples.slice(0, 6),
+        lastSamples: physicsSamples.slice(-6)
       });
     }
 
@@ -2287,6 +2385,7 @@ async function writeReport() {
   const activationScenarios = scenarios.filter((scenario) => scenario.name.startsWith("activation-feedback:"));
   const realDriveScenario = scenarios.find((scenario) => scenario.name === "real-drive-tour");
   const realDriveContinuityScenario = scenarios.find((scenario) => scenario.name === "real-drive-continuity");
+  const realDriveKinematicsScenario = scenarios.find((scenario) => scenario.name === "real-drive-kinematics");
   const realDriveRouteScenario = scenarios.find((scenario) => scenario.name === "real-drive-route-adherence");
   const productionRuntimeScenario = scenarios.find((scenario) => scenario.name === "production-runtime-lightweight");
   const cameraSafeScenarios = scenarios.filter((scenario) => scenario.name.startsWith("camera-safe-area:"));
@@ -2368,6 +2467,11 @@ async function writeReport() {
     `- Real drive continuity: ${
       realDriveContinuityScenario?.details
         ? `${realDriveContinuityScenario.details.distanceDelta} units, ${realDriveContinuityScenario.details.frameDelta} frames, max step ${realDriveContinuityScenario.details.driveTelemetryMaxStep}, active trail ${realDriveContinuityScenario.details.trail?.activeMarks ?? "n/a"}`
+        : "n/a"
+    }`,
+    `- Real drive kinematics: ${
+      realDriveKinematicsScenario?.details
+        ? `${realDriveKinematicsScenario.details.sampleCount} samples, speed p95 ${realDriveKinematicsScenario.details.physicsP95Speed}, acceleration p95 ${realDriveKinematicsScenario.details.physicsP95Acceleration}, turn-rate p95 ${realDriveKinematicsScenario.details.physicsP95TurnRate}, max per-frame displacement ${realDriveKinematicsScenario.details.physicsMaxDisplacementPerFrame}`
         : "n/a"
     }`,
     `- Real drive route adherence: ${

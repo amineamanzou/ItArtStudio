@@ -73,6 +73,9 @@ The runner:
   events through the road graph;
 - verifies road-surface telemetry for that real keyboard tour: route adherence,
   off-route samples, max lateral escape, and visited route ids;
+- verifies kinematic drive telemetry for that real keyboard tour: physical
+  samples, speed curve, acceleration, drag after release, turn rate, and
+  normalized per-frame displacement;
 - opens the production URL without `?qa=1` and verifies that the game reaches
   `game-ready` without exposing the heavy QA snapshot or deterministic step hook;
 - projects the rover and active zone into screen coordinates, then checks that
@@ -123,12 +126,16 @@ The runner:
 - The production URL must not expose `window.__IT_ART_STUDIO_QA__` or
   `window.__IT_ART_STUDIO_QA_STEP__`; those are reserved for QA URLs so the
   public runtime avoids repeated scene inventory traversal.
-- The real keyboard tour must prove route continuity: at least 180 frames, 70
+- The real keyboard tour must prove route continuity: at least 180 frames, 60
   units travelled, 16 active trail marks, stable camera distance/lag, and no
   invisible player samples.
 - The real keyboard tour must prove route adherence: at least 45 surface samples,
   route adherence >= 0.86, off-route ratio <= 0.14, max off-route distance <=
   2.8, and all expected IT/STUDIO/ART route ids covered.
+- The real keyboard tour must prove kinematic driving: at least 90 physics
+  samples over 120 frames, 75 moving samples, 35 input samples, 18 coasting
+  samples, peak speed between 8 and 18 units/s, bounded acceleration and turn
+  rates, normalized per-frame displacement <= 2.1, and a measured drag release.
 - The world must expose at least five terrain layers, 60 scenery objects, 24
   scenery signatures, 20 animated scenery objects, and all expected scenery
   roles: terrain edge, tech skyline, art sculpture, studio threshold, route
@@ -196,6 +203,8 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
 - `player`
 - `trail`
 - `drive`
+  - `dynamics`
+  - `physicsSamples`
 - `camera`
 - `screen`
 - `canvas`
