@@ -22,6 +22,7 @@ export type ZoneVisualSpec = {
   id: string;
   biome: "threshold" | "lab" | "tower" | "bridge" | "dock" | "atelier" | "foundry" | "runway" | "plaza" | "portal";
   materialVariants: string[];
+  animation: { idleSpin: number; activeSpin: number; activeScale: number; pulse: number };
   decals: ZoneDecalSpec[];
   propClusters: ZonePropClusterSpec[];
 };
@@ -37,6 +38,7 @@ export const zoneVisualSpecs: Record<string, ZoneVisualSpec> = {
     id: "studio-gate",
     biome: "threshold",
     materialVariants: ["studio-glow", "tech-edge", "art-edge", "warm-stone"],
+    animation: { idleSpin: 0.1, activeSpin: 0.36, activeScale: 1.13, pulse: 0.1 },
     decals: decals("studio-gate", [
       { offset: [-0.78, 0.18], size: [0.72, 0.08], rotation: -0.18, tone: "secondary" },
       { offset: [0.78, -0.18], size: [0.72, 0.08], rotation: -0.18, tone: "accent" },
@@ -52,6 +54,7 @@ export const zoneVisualSpecs: Record<string, ZoneVisualSpec> = {
     id: "ai-lab",
     biome: "lab",
     materialVariants: ["cyan-glass", "black-console", "warm-screen", "signal-dot"],
+    animation: { idleSpin: 0.16, activeSpin: 0.5, activeScale: 1.14, pulse: 0.18 },
     decals: decals("ai-lab", [
       { offset: [-0.72, -0.62], size: [0.92, 0.07], rotation: 0.42, tone: "light" },
       { offset: [0.66, 0.54], size: [0.74, 0.07], rotation: -0.36, tone: "accent" },
@@ -67,6 +70,7 @@ export const zoneVisualSpecs: Record<string, ZoneVisualSpec> = {
     id: "observability-tower",
     biome: "tower",
     materialVariants: ["radar-cyan", "deep-console", "trace-line", "cream-signal"],
+    animation: { idleSpin: 0.12, activeSpin: 0.58, activeScale: 1.12, pulse: 0.22 },
     decals: decals("observability-tower", [
       { offset: [-0.82, 0.42], size: [0.88, 0.06], rotation: 1.18, tone: "accent" },
       { offset: [0.74, -0.48], size: [0.82, 0.06], rotation: 1.18, tone: "light" },
@@ -82,6 +86,7 @@ export const zoneVisualSpecs: Record<string, ZoneVisualSpec> = {
     id: "architecture-bridge",
     biome: "bridge",
     materialVariants: ["structural-cyan", "cream-truss", "black-span", "cool-shadow"],
+    animation: { idleSpin: 0.06, activeSpin: 0.26, activeScale: 1.1, pulse: 0.08 },
     decals: decals("architecture-bridge", [
       { offset: [-0.92, -0.14], size: [0.82, 0.07], rotation: -0.74, tone: "light" },
       { offset: [0.92, 0.14], size: [0.82, 0.07], rotation: -0.74, tone: "accent" },
@@ -97,6 +102,7 @@ export const zoneVisualSpecs: Record<string, ZoneVisualSpec> = {
     id: "cloud-dock",
     biome: "dock",
     materialVariants: ["dock-cyan", "cargo-cream", "harbor-black", "cold-signal"],
+    animation: { idleSpin: 0.09, activeSpin: 0.34, activeScale: 1.11, pulse: 0.13 },
     decals: decals("cloud-dock", [
       { offset: [-0.9, 0.78], size: [0.8, 0.06], rotation: 0.04, tone: "dark" },
       { offset: [0.85, 0.8], size: [0.7, 0.06], rotation: 0.04, tone: "light" },
@@ -112,6 +118,7 @@ export const zoneVisualSpecs: Record<string, ZoneVisualSpec> = {
     id: "design-atelier",
     biome: "atelier",
     materialVariants: ["coral-canvas", "cream-paper", "cyan-swatch", "ink-table"],
+    animation: { idleSpin: 0.13, activeSpin: 0.4, activeScale: 1.14, pulse: 0.2 },
     decals: decals("design-atelier", [
       { offset: [-0.86, -0.48], size: [0.76, 0.08], rotation: -0.18, tone: "light" },
       { offset: [0.84, 0.46], size: [0.76, 0.08], rotation: 0.26, tone: "accent" },
@@ -127,6 +134,7 @@ export const zoneVisualSpecs: Record<string, ZoneVisualSpec> = {
     id: "three-d-foundry",
     biome: "foundry",
     materialVariants: ["molten-coral", "cream-form", "cyan-grid", "dark-crane"],
+    animation: { idleSpin: 0.11, activeSpin: 0.48, activeScale: 1.13, pulse: 0.18 },
     decals: decals("three-d-foundry", [
       { offset: [-0.76, 0.72], size: [0.92, 0.07], rotation: 0.72, tone: "accent" },
       { offset: [0.76, -0.72], size: [0.92, 0.07], rotation: 0.72, tone: "light" },
@@ -142,6 +150,7 @@ export const zoneVisualSpecs: Record<string, ZoneVisualSpec> = {
     id: "fashion-room",
     biome: "runway",
     materialVariants: ["runway-coral", "cream-fabric", "cyan-stitch", "black-rail"],
+    animation: { idleSpin: 0.08, activeSpin: 0.3, activeScale: 1.12, pulse: 0.16 },
     decals: decals("fashion-room", [
       { offset: [-0.94, 0], size: [0.82, 0.06], rotation: 1.57, tone: "light" },
       { offset: [0.94, 0], size: [0.82, 0.06], rotation: 1.57, tone: "accent" },
@@ -157,6 +166,7 @@ export const zoneVisualSpecs: Record<string, ZoneVisualSpec> = {
     id: "values-plaza",
     biome: "plaza",
     materialVariants: ["warm-plaza", "cream-ring", "cyan-axis", "coral-axis"],
+    animation: { idleSpin: 0.1, activeSpin: 0.38, activeScale: 1.13, pulse: 0.12 },
     decals: decals("values-plaza", [
       { offset: [-0.88, 0.56], size: [0.92, 0.07], rotation: -0.38, tone: "secondary" },
       { offset: [0.88, -0.56], size: [0.92, 0.07], rotation: -0.38, tone: "accent" },
@@ -172,6 +182,7 @@ export const zoneVisualSpecs: Record<string, ZoneVisualSpec> = {
     id: "contact-portal",
     biome: "portal",
     materialVariants: ["portal-gold", "cream-mail", "cyan-entry", "coral-entry"],
+    animation: { idleSpin: 0.14, activeSpin: 0.44, activeScale: 1.15, pulse: 0.2 },
     decals: decals("contact-portal", [
       { offset: [-0.9, -0.64], size: [0.82, 0.07], rotation: 0.36, tone: "secondary" },
       { offset: [0.9, -0.64], size: [0.82, 0.07], rotation: -0.36, tone: "accent" },

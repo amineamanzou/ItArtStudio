@@ -270,11 +270,27 @@ async function assertReady(page) {
     throw lastError;
   }
 
-  await page.waitForLoadState("load", { timeout: 5_000 }).catch(() => {});
-  await page.waitForFunction(
-    () => document.documentElement.classList.contains("game-ready") && window.__IT_ART_STUDIO_QA__?.frameCount > 2,
-    { timeout: 12_000 }
-  );
+  let ready = false;
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    await page.waitForLoadState("load", { timeout: 5_000 }).catch(() => {});
+    try {
+      await page.waitForFunction(
+        () => document.documentElement.classList.contains("game-ready") && window.__IT_ART_STUDIO_QA__?.frameCount > 2,
+        { timeout: 15_000 }
+      );
+      ready = true;
+      break;
+    } catch (error) {
+      if (attempt === 2) {
+        throw error;
+      }
+      await page.reload({ waitUntil: "domcontentloaded", timeout: 10_000 });
+      await wait(900);
+    }
+  }
+  if (!ready) {
+    throw new Error("Game did not reach ready state.");
+  }
   if (qaMode) {
     await page.waitForFunction(() => typeof window.__IT_ART_STUDIO_QA_STEP__ === "function", { timeout: 5_000 });
   }
@@ -403,6 +419,10 @@ async function checkWorldRichness(page) {
       zone.propClusters < Math.max(3, zone.expectedVisuals?.propClusters ?? 0) ||
       zone.propObjects < Math.max(9, zone.expectedVisuals?.propObjects ?? 0) ||
       zone.materialVariants < Math.max(6, zone.expectedVisuals?.materialVariants ?? 0) ||
+      zone.missingMaterialVariants?.length > 0 ||
+      !zone.animationMatchesSpec ||
+      zone.motionObjectCount <
+        Math.max(15, (zone.expectedVisuals?.propObjects ?? 0) + (zone.expectedVisuals?.decals ?? 0)) ||
       !zone.visualFingerprint ||
       !zone.hasLabel ||
       zone.bounds.height < 1.25 ||
@@ -442,6 +462,7 @@ async function checkWorldRichness(page) {
     world.visualDecals >= snapshot.zoneCount * 3 &&
     world.propClusters >= snapshot.zoneCount * 3 &&
     world.materialVariants >= snapshot.zoneCount * 6 &&
+    world.motionRoles >= visualSpecZones.reduce((sum, zone) => sum + (zone.motionObjectCount ?? 0), 0) &&
     duplicateFingerprints.length === 0 &&
     thinZones.length === 0;
 
@@ -451,6 +472,8 @@ async function checkWorldRichness(page) {
       visualDecals: world.visualDecals,
       propClusters: world.propClusters,
       materialVariants: world.materialVariants,
+      motionRoles: world.motionRoles,
+      motionRolesByType: world.motionRolesByType,
       fingerprints: visualSpecZones.map((zone) => zone.visualFingerprint)
     });
   } else {
@@ -459,6 +482,8 @@ async function checkWorldRichness(page) {
       visualDecals: world?.visualDecals,
       propClusters: world?.propClusters,
       materialVariants: world?.materialVariants,
+      motionRoles: world?.motionRoles,
+      motionRolesByType: world?.motionRolesByType,
       duplicateFingerprints,
       thinZones,
       zones: visualSpecZones
@@ -806,6 +831,7 @@ async function writeReport() {
     `- Visual decals: ${world?.visualDecals ?? "n/a"}`,
     `- Prop clusters: ${world?.propClusters ?? "n/a"}`,
     `- Material variants: ${world?.materialVariants ?? "n/a"}`,
+    `- Motion roles: ${world?.motionRoles ?? "n/a"}`,
     `- Player parts: ${player?.meshCount ?? "n/a"} (${player?.wheelCount ?? "n/a"} wheels)`,
     "",
     "## Screenshots",

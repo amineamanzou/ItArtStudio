@@ -38,6 +38,8 @@ The runner:
 - verifies that every `ZoneVisualSpec` is materialized in the rendered scene
   graph with decals, prop clusters, prop objects, material variants, and a
   distinct visual fingerprint;
+- verifies that rendered visual specs expose motion roles for biome-specific
+  animation;
 - records frame telemetry before gameplay scenarios;
 - drives the player with keyboard input through tech, art, and contact zones;
 - runs one real `page.keyboard.press()` smoke test against the production
@@ -69,6 +71,11 @@ The runner:
   prop clusters, nine prop objects, six material variants, and a distinct
   fingerprint. The rendered counts must also meet or exceed the expectations
   derived from that zone's spec.
+- Rendered semantic material variants must cover the variants declared by the
+  zone spec.
+- Applied animation hints must match the zone spec.
+- The world must expose enough motion roles to prove visual details are
+  animation-ready, not static decoration only.
 - The playable avatar must expose modeled parts, four wheels, and minimum 3D
   bounds.
 - Frame telemetry must be present in the QA snapshot.

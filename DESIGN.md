@@ -109,6 +109,7 @@ Le moteur V1 reste volontairement simple:
 - Deplacement kinematique sans Rapier.
 - Zones declaratives dans `src/game/zones.ts`.
 - Specs visuelles declaratives dans `src/game/visual-specs.ts`.
+- Rendu des specs dans `src/game/zone-visual-renderer.ts`.
 - Landmarks proceduraux dans `src/game/procedural-assets.ts`.
 - UI HTML synchronisee depuis le moteur.
 - Pas d'asset 3D lourd avant validation par QA.
@@ -152,6 +153,12 @@ Gates V1.4:
   clusters de props, objets de props et fingerprints distincts par zone;
 - refus des zones qui partagent la meme empreinte visuelle ou qui n'exposent
   que le landmark central.
+
+Gates V1.5:
+
+- animation hints par biome (`idleSpin`, `activeSpin`, `activeScale`, `pulse`);
+- roles de mouvement tagges sur decals, clusters et props;
+- verification QA du nombre de roles animes pour eviter un monde statique.
 
 ## Components
 
