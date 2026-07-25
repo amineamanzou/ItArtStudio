@@ -50,6 +50,8 @@ The runner:
   and art routes;
 - verifies that the visible UI leaves the playable 3D stage dominant across
   desktop, tablet, mobile, and reduced-motion viewports;
+- verifies that a real keyboard route can drive into an active route encounter
+  that is visible on screen together with a readable rover;
 - verifies that rendered visual specs expose motion roles for biome-specific
   animation;
 - verifies that every zone exposes multiple local motion behaviors so the world
@@ -198,6 +200,11 @@ The runner:
   keep at least 76% of the viewport free for the 3D world; mobile views must
   keep at least 56% free while preserving touch targets and simplified zone
   navigation.
+- Route encounter visibility must be proven after real keyboard driving, not by
+  teleports or DOM mutation. The runner drives to a known encounter, then checks
+  `screen.playerRect` and `screen.activeRouteEncounter` for visible screen-space
+  bounds, low UI occlusion, sufficient active intensity, and sampled canvas ROI
+  detail.
 - The real keyboard tour must prove kinematic driving: at least 90 physics
   samples over 120 frames, 75 moving samples, 35 input samples, 18 coasting
   samples, peak speed between 8 and 18 units/s, bounded acceleration and turn

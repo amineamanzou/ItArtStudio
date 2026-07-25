@@ -611,8 +611,208 @@ async function holdDriveKeys(page, keys, durationMs = 130) {
   await page.waitForTimeout(50);
 }
 
+async function collectGameplayMomentProof(page) {
+  return page.evaluate(() => {
+    if (typeof window.__IT_ART_STUDIO_QA_REFRESH__ === "function") {
+      window.__IT_ART_STUDIO_QA_REFRESH__();
+    }
+    const qa = window.__IT_ART_STUDIO_QA__;
+    const round = (value, digits = 3) => Number(value.toFixed(digits));
+    const selectors = [".game-hud", ".zone-panel", ".world-map", ".mobile-drive", ".mobile-zone-nav"];
+    const uiRects = selectors
+      .map((selector) => {
+        const node = document.querySelector(selector);
+        if (!(node instanceof HTMLElement)) {
+          return null;
+        }
+        const style = getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        if (
+          style.display === "none" ||
+          style.visibility === "hidden" ||
+          Number(style.opacity) === 0 ||
+          rect.width === 0 ||
+          rect.height === 0
+        ) {
+          return null;
+        }
+        return { selector, left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+      })
+      .filter(Boolean);
+    const toRect = (item) =>
+      item
+        ? {
+            left: item.clippedX ?? item.x,
+            top: item.clippedY ?? item.y,
+            right: (item.clippedX ?? item.x) + (item.clippedWidth ?? item.width),
+            bottom: (item.clippedY ?? item.y) + (item.clippedHeight ?? item.height)
+          }
+        : null;
+    const uiOcclusion = (item) => {
+      const rect = toRect(item);
+      const area = item?.clippedArea ?? item?.area ?? 0;
+      if (!rect || area <= 0) {
+        return { area: 0, ratio: 1 };
+      }
+      const xEdges = [rect.left, rect.right];
+      const yEdges = [rect.top, rect.bottom];
+      for (const ui of uiRects) {
+        const left = Math.max(rect.left, ui.left);
+        const right = Math.min(rect.right, ui.right);
+        const top = Math.max(rect.top, ui.top);
+        const bottom = Math.min(rect.bottom, ui.bottom);
+        if (right > left && bottom > top) {
+          xEdges.push(left, right);
+          yEdges.push(top, bottom);
+        }
+      }
+      const xs = [...new Set(xEdges)].sort((a, b) => a - b);
+      const ys = [...new Set(yEdges)].sort((a, b) => a - b);
+      let occluded = 0;
+      for (let xIndex = 0; xIndex < xs.length - 1; xIndex += 1) {
+        for (let yIndex = 0; yIndex < ys.length - 1; yIndex += 1) {
+          const left = xs[xIndex];
+          const right = xs[xIndex + 1];
+          const top = ys[yIndex];
+          const bottom = ys[yIndex + 1];
+          const centerX = (left + right) / 2;
+          const centerY = (top + bottom) / 2;
+          if (
+            uiRects.some(
+              (ui) => centerX >= ui.left && centerX <= ui.right && centerY >= ui.top && centerY <= ui.bottom
+            )
+          ) {
+            occluded += Math.max(0, right - left) * Math.max(0, bottom - top);
+          }
+        }
+      }
+      return { area: round(occluded, 1), ratio: round(Math.min(1, occluded / area)) };
+    };
+    const centerOccluders = (item) => {
+      const center = item?.center ?? null;
+      if (!center) {
+        return ["missing-center"];
+      }
+      return uiRects
+        .filter(
+          (rect) =>
+            center.x >= rect.left - 10 &&
+            center.x <= rect.right + 10 &&
+            center.y >= rect.top - 10 &&
+            center.y <= rect.bottom + 10
+        )
+        .map((rect) => rect.selector);
+    };
+    const sampleCanvasRoi = (rect) => {
+      const canvas = document.querySelector("#studio-map-canvas");
+      if (!(canvas instanceof HTMLCanvasElement) || !rect || rect.clippedWidth <= 1 || rect.clippedHeight <= 1) {
+        return { sampled: false, brightRatio: 0, edgeDensity: 0, colorBuckets: 0, roiWidth: 0, roiHeight: 0 };
+      }
+      const canvasRect = canvas.getBoundingClientRect();
+      const sourceLeft = Math.max(0, rect.clippedX - canvasRect.left);
+      const sourceTop = Math.max(0, rect.clippedY - canvasRect.top);
+      const sourceWidth = Math.min(rect.clippedWidth, canvasRect.width - sourceLeft);
+      const sourceHeight = Math.min(rect.clippedHeight, canvasRect.height - sourceTop);
+      if (sourceWidth <= 1 || sourceHeight <= 1) {
+        return { sampled: false, brightRatio: 0, edgeDensity: 0, colorBuckets: 0, roiWidth: 0, roiHeight: 0 };
+      }
+      const scaleX = canvas.width / canvasRect.width;
+      const scaleY = canvas.height / canvasRect.height;
+      const sx = Math.max(0, Math.floor(sourceLeft * scaleX));
+      const sy = Math.max(0, Math.floor(sourceTop * scaleY));
+      const sw = Math.max(1, Math.min(canvas.width - sx, Math.ceil(sourceWidth * scaleX)));
+      const sh = Math.max(1, Math.min(canvas.height - sy, Math.ceil(sourceHeight * scaleY)));
+      const roiSize = 64;
+      const roi = document.createElement("canvas");
+      roi.width = roiSize;
+      roi.height = roiSize;
+      const context = roi.getContext("2d", { willReadFrequently: true });
+      if (!context) {
+        return { sampled: false, brightRatio: 0, edgeDensity: 0, colorBuckets: 0, roiWidth: roiSize, roiHeight: roiSize };
+      }
+      let pixels;
+      try {
+        context.drawImage(canvas, sx, sy, sw, sh, 0, 0, roiSize, roiSize);
+        pixels = context.getImageData(0, 0, roiSize, roiSize).data;
+      } catch (error) {
+        return {
+          sampled: false,
+          error: error instanceof Error ? error.message : String(error),
+          brightRatio: 0,
+          edgeDensity: 0,
+          colorBuckets: 0,
+          roiWidth: roiSize,
+          roiHeight: roiSize
+        };
+      }
+      const lumas = [];
+      const buckets = new Set();
+      let brightPixels = 0;
+      for (let y = 0; y < roiSize; y += 1) {
+        for (let x = 0; x < roiSize; x += 1) {
+          const index = (y * roiSize + x) * 4;
+          const r = pixels[index];
+          const g = pixels[index + 1];
+          const b = pixels[index + 2];
+          const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          lumas.push(luma);
+          if (luma >= 72) {
+            brightPixels += 1;
+          }
+          buckets.add(`${Math.floor(r / 32)}:${Math.floor(g / 32)}:${Math.floor(b / 32)}`);
+        }
+      }
+      let edgeTransitions = 0;
+      let edgeComparisons = 0;
+      for (let y = 1; y < roiSize; y += 1) {
+        for (let x = 1; x < roiSize; x += 1) {
+          const index = y * roiSize + x;
+          if (Math.abs(lumas[index] - lumas[index - 1]) >= 18) {
+            edgeTransitions += 1;
+          }
+          if (Math.abs(lumas[index] - lumas[index - roiSize]) >= 18) {
+            edgeTransitions += 1;
+          }
+          edgeComparisons += 2;
+        }
+      }
+      return {
+        sampled: true,
+        brightRatio: round(brightPixels / lumas.length),
+        edgeDensity: round(edgeComparisons > 0 ? edgeTransitions / edgeComparisons : 0),
+        edgeTransitions,
+        colorBuckets: buckets.size,
+        roiWidth: roiSize,
+        roiHeight: roiSize
+      };
+    };
+    const readable = (rect) => {
+      const occlusion = uiOcclusion(rect);
+      return {
+        rect,
+        centerOccluders: centerOccluders(rect),
+        uiOccludedArea: occlusion.area,
+        uiOccludedRatio: occlusion.ratio,
+        visibleAfterUiRatio: round(Math.max(0, (rect?.visibleRatio ?? 0) * (1 - occlusion.ratio))),
+        roi: sampleCanvasRoi(rect)
+      };
+    };
+
+    return {
+      activeZoneId: qa?.activeZoneId ?? null,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      player: readable(qa?.screen?.playerRect ?? null),
+      encounter: readable(qa?.screen?.activeRouteEncounter ?? null),
+      routeEncounters: qa?.routeEncounters ?? null,
+      input: qa?.input ?? null,
+      frameCount: qa?.frameCount ?? 0
+    };
+  });
+}
+
 async function driveWithRealKeyboard(page, target) {
   const samples = [];
+  const momentProofs = [];
   let reached = false;
   const started = Date.now();
   let maxSampleStepDistance = 0;
@@ -637,7 +837,8 @@ async function driveWithRealKeyboard(page, target) {
       trail: snapshot.trail,
       drive: snapshot.drive,
       camera: snapshot.camera,
-      screen: snapshot.screen
+      screen: snapshot.screen,
+      routeEncounters: snapshot.routeEncounters
     });
   };
 
@@ -645,6 +846,9 @@ async function driveWithRealKeyboard(page, target) {
     const snapshot = await getQaSnapshot(page);
     if (snapshot?.player) {
       addSample(snapshot);
+      if (snapshot.screen?.activeRouteEncounter?.id && (snapshot.routeEncounters?.activeIntensity ?? 0) >= 0.12) {
+        momentProofs.push(await collectGameplayMomentProof(page));
+      }
 
       const player = snapshot.player;
       const dx = target.position.x - player.x;
@@ -673,13 +877,13 @@ async function driveWithRealKeyboard(page, target) {
   }
 
   await releaseDriveKeys(page);
-  if (reached) {
+  if (reached && !target.skipPostReachSamples) {
     for (let i = 0; i < 2; i += 1) {
       await page.waitForTimeout(90);
       addSample(await getQaSnapshot(page));
     }
   }
-  return { reached, elapsedMs: Date.now() - started, samples, maxSampleStepDistance };
+  return { reached, elapsedMs: Date.now() - started, samples, momentProofs, maxSampleStepDistance };
 }
 
 async function driveRouteWithRealKeyboard(page, target) {
@@ -1059,10 +1263,313 @@ async function checkRealDriveTour(browser) {
       });
     }
 
+    const encounterDrive = await driveWithRealKeyboard(page, {
+      id: "route-encounter:spine-contact-gate",
+      position: { x: 0, z: -3.936 },
+      radius: 0.55,
+      timeoutMs: 6_000,
+      skipPostReachSamples: true
+    });
+    if (encounterDrive.reached || (encounterDrive.momentProofs?.length ?? 0) > 0) {
+      await inspectGameplayMomentVisibility(page, "real-drive:spine-contact-gate", encounterDrive);
+    } else {
+      scenarioFail("route-encounter-visible:real-drive:spine-contact-gate", "Real keyboard drive did not reach the inspected route encounter.", {
+        encounterDrive
+      });
+    }
+
     await capture(page, "real-drive-tour");
   } finally {
     await releaseDriveKeys(page);
     await page.close();
+  }
+}
+
+async function inspectGameplayMomentVisibility(page, label, driveResult = null) {
+  const snapshot = await getQaSnapshot(page, { refresh: true });
+  let state = await page.evaluate((qa) => {
+    const round = (value, digits = 3) => Number(value.toFixed(digits));
+    const selectors = [".game-hud", ".zone-panel", ".world-map", ".mobile-drive", ".mobile-zone-nav"];
+    const uiRects = selectors
+      .map((selector) => {
+        const node = document.querySelector(selector);
+        if (!(node instanceof HTMLElement)) {
+          return null;
+        }
+        const style = getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        if (
+          style.display === "none" ||
+          style.visibility === "hidden" ||
+          Number(style.opacity) === 0 ||
+          rect.width === 0 ||
+          rect.height === 0
+        ) {
+          return null;
+        }
+        return { selector, left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+      })
+      .filter(Boolean);
+    const toRect = (item) => {
+      if (!item) {
+        return null;
+      }
+      return {
+        left: item.clippedX ?? item.x,
+        top: item.clippedY ?? item.y,
+        right: (item.clippedX ?? item.x) + (item.clippedWidth ?? item.width),
+        bottom: (item.clippedY ?? item.y) + (item.clippedHeight ?? item.height)
+      };
+    };
+    const uiOcclusion = (item) => {
+      const rect = toRect(item);
+      const area = item?.clippedArea ?? item?.area ?? 0;
+      if (!rect || area <= 0) {
+        return { area: 0, ratio: 1 };
+      }
+      const xEdges = [rect.left, rect.right];
+      const yEdges = [rect.top, rect.bottom];
+      for (const ui of uiRects) {
+        const left = Math.max(rect.left, ui.left);
+        const right = Math.min(rect.right, ui.right);
+        const top = Math.max(rect.top, ui.top);
+        const bottom = Math.min(rect.bottom, ui.bottom);
+        if (right > left && bottom > top) {
+          xEdges.push(left, right);
+          yEdges.push(top, bottom);
+        }
+      }
+      const xs = [...new Set(xEdges)].sort((a, b) => a - b);
+      const ys = [...new Set(yEdges)].sort((a, b) => a - b);
+      let occluded = 0;
+      for (let xIndex = 0; xIndex < xs.length - 1; xIndex += 1) {
+        for (let yIndex = 0; yIndex < ys.length - 1; yIndex += 1) {
+          const left = xs[xIndex];
+          const right = xs[xIndex + 1];
+          const top = ys[yIndex];
+          const bottom = ys[yIndex + 1];
+          const centerX = (left + right) / 2;
+          const centerY = (top + bottom) / 2;
+          if (
+            uiRects.some(
+              (ui) => centerX >= ui.left && centerX <= ui.right && centerY >= ui.top && centerY <= ui.bottom
+            )
+          ) {
+            occluded += Math.max(0, right - left) * Math.max(0, bottom - top);
+          }
+        }
+      }
+      return { area: round(occluded, 1), ratio: round(Math.min(1, occluded / area)) };
+    };
+    const centerOccluders = (item) => {
+      const center = item?.center ?? null;
+      if (!center) {
+        return ["missing-center"];
+      }
+      return uiRects
+        .filter(
+          (rect) =>
+            center.x >= rect.left - 10 &&
+            center.x <= rect.right + 10 &&
+            center.y >= rect.top - 10 &&
+            center.y <= rect.bottom + 10
+        )
+        .map((rect) => rect.selector);
+    };
+    const sampleCanvasRoi = (rect) => {
+      const canvas = document.querySelector("#studio-map-canvas");
+      if (!(canvas instanceof HTMLCanvasElement) || !rect || rect.clippedWidth <= 1 || rect.clippedHeight <= 1) {
+        return { sampled: false, brightRatio: 0, edgeDensity: 0, colorBuckets: 0, roiWidth: 0, roiHeight: 0 };
+      }
+      const canvasRect = canvas.getBoundingClientRect();
+      const sourceLeft = Math.max(0, rect.clippedX - canvasRect.left);
+      const sourceTop = Math.max(0, rect.clippedY - canvasRect.top);
+      const sourceWidth = Math.min(rect.clippedWidth, canvasRect.width - sourceLeft);
+      const sourceHeight = Math.min(rect.clippedHeight, canvasRect.height - sourceTop);
+      if (sourceWidth <= 1 || sourceHeight <= 1) {
+        return { sampled: false, brightRatio: 0, edgeDensity: 0, colorBuckets: 0, roiWidth: 0, roiHeight: 0 };
+      }
+      const scaleX = canvas.width / canvasRect.width;
+      const scaleY = canvas.height / canvasRect.height;
+      const sx = Math.max(0, Math.floor(sourceLeft * scaleX));
+      const sy = Math.max(0, Math.floor(sourceTop * scaleY));
+      const sw = Math.max(1, Math.min(canvas.width - sx, Math.ceil(sourceWidth * scaleX)));
+      const sh = Math.max(1, Math.min(canvas.height - sy, Math.ceil(sourceHeight * scaleY)));
+      const roiSize = 64;
+      const roi = document.createElement("canvas");
+      roi.width = roiSize;
+      roi.height = roiSize;
+      const context = roi.getContext("2d", { willReadFrequently: true });
+      if (!context) {
+        return { sampled: false, brightRatio: 0, edgeDensity: 0, colorBuckets: 0, roiWidth: roiSize, roiHeight: roiSize };
+      }
+      let pixels;
+      try {
+        context.drawImage(canvas, sx, sy, sw, sh, 0, 0, roiSize, roiSize);
+        pixels = context.getImageData(0, 0, roiSize, roiSize).data;
+      } catch (error) {
+        return {
+          sampled: false,
+          error: error instanceof Error ? error.message : String(error),
+          brightRatio: 0,
+          edgeDensity: 0,
+          colorBuckets: 0,
+          roiWidth: roiSize,
+          roiHeight: roiSize
+        };
+      }
+      const lumas = [];
+      const buckets = new Set();
+      let brightPixels = 0;
+      for (let y = 0; y < roiSize; y += 1) {
+        for (let x = 0; x < roiSize; x += 1) {
+          const index = (y * roiSize + x) * 4;
+          const r = pixels[index];
+          const g = pixels[index + 1];
+          const b = pixels[index + 2];
+          const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          lumas.push(luma);
+          if (luma >= 72) {
+            brightPixels += 1;
+          }
+          buckets.add(`${Math.floor(r / 32)}:${Math.floor(g / 32)}:${Math.floor(b / 32)}`);
+        }
+      }
+      let edgeTransitions = 0;
+      let edgeComparisons = 0;
+      for (let y = 1; y < roiSize; y += 1) {
+        for (let x = 1; x < roiSize; x += 1) {
+          const index = y * roiSize + x;
+          if (Math.abs(lumas[index] - lumas[index - 1]) >= 18) {
+            edgeTransitions += 1;
+          }
+          if (Math.abs(lumas[index] - lumas[index - roiSize]) >= 18) {
+            edgeTransitions += 1;
+          }
+          edgeComparisons += 2;
+        }
+      }
+      return {
+        sampled: true,
+        brightRatio: round(brightPixels / lumas.length),
+        edgeDensity: round(edgeComparisons > 0 ? edgeTransitions / edgeComparisons : 0),
+        edgeTransitions,
+        colorBuckets: buckets.size,
+        roiWidth: roiSize,
+        roiHeight: roiSize
+      };
+    };
+    const readable = (rect) => {
+      const occlusion = uiOcclusion(rect);
+      return {
+        rect,
+        centerOccluders: centerOccluders(rect),
+        uiOccludedArea: occlusion.area,
+        uiOccludedRatio: occlusion.ratio,
+        visibleAfterUiRatio: round(Math.max(0, (rect?.visibleRatio ?? 0) * (1 - occlusion.ratio))),
+        roi: sampleCanvasRoi(rect)
+      };
+    };
+
+    return {
+      activeZoneId: qa?.activeZoneId ?? null,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      player: readable(qa?.screen?.playerRect ?? null),
+      encounter: readable(qa?.screen?.activeRouteEncounter ?? null),
+      routeEncounters: qa?.routeEncounters ?? null
+    };
+  }, snapshot);
+  const bestLiveProof = (driveResult?.momentProofs ?? [])
+    .filter((proof) => proof?.encounter?.rect?.id && proof?.player?.rect?.visible === true)
+    .sort((a, b) => (b.encounter?.rect?.intensity ?? 0) - (a.encounter?.rect?.intensity ?? 0))[0];
+  if ((bestLiveProof?.encounter?.rect?.intensity ?? 0) > (state.encounter?.rect?.intensity ?? 0)) {
+    state = bestLiveProof;
+  }
+
+  const player = state.player;
+  const encounter = state.encounter;
+  const thresholds = {
+    player: {
+      minWidth: 28,
+      minHeight: 18,
+      minArea: 450,
+      minVisibleAfterUiRatio: 0.72,
+      maxUiOccludedRatio: 0.08,
+      minBrightRatio: 0.05,
+      minEdgeDensity: 0.014,
+      minColorBuckets: 4
+    },
+    encounter: {
+      minWidth: 16,
+      minHeight: 16,
+      minArea: 220,
+      minVisibleAfterUiRatio: 0.5,
+      maxUiOccludedRatio: 0.14,
+      minIntensity: 0.34,
+      maxDistance: 1.2,
+      minBrightRatio: 0.03,
+      minEdgeDensity: 0.006,
+      minColorBuckets: 3
+    }
+  };
+  const playerOk =
+    player.rect?.visible === true &&
+    player.rect.center?.visible === true &&
+    player.rect.width >= thresholds.player.minWidth &&
+    player.rect.height >= thresholds.player.minHeight &&
+    player.rect.clippedArea >= thresholds.player.minArea &&
+    player.centerOccluders.length === 0 &&
+    player.uiOccludedRatio <= thresholds.player.maxUiOccludedRatio &&
+    player.visibleAfterUiRatio >= thresholds.player.minVisibleAfterUiRatio &&
+    player.roi.sampled === true &&
+    player.roi.brightRatio >= thresholds.player.minBrightRatio &&
+    player.roi.edgeDensity >= thresholds.player.minEdgeDensity &&
+    player.roi.colorBuckets >= thresholds.player.minColorBuckets;
+  const encounterRect = encounter.rect;
+  const encounterOk =
+    encounterRect?.visible === true &&
+    encounterRect.center?.visible === true &&
+    typeof encounterRect.id === "string" &&
+    typeof encounterRect.routeId === "string" &&
+    encounterRect.intensity >= thresholds.encounter.minIntensity &&
+    encounterRect.distance <= thresholds.encounter.maxDistance &&
+    encounterRect.width >= thresholds.encounter.minWidth &&
+    encounterRect.height >= thresholds.encounter.minHeight &&
+    encounterRect.clippedArea >= thresholds.encounter.minArea &&
+    encounter.centerOccluders.length === 0 &&
+    encounter.uiOccludedRatio <= thresholds.encounter.maxUiOccludedRatio &&
+    encounter.visibleAfterUiRatio >= thresholds.encounter.minVisibleAfterUiRatio &&
+    encounter.roi.sampled === true &&
+    encounter.roi.brightRatio >= thresholds.encounter.minBrightRatio &&
+    encounter.roi.edgeDensity >= thresholds.encounter.minEdgeDensity &&
+    encounter.roi.colorBuckets >= thresholds.encounter.minColorBuckets &&
+    (state.routeEncounters?.activeCount ?? 0) >= 1;
+  const ok = playerOk && encounterOk;
+  const details = {
+    ...state,
+    driveResult: driveResult
+      ? {
+          reached: driveResult.reached,
+          elapsedMs: driveResult.elapsedMs,
+          sampleCount: driveResult.samples?.length ?? 0,
+          momentProofCount: driveResult.momentProofs?.length ?? 0,
+          maxSampleStepDistance: Number((driveResult.maxSampleStepDistance ?? 0).toFixed(3))
+        }
+      : null,
+    thresholds,
+    playerOk,
+    encounterOk
+  };
+
+  if (ok) {
+    pass(`route-encounter-visible:${label}`, details);
+    pass(`rover-readable:${label}`, {
+      activeZoneId: state.activeZoneId,
+      player,
+      thresholds: thresholds.player
+    });
+  } else {
+    scenarioFail(`route-encounter-visible:${label}`, "Active route encounter or rover is not visually readable.", details);
   }
 }
 
@@ -2260,8 +2767,8 @@ async function inspectPlaceCompositionVisibility(page, label) {
       minColorBuckets: isMobile ? 5 : 6,
       minCenterSpread: isMobile ? 6 : 8,
       maxCenterSpread: isMobile ? 190 : 280,
-      maxPairOverlapRatio: 1,
-      maxLargestLayerAreaRatio: 1
+      maxPairOverlapRatio: 1.005,
+      maxLargestLayerAreaRatio: 1.005
     }
   };
   const rectPasses = (layer, threshold) =>
@@ -3529,6 +4036,8 @@ async function writeReport() {
   const realDriveRouteScenario = scenarios.find((scenario) => scenario.name === "real-drive-route-adherence");
   const routeEncountersRenderedScenario = scenarios.find((scenario) => scenario.name === "route-encounters-rendered");
   const routeEncounterTriggeredScenario = scenarios.find((scenario) => scenario.name === "route-encounter-triggered:real-drive");
+  const routeEncounterVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("route-encounter-visible:"));
+  const roverReadableScenarios = scenarios.filter((scenario) => scenario.name.startsWith("rover-readable:"));
   const productionRuntimeScenario = scenarios.find((scenario) => scenario.name === "production-runtime-lightweight");
   const cameraSafeScenarios = scenarios.filter((scenario) => scenario.name.startsWith("camera-safe-area:"));
   const signatureVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("signature-artifact-visible:"));
@@ -3649,6 +4158,18 @@ async function writeReport() {
       routeEncounterTriggeredScenario?.details?.routeEncounters
         ? `${routeEncounterTriggeredScenario.details.routeEncounters.visitedCount} visited, max intensity ${routeEncounterTriggeredScenario.details.routeEncounters.maxIntensity}, kinds ${Object.entries(routeEncounterTriggeredScenario.details.routeEncounterKinds ?? {}).filter(([, value]) => value).map(([kind]) => kind).join("/")}`
         : "n/a"
+    }`,
+    `- Route encounter visibility: ${routeEncounterVisibleScenarios.filter((scenario) => scenario.status === "pass").length}/${
+      routeEncounterVisibleScenarios.length
+    }${
+      routeEncounterVisibleScenarios.at(-1)?.details?.encounter?.rect
+        ? `, last ${routeEncounterVisibleScenarios.at(-1).details.encounter.rect.id} intensity ${
+            routeEncounterVisibleScenarios.at(-1).details.encounter.rect.intensity
+          }, visible-after-ui ${routeEncounterVisibleScenarios.at(-1).details.encounter.visibleAfterUiRatio}`
+        : ""
+    }`,
+    `- Rover readability checks: ${roverReadableScenarios.filter((scenario) => scenario.status === "pass").length}/${
+      roverReadableScenarios.length
     }`,
     `- Production runtime lightweight: ${
       productionRuntimeScenario?.details

@@ -263,11 +263,13 @@ type QaSnapshot = {
   };
   screen: {
     player: ScreenPointQa;
+    playerRect: ScreenRectQa;
     activeZone: ScreenPointQa & { zoneId: string };
     activeLandmark: ScreenRectQa & { zoneId: string };
     activePlaceArchitecture: ScreenRectQa & { zoneId: string; family: string | null };
     activeSignatureArtifact: ScreenRectQa & { zoneId: string };
     activeZoneComposition: ZoneCompositionQa;
+    activeRouteEncounter: ScreenRectQa & { id: string | null; routeId: string | null; intensity: number; distance: number };
   };
   input: {
     activeKeys: DriveKey[];
@@ -370,6 +372,7 @@ class StudioGame {
   private currentNearestRouteId: string | null = null;
   private currentRouteEncounterId: string | null = null;
   private currentRouteEncounterRouteId: string | null = null;
+  private currentRouteEncounterGate: RouteEncounterGate | null = null;
   private currentRouteEncounterDistance = 0;
   private currentRouteEncounterIntensity = 0;
   private currentRouteEncounterActiveCount = 0;
@@ -488,6 +491,22 @@ class StudioGame {
     },
     screen: {
       player: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false },
+      playerRect: {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        area: 0,
+        clippedX: 0,
+        clippedY: 0,
+        clippedWidth: 0,
+        clippedHeight: 0,
+        clippedArea: 0,
+        visibleRatio: 0,
+        cornerDepthCount: 0,
+        visible: false,
+        center: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false }
+      },
       activeZone: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false, zoneId: defaultZone.id },
       activeLandmark: {
         x: 0,
@@ -572,6 +591,26 @@ class StudioGame {
           placeSignature: 0
         },
         largestLayerAreaRatio: 0
+      },
+      activeRouteEncounter: {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        area: 0,
+        clippedX: 0,
+        clippedY: 0,
+        clippedWidth: 0,
+        clippedHeight: 0,
+        clippedArea: 0,
+        visibleRatio: 0,
+        cornerDepthCount: 0,
+        visible: false,
+        center: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false },
+        id: null,
+        routeId: null,
+        intensity: 0,
+        distance: 0
       }
     },
     input: { activeKeys: [], keyboardDownCount: 0, keyboardUpCount: 0, lastKeyboardCode: null, qaStepHookCalls: 0 },
@@ -1820,6 +1859,7 @@ class StudioGame {
     this.currentRouteEncounterActiveCount = activeCount;
     this.currentRouteEncounterId = nearest?.gate.id ?? null;
     this.currentRouteEncounterRouteId = nearest?.gate.routeId ?? null;
+    this.currentRouteEncounterGate = nearest?.gate ?? null;
     this.currentRouteEncounterDistance = Number((nearest?.distance ?? 0).toFixed(3));
     this.currentRouteEncounterIntensity = Number((nearest?.intensity ?? 0).toFixed(3));
     this.maxRouteEncounterIntensity = Math.max(this.maxRouteEncounterIntensity, this.currentRouteEncounterIntensity);
@@ -2178,6 +2218,18 @@ class StudioGame {
       typeof activePlaceArchitecture?.userData.placeArchitectureFamily === "string"
         ? activePlaceArchitecture.userData.placeArchitectureFamily
         : null;
+    const playerRectScreen =
+      full && qaMode
+        ? this.projectObjectToScreenRect(this.player)
+        : previousScreen.playerRect.visible
+          ? previousScreen.playerRect
+          : this.emptyScreenRect();
+    const activeRouteEncounterScreen =
+      full && qaMode && this.currentRouteEncounterGate
+        ? this.projectObjectToScreenRect(this.currentRouteEncounterGate.object)
+        : previousScreen.activeRouteEncounter.id === this.currentRouteEncounterId
+          ? previousScreen.activeRouteEncounter
+          : this.emptyScreenRect();
     this.qaSnapshot.camera = {
       position: this.toVec3Qa(this.camera.position),
       target: this.toVec3Qa(this.cameraTarget),
@@ -2187,6 +2239,7 @@ class StudioGame {
     };
     this.qaSnapshot.screen = {
       player: this.projectToScreen(this.playerPosition),
+      playerRect: playerRectScreen,
       activeZone: {
         ...this.projectToScreen(activeZonePoint),
         zoneId: activeZone.id
@@ -2216,7 +2269,14 @@ class StudioGame {
               activeLandmarkScreen,
               activePlaceArchitectureScreen,
               activeSignatureArtifactScreen
-            ])
+            ]),
+      activeRouteEncounter: {
+        ...activeRouteEncounterScreen,
+        id: this.currentRouteEncounterId,
+        routeId: this.currentRouteEncounterRouteId,
+        intensity: this.currentRouteEncounterIntensity,
+        distance: this.currentRouteEncounterDistance
+      }
     };
     this.qaSnapshot.input = {
       activeKeys: [...this.keys],

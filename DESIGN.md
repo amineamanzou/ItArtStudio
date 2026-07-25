@@ -365,6 +365,19 @@ Gates V3.3:
 - rapport QA enrichi avec le plus faible score de dominance et le ratio de
   centre jouable degage.
 
+Gates V3.4:
+
+- `gameplay moment visibility`: le runner ne prouve plus seulement que le rover
+  roule et que les route encounters se declenchent; il prouve qu'un moment de
+  jeu actif est lisible a l'ecran;
+- snapshot QA enrichi avec `screen.playerRect` et `screen.activeRouteEncounter`
+  pour projeter le rover et le seuil actif en bounding boxes screen-space;
+- verification Playwright apres vraie conduite clavier vers un seuil connu:
+  rover visible, route encounter actif, centre non masque par l'UI, ROI canvas
+  echantillonnable, contours et buckets couleur suffisants;
+- aucun nouvel objet 3D, aucune nouvelle lumiere: la vague renforce la preuve
+  de qualite sans depasser le budget scene V3.
+
 ## Components
 
 - `game-site`: surface principale.
