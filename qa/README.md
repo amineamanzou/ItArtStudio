@@ -19,7 +19,13 @@ The runner:
 - opens Chromium through Playwright;
 - waits for `html.game-ready` and `window.__IT_ART_STUDIO_QA__`;
 - verifies that the WebGL canvas renders non-dark pixels;
+- verifies that the rendered canvas exposes tech, art, and studio color families;
+- verifies that the world exposes enough 3D cartography assets;
 - drives the player with keyboard input through tech, art, and contact zones;
+- runs one real `page.keyboard.press()` smoke test against the production
+  keyboard listener;
+- uses the `?qa=1` keyboard-step hook to keep navigation deterministic in
+  headless Chromium while preserving `lastInputMode: keyboard`;
 - clicks mini-map pins and verifies the active zone state;
 - runs responsive captures for desktop, tablet, mobile, and small mobile;
 - runs a reduced-motion viewport;
@@ -33,6 +39,9 @@ The runner:
 ## Current Gates
 
 - Canvas must be non-blank.
+- Canvas must expose visible tech, art, and studio color families.
+- World richness must report at least 10 zones, 18 road segments, 45 decorative
+  objects, and 145 scene objects.
 - Keyboard route must reach:
   - `ai-lab`
   - `design-atelier`
@@ -56,6 +65,7 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
 - `activeZoneId`
 - `activeZoneLabel`
 - `zoneCount`
+- `world`
 - `player`
 - `canvas`
 - `frameCount`
@@ -66,6 +76,8 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
 - `errors`
 
 The root `[data-game-root]` also receives `data-active-zone`.
+In QA mode the game also exposes `window.__IT_ART_STUDIO_QA_STEP__()` for
+deterministic keyboard-route scenarios.
 
 ## Next Gates
 

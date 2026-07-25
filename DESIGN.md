@@ -62,6 +62,13 @@ Zones V1:
 - Values Plaza: exigence, clarte, audace, transmission.
 - Contact Portal: prise de contact.
 
+La V1.2 ajoute une couche de topographie lisible:
+
+- districts translucides IT, ART et STUDIO pour orienter le regard;
+- corridors lumineux courbes entre le Studio Gate et chaque activite;
+- noeuds de route et balises verticales pour donner de l'echelle;
+- anneaux de zone pour renforcer le feedback de presence.
+
 ## Motion
 
 La motion vient du gameplay, pas du scroll:
@@ -118,6 +125,13 @@ Gates V1.1:
   `contact-portal`;
 - CTA contact actif;
 - mobile sans overlap HUD / panel / controles.
+
+Gates V1.2:
+
+- richesse du monde 3D minimale exposee dans `window.__IT_ART_STUDIO_QA__`;
+- mini-map sur les 10 zones;
+- responsive desktop, tablet, mobile et reduced-motion sans overlap ni texte
+  coupe.
 
 ## Components
 

@@ -14,6 +14,14 @@ export type StudioZone = {
   cta?: string;
 };
 
+export type WorldRoute = {
+  id: string;
+  from: string;
+  to: string;
+  kind: ZoneKind;
+  via?: Array<[number, number]>;
+};
+
 export const zones: StudioZone[] = [
   {
     id: "studio-gate",
@@ -149,3 +157,17 @@ export const zones: StudioZone[] = [
 ];
 
 export const defaultZone = zones[0];
+
+export const worldRoutes: WorldRoute[] = [
+  { id: "spine-contact-gate", from: "contact-portal", to: "studio-gate", kind: "studio" },
+  { id: "spine-gate-values", from: "studio-gate", to: "values-plaza", kind: "studio", via: [[-0.7, 3.4]] },
+  { id: "tech-gate-cloud", from: "studio-gate", to: "cloud-dock", kind: "tech", via: [[-1.6, -3.1]] },
+  { id: "tech-cloud-ai", from: "cloud-dock", to: "ai-lab", kind: "tech", via: [[-5.6, -5.3]] },
+  { id: "tech-ai-obs", from: "ai-lab", to: "observability-tower", kind: "tech", via: [[-9, -0.4]] },
+  { id: "tech-obs-arch", from: "observability-tower", to: "architecture-bridge", kind: "tech", via: [[-6.2, 4.9]] },
+  { id: "tech-arch-gate", from: "architecture-bridge", to: "studio-gate", kind: "tech", via: [[-2, 2.6]] },
+  { id: "art-gate-design", from: "studio-gate", to: "design-atelier", kind: "art", via: [[3.1, -2.2]] },
+  { id: "art-design-foundry", from: "design-atelier", to: "three-d-foundry", kind: "art", via: [[8.9, -0.6]] },
+  { id: "art-foundry-fashion", from: "three-d-foundry", to: "fashion-room", kind: "art", via: [[6.5, 4.6]] },
+  { id: "art-fashion-values", from: "fashion-room", to: "values-plaza", kind: "art", via: [[1.8, 6.8]] }
+];

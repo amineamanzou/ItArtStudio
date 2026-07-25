@@ -10,6 +10,13 @@ const root = process.cwd();
 const startedAt = Date.now();
 const port = Number(process.env.QA_PORT ?? 4331);
 const baseUrl = process.env.QA_BASE_URL ?? `http://127.0.0.1:${port}/?qa=1`;
+const qaMode = (() => {
+  try {
+    return new URL(baseUrl).searchParams.has("qa");
+  } catch {
+    return /[?&]qa(?:=|&|$)/.test(baseUrl);
+  }
+})();
 const outputRoot = path.join(root, "qa", "artifacts", new Date().toISOString().replace(/[:.]/g, "-"));
 const screenshotsDir = path.join(outputRoot, "screenshots");
 const reportJsonPath = path.join(outputRoot, "report.json");
@@ -173,27 +180,38 @@ async function sampleCanvas(page) {
     const pixels = new Uint8Array(4);
     let brightPixels = 0;
     let totalLuma = 0;
-    const sampleCount = 25;
+    const colorFamilies = { tech: 0, art: 0, studio: 0 };
+    const sampleCount = 121;
 
-    for (let yIndex = 1; yIndex <= 5; yIndex += 1) {
-      for (let xIndex = 1; xIndex <= 5; xIndex += 1) {
-        const x = Math.floor((width * xIndex) / 6);
-        const y = Math.floor((height * yIndex) / 6);
+    for (let yIndex = 1; yIndex <= 11; yIndex += 1) {
+      for (let xIndex = 1; xIndex <= 11; xIndex += 1) {
+        const x = Math.floor((width * xIndex) / 12);
+        const y = Math.floor((height * yIndex) / 12);
         gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
         const luma = pixels[0] + pixels[1] + pixels[2];
         totalLuma += luma;
         if (luma > 28) {
           brightPixels += 1;
         }
+        if (pixels[2] > 145 && pixels[1] > 110 && pixels[0] < 120) {
+          colorFamilies.tech += 1;
+        }
+        if (pixels[0] > 145 && pixels[1] < 135 && pixels[2] < 145) {
+          colorFamilies.art += 1;
+        }
+        if (pixels[0] > 165 && pixels[1] > 145 && pixels[2] < 130) {
+          colorFamilies.studio += 1;
+        }
       }
     }
 
     return {
-      ok: brightPixels >= 8,
+      ok: brightPixels >= 22,
       width,
       height,
       brightPixels,
       sampleCount,
+      colorFamilies,
       averageLuma: Number((totalLuma / sampleCount).toFixed(2))
     };
   });
@@ -221,6 +239,9 @@ async function assertReady(page) {
     () => document.documentElement.classList.contains("game-ready") && window.__IT_ART_STUDIO_QA__?.frameCount > 2,
     { timeout: 12_000 }
   );
+  if (qaMode) {
+    await page.waitForFunction(() => typeof window.__IT_ART_STUDIO_QA_STEP__ === "function", { timeout: 5_000 });
+  }
 }
 
 async function capture(page, label, extra = {}) {
@@ -247,58 +268,69 @@ async function capture(page, label, extra = {}) {
 
 async function driveToZone(page, target) {
   const started = Date.now();
-  let snapshot = await getQaSnapshot(page);
-  const keyByDirection = {
-    left: "ArrowLeft",
-    right: "ArrowRight",
-    up: "ArrowUp",
-    down: "ArrowDown"
-  };
-
-  while (Date.now() - started < target.timeoutMs) {
-    snapshot = await getQaSnapshot(page);
-    if (snapshot?.activeZoneId === target.id) {
-      pass(`keyboard:${target.id}`, {
-        activeZoneId: snapshot.activeZoneId,
-        elapsedMs: Date.now() - started,
-        player: snapshot.player
-      });
-      return snapshot;
+  const snapshot = await page.evaluate((routeTarget) => {
+    if (typeof window.__IT_ART_STUDIO_QA_STEP__ !== "function") {
+      throw new Error("Missing QA keyboard step hook.");
     }
 
-    if (!snapshot) {
-      await page.waitForTimeout(80);
-      continue;
+    for (let stepIndex = 0; stepIndex < 80; stepIndex += 1) {
+      const qa = window.__IT_ART_STUDIO_QA__;
+      if (!qa) {
+        return null;
+      }
+      if (qa.activeZoneId === routeTarget.id) {
+        return JSON.parse(JSON.stringify(qa));
+      }
+
+      const dx = routeTarget.position.x - qa.player.x;
+      const dz = routeTarget.position.z - qa.player.z;
+      const direction =
+        Math.abs(dx) > Math.abs(dz)
+          ? dx > 0
+            ? "right"
+            : "left"
+          : dz > 0
+            ? "down"
+            : "up";
+      window.__IT_ART_STUDIO_QA_STEP__(direction);
     }
 
-    const dx = target.position.x - snapshot.player.x;
-    const dz = target.position.z - snapshot.player.z;
-    const direction =
-      Math.abs(dx) > Math.abs(dz)
-        ? dx > 0
-          ? "right"
-          : "left"
-        : dz > 0
-          ? "down"
-          : "up";
+    return window.__IT_ART_STUDIO_QA__ ? JSON.parse(JSON.stringify(window.__IT_ART_STUDIO_QA__)) : null;
+  }, target);
 
-    await page.keyboard.press(keyByDirection[direction]);
-    await page.waitForTimeout(45);
-  }
-
-  snapshot = await getQaSnapshot(page);
   if (snapshot?.activeZoneId === target.id) {
     pass(`keyboard:${target.id}`, {
       activeZoneId: snapshot.activeZoneId,
       elapsedMs: Date.now() - started,
-      player: snapshot.player,
-      finalCheck: true
+      player: snapshot.player
     });
     return snapshot;
   }
 
   scenarioFail(`keyboard:${target.id}`, `Expected active zone ${target.id}`, { snapshot, target });
+  console.log(
+    `[qa] final ${target.id} active=${snapshot?.activeZoneId ?? "none"} player=${JSON.stringify(snapshot?.player)}`
+  );
   return snapshot;
+}
+
+async function checkRealKeyboardInput(page) {
+  const before = await getQaSnapshot(page);
+  await page.keyboard.press("ArrowRight");
+  await page.waitForFunction(
+    (startX) => {
+      const qa = window.__IT_ART_STUDIO_QA__;
+      return qa?.lastInputMode === "keyboard" && Math.abs(qa.player.x - startX) > 0.15;
+    },
+    before?.player.x ?? 0,
+    { timeout: 5_000 }
+  );
+  const after = await getQaSnapshot(page);
+  if (after?.lastInputMode === "keyboard" && Math.abs(after.player.x - (before?.player.x ?? 0)) > 0.15) {
+    pass("keyboard:real-input-smoke", { before: before?.player, after: after.player });
+  } else {
+    scenarioFail("keyboard:real-input-smoke", "Real keyboard input did not move the player.", { before, after });
+  }
 }
 
 async function checkContact(page) {
@@ -319,6 +351,25 @@ async function checkContact(page) {
     pass("contact-cta", contact);
   } else {
     scenarioFail("contact-cta", "Contact CTA is not active on contact zone.", contact);
+  }
+}
+
+async function checkWorldRichness(page) {
+  const snapshot = await getQaSnapshot(page);
+  const world = snapshot?.world;
+  if (
+    world &&
+    snapshot.zoneCount === 10 &&
+    world.sceneObjects >= 145 &&
+    world.decorativeObjects >= 45 &&
+    world.roadSegments >= 18
+  ) {
+    pass("world-richness", { world, zoneCount: snapshot.zoneCount });
+  } else {
+    scenarioFail("world-richness", "3D world does not expose enough modeled cartography assets.", {
+      world,
+      zoneCount: snapshot?.zoneCount
+    });
   }
 }
 
@@ -631,6 +682,17 @@ async function main() {
     } else {
       scenarioFail("canvas-nonblank", "Canvas did not render enough non-dark sampled pixels.", home.canvas);
     }
+    if (
+      home.canvas.colorFamilies?.tech >= 2 &&
+      home.canvas.colorFamilies?.art >= 2 &&
+      home.canvas.colorFamilies?.studio >= 2
+    ) {
+      pass("canvas-color-families", home.canvas.colorFamilies);
+    } else {
+      scenarioFail("canvas-color-families", "Canvas did not expose the tech/art/studio color families.", home.canvas);
+    }
+    await checkWorldRichness(page);
+    await checkRealKeyboardInput(page);
 
     const targets = [
       { id: "ai-lab", position: { x: -7, z: -3 }, radius: 1.8, timeoutMs: 8_000 },

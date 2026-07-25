@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { createZoneLandmark } from "./procedural-assets";
-import { defaultZone, zones, type StudioZone, type ZoneKind } from "./zones";
+import { defaultZone, worldRoutes, zones, type StudioZone, type ZoneKind } from "./zones";
 
 const mapRange = 20;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -24,6 +24,7 @@ type QaSnapshot = {
   activeZoneId: string;
   activeZoneLabel: string;
   zoneCount: number;
+  world: { sceneObjects: number; decorativeObjects: number; roadSegments: number };
   player: { x: number; z: number };
   canvas: { width: number; height: number; dpr: number };
   frameCount: number;
@@ -37,6 +38,7 @@ type QaSnapshot = {
 declare global {
   interface Window {
     __IT_ART_STUDIO_QA__?: QaSnapshot;
+    __IT_ART_STUDIO_QA_STEP__?: (direction: DriveKey) => void;
   }
 }
 
@@ -57,6 +59,8 @@ class StudioGame {
   private frameId = 0;
   private lastFrameTime = performance.now();
   private frameCount = 0;
+  private decorativeObjectCount = 0;
+  private roadSegmentCount = 0;
   private readonly frameDeltas: number[] = [];
   private readonly visitedZoneIds = new Set<string>([defaultZone.id]);
   private readonly qaSnapshot: QaSnapshot = {
@@ -64,6 +68,7 @@ class StudioGame {
     activeZoneId: defaultZone.id,
     activeZoneLabel: defaultZone.label,
     zoneCount: zones.length,
+    world: { sceneObjects: 0, decorativeObjects: 0, roadSegments: 0 },
     player: { x: 0, z: 0 },
     canvas: { width: 0, height: 0, dpr: 1 },
     frameCount: 0,
@@ -95,6 +100,7 @@ class StudioGame {
     this.resize();
     this.updatePanel(defaultZone);
     this.exposeQaSnapshot();
+    this.exposeQaControls();
     this.animate();
   }
 
@@ -134,26 +140,199 @@ class StudioGame {
     ground.receiveShadow = true;
     this.scene.add(ground);
 
+    this.addDistrictPlates();
     this.addRoads();
+    this.addWorldProps();
 
     for (const zone of zones) {
       this.addZone(zone);
     }
   }
 
+  private createDistrictPlate(points: Array<readonly [number, number]>, color: number, opacity: number) {
+    const shape = new THREE.Shape();
+    points.forEach(([x, z], index) => {
+      if (index === 0) {
+        shape.moveTo(x, -z);
+      } else {
+        shape.lineTo(x, -z);
+      }
+    });
+    shape.closePath();
+
+    const plate = new THREE.Mesh(
+      new THREE.ShapeGeometry(shape),
+      new THREE.MeshStandardMaterial({
+        color,
+        roughness: 0.92,
+        metalness: 0.02,
+        transparent: true,
+        opacity,
+        depthWrite: false
+      })
+    );
+    plate.rotation.x = -Math.PI * 0.5;
+    plate.position.y = 0.018;
+    plate.receiveShadow = true;
+    this.scene.add(plate);
+    this.decorativeObjectCount += 1;
+  }
+
+  private addDistrictPlates() {
+    this.createDistrictPlate(
+      [
+        [-10.6, -6.9],
+        [-5.2, -9.2],
+        [-1.1, -5.2],
+        [-2.3, 6.7],
+        [-8.7, 6.9],
+        [-11.1, 1.4]
+      ],
+      colors.tech,
+      0.11
+    );
+    this.createDistrictPlate(
+      [
+        [2.1, -8.4],
+        [10.5, -7.1],
+        [10.9, 4.7],
+        [5.4, 8.2],
+        [1.2, 4.8],
+        [0.9, -4.6]
+      ],
+      colors.art,
+      0.1
+    );
+    this.createDistrictPlate(
+      [
+        [-3.2, -3.6],
+        [2.7, -4.1],
+        [4.1, 1.8],
+        [0.8, 8.8],
+        [-3.6, 6.4],
+        [-4.4, 0.4]
+      ],
+      colors.studio,
+      0.12
+    );
+  }
+
   private addRoads() {
-    const material = new THREE.LineBasicMaterial({
-      color: colors.road,
+    const underlay = new THREE.MeshStandardMaterial({
+      color: colors.ink,
+      roughness: 0.78,
+      metalness: 0.1,
       transparent: true,
-      opacity: 0.34
+      opacity: 0.72
+    });
+    const routeMaterial = new THREE.MeshStandardMaterial({
+      color: colors.road,
+      roughness: 0.44,
+      metalness: 0.18,
+      emissive: colors.road,
+      emissiveIntensity: 0.12,
+      transparent: true,
+      opacity: 0.82
     });
 
-    for (const zone of zones.slice(1)) {
+    const zoneById = new Map(zones.map((zone) => [zone.id, zone]));
+
+    for (const routeInfo of worldRoutes) {
+      const from = zoneById.get(routeInfo.from);
+      const to = zoneById.get(routeInfo.to);
+      if (!from || !to) {
+        continue;
+      }
+
+      const accent = colors[routeInfo.kind];
+      const accentMaterial = new THREE.MeshStandardMaterial({
+        color: accent,
+        roughness: 0.52,
+        metalness: 0.24,
+        emissive: accent,
+        emissiveIntensity: 0.18,
+        transparent: true,
+        opacity: 0.88
+      });
       const points = [
-        new THREE.Vector3(0, 0.035, 0),
-        new THREE.Vector3(zone.position[0], 0.035, zone.position[1])
+        new THREE.Vector3(from.position[0], 0.075, from.position[1]),
+        ...(routeInfo.via ?? []).map(([x, z]) => new THREE.Vector3(x, 0.08, z)),
+        new THREE.Vector3(to.position[0], 0.075, to.position[1])
       ];
-      this.scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), material));
+      const curve = new THREE.CatmullRomCurve3(points);
+      const base = new THREE.Mesh(new THREE.TubeGeometry(curve, 24, 0.085, 8, false), underlay);
+      const route = new THREE.Mesh(new THREE.TubeGeometry(curve, 24, 0.035, 8, false), accentMaterial);
+      base.receiveShadow = true;
+      route.castShadow = true;
+      this.scene.add(base, route);
+      this.roadSegmentCount += 2;
+      this.decorativeObjectCount += 2;
+
+      const node = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.16, 0.22, 0.12, 12),
+        routeMaterial
+      );
+      node.position.set(to.position[0], 0.24, to.position[1]);
+      node.castShadow = true;
+      this.scene.add(node);
+      this.decorativeObjectCount += 1;
+    }
+  }
+
+  private addWorldProps() {
+    const beaconMaterial = new THREE.MeshStandardMaterial({
+      color: colors.studio,
+      roughness: 0.36,
+      metalness: 0.22,
+      emissive: colors.studio,
+      emissiveIntensity: 0.24
+    });
+    const techMaterial = new THREE.MeshStandardMaterial({
+      color: colors.tech,
+      roughness: 0.48,
+      metalness: 0.24,
+      emissive: colors.tech,
+      emissiveIntensity: 0.16
+    });
+    const artMaterial = new THREE.MeshStandardMaterial({
+      color: colors.art,
+      roughness: 0.48,
+      metalness: 0.16,
+      emissive: colors.art,
+      emissiveIntensity: 0.16
+    });
+
+    const props = [
+      [-5.4, -1.1, techMaterial],
+      [-6.6, 1.3, techMaterial],
+      [-3.8, 3.2, techMaterial],
+      [-1.4, -4.3, techMaterial],
+      [5.2, -1.1, artMaterial],
+      [6.8, 0.7, artMaterial],
+      [4.5, 3.4, artMaterial],
+      [2.4, 4.8, artMaterial],
+      [-1.2, 1.4, beaconMaterial],
+      [1.1, 1.3, beaconMaterial],
+      [-0.9, -1.8, beaconMaterial],
+      [1.4, -2.1, beaconMaterial]
+    ] as const;
+
+    for (const [x, z, mat] of props) {
+      const post = new THREE.Group();
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.7, 8), mat);
+      stem.position.y = 0.48;
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 8), mat);
+      cap.position.y = 0.9;
+      post.add(stem, cap);
+      post.position.set(x, 0, z);
+      post.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+      this.scene.add(post);
+      this.decorativeObjectCount += 2;
     }
   }
 
@@ -177,6 +356,23 @@ class StudioGame {
     base.position.y = 0.11;
     base.userData.zoneId = zone.id;
     group.add(base);
+
+    const rim = new THREE.Mesh(
+      new THREE.TorusGeometry(zone.radius * 1.09, 0.045, 8, 72),
+      new THREE.MeshStandardMaterial({
+        color: accent,
+        roughness: 0.36,
+        metalness: 0.2,
+        emissive: accent,
+        emissiveIntensity: 0.22,
+        transparent: true,
+        opacity: 0.82
+      })
+    );
+    rim.rotation.x = Math.PI * 0.5;
+    rim.position.y = 0.26;
+    rim.userData.zoneId = zone.id;
+    group.add(rim);
 
     const marker = createZoneLandmark(zone, colors);
     marker.userData.zoneId = zone.id;
@@ -317,7 +513,7 @@ class StudioGame {
   }
 
   private applyQaKeyboardStep(direction: DriveKey) {
-    const step = 1.05;
+    const step = 1.2;
     if (direction === "up") this.playerPosition.z -= step;
     if (direction === "down") this.playerPosition.z += step;
     if (direction === "left") this.playerPosition.x -= step;
@@ -516,6 +712,16 @@ class StudioGame {
     window.__IT_ART_STUDIO_QA__ = this.qaSnapshot;
   }
 
+  private exposeQaControls() {
+    if (!qaMode) {
+      return;
+    }
+    window.__IT_ART_STUDIO_QA_STEP__ = (direction: DriveKey) => {
+      this.qaSnapshot.lastInputMode = "keyboard";
+      this.applyQaKeyboardStep(direction);
+    };
+  }
+
   private syncQaSnapshot() {
     const averageFrameMs =
       this.frameDeltas.length > 0
@@ -525,6 +731,15 @@ class StudioGame {
 
     this.qaSnapshot.activeZoneId = activeZone.id;
     this.qaSnapshot.activeZoneLabel = activeZone.label;
+    let sceneObjects = 0;
+    this.scene.traverse(() => {
+      sceneObjects += 1;
+    });
+    this.qaSnapshot.world = {
+      sceneObjects,
+      decorativeObjects: this.decorativeObjectCount,
+      roadSegments: this.roadSegmentCount
+    };
     this.qaSnapshot.player = {
       x: Number(this.playerPosition.x.toFixed(3)),
       z: Number(this.playerPosition.z.toFixed(3))
