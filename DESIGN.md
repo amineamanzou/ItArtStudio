@@ -455,6 +455,20 @@ Gates V4.0:
 - `identity-ribbon-visible`: projeter le ruban dans le snapshot QA, verifier
   bbox, occlusion UI, ROI pixels, contours, couleurs et mouvement multi-frame.
 
+Gates V4.1:
+
+- `project-artifact-materialized`: transformer les kits projet anonymises en
+  specimens proceduraux premium sans ajouter d'objet de scene net;
+- `project-artifact-premium-visual-coverage`: verifier que chaque specimen
+  echantillonne occupe une vraie surface, reste libre de l'UI et porte assez
+  de lumiere, contours et couleurs pour lire comme un asset 3D premium;
+- les familles `folio`, `capsule`, `lens`, `crystal` et `slab` sont des
+  `BufferGeometry` composees et fusionnees: corps, reliefs, onglets, encoches,
+  strates et temoins de lecture;
+- le snapshot QA expose familles, profils de detail, signatures de relief,
+  nombre de pieces procedurales et vertices uniques, avec conservation stricte
+  de `projectArtifactSceneObjects <= 10` et `sceneObjects <= 923`.
+
 ## Components
 
 - `game-site`: surface principale.

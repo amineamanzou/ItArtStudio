@@ -14,6 +14,14 @@ type ActivityType =
   | "shared-values"
   | "contact-brief";
 type MotionBehavior = "pulse" | "sweep" | "tilt" | "float" | "blink";
+type SpecimenGeometry = {
+  geometry: THREE.BufferGeometry;
+  family: ProjectArtifactRecipe["form"];
+  detailProfile: string;
+  reliefSignatures: string[];
+  partCount: number;
+  vertexCount: number;
+};
 
 type ProjectArtifactRecipe = {
   activity: ActivityType;
@@ -35,6 +43,8 @@ export type RenderedZoneProjectArtifacts = {
   materialVariants: Set<string>;
   motionObjects: THREE.Object3D[];
 };
+
+const specimenCache = new Map<ProjectArtifactRecipe["form"], SpecimenGeometry>();
 
 const projectRecipes: Record<string, ProjectArtifactRecipe> = {
   "studio-gate": artifact("studio-strategy", "dual-discipline-map", "folio", "light", "tilt", [
@@ -129,7 +139,8 @@ function artifact(
 }
 
 function createProjectArtifactMesh(zone: StudioZone, palette: Palette, recipe: ProjectArtifactRecipe) {
-  const geometry = geometryFor(recipe.form);
+  const specimen = geometryFor(recipe.form);
+  const geometry = specimen.geometry;
   const material = materialFor(recipe.tone, zone.kind, palette);
   const mesh = new THREE.InstancedMesh(geometry, material, recipe.positions.length);
   const dummy = new THREE.Object3D();
@@ -157,7 +168,7 @@ function createProjectArtifactMesh(zone: StudioZone, palette: Palette, recipe: P
   if (mesh.instanceColor) {
     mesh.instanceColor.needsUpdate = true;
   }
-  tagProjectArtifact(mesh, zone, recipe, signatures, materialVariants, activityTypes);
+  tagProjectArtifact(mesh, zone, recipe, specimen, signatures, materialVariants, activityTypes);
   return mesh;
 }
 
@@ -191,26 +202,122 @@ function readableScale(recipe: ProjectArtifactRecipe, index: number): [number, n
   return [emphasis + 0.08, 1.16, 1.04 - index * 0.015];
 }
 
-function geometryFor(form: ProjectArtifactRecipe["form"]) {
+function geometryFor(form: ProjectArtifactRecipe["form"]): SpecimenGeometry {
+  const cached = specimenCache.get(form);
+  if (cached) {
+    return cached;
+  }
+
+  const create = (parts: Array<{ signature: string; geometry: THREE.BufferGeometry }>, detailProfile: string) => {
+    const geometry = mergeGeometries(parts.map((part) => part.geometry));
+    geometry.computeBoundingBox();
+    geometry.computeBoundingSphere();
+    const specimen = {
+      geometry,
+      family: form,
+      detailProfile,
+      reliefSignatures: parts.map((part) => `${form}:${part.signature}`),
+      partCount: parts.length,
+      vertexCount: geometry.getAttribute("position").count
+    };
+    geometry.userData.detailProfile = specimen.detailProfile;
+    geometry.userData.family = specimen.family;
+    geometry.userData.reliefSignatures = specimen.reliefSignatures;
+    geometry.userData.vertexCount = specimen.vertexCount;
+    specimenCache.set(form, specimen);
+    return specimen;
+  };
+
   if (form === "capsule") {
-    const geometry = new THREE.CapsuleGeometry(0.12, 0.38, 5, 12);
-    geometry.rotateZ(Math.PI * 0.5);
-    return geometry;
+    return create(
+      [
+        { signature: "pressure-core", geometry: transformed(new THREE.CapsuleGeometry(0.12, 0.38, 5, 12), [0, 0, 0], [0, 0, Math.PI * 0.5]) },
+        { signature: "left-fin", geometry: transformed(new THREE.BoxGeometry(0.08, 0.25, 0.42), [-0.16, 0, 0], [0, 0.16, 0.24]) },
+        { signature: "right-fin", geometry: transformed(new THREE.BoxGeometry(0.08, 0.25, 0.42), [0.16, 0, 0], [0, -0.16, -0.24]) },
+        { signature: "signal-node", geometry: transformed(new THREE.SphereGeometry(0.07, 10, 6), [0.24, 0.02, 0.12]) },
+        { signature: "readout-slice", geometry: transformed(new THREE.BoxGeometry(0.28, 0.035, 0.05), [-0.02, 0.14, -0.18], [0.18, 0, 0]) }
+      ],
+      "winged capsule with pressure core and readout slice"
+    );
   }
   if (form === "lens") {
-    const geometry = new THREE.SphereGeometry(0.22, 18, 10);
-    geometry.scale(1.2, 0.36, 0.78);
-    return geometry;
+    return create(
+      [
+        { signature: "pressed-glass", geometry: transformed(new THREE.SphereGeometry(0.22, 18, 10), [0, 0, 0], [0, 0, 0], [1.22, 0.32, 0.76]) },
+        { signature: "outer-rim", geometry: transformed(new THREE.TorusGeometry(0.24, 0.018, 8, 40), [0, 0, 0], [Math.PI * 0.5, 0, 0], [1.18, 0.7, 0.7]) },
+        { signature: "index-notch", geometry: transformed(new THREE.BoxGeometry(0.07, 0.05, 0.21), [0.22, 0.02, 0], [0, 0.42, 0]) },
+        { signature: "signal-tick-a", geometry: transformed(new THREE.BoxGeometry(0.03, 0.04, 0.17), [-0.18, 0.03, 0.12], [0, -0.62, 0]) },
+        { signature: "signal-tick-b", geometry: transformed(new THREE.BoxGeometry(0.03, 0.04, 0.17), [-0.12, 0.04, -0.16], [0, 0.74, 0]) }
+      ],
+      "flattened lens with rim, notch and signal ticks"
+    );
   }
   if (form === "crystal") {
-    return new THREE.OctahedronGeometry(0.25, 0);
+    return create(
+      [
+        { signature: "faceted-core", geometry: transformed(new THREE.OctahedronGeometry(0.25, 0), [0, 0.08, 0], [0.16, 0.34, 0.1], [1, 1.18, 0.88]) },
+        { signature: "shadow-plinth", geometry: transformed(new THREE.BoxGeometry(0.42, 0.06, 0.28), [0, -0.18, 0], [0, 0.24, 0]) },
+        { signature: "cut-line", geometry: transformed(new THREE.BoxGeometry(0.32, 0.035, 0.035), [0.02, 0.02, 0.2], [0.18, 0.5, -0.24]) },
+        { signature: "orientation-chip", geometry: transformed(new THREE.BoxGeometry(0.12, 0.06, 0.1), [-0.22, -0.04, -0.12], [0.12, -0.34, 0.18]) }
+      ],
+      "faceted crystal specimen with plinth and orientation cut"
+    );
   }
   if (form === "folio") {
-    const geometry = new THREE.BoxGeometry(0.46, 0.07, 0.3);
-    geometry.rotateZ(-0.16);
-    return geometry;
+    return create(
+      [
+        { signature: "folio-body", geometry: transformed(new THREE.BoxGeometry(0.48, 0.055, 0.31), [0, 0, 0], [0, 0, -0.14]) },
+        { signature: "raised-spine", geometry: transformed(new THREE.BoxGeometry(0.07, 0.08, 0.34), [-0.22, 0.035, 0], [0, 0, -0.14]) },
+        { signature: "top-tab", geometry: transformed(new THREE.BoxGeometry(0.18, 0.045, 0.09), [0.14, 0.06, -0.17], [0.02, 0.08, -0.14]) },
+        { signature: "bottom-tab", geometry: transformed(new THREE.BoxGeometry(0.14, 0.045, 0.08), [0.2, 0.055, 0.16], [-0.02, -0.1, -0.14]) },
+        { signature: "reading-band", geometry: transformed(new THREE.BoxGeometry(0.38, 0.035, 0.035), [0.03, 0.08, 0.02], [0, 0, 0.22]) }
+      ],
+      "layered folio with spine, tabs and reading band"
+    );
   }
-  return new THREE.BoxGeometry(0.4, 0.11, 0.28);
+  return create(
+    [
+      { signature: "base-slab", geometry: transformed(new THREE.BoxGeometry(0.42, 0.08, 0.28), [0, -0.015, 0], [0, 0.16, 0]) },
+      { signature: "upper-slab", geometry: transformed(new THREE.BoxGeometry(0.34, 0.055, 0.22), [0.04, 0.06, -0.02], [0.04, -0.16, 0]) },
+      { signature: "side-notch", geometry: transformed(new THREE.BoxGeometry(0.08, 0.06, 0.18), [-0.24, 0.065, 0.08], [0, 0.28, 0]) },
+      { signature: "cut-line", geometry: transformed(new THREE.BoxGeometry(0.32, 0.032, 0.035), [0.05, 0.11, 0.13], [0, 0, -0.08]) },
+      { signature: "witness-chip", geometry: transformed(new THREE.BoxGeometry(0.1, 0.05, 0.1), [0.25, 0.09, -0.1], [0, -0.3, 0]) }
+    ],
+    "architectural slab stack with notch, cut line and witness chip"
+  );
+}
+
+function transformed(
+  geometry: THREE.BufferGeometry,
+  position: [number, number, number],
+  rotation: [number, number, number] = [0, 0, 0],
+  scale: [number, number, number] = [1, 1, 1]
+) {
+  const matrix = new THREE.Matrix4();
+  matrix.compose(
+    new THREE.Vector3(...position),
+    new THREE.Quaternion().setFromEuler(new THREE.Euler(...rotation)),
+    new THREE.Vector3(...scale)
+  );
+  const cloned = geometry.clone();
+  cloned.applyMatrix4(matrix);
+  return cloned;
+}
+
+function mergeGeometries(geometries: THREE.BufferGeometry[]) {
+  const positions: number[] = [];
+  for (const geometry of geometries) {
+    const source = geometry.index ? geometry.toNonIndexed() : geometry;
+    const position = source.getAttribute("position");
+    for (let index = 0; index < position.count; index += 1) {
+      positions.push(position.getX(index), position.getY(index), position.getZ(index));
+    }
+  }
+
+  const merged = new THREE.BufferGeometry();
+  merged.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  merged.computeVertexNormals();
+  return merged;
 }
 
 function materialFor(tone: ProjectArtifactRecipe["tone"], kind: ZoneKind, palette: Palette) {
@@ -248,6 +355,7 @@ function tagProjectArtifact(
   object: THREE.InstancedMesh,
   zone: StudioZone,
   recipe: ProjectArtifactRecipe,
+  specimen: SpecimenGeometry,
   signatures: string[],
   materialVariants: string[],
   activityTypes: string[]
@@ -263,6 +371,15 @@ function tagProjectArtifact(
   object.userData.projectArtifactMaterial = materialVariants[0];
   object.userData.projectArtifactMaterials = materialVariants;
   object.userData.projectArtifactObjectCount = signatures.length;
+  object.userData.projectArtifactSpecimenFamily = specimen.family;
+  object.userData.projectArtifactDetailProfile = specimen.detailProfile;
+  object.userData.projectArtifactReliefSignatures = specimen.reliefSignatures;
+  object.userData.projectArtifactPartCount = specimen.partCount;
+  object.userData.projectArtifactVertexCount = specimen.vertexCount;
+  object.userData.detailProfile = specimen.detailProfile;
+  object.userData.family = specimen.family;
+  object.userData.reliefSignatures = specimen.reliefSignatures;
+  object.userData.vertexCount = specimen.vertexCount;
   object.userData.materialVariant = materialVariants[0];
   object.userData.motionRole = `project:${recipe.activity}`;
   object.userData.localMotionBehavior = recipe.motion;

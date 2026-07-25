@@ -198,6 +198,14 @@ The runner:
   semantic pieces, one `identity-ribbon` role, visible screen-space bounds,
   sampled ROI detail, measurable multi-frame motion, and no scene-object budget
   regression above `955`.
+- Project artifacts must read as materialized specimens, not primitive markers:
+  all 10 zones keep one instanced kit each, cover the five specimen families,
+  expose detail profiles, relief signatures, procedural part counts and unique
+  vertex counts, while preserving `projectArtifactSceneObjects <= 10` and
+  `sceneObjects <= 923`.
+- `project-artifact-premium-visual-coverage` must prove the sampled mini-map
+  specimens are large, unobstructed, bright enough, edge-rich and color-rich
+  enough to read as premium 3D assets.
 - The real keyboard tour must prove route continuity: at least 180 frames, 60
   units travelled, 16 active trail marks, stable camera distance/lag, and no
   invisible player samples.
@@ -318,6 +326,11 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
   - `projectArtifactActivityTypes`
   - `projectArtifactSignatures`
   - `projectArtifactMaterials`
+  - `projectArtifactSpecimenFamilies`
+  - `projectArtifactDetailProfiles`
+  - `projectArtifactReliefSignatures`
+  - `projectArtifactPartCount`
+  - `projectArtifactVertexCount`
 - `player`
 - `trail`
 - `drive`

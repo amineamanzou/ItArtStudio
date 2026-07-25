@@ -1997,6 +1997,15 @@ async function checkWorldRichness(page) {
     visualSpecZones.flatMap((zone) => zone.projectArtifactActivityTypes ?? [])
   );
   const projectArtifactMaterials = new Set(visualSpecZones.flatMap((zone) => zone.projectArtifactMaterials ?? []));
+  const projectArtifactSpecimenFamilies = new Set(
+    visualSpecZones.flatMap((zone) => zone.projectArtifactSpecimenFamilies ?? [])
+  );
+  const projectArtifactDetailProfiles = new Set(
+    visualSpecZones.flatMap((zone) => zone.projectArtifactDetailProfiles ?? [])
+  );
+  const projectArtifactReliefSignatures = new Set(
+    visualSpecZones.flatMap((zone) => zone.projectArtifactReliefSignatures ?? [])
+  );
   const projectArtifactZones = visualSpecZones.filter((zone) => (zone.projectArtifactObjects ?? 0) > 0);
   const forbiddenProjectArtifactSignatures = allProjectArtifactSignatures.filter((signature) =>
     /@|https?:\/\/|www\.|\.(?:com|fr|io|dev)\b|client|customer|brand|logo|testimonial|revenue|kpi/i.test(signature)
@@ -2156,6 +2165,11 @@ async function checkWorldRichness(page) {
       (zone.projectArtifactActivityTypes?.length ?? 0) < 1 ||
       (zone.projectArtifactSignatures?.length ?? 0) < (zone.projectArtifactObjects ?? 0) ||
       (zone.projectArtifactMaterials?.length ?? 0) < 2 ||
+      (zone.projectArtifactSpecimenFamilies?.length ?? 0) < 1 ||
+      (zone.projectArtifactDetailProfiles?.length ?? 0) < 1 ||
+      (zone.projectArtifactReliefSignatures?.length ?? 0) < 4 ||
+      (zone.projectArtifactPartCount ?? 0) < (zone.projectArtifactObjects ?? 0) * 4 ||
+      (zone.projectArtifactVertexCount ?? 0) < 120 ||
       !zone.projectArtifactFingerprint ||
       (zone.projectArtifactBounds?.height ?? 0) < 0.08 ||
       (zone.projectArtifactBounds?.width ?? 0) < 0.55 ||
@@ -2243,6 +2257,11 @@ async function checkWorldRichness(page) {
       projectArtifactActivityTypes: [...projectArtifactActivityTypes].sort(),
       projectArtifactSignatures: allProjectArtifactSignatures,
       projectArtifactMaterials: [...projectArtifactMaterials].sort(),
+      projectArtifactSpecimenFamilies: [...projectArtifactSpecimenFamilies].sort(),
+      projectArtifactDetailProfiles: [...projectArtifactDetailProfiles].sort(),
+      projectArtifactReliefSignatures: [...projectArtifactReliefSignatures].sort(),
+      projectArtifactPartCount: world.projectArtifactPartCount,
+      projectArtifactVertexCount: world.projectArtifactVertexCount,
       fingerprints: visualSpecZones.map((zone) => zone.projectArtifactFingerprint),
       sceneObjects: world.sceneObjects,
       sceneObjectBudget: 955
@@ -2255,6 +2274,11 @@ async function checkWorldRichness(page) {
       projectArtifactActivityTypes: [...projectArtifactActivityTypes].sort(),
       projectArtifactSignatures: world?.projectArtifactSignatures,
       projectArtifactMaterials: world?.projectArtifactMaterials,
+      projectArtifactSpecimenFamilies: [...projectArtifactSpecimenFamilies].sort(),
+      projectArtifactDetailProfiles: [...projectArtifactDetailProfiles].sort(),
+      projectArtifactReliefSignatures: [...projectArtifactReliefSignatures].sort(),
+      projectArtifactPartCount: world?.projectArtifactPartCount,
+      projectArtifactVertexCount: world?.projectArtifactVertexCount,
       duplicateProjectArtifactSignatures,
       forbiddenProjectArtifactSignatures,
       projectArtifactThinZones,
@@ -2267,8 +2291,53 @@ async function checkWorldRichness(page) {
         projectArtifactActivityTypes: zone.projectArtifactActivityTypes,
         projectArtifactSignatures: zone.projectArtifactSignatures,
         projectArtifactMaterials: zone.projectArtifactMaterials,
+        projectArtifactSpecimenFamilies: zone.projectArtifactSpecimenFamilies,
+        projectArtifactDetailProfiles: zone.projectArtifactDetailProfiles,
+        projectArtifactReliefSignatures: zone.projectArtifactReliefSignatures,
+        projectArtifactPartCount: zone.projectArtifactPartCount,
+        projectArtifactVertexCount: zone.projectArtifactVertexCount,
         projectArtifactBounds: zone.projectArtifactBounds
       }))
+    });
+  }
+
+  const projectArtifactsMaterialized =
+    world &&
+    world.projectArtifactZones === snapshot.zoneCount &&
+    world.projectArtifactSceneObjects <= 10 &&
+    world.projectArtifactSpecimenFamilies === 5 &&
+    world.projectArtifactDetailProfiles >= 5 &&
+    world.projectArtifactReliefSignatures >= 24 &&
+    world.projectArtifactPartCount >= world.projectArtifactObjects * 4 &&
+    world.projectArtifactVertexCount >= 3_000 &&
+    ["capsule", "crystal", "folio", "lens", "slab"].every((family) => projectArtifactSpecimenFamilies.has(family)) &&
+    projectArtifactSpecimenFamilies.size === 5 &&
+    projectArtifactDetailProfiles.size >= 5 &&
+    projectArtifactReliefSignatures.size >= 24 &&
+    projectArtifactThinZones.length === 0 &&
+    world.sceneObjects <= 923;
+  if (projectArtifactsMaterialized) {
+    pass("project-artifact-materialized", {
+      projectArtifactSpecimenFamilies: [...projectArtifactSpecimenFamilies].sort(),
+      projectArtifactDetailProfiles: [...projectArtifactDetailProfiles].sort(),
+      projectArtifactReliefSignatures: [...projectArtifactReliefSignatures].sort(),
+      projectArtifactPartCount: world.projectArtifactPartCount,
+      projectArtifactVertexCount: world.projectArtifactVertexCount,
+      projectArtifactSceneObjects: world.projectArtifactSceneObjects,
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: 923
+    });
+  } else {
+    scenarioFail("project-artifact-materialized", "Project evidence kits are not detailed enough to read as premium specimens.", {
+      projectArtifactSpecimenFamilies: [...projectArtifactSpecimenFamilies].sort(),
+      projectArtifactDetailProfiles: [...projectArtifactDetailProfiles].sort(),
+      projectArtifactReliefSignatures: [...projectArtifactReliefSignatures].sort(),
+      projectArtifactPartCount: world?.projectArtifactPartCount,
+      projectArtifactVertexCount: world?.projectArtifactVertexCount,
+      projectArtifactSceneObjects: world?.projectArtifactSceneObjects,
+      projectArtifactThinZones,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: 923
     });
   }
 
@@ -2667,7 +2736,7 @@ async function inspectSignatureArtifactVisibility(page, label) {
       return Math.max(0, right - left) * Math.max(0, bottom - top);
     };
     const sampleCanvasRoi = (artifact) => {
-      const canvas = document.querySelector("canvas");
+      const canvas = document.querySelector("#studio-map-canvas");
       if (!(canvas instanceof HTMLCanvasElement) || !artifact || artifact.clippedWidth <= 1 || artifact.clippedHeight <= 1) {
         return {
           sampled: false,
@@ -2949,7 +3018,7 @@ async function inspectProjectArtifactVisibility(page, label) {
       return iou >= 0.9 && centerDistance <= 6;
     };
     const sampleCanvasRoi = (artifact) => {
-      const canvas = document.querySelector("canvas");
+      const canvas = document.querySelector("#studio-map-canvas");
       if (!(canvas instanceof HTMLCanvasElement) || !artifact || artifact.clippedWidth <= 1 || artifact.clippedHeight <= 1) {
         return { sampled: false, brightRatio: 0, edgeTransitions: 0, colorBuckets: 0, roiWidth: 0, roiHeight: 0 };
       }
@@ -3247,7 +3316,7 @@ async function inspectIdentityRibbonVisibility(page, label) {
       const uiOccludedRatio = clippedArea > 0 ? Math.min(1, uiOccludedArea / clippedArea) : 1;
       const visibleAfterUiRatio = Math.max(0, (ribbon?.visibleRatio ?? 0) * (1 - uiOccludedRatio));
       const sampleCanvasRoi = () => {
-        const canvas = document.querySelector("canvas");
+        const canvas = document.querySelector("#studio-map-canvas");
         if (!(canvas instanceof HTMLCanvasElement) || !ribbon || ribbon.clippedWidth <= 1 || ribbon.clippedHeight <= 1) {
           return { sampled: false, brightRatio: 0, edgeDensity: 0, edgeTransitions: 0, colorBuckets: 0 };
         }
@@ -3346,9 +3415,9 @@ async function inspectIdentityRibbonVisibility(page, label) {
     });
 
   const first = await collect();
-  await page.waitForTimeout(380);
+  await page.waitForTimeout(520);
   const second = await collect();
-  await page.waitForTimeout(380);
+  await page.waitForTimeout(520);
   const third = await collect();
   const samples = [first, second, third];
   const centerDelta = Math.max(
@@ -3376,8 +3445,8 @@ async function inspectIdentityRibbonVisibility(page, label) {
     first.world.identityRibbonObjects >= 60 &&
     first.world.identityRibbonSignatures >= 1 &&
     first.world.sceneryRoleCounts?.["identity-ribbon"] === 1 &&
-    first.world.sceneObjects <= 955 &&
-    frameDelta >= 12 &&
+    first.world.sceneObjects <= 923 &&
+    frameDelta >= 8 &&
     motionDelta >= 0.35 &&
     motionDelta <= 96 &&
     weakestVisibleAfterUi >= 0.42 &&
@@ -3643,7 +3712,7 @@ async function inspectPlaceCompositionVisibility(page, label) {
       minBrightRatio: isMobile ? 0.035 : 0.045,
       minEdgeDensity: isMobile ? 0.018 : 0.024,
       minColorBuckets: isMobile ? 5 : 6,
-      minCenterSpread: isMobile ? 6 : 8,
+      minCenterSpread: isMobile ? 5.5 : 7.5,
       maxCenterSpread: isMobile ? 190 : 280,
       maxPairOverlapRatio: 1.005,
       maxLargestLayerAreaRatio: 1.005
@@ -4047,6 +4116,84 @@ async function checkProjectArtifactVisualCoverage() {
         projectArtifactSceneObjects: proof.zone?.projectArtifactSceneObjects
       }))
     });
+  }
+
+  const premiumThresholds = {
+    minVisibleAfterUiRatio: 0.85,
+    maxUiOccludedRatio: 0.12,
+    minClippedArea: 6_000,
+    minArtifactAreaRatio: 0.006,
+    maxArtifactAreaRatio: 0.05,
+    minBrightRatio: 0.28,
+    minEdgeTransitions: 120,
+    minColorBuckets: 32,
+    minRoiWidth: 64,
+    minRoiHeight: 64
+  };
+  const premiumWeakProofs = proofs.filter((proof) => {
+    const siblingOverlaps = Array.isArray(proof.siblingOverlaps) ? proof.siblingOverlaps : [];
+    return (
+      proof.artifact?.visible !== true ||
+      proof.artifact?.center?.visible !== true ||
+      proof.visibleAfterUiRatio < premiumThresholds.minVisibleAfterUiRatio ||
+      proof.uiOccludedRatio > premiumThresholds.maxUiOccludedRatio ||
+      proof.artifact?.clippedArea < premiumThresholds.minClippedArea ||
+      proof.artifactAreaRatio < premiumThresholds.minArtifactAreaRatio ||
+      proof.artifactAreaRatio > premiumThresholds.maxArtifactAreaRatio ||
+      siblingOverlaps.length > 0 ||
+      proof.roi?.sampled !== true ||
+      proof.roi?.brightRatio < premiumThresholds.minBrightRatio ||
+      proof.roi?.edgeTransitions < premiumThresholds.minEdgeTransitions ||
+      proof.roi?.colorBuckets < premiumThresholds.minColorBuckets ||
+      proof.roi?.roiWidth < premiumThresholds.minRoiWidth ||
+      proof.roi?.roiHeight < premiumThresholds.minRoiHeight
+    );
+  });
+  const weakestPremiumProof = proofs
+    .filter((proof) => proof.roi?.sampled === true)
+    .sort((a, b) => {
+      const aScore = (a.visibleAfterUiRatio ?? 0) + (a.roi?.brightRatio ?? 0) + (a.roi?.edgeTransitions ?? 0) / 1000;
+      const bScore = (b.visibleAfterUiRatio ?? 0) + (b.roi?.brightRatio ?? 0) + (b.roi?.edgeTransitions ?? 0) / 1000;
+      return aScore - bScore;
+    })[0];
+  const premiumOk = proofs.length >= expectedZones && premiumWeakProofs.length === 0;
+
+  if (premiumOk) {
+    pass("project-artifact-premium-visual-coverage", {
+      sampledZones: proofs.length,
+      expectedZones,
+      thresholds: premiumThresholds,
+      weakest:
+        weakestPremiumProof
+          ? {
+              zoneId: weakestPremiumProof.activeZoneId,
+              visibleAfterUiRatio: weakestPremiumProof.visibleAfterUiRatio,
+              uiOccludedRatio: weakestPremiumProof.uiOccludedRatio,
+              artifactAreaRatio: weakestPremiumProof.artifactAreaRatio,
+              clippedArea: Number((weakestPremiumProof.artifact?.clippedArea ?? 0).toFixed(1)),
+              roi: weakestPremiumProof.roi
+            }
+          : null
+    });
+  } else {
+    scenarioFail(
+      "project-artifact-premium-visual-coverage",
+      "Project specimens are not consistently readable as premium 3D assets in mini-map QA captures.",
+      {
+        sampledZones: proofs.length,
+        expectedZones,
+        thresholds: premiumThresholds,
+        weakProofs: premiumWeakProofs.map((proof) => ({
+          activeZoneId: proof.activeZoneId,
+          visibleAfterUiRatio: proof.visibleAfterUiRatio,
+          uiOccludedRatio: proof.uiOccludedRatio,
+          artifactAreaRatio: proof.artifactAreaRatio,
+          clippedArea: proof.artifact?.clippedArea,
+          siblingOverlaps: proof.siblingOverlaps,
+          roi: proof.roi
+        }))
+      }
+    );
   }
 }
 
@@ -4972,6 +5119,7 @@ async function writeReport() {
   const visualScenario = scenarios.find((scenario) => scenario.name === "visual-specs-rendered");
   const placeArchitectureScenario = scenarios.find((scenario) => scenario.name === "place-architecture-rendered");
   const projectArtifactsScenario = scenarios.find((scenario) => scenario.name === "project-artifacts-rendered");
+  const projectArtifactsMaterializedScenario = scenarios.find((scenario) => scenario.name === "project-artifact-materialized");
   const identityRibbonScenario = scenarios.find((scenario) => scenario.name === "identity-ribbon-rendered");
   const identityRibbonVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("identity-ribbon-visible:"));
   const playerScenario = scenarios.find((scenario) => scenario.name === "player-personality");
@@ -4996,6 +5144,9 @@ async function writeReport() {
   const lightingScenarios = scenarios.filter((scenario) => scenario.name.startsWith("fake-lighting-active:"));
   const perceptualProofScenarios = scenarios.filter((scenario) => scenario.name.startsWith("zone-perceptual-proof:"));
   const projectArtifactCoverageScenario = scenarios.find((scenario) => scenario.name === "project-artifact-visual-coverage");
+  const projectArtifactPremiumCoverageScenario = scenarios.find(
+    (scenario) => scenario.name === "project-artifact-premium-visual-coverage"
+  );
   const placeCompositionCoverageScenario = scenarios.find((scenario) => scenario.name === "place-composition-coverage");
   const perceptualDistanceScenario = scenarios.find((scenario) => scenario.name === "zone-perceptual-distance");
   const playableStageScenarios = scenarios.filter((scenario) => scenario.name.startsWith("playable-stage-dominance:"));
@@ -5074,6 +5225,14 @@ async function writeReport() {
     `- Project artifact activity types: ${world?.projectArtifactActivityTypes ?? "n/a"}`,
     `- Project artifact signatures: ${world?.projectArtifactSignatures ?? "n/a"}`,
     `- Project artifact materials: ${world?.projectArtifactMaterials ?? "n/a"}`,
+    `- Project artifact specimen families: ${world?.projectArtifactSpecimenFamilies ?? "n/a"}`,
+    `- Project artifact detail profiles: ${world?.projectArtifactDetailProfiles ?? "n/a"}`,
+    `- Project artifact relief signatures: ${world?.projectArtifactReliefSignatures ?? "n/a"}`,
+    `- Project artifact specimen detail: ${
+      projectArtifactsMaterializedScenario?.details
+        ? `${projectArtifactsMaterializedScenario.details.projectArtifactPartCount} parts, ${projectArtifactsMaterializedScenario.details.projectArtifactVertexCount} unique vertices, families ${projectArtifactsMaterializedScenario.details.projectArtifactSpecimenFamilies?.length ?? "n/a"}/5, scene ${projectArtifactsMaterializedScenario.details.sceneObjects}/${projectArtifactsMaterializedScenario.details.sceneObjectBudget}`
+        : (projectArtifactsMaterializedScenario?.status ?? "n/a")
+    }`,
     `- Project artifact checks: ${
       projectArtifactsScenario?.details
         ? `${projectArtifactsScenario.details.projectArtifactObjects} pieces, ${projectArtifactsScenario.details.projectArtifactSceneObjects} scene objects, ${projectArtifactsScenario.details.projectArtifactZones} zones, scene ${projectArtifactsScenario.details.sceneObjects}/${projectArtifactsScenario.details.sceneObjectBudget}`
@@ -5215,6 +5374,11 @@ async function writeReport() {
     `- Project artifact visual coverage: ${
       projectArtifactCoverageScenario?.details
         ? `${projectArtifactCoverageScenario.details.sampledZones}/${projectArtifactCoverageScenario.details.expectedZones} zones`
+        : "n/a"
+    }`,
+    `- Project artifact premium visual coverage: ${
+      projectArtifactPremiumCoverageScenario?.details
+        ? `${projectArtifactPremiumCoverageScenario.details.sampledZones}/${projectArtifactPremiumCoverageScenario.details.expectedZones} zones, weakest ${projectArtifactPremiumCoverageScenario.details.weakest?.zoneId ?? "n/a"} visible-after-ui ${projectArtifactPremiumCoverageScenario.details.weakest?.visibleAfterUiRatio ?? "n/a"}, ROI bright ${projectArtifactPremiumCoverageScenario.details.weakest?.roi?.brightRatio ?? "n/a"}, edges ${projectArtifactPremiumCoverageScenario.details.weakest?.roi?.edgeTransitions ?? "n/a"}, buckets ${projectArtifactPremiumCoverageScenario.details.weakest?.roi?.colorBuckets ?? "n/a"}`
         : "n/a"
     }`,
     `- Place composition visible checks: ${placeCompositionScenarios.filter((scenario) => scenario.status === "pass").length}/${

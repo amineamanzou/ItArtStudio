@@ -169,6 +169,11 @@ type ZoneAssetQa = {
   projectArtifactActivityTypes: string[];
   projectArtifactSignatures: string[];
   projectArtifactMaterials: string[];
+  projectArtifactSpecimenFamilies: string[];
+  projectArtifactDetailProfiles: string[];
+  projectArtifactReliefSignatures: string[];
+  projectArtifactPartCount: number;
+  projectArtifactVertexCount: number;
   projectArtifactBounds: BoundsQa;
   materialVariants: number;
   surfaceProfileId: string | null;
@@ -236,6 +241,11 @@ type QaSnapshot = {
     projectArtifactActivityTypes: number;
     projectArtifactSignatures: number;
     projectArtifactMaterials: number;
+    projectArtifactSpecimenFamilies: number;
+    projectArtifactDetailProfiles: number;
+    projectArtifactReliefSignatures: number;
+    projectArtifactPartCount: number;
+    projectArtifactVertexCount: number;
     sceneryObjects: number;
     scenerySignatures: number;
     sceneryMotionObjects: number;
@@ -473,6 +483,11 @@ class StudioGame {
       projectArtifactActivityTypes: 0,
       projectArtifactSignatures: 0,
       projectArtifactMaterials: 0,
+      projectArtifactSpecimenFamilies: 0,
+      projectArtifactDetailProfiles: 0,
+      projectArtifactReliefSignatures: 0,
+      projectArtifactPartCount: 0,
+      projectArtifactVertexCount: 0,
       sceneryObjects: 0,
       scenerySignatures: 0,
       sceneryMotionObjects: 0,
@@ -2215,6 +2230,9 @@ class StudioGame {
       const propObjects = zoneAssets.reduce((sum, zone) => sum + zone.propObjects, 0);
       const instancedPropClusters = zoneAssets.reduce((sum, zone) => sum + zone.instancedPropClusters, 0);
       const instancedPropObjects = zoneAssets.reduce((sum, zone) => sum + zone.instancedPropObjects, 0);
+      const projectArtifactSpecimenFamilies = new Set(zoneAssets.flatMap((zone) => zone.projectArtifactSpecimenFamilies));
+      const projectArtifactDetailProfiles = new Set(zoneAssets.flatMap((zone) => zone.projectArtifactDetailProfiles));
+      const projectArtifactReliefSignatures = new Set(zoneAssets.flatMap((zone) => zone.projectArtifactReliefSignatures));
       const sceneryRoleCounts: Record<string, number> = {};
       let identityRibbonObjects = 0;
       const identityRibbonSignatures = new Set<string>();
@@ -2261,6 +2279,11 @@ class StudioGame {
         projectArtifactActivityTypes: this.projectArtifactActivityIds.size,
         projectArtifactSignatures: this.projectArtifactSignatureIds.size,
         projectArtifactMaterials: this.projectArtifactMaterialIds.size,
+        projectArtifactSpecimenFamilies: projectArtifactSpecimenFamilies.size,
+        projectArtifactDetailProfiles: projectArtifactDetailProfiles.size,
+        projectArtifactReliefSignatures: projectArtifactReliefSignatures.size,
+        projectArtifactPartCount: zoneAssets.reduce((sum, zone) => sum + zone.projectArtifactPartCount, 0),
+        projectArtifactVertexCount: zoneAssets.reduce((sum, zone) => sum + zone.projectArtifactVertexCount, 0),
         sceneryObjects: this.sceneryObjectCount,
         scenerySignatures: this.scenerySignatureIds.size,
         sceneryMotionObjects: this.worldSceneryMotionObjectCount,
@@ -2571,6 +2594,11 @@ class StudioGame {
         projectArtifactActivityTypes: [],
         projectArtifactSignatures: [],
         projectArtifactMaterials: [],
+        projectArtifactSpecimenFamilies: [],
+        projectArtifactDetailProfiles: [],
+        projectArtifactReliefSignatures: [],
+        projectArtifactPartCount: 0,
+        projectArtifactVertexCount: 0,
         projectArtifactBounds: { width: 0, height: 0, depth: 0 },
         materialVariants: 0,
         surfaceProfileId: null,
@@ -2627,6 +2655,9 @@ class StudioGame {
     const projectArtifactActivityTypes = new Set<string>();
     const projectArtifactSignatures = new Set<string>();
     const projectArtifactMaterials = new Set<string>();
+    const projectArtifactSpecimenFamilies = new Set<string>();
+    const projectArtifactDetailProfiles = new Set<string>();
+    const projectArtifactReliefSignatures = new Set<string>();
     const surfaceRoles = new Set<string>();
     const surfaceSignatures = new Set<string>();
     let setDressingObjects = 0;
@@ -2634,6 +2665,8 @@ class StudioGame {
     let signatureArtifactObjects = 0;
     let projectArtifactObjects = 0;
     let projectArtifactSceneObjects = 0;
+    let projectArtifactPartCount = 0;
+    let projectArtifactVertexCount = 0;
     let surfaceObjects = 0;
     const materialVariants = new Set<string>();
     const semanticMaterialVariants = new Set<string>();
@@ -2740,12 +2773,32 @@ class StudioGame {
         if (typeof child.userData.projectArtifactActivity === "string") {
           projectArtifactActivityTypes.add(child.userData.projectArtifactActivity);
         }
+        if (typeof child.userData.projectArtifactSpecimenFamily === "string") {
+          projectArtifactSpecimenFamilies.add(child.userData.projectArtifactSpecimenFamily);
+        }
+        if (typeof child.userData.projectArtifactDetailProfile === "string") {
+          projectArtifactDetailProfiles.add(child.userData.projectArtifactDetailProfile);
+        }
+        if (Array.isArray(child.userData.projectArtifactReliefSignatures)) {
+          for (const signature of child.userData.projectArtifactReliefSignatures) {
+            if (typeof signature === "string") {
+              projectArtifactReliefSignatures.add(signature);
+            }
+          }
+        }
+        const specimenPartCount =
+          typeof child.userData.projectArtifactPartCount === "number" ? child.userData.projectArtifactPartCount : 0;
+        const specimenVertexCount =
+          typeof child.userData.projectArtifactVertexCount === "number" ? child.userData.projectArtifactVertexCount : 0;
         if (child instanceof THREE.InstancedMesh) {
           projectArtifactSceneObjects += 1;
-          projectArtifactObjects +=
+          const instanceCount =
             typeof child.userData.projectArtifactObjectCount === "number"
               ? child.userData.projectArtifactObjectCount
               : child.count;
+          projectArtifactObjects += instanceCount;
+          projectArtifactPartCount += specimenPartCount * instanceCount;
+          projectArtifactVertexCount += specimenVertexCount;
           if (Array.isArray(child.userData.projectArtifactActivities)) {
             for (const activityType of child.userData.projectArtifactActivities) {
               if (typeof activityType === "string") {
@@ -2774,6 +2827,8 @@ class StudioGame {
         } else if (child instanceof THREE.Mesh) {
           projectArtifactSceneObjects += 1;
           projectArtifactObjects += 1;
+          projectArtifactPartCount += Math.max(1, specimenPartCount);
+          projectArtifactVertexCount += specimenVertexCount || child.geometry.getAttribute("position")?.count || 0;
           if (typeof child.userData.projectArtifactSignature === "string") {
             projectArtifactSignatures.add(child.userData.projectArtifactSignature);
           }
@@ -2867,6 +2922,11 @@ class StudioGame {
       projectArtifactActivityTypes: [...projectArtifactActivityTypes].sort(),
       projectArtifactSignatures: [...projectArtifactSignatures].sort(),
       projectArtifactMaterials: [...projectArtifactMaterials].sort(),
+      projectArtifactSpecimenFamilies: [...projectArtifactSpecimenFamilies].sort(),
+      projectArtifactDetailProfiles: [...projectArtifactDetailProfiles].sort(),
+      projectArtifactReliefSignatures: [...projectArtifactReliefSignatures].sort(),
+      projectArtifactPartCount,
+      projectArtifactVertexCount,
       projectArtifactBounds: projectArtifactGroup ? this.measureObject(projectArtifactGroup) : { width: 0, height: 0, depth: 0 },
       materialVariants: materialVariants.size,
       surfaceProfileId: typeof group.userData.surfaceProfileId === "string" ? group.userData.surfaceProfileId : null,
