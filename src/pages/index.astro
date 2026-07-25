@@ -69,6 +69,20 @@ const mapCoordinate = (value: number) => `${((value + mapRange / 2) / mapRange) 
         ))}
       </nav>
 
+      <nav class="mobile-zone-nav" aria-label="Zones du studio">
+        {zones.map((zone) => (
+          <button
+            class={`mobile-zone-nav__item mobile-zone-nav__item--${zone.kind}`}
+            type="button"
+            data-zone-jump={zone.id}
+            aria-label={`Aller a ${zone.label}`}
+            aria-pressed={zone.id === defaultZone.id ? "true" : "false"}
+          >
+            {zone.shortLabel}
+          </button>
+        ))}
+      </nav>
+
       <div class="mobile-drive" aria-label="Deplacement mobile">
         <button type="button" data-drive="up" aria-label="Avancer">↑</button>
         <button type="button" data-drive="left" aria-label="Aller a gauche">←</button>

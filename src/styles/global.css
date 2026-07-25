@@ -99,10 +99,11 @@ button {
 .game-contact,
 .zone-panel,
 .world-map,
+.mobile-zone-nav,
 .mobile-drive {
   border: 1px solid var(--line);
   background: var(--panel);
-  box-shadow: 0 8px 8px var(--shadow);
+  box-shadow: 0 6px 8px var(--shadow);
 }
 
 .game-brand,
@@ -217,9 +218,10 @@ button {
   right: var(--pad);
   bottom: var(--pad);
   z-index: 18;
-  width: min(420px, calc(100vw - var(--pad) * 2));
+  width: min(390px, calc(100vw - var(--pad) * 2));
   padding: clamp(18px, 2.6vw, 26px);
   background: linear-gradient(180deg, var(--panel-strong), var(--panel));
+  clip-path: polygon(0 0, 96% 0, 100% 12%, 100% 100%, 4% 100%, 0 88%);
 }
 
 .zone-panel h2 {
@@ -372,6 +374,53 @@ button {
   box-shadow: 0 0 0 4px oklch(96% 0.02 92 / 18%);
 }
 
+.mobile-zone-nav {
+  position: fixed;
+  left: var(--pad);
+  right: var(--pad);
+  bottom: 138px;
+  z-index: 23;
+  display: none;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 6px;
+  scrollbar-width: none;
+}
+
+.mobile-zone-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-zone-nav__item {
+  flex: 0 0 auto;
+  min-width: 54px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  background: oklch(100% 0 0 / 8%);
+  font-size: 0.78rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.mobile-zone-nav__item--tech {
+  color: var(--tech);
+}
+
+.mobile-zone-nav__item--art {
+  color: var(--art);
+}
+
+.mobile-zone-nav__item--studio {
+  color: var(--studio);
+}
+
+.mobile-zone-nav__item[aria-pressed="true"] {
+  color: var(--void);
+  background: var(--studio);
+}
+
 .mobile-drive {
   position: fixed;
   left: 50%;
@@ -483,8 +532,8 @@ button {
   .zone-panel {
     left: var(--pad);
     right: var(--pad);
-    bottom: 136px;
-    max-height: 34svh;
+    bottom: 210px;
+    max-height: 29svh;
     overflow: auto;
   }
 
@@ -512,6 +561,10 @@ button {
 
   .mobile-drive {
     display: grid;
+  }
+
+  .mobile-zone-nav {
+    display: flex;
   }
 }
 

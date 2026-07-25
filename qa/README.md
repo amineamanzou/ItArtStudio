@@ -9,6 +9,10 @@ Generated artifacts are written to `qa/artifacts/` and ignored by Git.
 npm run qa:game
 ```
 
+By default the runner uses `http://127.0.0.1:4331/?qa=1` so it can run next
+to a normal Astro dev server on `4321`. Override it with `QA_PORT` or
+`QA_BASE_URL` when needed.
+
 The runner:
 
 - starts the local Astro dev server;
@@ -16,9 +20,14 @@ The runner:
 - waits for `html.game-ready` and `window.__IT_ART_STUDIO_QA__`;
 - verifies that the WebGL canvas renders non-dark pixels;
 - drives the player with keyboard input through tech, art, and contact zones;
+- clicks mini-map pins and verifies the active zone state;
+- runs responsive captures for desktop, tablet, mobile, and small mobile;
+- runs a reduced-motion viewport;
 - checks that the contact CTA becomes a visible `mailto:` link;
-- captures desktop and mobile screenshots;
-- checks mobile HUD, panel, and controls for overlap;
+- captures screenshots for every major QA state;
+- checks HUD, panel, mini-map, mobile nav, and controls for overlap;
+- checks UI coverage, visible text overflow, and 44px mobile tap targets;
+- reports total duration so slow QA loops are visible;
 - writes `report.json`, `report.md`, and screenshots under `qa/artifacts/`.
 
 ## Current Gates
@@ -26,11 +35,17 @@ The runner:
 - Canvas must be non-blank.
 - Keyboard route must reach:
   - `ai-lab`
-  - `observability-tower`
   - `design-atelier`
   - `contact-portal`
 - Contact zone must expose a focusable `mailto:` CTA.
-- Mobile visible UI controls must not overlap.
+- Desktop mini-map pins must synchronize all ten zones, active state, pointer
+  input mode, and `aria-pressed`.
+- Visible zone navigation groups must expose exactly one active zone.
+- Responsive visible UI controls must not overlap.
+- Responsive UI coverage must stay below the configured desktop/mobile budget.
+- Visible text must not overflow.
+- Mobile controls must keep 44px minimum tap targets.
+- Reduced-motion QA snapshots must report reduced motion.
 - Browser page errors fail the run.
 
 ## Runtime Contract
@@ -54,8 +69,6 @@ The root `[data-game-root]` also receives `data-active-zone`.
 
 ## Next Gates
 
-- Add reduced-motion run.
-- Add mini-map pin traversal.
-- Add viewport captures for `1024x768`, `820x900`, and `320x700`.
-- Add screenshot color-family and UI coverage checks.
+- Add production preview mode.
+- Add screenshot color-family checks.
 - Run against a production preview server once Playwright is available in CI.

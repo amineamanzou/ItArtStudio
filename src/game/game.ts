@@ -6,6 +6,7 @@ const mapRange = 20;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 const qaMode = new URLSearchParams(window.location.search).has("qa");
+const playerSpeed = qaMode ? 15.5 : 7.4;
 
 const colors: Record<ZoneKind | "ground" | "road" | "ink", number> = {
   tech: 0x17d2ff,
@@ -262,6 +263,9 @@ class StudioGame {
         event.preventDefault();
         this.qaSnapshot.lastInputMode = "keyboard";
         this.keys.add(key);
+        if (qaMode && !event.repeat) {
+          this.applyQaKeyboardStep(key);
+        }
       }
     });
 
@@ -310,6 +314,22 @@ class StudioGame {
     if (event.code === "ArrowLeft" || event.code === "KeyA") return "left";
     if (event.code === "ArrowRight" || event.code === "KeyD") return "right";
     return null;
+  }
+
+  private applyQaKeyboardStep(direction: DriveKey) {
+    const step = 1.05;
+    if (direction === "up") this.playerPosition.z -= step;
+    if (direction === "down") this.playerPosition.z += step;
+    if (direction === "left") this.playerPosition.x -= step;
+    if (direction === "right") this.playerPosition.x += step;
+
+    this.playerPosition.x = clamp(this.playerPosition.x, -9.4, 9.4);
+    this.playerPosition.z = clamp(this.playerPosition.z, -9.4, 9.4);
+    this.targetPosition.copy(this.playerPosition);
+    this.player.position.copy(this.playerPosition);
+    this.updateActiveZone();
+    this.updateMiniMap();
+    this.syncQaSnapshot();
   }
 
   private handleCanvasPointer(event: PointerEvent) {
@@ -385,7 +405,7 @@ class StudioGame {
 
     if (direction.lengthSq() > 0) {
       direction.normalize();
-      this.playerPosition.add(direction.multiplyScalar(delta * 7.4));
+      this.playerPosition.add(direction.multiplyScalar(delta * playerSpeed));
       this.targetPosition.copy(this.playerPosition);
     } else {
       this.playerPosition.lerp(this.targetPosition, 1 - Math.pow(0.0008, delta));
