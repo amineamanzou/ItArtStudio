@@ -69,7 +69,10 @@ The runner:
 - uses the `?qa=1` keyboard-step hook to keep navigation deterministic in
   headless Chromium while preserving `lastInputMode: keyboard`;
 - opens a separate `?qa=1&realKeys=1` page where the deterministic keyboard
-  hook is absent, then drives a tour with real `keyboard.down/up` events;
+  hook is absent, then drives a waypoint tour with real `keyboard.down/up`
+  events through the road graph;
+- verifies road-surface telemetry for that real keyboard tour: route adherence,
+  off-route samples, max lateral escape, and visited route ids;
 - opens the production URL without `?qa=1` and verifies that the game reaches
   `game-ready` without exposing the heavy QA snapshot or deterministic step hook;
 - projects the rover and active zone into screen coordinates, then checks that
@@ -120,6 +123,12 @@ The runner:
 - The production URL must not expose `window.__IT_ART_STUDIO_QA__` or
   `window.__IT_ART_STUDIO_QA_STEP__`; those are reserved for QA URLs so the
   public runtime avoids repeated scene inventory traversal.
+- The real keyboard tour must prove route continuity: at least 180 frames, 70
+  units travelled, 16 active trail marks, stable camera distance/lag, and no
+  invisible player samples.
+- The real keyboard tour must prove route adherence: at least 45 surface samples,
+  route adherence >= 0.86, off-route ratio <= 0.14, max off-route distance <=
+  2.8, and all expected IT/STUDIO/ART route ids covered.
 - The world must expose at least five terrain layers, 60 scenery objects, 24
   scenery signatures, 20 animated scenery objects, and all expected scenery
   roles: terrain edge, tech skyline, art sculpture, studio threshold, route

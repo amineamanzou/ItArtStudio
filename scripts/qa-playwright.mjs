@@ -598,13 +598,15 @@ async function driveWithRealKeyboard(page, target) {
         screen: snapshot.screen
       });
 
-      if (snapshot.activeZoneId === target.id) {
+      const dx = target.position.x - player.x;
+      const dz = target.position.z - player.z;
+      const distanceToTarget = Math.hypot(dx, dz);
+      const targetZoneId = target.zoneId ?? target.id;
+      if (snapshot.activeZoneId === targetZoneId || distanceToTarget <= (target.radius ?? 0.55)) {
         reached = true;
         break;
       }
 
-      const dx = target.position.x - player.x;
-      const dz = target.position.z - player.z;
       const keys = [];
       if (Math.abs(dx) > 0.38) {
         keys.push(dx > 0 ? "ArrowRight" : "ArrowLeft");
@@ -623,6 +625,31 @@ async function driveWithRealKeyboard(page, target) {
 
   await releaseDriveKeys(page);
   return { reached, elapsedMs: Date.now() - started, samples, maxSampleStepDistance };
+}
+
+async function driveRouteWithRealKeyboard(page, target) {
+  const steps = target.route ?? [target];
+  const stepResults = [];
+  const started = Date.now();
+  let reached = true;
+
+  for (const step of steps) {
+    const result = await driveWithRealKeyboard(page, step);
+    stepResults.push({ ...result, step: step.id });
+    if (!result.reached) {
+      reached = false;
+      break;
+    }
+    await page.waitForTimeout(step.pauseMs ?? 80);
+  }
+
+  return {
+    reached,
+    elapsedMs: Date.now() - started,
+    samples: stepResults.flatMap((result) => result.samples),
+    maxSampleStepDistance: Math.max(...stepResults.map((result) => result.maxSampleStepDistance), 0),
+    stepResults
+  };
 }
 
 async function checkRealDriveTour(browser) {
@@ -644,16 +671,45 @@ async function checkRealDriveTour(browser) {
 
     const initial = await getQaSnapshot(page);
     const targets = [
-      { id: "ai-lab", position: { x: -7, z: -3 }, timeoutMs: 10_000 },
-      { id: "observability-tower", position: { x: -8, z: 3 }, timeoutMs: 10_000 },
-      { id: "design-atelier", position: { x: 6.9, z: -3.2 }, timeoutMs: 12_000 },
-      { id: "contact-portal", position: { x: 0, z: -8.2 }, timeoutMs: 10_000 }
+      {
+        id: "ai-lab",
+        position: { x: -7, z: -3 },
+        route: [
+          { id: "cloud-dock", zoneId: "cloud-dock", position: { x: -2.6, z: -6 }, timeoutMs: 8_000 },
+          { id: "ai-lab", zoneId: "ai-lab", position: { x: -7, z: -3 }, timeoutMs: 8_000 }
+        ]
+      },
+      {
+        id: "observability-tower",
+        position: { x: -8, z: 3 },
+        route: [
+          { id: "tech-ai-obs-bend", position: { x: -9, z: -0.4 }, radius: 0.65, timeoutMs: 8_000 },
+          { id: "observability-tower", zoneId: "observability-tower", position: { x: -8, z: 3 }, timeoutMs: 8_000 }
+        ]
+      },
+      {
+        id: "design-atelier",
+        position: { x: 6.9, z: -3.2 },
+        route: [
+          { id: "architecture-bridge", zoneId: "architecture-bridge", position: { x: -3, z: 5.4 }, timeoutMs: 9_000 },
+          { id: "studio-gate", zoneId: "studio-gate", position: { x: 0, z: 0 }, timeoutMs: 9_000 },
+          { id: "design-atelier", zoneId: "design-atelier", position: { x: 6.9, z: -3.2 }, timeoutMs: 10_000 }
+        ]
+      },
+      {
+        id: "contact-portal",
+        position: { x: 0, z: -8.2 },
+        route: [
+          { id: "studio-gate", zoneId: "studio-gate", position: { x: 0, z: 0 }, timeoutMs: 9_000 },
+          { id: "contact-portal", zoneId: "contact-portal", position: { x: 0, z: -8.2 }, timeoutMs: 9_000 }
+        ]
+      }
     ];
     const routeResults = [];
 
     for (const target of targets) {
       const beforeActivation = await getQaSnapshot(page);
-      const result = await driveWithRealKeyboard(page, target);
+      const result = await driveRouteWithRealKeyboard(page, target);
       routeResults.push({ target: target.id, ...result });
       const snapshot = await getQaSnapshot(page);
       if (result.reached && snapshot?.lastInputMode === "keyboard") {
@@ -695,6 +751,19 @@ async function checkRealDriveTour(browser) {
     const invisiblePlayerSamples = cameraSamples.filter((sample) => sample.screen?.player?.visible !== true);
     const invisibleActiveZoneSamples = cameraSamples.filter((sample) => sample.screen?.activeZone?.visible !== true);
     const visitedTargets = targets.filter((target) => final?.visitedZoneIds?.includes(target.id)).map((target) => target.id);
+    const surface = final?.drive?.surface;
+    const expectedRouteIds = [
+      "tech-gate-cloud",
+      "tech-cloud-ai",
+      "tech-ai-obs",
+      "tech-obs-arch",
+      "tech-arch-gate",
+      "art-gate-design",
+      "spine-contact-gate"
+    ];
+    const visitedRouteIds = surface?.visitedRouteIds ?? [];
+    const coveredExpectedRouteIds = expectedRouteIds.filter((routeId) => visitedRouteIds.includes(routeId));
+    const offRouteRatio = surface?.samples > 0 ? surface.offRouteSamples / surface.samples : 1;
     const driveGate =
       final?.activeZoneId === "contact-portal" &&
       final.lastInputMode === "keyboard" &&
@@ -722,6 +791,31 @@ async function checkRealDriveTour(browser) {
       minCameraDistance >= 10 &&
       maxCameraDistance <= 18 &&
       driveTelemetryMaxStep <= 3.5;
+    const continuityGate =
+      frameDelta >= 180 &&
+      (final.drive?.positionSamples?.length ?? 0) >= 45 &&
+      routeResults.every(
+        (result) =>
+          result.reached &&
+          result.samples.length >= 2 &&
+          (result.stepResults ?? []).every((step) => step.reached && step.samples.length >= 2)
+      ) &&
+      distanceDelta >= 70 &&
+      driveTelemetryMaxStep <= 2.75 &&
+      maxStepDistance <= 5.75 &&
+      maxCameraLag <= 2.25 &&
+      minCameraDistance >= 13.2 &&
+      maxCameraDistance <= 16.8 &&
+      invisiblePlayerSamples.length === 0 &&
+      invisibleActiveZoneSamples.length <= 1 &&
+      (final.trail?.activeMarks ?? 0) >= 16;
+    const routeAdherenceGate =
+      surface?.segmentCount >= 20 &&
+      surface.samples >= 45 &&
+      surface.routeAdherenceRatio >= 0.86 &&
+      offRouteRatio <= 0.14 &&
+      surface.maxOffRouteDistance <= 2.8 &&
+      coveredExpectedRouteIds.length === expectedRouteIds.length;
 
     if (driveGate) {
       pass("real-drive-tour", {
@@ -758,6 +852,58 @@ async function checkRealDriveTour(browser) {
         visitedTargets,
         input: final?.input,
         final,
+        routeResults
+      });
+    }
+
+    if (continuityGate) {
+      pass("real-drive-continuity", {
+        distanceDelta,
+        frameDelta,
+        driveTelemetryMaxStep: Number(driveTelemetryMaxStep.toFixed(3)),
+        maxStepDistance: Number(maxStepDistance.toFixed(3)),
+        maxCameraLag: Number(maxCameraLag.toFixed(3)),
+        minCameraDistance: Number(minCameraDistance.toFixed(3)),
+        maxCameraDistance: Number(maxCameraDistance.toFixed(3)),
+        invisiblePlayerSamples: invisiblePlayerSamples.length,
+        invisibleActiveZoneSamples: invisibleActiveZoneSamples.length,
+        trail: final?.trail,
+        routeResults: routeResults.map((result) => ({
+          target: result.target,
+          reached: result.reached,
+          samples: result.samples.length,
+          steps: result.stepResults?.map((step) => ({ step: step.step, reached: step.reached, samples: step.samples.length })) ?? []
+        }))
+      });
+    } else {
+      scenarioFail("real-drive-continuity", "Real keyboard route is not continuous enough for a premium driving feel.", {
+        distanceDelta,
+        frameDelta,
+        driveTelemetryMaxStep,
+        maxStepDistance,
+        maxCameraLag,
+        minCameraDistance,
+        maxCameraDistance,
+        invisiblePlayerSamples,
+        invisibleActiveZoneSamples,
+        trail: final?.trail,
+        routeResults
+      });
+    }
+
+    if (routeAdherenceGate) {
+      pass("real-drive-route-adherence", {
+        surface,
+        offRouteRatio: Number(offRouteRatio.toFixed(3)),
+        expectedRouteIds,
+        coveredExpectedRouteIds
+      });
+    } else {
+      scenarioFail("real-drive-route-adherence", "Real keyboard route does not follow the designed road graph.", {
+        surface,
+        offRouteRatio,
+        expectedRouteIds,
+        coveredExpectedRouteIds,
         routeResults
       });
     }
@@ -2140,6 +2286,8 @@ async function writeReport() {
   const trailScenario = scenarios.find((scenario) => scenario.name === "rover-trail:keyboard-route");
   const activationScenarios = scenarios.filter((scenario) => scenario.name.startsWith("activation-feedback:"));
   const realDriveScenario = scenarios.find((scenario) => scenario.name === "real-drive-tour");
+  const realDriveContinuityScenario = scenarios.find((scenario) => scenario.name === "real-drive-continuity");
+  const realDriveRouteScenario = scenarios.find((scenario) => scenario.name === "real-drive-route-adherence");
   const productionRuntimeScenario = scenarios.find((scenario) => scenario.name === "production-runtime-lightweight");
   const cameraSafeScenarios = scenarios.filter((scenario) => scenario.name.startsWith("camera-safe-area:"));
   const signatureVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("signature-artifact-visible:"));
@@ -2215,6 +2363,16 @@ async function writeReport() {
     `- Real drive tour: ${
       realDriveScenario?.details
         ? `${realDriveScenario.details.distanceDelta} units over ${realDriveScenario.details.frameDelta} frames, polling max step ${realDriveScenario.details.maxStepDistance}, telemetry max step ${realDriveScenario.details.driveTelemetryMaxStep}, camera lag max ${realDriveScenario.details.maxCameraLag}, camera distance ${realDriveScenario.details.minCameraDistance}-${realDriveScenario.details.maxCameraDistance}, sticky active-zone offscreen samples ${realDriveScenario.details.invisibleActiveZoneSamples}`
+        : "n/a"
+    }`,
+    `- Real drive continuity: ${
+      realDriveContinuityScenario?.details
+        ? `${realDriveContinuityScenario.details.distanceDelta} units, ${realDriveContinuityScenario.details.frameDelta} frames, max step ${realDriveContinuityScenario.details.driveTelemetryMaxStep}, active trail ${realDriveContinuityScenario.details.trail?.activeMarks ?? "n/a"}`
+        : "n/a"
+    }`,
+    `- Real drive route adherence: ${
+      realDriveRouteScenario?.details?.surface
+        ? `${realDriveRouteScenario.details.surface.routeAdherenceRatio} adherence, ${realDriveRouteScenario.details.surface.onRouteSamples}/${realDriveRouteScenario.details.surface.samples} on-route samples, routes ${realDriveRouteScenario.details.coveredExpectedRouteIds?.length ?? 0}/${realDriveRouteScenario.details.expectedRouteIds?.length ?? 0}`
         : "n/a"
     }`,
     `- Production runtime lightweight: ${

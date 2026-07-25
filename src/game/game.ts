@@ -1,5 +1,12 @@
 import * as THREE from "three";
 import { createZoneLandmark } from "./procedural-assets";
+import {
+  createDriveSurfaceTelemetry,
+  driveSurfaceConfig,
+  recordDriveSurfaceSample,
+  sampleDriveSurface,
+  type DriveSurfaceTelemetry
+} from "./drive-surfaces";
 import { createZoneSignatureArtifacts } from "./zone-signature-artifacts";
 import { createWorldScenery } from "./world-scenery";
 import { createZoneSetDressing } from "./zone-set-dressing";
@@ -130,6 +137,7 @@ type QaSnapshot = {
     averageSpeed: number;
     rotationChange: number;
     cameraDistance: number;
+    surface: DriveSurfaceTelemetry & { routeWidth: number; segmentCount: number };
   };
   camera: {
     position: Vec3Qa;
@@ -229,6 +237,7 @@ class StudioGame {
   private totalDriveDistance = 0;
   private driveElapsedTime = 0;
   private totalRotationChange = 0;
+  private driveSurfaceTelemetry = createDriveSurfaceTelemetry();
   private readonly drivePositionSamples: Array<{ frame: number; x: number; z: number }> = [];
   private keyboardDownCount = 0;
   private keyboardUpCount = 0;
@@ -267,7 +276,14 @@ class StudioGame {
     },
     player: { x: 0, z: 0, rotationY: 0, meshCount: 0, wheelCount: 0, bounds: { width: 0, height: 0, depth: 0 } },
     trail: { totalMarks: 0, activeMarks: 0, maxOpacity: 0 },
-    drive: { totalDistance: 0, positionSamples: [], averageSpeed: 0, rotationChange: 0, cameraDistance: 0 },
+    drive: {
+      totalDistance: 0,
+      positionSamples: [],
+      averageSpeed: 0,
+      rotationChange: 0,
+      cameraDistance: 0,
+      surface: { ...createDriveSurfaceTelemetry(), routeWidth: driveSurfaceConfig.routeWidth, segmentCount: driveSurfaceConfig.segmentCount }
+    },
     camera: {
       position: { x: 8, y: 9, z: 8 },
       target: { x: 0, y: 0, z: 0 },
@@ -1115,7 +1131,14 @@ class StudioGame {
 
     if (direction.lengthSq() > 0) {
       direction.normalize();
-      this.playerPosition.add(direction.multiplyScalar(delta * playerSpeed));
+      const proposedPosition = this.playerPosition.clone().add(direction.clone().multiplyScalar(delta * playerSpeed));
+      const proposedSurface = sampleDriveSurface(proposedPosition);
+      const speedMultiplier = proposedSurface.onRoute ? 1 : 0.62;
+      this.playerPosition.add(direction.multiplyScalar(delta * playerSpeed * speedMultiplier));
+      if (!proposedSurface.onRoute) {
+        this.playerPosition.x += (proposedSurface.nearest.x - this.playerPosition.x) * 0.055;
+        this.playerPosition.z += (proposedSurface.nearest.z - this.playerPosition.z) * 0.055;
+      }
       this.targetPosition.copy(this.playerPosition);
     } else {
       this.playerPosition.lerp(this.targetPosition, 1 - Math.pow(0.0008, delta));
@@ -1150,6 +1173,7 @@ class StudioGame {
     this.totalDriveDistance += distance;
     this.driveElapsedTime += delta;
     this.totalRotationChange += Math.abs(angleDelta(previousRotationY, this.player.rotation.y));
+    this.driveSurfaceTelemetry = recordDriveSurfaceSample(this.driveSurfaceTelemetry, sampleDriveSurface(this.playerPosition));
     this.drivePositionSamples.push({
       frame: this.frameCount,
       x: Number(this.playerPosition.x.toFixed(3)),
@@ -1561,7 +1585,12 @@ class StudioGame {
       positionSamples: [...this.drivePositionSamples],
       averageSpeed: Number((this.driveElapsedTime > 0 ? this.totalDriveDistance / this.driveElapsedTime : 0).toFixed(3)),
       rotationChange: Number(this.totalRotationChange.toFixed(3)),
-      cameraDistance: Number(this.camera.position.distanceTo(this.playerPosition).toFixed(3))
+      cameraDistance: Number(this.camera.position.distanceTo(this.playerPosition).toFixed(3)),
+      surface: {
+        ...this.driveSurfaceTelemetry,
+        routeWidth: driveSurfaceConfig.routeWidth,
+        segmentCount: driveSurfaceConfig.segmentCount
+      }
     };
     const activeZonePoint = new THREE.Vector3(activeZone.position[0], 0.28, activeZone.position[1]);
     const activeSignatureArtifact = this.signatureArtifactGroups.get(activeZone.id);

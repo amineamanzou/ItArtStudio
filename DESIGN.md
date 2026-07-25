@@ -263,6 +263,19 @@ Gates V2.4:
 - rejet QA si la production n'atteint pas `game-ready` sans exposer les hooks de
   test ou si le canvas cesse d'animer.
 
+Gates V2.5:
+
+- surface de conduite derivee des routes visuelles `worldRoutes`, avec disques
+  de liberte autour des zones;
+- friction et magnetisme doux hors route pour donner au rover une sensation de
+  conduite guidee sans le mettre sur rails;
+- telemetrie `drive.surface`: samples, ratio d'adherence, distance max hors
+  route, routes visitees et largeur de route;
+- tour clavier reel par waypoints de graphe, pas seulement par diagonales vers
+  les coordonnees de zones;
+- rejet QA si la conduite ne couvre pas les routes attendues, sort trop souvent
+  du graphe ou manque de continuite camera/trail.
+
 ## Components
 
 - `game-site`: surface principale.
