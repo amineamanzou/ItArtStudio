@@ -241,6 +241,17 @@ Gates V2.2:
 - rejet QA si une zone revient a un simple socle avec decor generique, meme si
   les anciens compteurs de richesse restent au vert.
 
+Gates V2.3:
+
+- projection screen-space des artefacts signature actifs via bounding box
+  Three.js avec rect brut, rect clippe, ratio visible et profondeur;
+- verification Playwright que l'artefact signature de la zone active est visible,
+  assez grand et non masque par le HUD, le panneau, la mini-map ou les controles;
+- preuve pixel locale dans le rect clippe: ratio lumineux, transitions de contour
+  et buckets de couleur, pour eviter qu'une simple bbox valide un rendu illisible;
+- preuve aux checkpoints du vrai tour clavier, pour eviter une carte dense mais
+  illisible pendant l'exploration.
+
 ## Components
 
 - `game-site`: surface principale.

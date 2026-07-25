@@ -50,6 +50,9 @@ The runner:
 - verifies that every zone exposes dedicated procedural signature artifacts with
   unique signatures, roles, and material variants distinct from generic set
   dressing;
+- verifies that the active zone's signature artifact projects to a readable
+  screen rectangle, remains visible after UI occlusion, and exposes a local
+  pixel ROI with enough brightness, edge transitions, and color buckets;
 - verifies that the global world composition exposes terrain layers, route
   lights, district silhouettes, studio thresholds, and animated scenery roles;
 - verifies that keyboard and mini-map zone changes trigger visible 3D
@@ -104,6 +107,10 @@ The runner:
 - The world must expose at least 55 signature artifact objects and 45 signature
   artifact signatures, with no duplicate signature and every zone carrying its
   own signature artifact fingerprint.
+- Active signature artifacts must be visible at the loaded state and every real
+  keyboard checkpoint, with minimum screen size, visible canvas ratio, limited
+  UI occlusion, no center occlusion by HUD/panel/mini-map/mobile controls, and
+  a sampled canvas ROI proving rendered contrast and color detail.
 - The world must expose at least five terrain layers, 60 scenery objects, 24
   scenery signatures, 20 animated scenery objects, and all expected scenery
   roles: terrain edge, tech skyline, art sculpture, studio threshold, route

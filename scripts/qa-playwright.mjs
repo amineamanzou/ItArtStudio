@@ -661,6 +661,7 @@ async function checkRealDriveTour(browser) {
         await checkActivationFeedback(page, target.id, beforeActivation?.activeFeedback?.sequence ?? 0);
         await page.waitForTimeout(220);
         await inspectCameraSafeArea(page, `real-drive:${target.id}`);
+        await inspectSignatureArtifactVisibility(page, `real-drive:${target.id}`);
       } else {
         scenarioFail(`real-drive:${target.id}`, "Real keyboard drive did not reach the target zone.", {
           result,
@@ -1182,6 +1183,262 @@ async function inspectCameraSafeArea(page, label) {
       ...screenState,
       cameraLagLimit: 5.8,
       cameraDistanceRange: [10, 18]
+    });
+  }
+
+  return ok;
+}
+
+async function inspectSignatureArtifactVisibility(page, label) {
+  const snapshot = await getQaSnapshot(page);
+  const state = await page.evaluate((qa) => {
+    const round = (value, digits = 3) => Number(value.toFixed(digits));
+    const intersectArea = (a, b) => {
+      const left = Math.max(a.left, b.left);
+      const right = Math.min(a.right, b.right);
+      const top = Math.max(a.top, b.top);
+      const bottom = Math.min(a.bottom, b.bottom);
+      return Math.max(0, right - left) * Math.max(0, bottom - top);
+    };
+    const sampleCanvasRoi = (artifact) => {
+      const canvas = document.querySelector("canvas");
+      if (!(canvas instanceof HTMLCanvasElement) || !artifact || artifact.clippedWidth <= 1 || artifact.clippedHeight <= 1) {
+        return {
+          sampled: false,
+          roiWidth: 0,
+          roiHeight: 0,
+          brightRatio: 0,
+          edgeTransitions: 0,
+          colorBuckets: 0
+        };
+      }
+
+      const canvasRect = canvas.getBoundingClientRect();
+      const sourceLeft = Math.max(0, artifact.clippedX - canvasRect.left);
+      const sourceTop = Math.max(0, artifact.clippedY - canvasRect.top);
+      const sourceWidth = Math.min(artifact.clippedWidth, canvasRect.width - sourceLeft);
+      const sourceHeight = Math.min(artifact.clippedHeight, canvasRect.height - sourceTop);
+      if (sourceWidth <= 1 || sourceHeight <= 1) {
+        return {
+          sampled: false,
+          roiWidth: 0,
+          roiHeight: 0,
+          brightRatio: 0,
+          edgeTransitions: 0,
+          colorBuckets: 0
+        };
+      }
+
+      const scaleX = canvas.width / canvasRect.width;
+      const scaleY = canvas.height / canvasRect.height;
+      const sx = Math.max(0, Math.floor(sourceLeft * scaleX));
+      const sy = Math.max(0, Math.floor(sourceTop * scaleY));
+      const sw = Math.max(1, Math.min(canvas.width - sx, Math.ceil(sourceWidth * scaleX)));
+      const sh = Math.max(1, Math.min(canvas.height - sy, Math.ceil(sourceHeight * scaleY)));
+      const roiWidth = Math.max(24, Math.min(128, Math.round(sourceWidth)));
+      const roiHeight = Math.max(24, Math.min(128, Math.round(sourceHeight)));
+      const roi = document.createElement("canvas");
+      roi.width = roiWidth;
+      roi.height = roiHeight;
+      const ctx = roi.getContext("2d", { willReadFrequently: true });
+      if (!ctx) {
+        return {
+          sampled: false,
+          roiWidth,
+          roiHeight,
+          brightRatio: 0,
+          edgeTransitions: 0,
+          colorBuckets: 0
+        };
+      }
+
+      let pixels;
+      try {
+        ctx.drawImage(canvas, sx, sy, sw, sh, 0, 0, roiWidth, roiHeight);
+        pixels = ctx.getImageData(0, 0, roiWidth, roiHeight).data;
+      } catch (error) {
+        return {
+          sampled: false,
+          error: error instanceof Error ? error.message : String(error),
+          roiWidth,
+          roiHeight,
+          brightRatio: 0,
+          edgeTransitions: 0,
+          colorBuckets: 0
+        };
+      }
+
+      let brightPixels = 0;
+      const buckets = new Set();
+      const luminanceGrid = [];
+      for (let y = 0; y < roiHeight; y += 1) {
+        const row = [];
+        for (let x = 0; x < roiWidth; x += 1) {
+          const index = (y * roiWidth + x) * 4;
+          const r = pixels[index];
+          const g = pixels[index + 1];
+          const b = pixels[index + 2];
+          const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          row.push(luminance);
+          if (luminance >= 72) {
+            brightPixels += 1;
+          }
+          buckets.add(`${Math.floor(r / 32)}:${Math.floor(g / 32)}:${Math.floor(b / 32)}`);
+        }
+        luminanceGrid.push(row);
+      }
+
+      let edgeTransitions = 0;
+      const step = Math.max(2, Math.floor(Math.min(roiWidth, roiHeight) / 28));
+      for (let y = step; y < roiHeight; y += step) {
+        for (let x = step; x < roiWidth; x += step) {
+          if (Math.abs(luminanceGrid[y][x] - luminanceGrid[y][x - step]) >= 18) {
+            edgeTransitions += 1;
+          }
+          if (Math.abs(luminanceGrid[y][x] - luminanceGrid[y - step][x]) >= 18) {
+            edgeTransitions += 1;
+          }
+        }
+      }
+
+      return {
+        sampled: true,
+        roiWidth,
+        roiHeight,
+        brightRatio: round(brightPixels / (roiWidth * roiHeight)),
+        edgeTransitions,
+        colorBuckets: buckets.size
+      };
+    };
+    const selectors = [".game-hud", ".zone-panel", ".world-map", ".mobile-drive", ".mobile-zone-nav"];
+    const uiRects = selectors
+      .map((selector) => {
+        const node = document.querySelector(selector);
+        if (!(node instanceof HTMLElement)) {
+          return null;
+        }
+        const style = getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        if (
+          style.display === "none" ||
+          style.visibility === "hidden" ||
+          Number(style.opacity) === 0 ||
+          rect.width === 0 ||
+          rect.height === 0
+        ) {
+          return null;
+        }
+        return { selector, left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+      })
+      .filter(Boolean);
+    const artifact = qa?.screen?.activeSignatureArtifact ?? null;
+    const zone = (qa?.world?.zones ?? []).find((item) => item.id === qa?.activeZoneId) ?? null;
+    const center = artifact?.center ?? null;
+    const centerOccluders = center
+      ? uiRects
+          .filter(
+            (rect) =>
+              center.x >= rect.left - 12 &&
+              center.x <= rect.right + 12 &&
+              center.y >= rect.top - 12 &&
+              center.y <= rect.bottom + 12
+          )
+          .map((rect) => rect.selector)
+      : [];
+    const artifactRect = artifact
+      ? {
+          left: artifact.clippedX ?? artifact.x,
+          top: artifact.clippedY ?? artifact.y,
+          right: (artifact.clippedX ?? artifact.x) + (artifact.clippedWidth ?? artifact.width),
+          bottom: (artifact.clippedY ?? artifact.y) + (artifact.clippedHeight ?? artifact.height)
+        }
+      : null;
+    const uiOccludedArea = artifactRect
+      ? uiRects.reduce((sum, rect) => sum + intersectArea(artifactRect, rect), 0)
+      : 0;
+    const clippedArea = artifact?.clippedArea ?? artifact?.area ?? 0;
+    const uiOccludedRatio = clippedArea > 0 ? Math.min(1, uiOccludedArea / clippedArea) : 1;
+    const visibleRatio = artifact?.visibleRatio ?? 0;
+    const visibleAfterUiRatio = Math.max(0, visibleRatio * (1 - uiOccludedRatio));
+    const roi = sampleCanvasRoi(artifact);
+    return {
+      activeZoneId: qa?.activeZoneId ?? null,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      artifact,
+      zone,
+      centerOccluders,
+      uiRects: uiRects.map((rect) => rect.selector),
+      uiOccludedArea: round(uiOccludedArea, 1),
+      uiOccludedRatio: round(uiOccludedRatio),
+      visibleAfterUiRatio: round(visibleAfterUiRatio),
+      roi
+    };
+  }, snapshot);
+
+  const isMobile = state.viewport.width <= 820;
+  const minWidth = isMobile ? 34 : 48;
+  const minHeight = isMobile ? 34 : 58;
+  const minArea = isMobile ? 850 : 2_200;
+  const minVisibleRatio = isMobile ? 0.5 : 0.68;
+  const maxUiOccludedRatio = isMobile ? 0.28 : 0.14;
+  const minVisibleAfterUiRatio = isMobile ? 0.45 : 0.58;
+  const minBrightRatio = isMobile ? 0.06 : 0.08;
+  const minEdgeTransitions = state.artifact?.area >= 3_200 ? 14 : 8;
+  const minColorBuckets = state.artifact?.area >= 3_200 ? 8 : 5;
+  const ok =
+    state.artifact?.visible === true &&
+    state.artifact?.center?.visible === true &&
+    (state.artifact?.visibleRatio ?? 0) >= minVisibleRatio &&
+    (state.artifact?.cornerDepthCount ?? 0) >= 2 &&
+    state.artifact.width >= minWidth &&
+    state.artifact.height >= minHeight &&
+    state.artifact.area >= minArea &&
+    state.centerOccluders.length === 0 &&
+    state.uiOccludedRatio <= maxUiOccludedRatio &&
+    state.visibleAfterUiRatio >= minVisibleAfterUiRatio &&
+    state.roi.sampled === true &&
+    state.roi.brightRatio >= minBrightRatio &&
+    state.roi.edgeTransitions >= minEdgeTransitions &&
+    state.roi.colorBuckets >= minColorBuckets &&
+    (state.zone?.signatureArtifactObjects ?? 0) >= 4 &&
+    (state.zone?.signatureArtifactSignatures?.length ?? 0) >= 4 &&
+    (state.zone?.signatureArtifactRoles?.length ?? 0) >= 3 &&
+    (state.zone?.signatureArtifactFamilies?.length ?? 0) >= 1;
+
+  if (ok) {
+    pass(`signature-artifact-visible:${label}`, {
+      activeZoneId: state.activeZoneId,
+      artifact: state.artifact,
+      uiOccludedRatio: state.uiOccludedRatio,
+      visibleAfterUiRatio: state.visibleAfterUiRatio,
+      roi: state.roi,
+      signatureArtifactObjects: state.zone.signatureArtifactObjects,
+      signatureArtifactFamilies: state.zone.signatureArtifactFamilies,
+      signatureArtifactRoles: state.zone.signatureArtifactRoles.length,
+      thresholds: {
+        minWidth,
+        minHeight,
+        minArea,
+        minVisibleRatio,
+        maxUiOccludedRatio,
+        minVisibleAfterUiRatio,
+        minBrightRatio,
+        minEdgeTransitions,
+        minColorBuckets
+      }
+    });
+  } else {
+    scenarioFail(`signature-artifact-visible:${label}`, "Active signature artifact is not visually readable.", {
+      ...state,
+      minWidth,
+      minHeight,
+      minArea,
+      minVisibleRatio,
+      maxUiOccludedRatio,
+      minVisibleAfterUiRatio,
+      minBrightRatio,
+      minEdgeTransitions,
+      minColorBuckets
     });
   }
 
@@ -1803,6 +2060,10 @@ async function writeReport() {
   const activationScenarios = scenarios.filter((scenario) => scenario.name.startsWith("activation-feedback:"));
   const realDriveScenario = scenarios.find((scenario) => scenario.name === "real-drive-tour");
   const cameraSafeScenarios = scenarios.filter((scenario) => scenario.name.startsWith("camera-safe-area:"));
+  const signatureVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("signature-artifact-visible:"));
+  const weakestSignatureScenario = signatureVisibleScenarios
+    .filter((scenario) => typeof scenario.details?.visibleAfterUiRatio === "number")
+    .sort((a, b) => a.details.visibleAfterUiRatio - b.details.visibleAfterUiRatio)[0];
   const world = worldScenario?.details?.world;
   const player = playerScenario?.details?.player;
   const localMotionBehaviorTypes = visualScenario?.details?.localMotionBehaviorTypes ?? [];
@@ -1874,6 +2135,14 @@ async function writeReport() {
     `- Camera safe-area checks: ${cameraSafeScenarios.filter((scenario) => scenario.status === "pass").length}/${
       cameraSafeScenarios.length
     }`,
+    `- Signature artifact visible checks: ${signatureVisibleScenarios.filter((scenario) => scenario.status === "pass").length}/${
+      signatureVisibleScenarios.length
+    }`,
+    `- Weakest signature artifact visibility: ${
+      weakestSignatureScenario
+        ? `${weakestSignatureScenario.name.replace("signature-artifact-visible:", "")}, visible-after-ui ${weakestSignatureScenario.details.visibleAfterUiRatio}, ROI bright ${weakestSignatureScenario.details.roi?.brightRatio}, edges ${weakestSignatureScenario.details.roi?.edgeTransitions}, buckets ${weakestSignatureScenario.details.roi?.colorBuckets}`
+        : "n/a"
+    }`,
     `- Final camera: ${
       realDriveScenario?.details?.camera
         ? `lag ${realDriveScenario.details.camera.lag}, distance ${realDriveScenario.details.camera.distanceToPlayer}, player screen ${realDriveScenario.details.screen?.player?.x}/${realDriveScenario.details.screen?.player?.y}`
@@ -1921,6 +2190,7 @@ async function main() {
     await checkRuntimeFrameBudget(page, "pre-capture");
     const home = await capture(page, "home-loaded");
     await inspectCameraSafeArea(page, "home-loaded");
+    await inspectSignatureArtifactVisibility(page, "home-loaded");
     await checkVisibleZoneControls(page, "desktop");
     const desktopLayout = await measureLayout(page);
     if (desktopLayout.overlaps.length === 0 && desktopLayout.coverage <= 0.38) {

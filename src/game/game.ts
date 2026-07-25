@@ -30,6 +30,22 @@ type DriveKey = "up" | "down" | "left" | "right";
 type BoundsQa = { width: number; height: number; depth: number };
 type Vec3Qa = { x: number; y: number; z: number };
 type ScreenPointQa = { x: number; y: number; ndcX: number; ndcY: number; visible: boolean };
+type ScreenRectQa = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  area: number;
+  clippedX: number;
+  clippedY: number;
+  clippedWidth: number;
+  clippedHeight: number;
+  clippedArea: number;
+  visibleRatio: number;
+  cornerDepthCount: number;
+  visible: boolean;
+  center: ScreenPointQa;
+};
 type TrailMark = { mesh: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>; age: number; maxAge: number };
 type ActivationFeedback = {
   group: THREE.Group;
@@ -58,6 +74,8 @@ type ZoneAssetQa = {
   signatureArtifactRoles: string[];
   signatureArtifactSignatures: string[];
   signatureArtifactMaterials: string[];
+  signatureArtifactBounds: BoundsQa;
+  signatureArtifactScreen: ScreenRectQa;
   materialVariants: number;
   declaredMaterialVariants: string[];
   renderedMaterialVariants: string[];
@@ -123,6 +141,7 @@ type QaSnapshot = {
   screen: {
     player: ScreenPointQa;
     activeZone: ScreenPointQa & { zoneId: string };
+    activeSignatureArtifact: ScreenRectQa & { zoneId: string };
   };
   input: {
     activeKeys: DriveKey[];
@@ -199,6 +218,7 @@ class StudioGame {
   private readonly zoneMotionObjects = new Map<string, THREE.Object3D[]>();
   private readonly activationFeedbackByZone = new Map<string, ActivationFeedback>();
   private readonly landmarkMeshes = new Map<string, THREE.Object3D>();
+  private readonly signatureArtifactGroups = new Map<string, THREE.Object3D>();
   private readonly worldSceneryMotionObjects: THREE.Object3D[] = [];
   private readonly wheelMeshes: THREE.Mesh[] = [];
   private readonly trailMarks: TrailMark[] = [];
@@ -257,7 +277,24 @@ class StudioGame {
     },
     screen: {
       player: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false },
-      activeZone: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false, zoneId: defaultZone.id }
+      activeZone: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false, zoneId: defaultZone.id },
+      activeSignatureArtifact: {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        area: 0,
+        clippedX: 0,
+        clippedY: 0,
+        clippedWidth: 0,
+        clippedHeight: 0,
+        clippedArea: 0,
+        visibleRatio: 0,
+        cornerDepthCount: 0,
+        visible: false,
+        center: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false },
+        zoneId: defaultZone.id
+      }
     },
     input: { activeKeys: [], keyboardDownCount: 0, keyboardUpCount: 0, lastKeyboardCode: null, qaStepHookCalls: 0 },
     activeFeedback: {
@@ -724,6 +761,7 @@ class StudioGame {
   private addZoneSignatureArtifacts(group: THREE.Group, zone: StudioZone) {
     const rendered = createZoneSignatureArtifacts(zone, colors);
     group.add(rendered.group);
+    this.signatureArtifactGroups.set(zone.id, rendered.group);
     this.signatureArtifactObjectCount += rendered.objectCount;
     this.decorativeObjectCount += rendered.objectCount;
     this.motionRoleCount += rendered.motionObjects.length;
@@ -1520,6 +1558,10 @@ class StudioGame {
       cameraDistance: Number(this.camera.position.distanceTo(this.playerPosition).toFixed(3))
     };
     const activeZonePoint = new THREE.Vector3(activeZone.position[0], 0.28, activeZone.position[1]);
+    const activeSignatureArtifact = this.signatureArtifactGroups.get(activeZone.id);
+    const activeSignatureArtifactScreen = qaMode && activeSignatureArtifact
+      ? this.projectObjectToScreenRect(activeSignatureArtifact)
+      : this.emptyScreenRect();
     this.qaSnapshot.camera = {
       position: this.toVec3Qa(this.camera.position),
       target: this.toVec3Qa(this.cameraTarget),
@@ -1531,6 +1573,10 @@ class StudioGame {
       player: this.projectToScreen(this.playerPosition),
       activeZone: {
         ...this.projectToScreen(activeZonePoint),
+        zoneId: activeZone.id
+      },
+      activeSignatureArtifact: {
+        ...activeSignatureArtifactScreen,
         zoneId: activeZone.id
       }
     };
@@ -1618,6 +1664,8 @@ class StudioGame {
         signatureArtifactRoles: [],
         signatureArtifactSignatures: [],
         signatureArtifactMaterials: [],
+        signatureArtifactBounds: { width: 0, height: 0, depth: 0 },
+        signatureArtifactScreen: this.emptyScreenRect(),
         materialVariants: 0,
         declaredMaterialVariants: [],
         renderedMaterialVariants: [],
@@ -1736,6 +1784,8 @@ class StudioGame {
       Boolean(expectedAnimation && appliedAnimation) &&
       JSON.stringify(expectedAnimation) === JSON.stringify(appliedAnimation);
 
+    const signatureArtifactGroup = this.signatureArtifactGroups.get(zone.id);
+
     return {
       id: zone.id,
       meshCount,
@@ -1753,6 +1803,9 @@ class StudioGame {
       signatureArtifactRoles: [...signatureArtifactRoles].sort(),
       signatureArtifactSignatures: [...signatureArtifactSignatures].sort(),
       signatureArtifactMaterials: [...signatureArtifactMaterials].sort(),
+      signatureArtifactBounds: signatureArtifactGroup ? this.measureObject(signatureArtifactGroup) : { width: 0, height: 0, depth: 0 },
+      signatureArtifactScreen:
+        qaMode && signatureArtifactGroup ? this.projectObjectToScreenRect(signatureArtifactGroup) : this.emptyScreenRect(),
       materialVariants: materialVariants.size,
       declaredMaterialVariants,
       renderedMaterialVariants,
@@ -1791,6 +1844,88 @@ class StudioGame {
       width: Number(size.x.toFixed(3)),
       height: Number(size.y.toFixed(3)),
       depth: Number(size.z.toFixed(3))
+    };
+  }
+
+  private emptyScreenRect(): ScreenRectQa {
+    return {
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+      area: 0,
+      clippedX: 0,
+      clippedY: 0,
+      clippedWidth: 0,
+      clippedHeight: 0,
+      clippedArea: 0,
+      visibleRatio: 0,
+      cornerDepthCount: 0,
+      visible: false,
+      center: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false }
+    };
+  }
+
+  private projectObjectToScreenRect(object: THREE.Object3D): ScreenRectQa {
+    object.updateWorldMatrix(true, true);
+    const bounds = new THREE.Box3().setFromObject(object);
+    if (bounds.isEmpty()) {
+      return this.emptyScreenRect();
+    }
+
+    const rect = this.canvas.getBoundingClientRect();
+    const corners = [
+      new THREE.Vector3(bounds.min.x, bounds.min.y, bounds.min.z),
+      new THREE.Vector3(bounds.min.x, bounds.min.y, bounds.max.z),
+      new THREE.Vector3(bounds.min.x, bounds.max.y, bounds.min.z),
+      new THREE.Vector3(bounds.min.x, bounds.max.y, bounds.max.z),
+      new THREE.Vector3(bounds.max.x, bounds.min.y, bounds.min.z),
+      new THREE.Vector3(bounds.max.x, bounds.min.y, bounds.max.z),
+      new THREE.Vector3(bounds.max.x, bounds.max.y, bounds.min.z),
+      new THREE.Vector3(bounds.max.x, bounds.max.y, bounds.max.z)
+    ];
+    const projected = corners.map((corner) => corner.project(this.camera));
+    const screenPoints = projected.map((point) => ({
+      x: rect.left + ((point.x + 1) / 2) * rect.width,
+      y: rect.top + ((1 - point.y) / 2) * rect.height,
+      z: point.z
+    }));
+    const minX = Math.min(...screenPoints.map((point) => point.x));
+    const maxX = Math.max(...screenPoints.map((point) => point.x));
+    const minY = Math.min(...screenPoints.map((point) => point.y));
+    const maxY = Math.max(...screenPoints.map((point) => point.y));
+    const width = Math.max(0, maxX - minX);
+    const height = Math.max(0, maxY - minY);
+    const area = width * height;
+    const clippedMinX = clamp(minX, rect.left, rect.right);
+    const clippedMaxX = clamp(maxX, rect.left, rect.right);
+    const clippedMinY = clamp(minY, rect.top, rect.bottom);
+    const clippedMaxY = clamp(maxY, rect.top, rect.bottom);
+    const clippedWidth = Math.max(0, clippedMaxX - clippedMinX);
+    const clippedHeight = Math.max(0, clippedMaxY - clippedMinY);
+    const clippedArea = clippedWidth * clippedHeight;
+    const center = new THREE.Vector3();
+    bounds.getCenter(center);
+    const centerScreen = this.projectToScreen(center);
+    const intersectsCanvas = maxX >= rect.left && minX <= rect.right && maxY >= rect.top && minY <= rect.bottom;
+    const cornerDepthCount = projected.filter((point) => point.z >= -1 && point.z <= 1).length;
+    const visibleRatio = area > 0 ? clippedArea / area : 0;
+
+    return {
+      x: Number(minX.toFixed(1)),
+      y: Number(minY.toFixed(1)),
+      width: Number(width.toFixed(1)),
+      height: Number(height.toFixed(1)),
+      area: Number(area.toFixed(1)),
+      clippedX: Number(clippedMinX.toFixed(1)),
+      clippedY: Number(clippedMinY.toFixed(1)),
+      clippedWidth: Number(clippedWidth.toFixed(1)),
+      clippedHeight: Number(clippedHeight.toFixed(1)),
+      clippedArea: Number(clippedArea.toFixed(1)),
+      visibleRatio: Number(visibleRatio.toFixed(3)),
+      cornerDepthCount,
+      visible: intersectsCanvas && cornerDepthCount >= 2 && visibleRatio > 0 && width > 0 && height > 0,
+      center: centerScreen
     };
   }
 
