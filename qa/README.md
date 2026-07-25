@@ -206,6 +206,13 @@ The runner:
 - `project-artifact-premium-visual-coverage` must prove the sampled mini-map
   specimens are large, unobstructed, bright enough, edge-rich and color-rich
   enough to read as premium 3D assets.
+- Route surfaces must read as modeled playable ribbons, not flat strokes:
+  `route-surface-materialized` checks rendered route-surface objects, detail
+  parts, unique signatures and a bounded vertex budget while preserving
+  `sceneObjects <= 923`.
+- `premium-world-detail-distribution` samples each screenshot canvas outside
+  UI rectangles and rejects viewports with too many flat tiles, not enough rich
+  tiles, weak median edges, weak color buckets or a large flat cluster.
 - The real keyboard tour must prove route continuity: at least 180 frames, 60
   units travelled, 16 active trail marks, stable camera distance/lag, and no
   invisible player samples.
@@ -317,6 +324,10 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
 - `activeZoneLabel`
 - `zoneCount`
 - `world`
+  - `routeSurfaceObjects`
+  - `routeSurfaceDetailSignatures`
+  - `routeSurfaceDetailParts`
+  - `routeSurfaceVertexCount`
   - `placeArchitectureObjects`
   - `placeArchitectureFamilies`
   - `placeArchitectureSignatures`

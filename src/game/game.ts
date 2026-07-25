@@ -8,6 +8,7 @@ import {
   type DriveSurfaceTelemetry
 } from "./drive-surfaces";
 import { createRouteGuidance, type RouteEncounterGate } from "./route-guidance";
+import { createRoadRibbonGeometry } from "./road-ribbons";
 import { createZoneSignatureArtifacts } from "./zone-signature-artifacts";
 import { createZoneProjectArtifacts } from "./zone-project-artifacts";
 import { createZonePlaceArchitecture } from "./zone-place-architecture";
@@ -37,7 +38,84 @@ const colors: Record<ZoneKind | "ground" | "road" | "ink", number> = {
   ink: 0x101015
 };
 
+const worldTexture = createWorldTexture(colors.ground, 9);
+
 type DriveKey = "up" | "down" | "left" | "right";
+
+function createWorldTexture(baseColor: number, repeat = 9) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 256;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return null;
+  }
+
+  const base = new THREE.Color(baseColor);
+  const light = base.clone().lerp(new THREE.Color(0xffffff), 0.34);
+  const dark = base.clone().lerp(new THREE.Color(0x050807), 0.46);
+  const warm = base.clone().lerp(new THREE.Color(colors.studio), 0.42);
+
+  context.fillStyle = `#${light.getHexString()}`;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.globalAlpha = 0.42;
+  context.strokeStyle = `#${dark.getHexString()}`;
+  context.lineWidth = 1.4;
+  for (let y = 10; y < canvas.height; y += 24) {
+    context.beginPath();
+    for (let x = -16; x <= canvas.width + 16; x += 16) {
+      const wave = Math.sin((x + y) * 0.036) * 5 + Math.cos((x - y) * 0.021) * 3;
+      if (x === -16) {
+        context.moveTo(x, y + wave);
+      } else {
+        context.lineTo(x, y + wave);
+      }
+    }
+    context.stroke();
+  }
+
+  context.globalAlpha = 0.34;
+  context.strokeStyle = "#ffffff";
+  context.lineWidth = 1;
+  for (let x = 8; x < canvas.width; x += 32) {
+    context.beginPath();
+    context.moveTo(x, 0);
+    context.lineTo(x + 28, canvas.height);
+    context.stroke();
+  }
+
+  context.globalAlpha = 0.32;
+  context.strokeStyle = `#${dark.getHexString()}`;
+  for (let index = 0; index < 44; index += 1) {
+    const x = (index * 61) % canvas.width;
+    const y = (index * 29) % canvas.height;
+    const width = 10 + (index % 5) * 5;
+    const height = 7 + (index % 4) * 4;
+    context.strokeRect(x, y, width, height);
+    context.beginPath();
+    context.moveTo(x + width, y + height * 0.5);
+    context.lineTo(x + width + 12, y + height * 0.5);
+    context.stroke();
+  }
+
+  context.globalAlpha = 0.38;
+  for (let index = 0; index < 260; index += 1) {
+    const x = (index * 47) % canvas.width;
+    const y = (index * 83) % canvas.height;
+    const radius = 0.9 + ((index * 13) % 5) * 0.22;
+    context.fillStyle = index % 3 === 0 ? `#${dark.getHexString()}` : `#${warm.getHexString()}`;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(repeat, repeat);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
 
 type BoundsQa = { width: number; height: number; depth: number };
 type Vec3Qa = { x: number; y: number; z: number };
@@ -218,6 +296,10 @@ type QaSnapshot = {
     sceneObjects: number;
     decorativeObjects: number;
     roadSegments: number;
+    routeSurfaceObjects: number;
+    routeSurfaceDetailSignatures: number;
+    routeSurfaceDetailParts: number;
+    routeSurfaceVertexCount: number;
     landmarkObjects: number;
     playerParts: number;
     visualSpecs: number;
@@ -367,6 +449,9 @@ class StudioGame {
   private frameCount = 0;
   private decorativeObjectCount = 0;
   private roadSegmentCount = 0;
+  private routeSurfaceObjectCount = 0;
+  private routeSurfaceDetailPartCount = 0;
+  private routeSurfaceVertexCount = 0;
   private visualDecalCount = 0;
   private propClusterCount = 0;
   private surfaceObjectCount = 0;
@@ -395,6 +480,7 @@ class StudioGame {
   private readonly projectArtifactActivityIds = new Set<string>();
   private readonly projectArtifactMaterialIds = new Set<string>();
   private readonly scenerySignatureIds = new Set<string>();
+  private readonly routeSurfaceSignatureIds = new Set<string>();
   private readonly routeGuidanceSignatureIds = new Set<string>();
   private readonly routeGuidanceRoleCounts: Record<string, number> = {};
   private readonly zoneMotionObjects = new Map<string, THREE.Object3D[]>();
@@ -460,6 +546,10 @@ class StudioGame {
       sceneObjects: 0,
       decorativeObjects: 0,
       roadSegments: 0,
+      routeSurfaceObjects: 0,
+      routeSurfaceDetailSignatures: 0,
+      routeSurfaceDetailParts: 0,
+      routeSurfaceVertexCount: 0,
       landmarkObjects: 0,
       playerParts: 0,
       visualSpecs: 0,
@@ -801,7 +891,8 @@ class StudioGame {
     const ground = new THREE.Mesh(
       new THREE.CircleGeometry(12.8, 7),
       new THREE.MeshStandardMaterial({
-        color: colors.ground,
+        color: 0xffffff,
+        map: worldTexture,
         roughness: 0.86,
         metalness: 0.05
       })
@@ -900,11 +991,12 @@ class StudioGame {
     const plate = new THREE.Mesh(
       new THREE.ShapeGeometry(shape),
       new THREE.MeshStandardMaterial({
-        color,
+        color: 0xffffff,
+        map: createWorldTexture(color, 7),
         roughness: 0.92,
         metalness: 0.02,
         transparent: true,
-        opacity,
+        opacity: Math.min(0.2, opacity + 0.055),
         depthWrite: false
       })
     );
@@ -996,13 +1088,29 @@ class StudioGame {
         ...(routeInfo.via ?? []).map(([x, z]) => new THREE.Vector3(x, 0.08, z)),
         new THREE.Vector3(to.position[0], 0.075, to.position[1])
       ];
-      const curve = new THREE.CatmullRomCurve3(points);
-      const base = new THREE.Mesh(new THREE.TubeGeometry(curve, 24, 0.085, 8, false), underlay);
-      const route = new THREE.Mesh(new THREE.TubeGeometry(curve, 24, 0.035, 8, false), accentMaterial);
+      const ribbon = createRoadRibbonGeometry(points, routeInfo.id, driveSurfaceConfig.routeWidth);
+      const base = new THREE.Mesh(ribbon.bed, underlay);
+      const route = new THREE.Mesh(ribbon.lane, accentMaterial);
+      base.userData.routeSurfaceRole = "route-bed";
+      base.userData.routeSurfaceRouteId = routeInfo.id;
+      base.userData.routeSurfaceDetailParts = ribbon.bedDetailCount;
+      base.userData.routeSurfaceVertexCount = ribbon.bed.getAttribute("position").count;
+      base.userData.routeSurfaceSignatures = ribbon.signatures.slice(0, 3);
+      route.userData.routeSurfaceRole = "route-lane";
+      route.userData.routeSurfaceRouteId = routeInfo.id;
+      route.userData.routeSurfaceDetailParts = ribbon.laneDetailCount;
+      route.userData.routeSurfaceVertexCount = ribbon.lane.getAttribute("position").count;
+      route.userData.routeSurfaceSignatures = ribbon.signatures.slice(3);
       base.receiveShadow = true;
       route.castShadow = true;
       this.scene.add(base, route);
       this.roadSegmentCount += 2;
+      this.routeSurfaceObjectCount += 2;
+      this.routeSurfaceDetailPartCount += ribbon.bedDetailCount + ribbon.laneDetailCount;
+      this.routeSurfaceVertexCount += ribbon.vertexCount;
+      for (const signature of ribbon.signatures) {
+        this.routeSurfaceSignatureIds.add(signature);
+      }
       this.decorativeObjectCount += 2;
 
       const node = new THREE.Mesh(
@@ -1010,8 +1118,17 @@ class StudioGame {
         routeMaterial
       );
       node.position.set(to.position[0], 0.24, to.position[1]);
+      node.userData.routeSurfaceRole = "route-node";
+      node.userData.routeSurfaceRouteId = routeInfo.id;
+      node.userData.routeSurfaceDetailParts = 1;
+      node.userData.routeSurfaceVertexCount = node.geometry.getAttribute("position").count;
+      node.userData.routeSurfaceSignatures = [`road:${routeInfo.id}:destination-node`];
       node.castShadow = true;
       this.scene.add(node);
+      this.routeSurfaceObjectCount += 1;
+      this.routeSurfaceDetailPartCount += 1;
+      this.routeSurfaceVertexCount += node.geometry.getAttribute("position").count;
+      this.routeSurfaceSignatureIds.add(`road:${routeInfo.id}:destination-node`);
       this.decorativeObjectCount += 1;
     }
   }
@@ -2256,6 +2373,10 @@ class StudioGame {
         sceneObjects,
         decorativeObjects: this.decorativeObjectCount,
         roadSegments: this.roadSegmentCount,
+        routeSurfaceObjects: this.routeSurfaceObjectCount,
+        routeSurfaceDetailSignatures: this.routeSurfaceSignatureIds.size,
+        routeSurfaceDetailParts: this.routeSurfaceDetailPartCount,
+        routeSurfaceVertexCount: this.routeSurfaceVertexCount,
         landmarkObjects,
         playerParts: this.playerPartCount,
         visualSpecs: this.renderedVisualSpecIds.size,

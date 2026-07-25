@@ -469,6 +469,20 @@ Gates V4.1:
   nombre de pieces procedurales et vertices uniques, avec conservation stricte
   de `projectArtifactSceneObjects <= 10` et `sceneObjects <= 923`.
 
+Gates V4.2:
+
+- `route-surface-materialized`: remplacer les tubes de routes simples par des
+  rubans jouables proceduraux, composes d'un lit, de deux rails, de deux lignes
+  signal et de traverses de flux fusionnees;
+- `premium-world-detail-distribution`: mesurer chaque capture en grille canvas
+  hors UI pour refuser les viewports trop plats, meme si les objets locaux
+  passent leurs gates;
+- la carte conserve le meme nombre d'objets de scene pour les routes: deux
+  meshes de surface et un node par route, mais expose des signatures, pieces de
+  detail et vertices pour prouver que les routes ne redeviennent pas des traits
+  generiques;
+- le budget strict reste `sceneObjects <= 923`.
+
 ## Components
 
 - `game-site`: surface principale.

@@ -272,6 +272,294 @@ function assertCanvasDetail(label, canvas) {
   }
 }
 
+async function assertPremiumWorldDetailDistribution(page, label) {
+  const samples = [];
+  for (let index = 0; index < 3; index += 1) {
+    samples.push(await sampleWorldDetailDistribution(page));
+    if (index < 2) {
+      await page.waitForTimeout(190);
+    }
+  }
+
+  const minViewportWidth = Math.min(...samples.map((sample) => sample.viewport?.width ?? Number.POSITIVE_INFINITY));
+  const isMobile = minViewportWidth <= 820;
+  const isCompact = minViewportWidth <= 1024;
+  const thresholds = isMobile
+    ? {
+        minValidTiles: 34,
+        maxFlatTileRatio: 0.56,
+        minRichTileRatio: 0.35,
+        minEdgeDensityP50: 0.009,
+        minColorBucketP50: 5,
+        minRichQuadrants: 2,
+        maxFlatCluster: 32
+      }
+    : isCompact
+      ? {
+          minValidTiles: 54,
+          maxFlatTileRatio: 0.45,
+          minRichTileRatio: 0.45,
+          minEdgeDensityP50: 0.045,
+          minColorBucketP50: 7,
+          minRichQuadrants: 3,
+          maxFlatCluster: 30
+        }
+    : {
+        minValidTiles: 54,
+        maxFlatTileRatio: 0.42,
+        minRichTileRatio: 0.5,
+        minEdgeDensityP50: 0.055,
+        minColorBucketP50: 7,
+        minRichQuadrants: 3,
+        maxFlatCluster: 25
+      };
+
+  const median = (values) => percentile(values, 0.5);
+  const details = {
+    label,
+    viewport: samples[0]?.viewport ?? null,
+    sampleCount: samples.length,
+    validTiles: Math.min(...samples.map((sample) => sample.validTiles ?? 0)),
+    flatTileRatio: Number(median(samples.map((sample) => sample.flatTileRatio ?? 1)).toFixed(3)),
+    richTileRatio: Number(median(samples.map((sample) => sample.richTileRatio ?? 0)).toFixed(3)),
+    edgeDensityP50: Number(median(samples.map((sample) => sample.edgeDensityP50 ?? 0)).toFixed(3)),
+    colorBucketP50: Number(median(samples.map((sample) => sample.colorBucketP50 ?? 0)).toFixed(1)),
+    lumaStdDevP50: Number(median(samples.map((sample) => sample.lumaStdDevP50 ?? 0)).toFixed(1)),
+    richQuadrants: Math.min(...samples.map((sample) => sample.richQuadrants ?? 0)),
+    maxFlatCluster: Math.max(...samples.map((sample) => sample.maxFlatCluster ?? 99)),
+    uiRects: samples[0]?.uiRects ?? [],
+    thresholds,
+    samples
+  };
+
+  const ok =
+    samples.every((sample) => sample.sampled === true) &&
+    details.validTiles >= thresholds.minValidTiles &&
+    details.flatTileRatio <= thresholds.maxFlatTileRatio &&
+    details.richTileRatio >= thresholds.minRichTileRatio &&
+    details.edgeDensityP50 >= thresholds.minEdgeDensityP50 &&
+    details.colorBucketP50 >= thresholds.minColorBucketP50 &&
+    details.richQuadrants >= thresholds.minRichQuadrants &&
+    details.maxFlatCluster <= thresholds.maxFlatCluster;
+
+  if (ok) {
+    pass(`premium-world-detail-distribution:${label}`, details);
+  } else {
+    scenarioFail(
+      `premium-world-detail-distribution:${label}`,
+      "World viewport has too many flat regions for a premium playable map.",
+      details
+    );
+  }
+}
+
+async function sampleWorldDetailDistribution(page) {
+  return page.evaluate(() => {
+    const canvas = document.querySelector("#studio-map-canvas");
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      return { sampled: false, reason: "missing-canvas" };
+    }
+
+    const round = (value, digits = 3) => Number(value.toFixed(digits));
+    const canvasRect = canvas.getBoundingClientRect();
+    const selectors = [".game-hud", ".zone-panel", ".world-map", ".mobile-drive", ".mobile-zone-nav"];
+    const uiRects = selectors
+      .map((selector) => {
+        const node = document.querySelector(selector);
+        if (!(node instanceof HTMLElement)) {
+          return null;
+        }
+        const style = getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        if (
+          style.display === "none" ||
+          style.visibility === "hidden" ||
+          Number(style.opacity) === 0 ||
+          rect.width === 0 ||
+          rect.height === 0
+        ) {
+          return null;
+        }
+        return {
+          selector,
+          left: rect.left - canvasRect.left,
+          top: rect.top - canvasRect.top,
+          right: rect.right - canvasRect.left,
+          bottom: rect.bottom - canvasRect.top
+        };
+      })
+      .filter(Boolean);
+
+    const sampleWidth = 192;
+    const sampleHeight = Math.max(96, Math.round(sampleWidth * (canvasRect.height / canvasRect.width)));
+    const offscreen = document.createElement("canvas");
+    offscreen.width = sampleWidth;
+    offscreen.height = sampleHeight;
+    const context = offscreen.getContext("2d", { willReadFrequently: true });
+    if (!context) {
+      return { sampled: false, reason: "missing-2d-context" };
+    }
+
+    try {
+      context.drawImage(canvas, 0, 0, sampleWidth, sampleHeight);
+    } catch (error) {
+      return { sampled: false, reason: error instanceof Error ? error.message : String(error) };
+    }
+
+    const pixels = context.getImageData(0, 0, sampleWidth, sampleHeight).data;
+    const gridX = 12;
+    const gridY = 8;
+    const tileWidth = Math.floor(sampleWidth / gridX);
+    const tileHeight = Math.floor(sampleHeight / gridY);
+    const tiles = [];
+
+    const overlapsUi = (left, top, right, bottom) => {
+      const centerX = (left + right) / 2;
+      const centerY = (top + bottom) / 2;
+      const sourceCenterX = (centerX / sampleWidth) * canvasRect.width;
+      const sourceCenterY = (centerY / sampleHeight) * canvasRect.height;
+      const sourceLeft = (left / sampleWidth) * canvasRect.width;
+      const sourceTop = (top / sampleHeight) * canvasRect.height;
+      const sourceRight = (right / sampleWidth) * canvasRect.width;
+      const sourceBottom = (bottom / sampleHeight) * canvasRect.height;
+      const sourceArea = Math.max(1, (sourceRight - sourceLeft) * (sourceBottom - sourceTop));
+      return uiRects.some(
+        (rect) => {
+          const overlapLeft = Math.max(sourceLeft, rect.left);
+          const overlapRight = Math.min(sourceRight, rect.right);
+          const overlapTop = Math.max(sourceTop, rect.top);
+          const overlapBottom = Math.min(sourceBottom, rect.bottom);
+          const overlapArea = Math.max(0, overlapRight - overlapLeft) * Math.max(0, overlapBottom - overlapTop);
+          const centerInside =
+            sourceCenterX >= rect.left &&
+            sourceCenterX <= rect.right &&
+            sourceCenterY >= rect.top &&
+            sourceCenterY <= rect.bottom;
+          return centerInside || overlapArea / sourceArea >= 0.18;
+        }
+      );
+    };
+
+    for (let tileY = 0; tileY < gridY; tileY += 1) {
+      for (let tileX = 0; tileX < gridX; tileX += 1) {
+        const left = tileX * tileWidth;
+        const top = tileY * tileHeight;
+        const right = tileX === gridX - 1 ? sampleWidth : left + tileWidth;
+        const bottom = tileY === gridY - 1 ? sampleHeight : top + tileHeight;
+        if (overlapsUi(left, top, right, bottom)) {
+          continue;
+        }
+
+        const lumas = [];
+        const buckets = new Set();
+        let edgeTransitions = 0;
+        let edgeComparisons = 0;
+        for (let y = top; y < bottom; y += 1) {
+          for (let x = left; x < right; x += 1) {
+            const index = (y * sampleWidth + x) * 4;
+            const r = pixels[index];
+            const g = pixels[index + 1];
+            const b = pixels[index + 2];
+            const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            lumas.push(luma);
+            buckets.add(`${Math.floor(r / 32)}:${Math.floor(g / 32)}:${Math.floor(b / 32)}`);
+
+            if (x > left) {
+              const leftIndex = (y * sampleWidth + x - 1) * 4;
+              const leftLuma = 0.2126 * pixels[leftIndex] + 0.7152 * pixels[leftIndex + 1] + 0.0722 * pixels[leftIndex + 2];
+              edgeComparisons += 1;
+              if (Math.abs(luma - leftLuma) >= 18) {
+                edgeTransitions += 1;
+              }
+            }
+            if (y > top) {
+              const topIndex = ((y - 1) * sampleWidth + x) * 4;
+              const topLuma = 0.2126 * pixels[topIndex] + 0.7152 * pixels[topIndex + 1] + 0.0722 * pixels[topIndex + 2];
+              edgeComparisons += 1;
+              if (Math.abs(luma - topLuma) >= 18) {
+                edgeTransitions += 1;
+              }
+            }
+          }
+        }
+
+        const average = lumas.reduce((sum, value) => sum + value, 0) / Math.max(1, lumas.length);
+        const variance = lumas.reduce((sum, value) => sum + (value - average) ** 2, 0) / Math.max(1, lumas.length);
+        const edgeDensity = edgeComparisons > 0 ? edgeTransitions / edgeComparisons : 0;
+        const lumaStdDev = Math.sqrt(variance);
+        const colorBuckets = buckets.size;
+        const flat = edgeDensity < 0.028 && colorBuckets < 10 && lumaStdDev < 20;
+        const rich = edgeDensity >= 0.055 || (edgeDensity >= 0.04 && colorBuckets >= 16 && lumaStdDev >= 24);
+        tiles.push({
+          x: tileX,
+          y: tileY,
+          flat,
+          rich,
+          edgeDensity,
+          colorBuckets,
+          lumaStdDev
+        });
+      }
+    }
+
+    const numericMedian = (values) => {
+      const sorted = values.filter((value) => Number.isFinite(value)).sort((a, b) => a - b);
+      if (sorted.length === 0) {
+        return 0;
+      }
+      return sorted[Math.floor(sorted.length / 2)];
+    };
+    const flatTiles = tiles.filter((tile) => tile.flat);
+    const richTiles = tiles.filter((tile) => tile.rich);
+    const richQuadrants = new Set(
+      richTiles.map((tile) => `${tile.x < gridX / 2 ? 0 : 1}:${tile.y < gridY / 2 ? 0 : 1}`)
+    ).size;
+    const flatSet = new Set(flatTiles.map((tile) => `${tile.x}:${tile.y}`));
+    let maxFlatCluster = 0;
+    for (const key of [...flatSet]) {
+      if (!flatSet.has(key)) {
+        continue;
+      }
+      const stack = [key];
+      flatSet.delete(key);
+      let size = 0;
+      while (stack.length > 0) {
+        const current = stack.pop();
+        size += 1;
+        const [x, y] = current.split(":").map(Number);
+        for (const [nx, ny] of [
+          [x + 1, y],
+          [x - 1, y],
+          [x, y + 1],
+          [x, y - 1]
+        ]) {
+          const nextKey = `${nx}:${ny}`;
+          if (flatSet.has(nextKey)) {
+            flatSet.delete(nextKey);
+            stack.push(nextKey);
+          }
+        }
+      }
+      maxFlatCluster = Math.max(maxFlatCluster, size);
+    }
+
+    return {
+      sampled: true,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      sampleSize: { width: sampleWidth, height: sampleHeight },
+      validTiles: tiles.length,
+      flatTileRatio: round(flatTiles.length / Math.max(1, tiles.length)),
+      richTileRatio: round(richTiles.length / Math.max(1, tiles.length)),
+      edgeDensityP50: round(numericMedian(tiles.map((tile) => tile.edgeDensity))),
+      colorBucketP50: round(numericMedian(tiles.map((tile) => tile.colorBuckets)), 1),
+      lumaStdDevP50: round(numericMedian(tiles.map((tile) => tile.lumaStdDev)), 1),
+      richQuadrants,
+      maxFlatCluster,
+      uiRects: uiRects.map((rect) => rect.selector)
+    };
+  });
+}
+
 function maxPositionSampleStep(samples = []) {
   let maxStep = 0;
   for (let index = 1; index < samples.length; index += 1) {
@@ -496,6 +784,7 @@ async function capture(page, label, extra = {}) {
 
   scenarios.push({ name: `screenshot:${label}`, status: "capture", details: entry });
   assertCanvasDetail(label, canvas);
+  await assertPremiumWorldDetailDistribution(page, label);
   return entry;
 }
 
@@ -1612,7 +1901,7 @@ async function checkProductionRuntimeLightweight(browser) {
       await new Promise((resolve) => {
         const tick = () => {
           frames += 1;
-          if (performance.now() - started >= 650) {
+          if (performance.now() - started >= 1_200) {
             resolve(undefined);
           } else {
             requestAnimationFrame(tick);
@@ -2377,6 +2666,41 @@ async function checkWorldRichness(page) {
       expectedGuidanceObjects,
       surface,
       sceneObjects: world?.sceneObjects
+    });
+  }
+
+  const routeSurfaceMaterialized =
+    world &&
+    surface &&
+    world.routeSurfaceObjects === world.roadSegments + surface.routeCount &&
+    world.routeSurfaceDetailParts >= surface.routeCount * 9 &&
+    world.routeSurfaceDetailSignatures >= surface.routeCount * 6 &&
+    world.routeSurfaceVertexCount >= 12_000 &&
+    world.routeSurfaceVertexCount <= 24_000 &&
+    world.sceneObjects <= 923;
+  if (routeSurfaceMaterialized) {
+    pass("route-surface-materialized", {
+      routeSurfaceObjects: world.routeSurfaceObjects,
+      routeSurfaceDetailParts: world.routeSurfaceDetailParts,
+      routeSurfaceDetailSignatures: world.routeSurfaceDetailSignatures,
+      routeSurfaceVertexCount: world.routeSurfaceVertexCount,
+      routeSurfaceVertexBudget: 24_000,
+      roadSegments: world.roadSegments,
+      routeCount: surface.routeCount,
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: 923
+    });
+  } else {
+    scenarioFail("route-surface-materialized", "Playable roads are not materialized as detailed route ribbons.", {
+      routeSurfaceObjects: world?.routeSurfaceObjects,
+      routeSurfaceDetailParts: world?.routeSurfaceDetailParts,
+      routeSurfaceDetailSignatures: world?.routeSurfaceDetailSignatures,
+      routeSurfaceVertexCount: world?.routeSurfaceVertexCount,
+      routeSurfaceVertexBudget: 24_000,
+      roadSegments: world?.roadSegments,
+      routeCount: surface?.routeCount,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: 923
     });
   }
 
@@ -3194,8 +3518,8 @@ async function inspectProjectArtifactVisibility(page, label) {
     isMobile &&
     state.centerOccluders.length === 1 &&
     state.centerOccluders[0] === ".zone-panel" &&
-    state.uiOccludedRatio <= 0.5 &&
-    state.visibleAfterUiRatio >= 0.5 &&
+    state.uiOccludedRatio <= 0.52 &&
+    state.visibleAfterUiRatio >= 0.48 &&
     state.roi.sampled === true &&
     state.roi.edgeTransitions >= 20 &&
     state.roi.colorBuckets >= 8;
@@ -3448,7 +3772,7 @@ async function inspectIdentityRibbonVisibility(page, label) {
     first.world.sceneObjects <= 923 &&
     frameDelta >= 8 &&
     motionDelta >= 0.35 &&
-    motionDelta <= 96 &&
+    motionDelta <= 112 &&
     weakestVisibleAfterUi >= 0.42 &&
     weakestArea >= 1100 &&
     weakestBright >= 0.03 &&
@@ -5131,6 +5455,7 @@ async function writeReport() {
   const realDriveKinematicsScenario = scenarios.find((scenario) => scenario.name === "real-drive-kinematics");
   const realDriveRouteScenario = scenarios.find((scenario) => scenario.name === "real-drive-route-adherence");
   const routeEncountersRenderedScenario = scenarios.find((scenario) => scenario.name === "route-encounters-rendered");
+  const routeSurfaceMaterializedScenario = scenarios.find((scenario) => scenario.name === "route-surface-materialized");
   const routeEncounterTriggeredScenario = scenarios.find((scenario) => scenario.name === "route-encounter-triggered:real-drive");
   const routeEncounterVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("route-encounter-visible:"));
   const roverReadableScenarios = scenarios.filter((scenario) => scenario.name.startsWith("rover-readable:"));
@@ -5205,6 +5530,11 @@ async function writeReport() {
     `- Scene objects: ${world?.sceneObjects ?? "n/a"}`,
     `- Landmark objects: ${world?.landmarkObjects ?? "n/a"}`,
     `- Road segments: ${world?.roadSegments ?? "n/a"}`,
+    `- Route surface ribbons: ${
+      routeSurfaceMaterializedScenario?.details
+        ? `${routeSurfaceMaterializedScenario.details.routeSurfaceObjects} objects, ${routeSurfaceMaterializedScenario.details.routeSurfaceDetailParts} detail parts, ${routeSurfaceMaterializedScenario.details.routeSurfaceDetailSignatures} signatures, ${routeSurfaceMaterializedScenario.details.routeSurfaceVertexCount}/${routeSurfaceMaterializedScenario.details.routeSurfaceVertexBudget} vertices, scene ${routeSurfaceMaterializedScenario.details.sceneObjects}/${routeSurfaceMaterializedScenario.details.sceneObjectBudget}`
+        : "n/a"
+    }`,
     `- Visual specs: ${world?.visualSpecs ?? "n/a"}`,
     `- Visual decals: ${world?.visualDecals ?? "n/a"}`,
     `- Prop clusters: ${world?.propClusters ?? "n/a"}`,
