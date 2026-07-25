@@ -74,6 +74,25 @@ La motion vient du gameplay, pas du scroll:
 
 `prefers-reduced-motion` conserve la carte et limite les mouvements decoratifs.
 
+## Landmarks
+
+La V1.1 utilise des assets proceduraux Three.js, un landmark distinct par zone:
+
+- `Studio Gate`: portique commun IT / ART.
+- `AI Lab`: nodes et ecran de prototype.
+- `Observability Tower`: tour radar et anneaux de signal.
+- `Architecture Bridge`: pont/truss structurel.
+- `Cloud Dock`: dock et nuage soutenu.
+- `Design Atelier`: chevalet, toile et pastilles couleur.
+- `3D Foundry`: potence et forme suspendue.
+- `Fashion Room`: mannequin stylise.
+- `Values Plaza`: piliers et anneau commun.
+- `Contact Portal`: portail et enveloppe.
+
+Ces landmarks restent legers et generes en code avant de passer a des GLB. Un
+asset futur doit avoir un role narratif clair, un fallback procedural et un
+budget compresse maitrise.
+
 ## Architecture
 
 Le moteur V1 reste volontairement simple:
@@ -82,8 +101,23 @@ Le moteur V1 reste volontairement simple:
 - Three.js pour la carte.
 - Deplacement kinematique sans Rapier.
 - Zones declaratives dans `src/game/zones.ts`.
+- Landmarks proceduraux dans `src/game/procedural-assets.ts`.
 - UI HTML synchronisee depuis le moteur.
-- Pas d'asset 3D lourd avant validation de la navigation.
+- Pas d'asset 3D lourd avant validation par QA.
+
+## QA
+
+La QA interactive est un livrable du systeme. `npm run qa:game` lance Astro,
+pilote Chromium via Playwright, attend le rendu WebGL, joue plusieurs zones au
+clavier, capture desktop/mobile et ecrit un rapport dans `qa/artifacts/`.
+
+Gates V1.1:
+
+- canvas non vide;
+- route clavier vers `ai-lab`, `observability-tower`, `design-atelier`,
+  `contact-portal`;
+- CTA contact actif;
+- mobile sans overlap HUD / panel / controles.
 
 ## Components
 

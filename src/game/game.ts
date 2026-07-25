@@ -1,9 +1,11 @@
 import * as THREE from "three";
+import { createZoneLandmark } from "./procedural-assets";
 import { defaultZone, zones, type StudioZone, type ZoneKind } from "./zones";
 
 const mapRange = 20;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+const qaMode = new URLSearchParams(window.location.search).has("qa");
 
 const colors: Record<ZoneKind | "ground" | "road" | "ink", number> = {
   tech: 0x17d2ff,
@@ -16,6 +18,27 @@ const colors: Record<ZoneKind | "ground" | "road" | "ink", number> = {
 
 type DriveKey = "up" | "down" | "left" | "right";
 
+type QaSnapshot = {
+  ready: boolean;
+  activeZoneId: string;
+  activeZoneLabel: string;
+  zoneCount: number;
+  player: { x: number; z: number };
+  canvas: { width: number; height: number; dpr: number };
+  frameCount: number;
+  averageFrameMs: number;
+  visitedZoneIds: string[];
+  reducedMotion: boolean;
+  lastInputMode: "keyboard" | "pointer" | "touch" | "programmatic" | "none";
+  errors: string[];
+};
+
+declare global {
+  interface Window {
+    __IT_ART_STUDIO_QA__?: QaSnapshot;
+  }
+}
+
 class StudioGame {
   private readonly canvas: HTMLCanvasElement;
   private readonly renderer: THREE.WebGLRenderer;
@@ -26,11 +49,29 @@ class StudioGame {
   private readonly zoneMeshes = new Map<string, THREE.Object3D>();
   private readonly keys = new Set<DriveKey>();
   private readonly player = new THREE.Group();
+  private readonly errors: string[] = [];
   private readonly playerPosition = new THREE.Vector3(0, 0.28, 0);
   private readonly targetPosition = new THREE.Vector3(0, 0.28, 0);
   private activeZoneId = defaultZone.id;
   private frameId = 0;
   private lastFrameTime = performance.now();
+  private frameCount = 0;
+  private readonly frameDeltas: number[] = [];
+  private readonly visitedZoneIds = new Set<string>([defaultZone.id]);
+  private readonly qaSnapshot: QaSnapshot = {
+    ready: false,
+    activeZoneId: defaultZone.id,
+    activeZoneLabel: defaultZone.label,
+    zoneCount: zones.length,
+    player: { x: 0, z: 0 },
+    canvas: { width: 0, height: 0, dpr: 1 },
+    frameCount: 0,
+    averageFrameMs: 0,
+    visitedZoneIds: [defaultZone.id],
+    reducedMotion: motionQuery.matches,
+    lastInputMode: "none",
+    errors: []
+  };
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -38,20 +79,21 @@ class StudioGame {
       canvas,
       antialias: window.devicePixelRatio < 2,
       alpha: false,
+      preserveDrawingBuffer: qaMode,
       powerPreference: "high-performance"
     });
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   }
 
   start() {
-    document.documentElement.classList.add("game-ready");
-    document.querySelector("[data-game-loader]")?.remove();
-
     this.setScene();
     this.setWorld();
     this.setPlayer();
     this.setEvents();
     this.resize();
     this.updatePanel(defaultZone);
+    this.exposeQaSnapshot();
     this.animate();
   }
 
@@ -64,6 +106,12 @@ class StudioGame {
 
     const key = new THREE.DirectionalLight(0xffffff, 2.5);
     key.position.set(-6, 11, 8);
+    key.castShadow = true;
+    key.shadow.mapSize.set(1024, 1024);
+    key.shadow.camera.left = -14;
+    key.shadow.camera.right = 14;
+    key.shadow.camera.top = 14;
+    key.shadow.camera.bottom = -14;
     this.scene.add(key);
 
     this.camera.position.set(8, 9, 8);
@@ -82,6 +130,7 @@ class StudioGame {
     ground.rotation.x = -Math.PI * 0.5;
     ground.rotation.z = Math.PI * 0.06;
     ground.scale.set(1.12, 1, 0.88);
+    ground.receiveShadow = true;
     this.scene.add(ground);
 
     this.addRoads();
@@ -128,7 +177,7 @@ class StudioGame {
     base.userData.zoneId = zone.id;
     group.add(base);
 
-    const marker = this.createMarker(zone);
+    const marker = createZoneLandmark(zone, colors);
     marker.userData.zoneId = zone.id;
     group.add(marker);
 
@@ -138,44 +187,6 @@ class StudioGame {
 
     this.zoneMeshes.set(zone.id, group);
     this.scene.add(group);
-  }
-
-  private createMarker(zone: StudioZone) {
-    const accent = colors[zone.kind];
-    const material = new THREE.MeshStandardMaterial({
-      color: accent,
-      roughness: 0.54,
-      metalness: zone.kind === "tech" ? 0.42 : 0.12,
-      emissive: accent,
-      emissiveIntensity: 0.18
-    });
-
-    if (zone.kind === "tech") {
-      const tower = new THREE.Group();
-      for (let index = 0; index < 3; index++) {
-        const block = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.9 + index * 0.28, 0.55), material);
-        block.position.set((index - 1) * 0.52, 0.62 + index * 0.14, (index % 2) * 0.3);
-        tower.add(block);
-      }
-      return tower;
-    }
-
-    if (zone.kind === "art") {
-      const shape = new THREE.Mesh(new THREE.TorusKnotGeometry(0.44, 0.14, 72, 8), material);
-      shape.position.y = 0.84;
-      shape.rotation.x = Math.PI * 0.16;
-      return shape;
-    }
-
-    const studio = new THREE.Group();
-    const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.62, 1), material);
-    core.position.y = 0.92;
-    studio.add(core);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.055, 8, 48), material);
-    ring.position.y = 0.88;
-    ring.rotation.x = Math.PI * 0.5;
-    studio.add(ring);
-    return studio;
   }
 
   private createLabel(text: string, accent: number) {
@@ -249,6 +260,7 @@ class StudioGame {
       const key = this.keyFromEvent(event);
       if (key) {
         event.preventDefault();
+        this.qaSnapshot.lastInputMode = "keyboard";
         this.keys.add(key);
       }
     });
@@ -260,12 +272,16 @@ class StudioGame {
       }
     });
 
-    this.canvas.addEventListener("pointerdown", (event) => this.handleCanvasPointer(event));
+    this.canvas.addEventListener("pointerdown", (event) => {
+      this.qaSnapshot.lastInputMode = event.pointerType === "touch" ? "touch" : "pointer";
+      this.handleCanvasPointer(event);
+    });
 
     document.querySelectorAll<HTMLButtonElement>("[data-zone-jump]").forEach((button) => {
       button.addEventListener("click", () => {
         const zone = zones.find((item) => item.id === button.dataset.zoneJump);
         if (zone) {
+          this.qaSnapshot.lastInputMode = "pointer";
           this.moveToZone(zone);
         }
       });
@@ -276,7 +292,10 @@ class StudioGame {
       if (!direction) {
         return;
       }
-      const start = () => this.keys.add(direction);
+      const start = () => {
+        this.qaSnapshot.lastInputMode = "touch";
+        this.keys.add(direction);
+      };
       const end = () => this.keys.delete(direction);
       button.addEventListener("pointerdown", start);
       button.addEventListener("pointerup", end);
@@ -309,6 +328,9 @@ class StudioGame {
   }
 
   private moveToZone(zone: StudioZone) {
+    if (this.qaSnapshot.lastInputMode === "none") {
+      this.qaSnapshot.lastInputMode = "programmatic";
+    }
     this.targetPosition.set(zone.position[0], 0.28, zone.position[1]);
     this.updatePanel(zone);
   }
@@ -327,13 +349,20 @@ class StudioGame {
 
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
     this.renderer.setSize(width, height);
+    this.syncQaSnapshot();
   }
 
   private animate = () => {
     this.frameId = window.requestAnimationFrame(this.animate);
     const now = performance.now();
-    const delta = Math.min((now - this.lastFrameTime) / 1000, 0.04);
+    const rawDeltaMs = now - this.lastFrameTime;
+    const delta = Math.min(rawDeltaMs / 1000, qaMode ? 0.18 : 0.05);
     this.lastFrameTime = now;
+    this.frameCount += 1;
+    this.frameDeltas.push(rawDeltaMs);
+    if (this.frameDeltas.length > 90) {
+      this.frameDeltas.shift();
+    }
 
     this.updatePlayer(delta);
     this.updateActiveZone();
@@ -341,6 +370,8 @@ class StudioGame {
     this.updateCamera(delta);
     this.updateMiniMap();
     this.renderer.render(this.scene, this.camera);
+    this.markReady();
+    this.syncQaSnapshot();
   };
 
   private updatePlayer(delta: number) {
@@ -350,16 +381,22 @@ class StudioGame {
     if (this.keys.has("left")) direction.x -= 1;
     if (this.keys.has("right")) direction.x += 1;
 
+    const previousPosition = this.playerPosition.clone();
+
     if (direction.lengthSq() > 0) {
       direction.normalize();
-      this.targetPosition.copy(this.playerPosition).add(direction.multiplyScalar(delta * 6.2));
+      this.playerPosition.add(direction.multiplyScalar(delta * 7.4));
+      this.targetPosition.copy(this.playerPosition);
+    } else {
+      this.playerPosition.lerp(this.targetPosition, 1 - Math.pow(0.0008, delta));
     }
 
+    this.playerPosition.x = clamp(this.playerPosition.x, -9.4, 9.4);
+    this.playerPosition.z = clamp(this.playerPosition.z, -9.4, 9.4);
     this.targetPosition.x = clamp(this.targetPosition.x, -9.4, 9.4);
     this.targetPosition.z = clamp(this.targetPosition.z, -9.4, 9.4);
 
-    this.playerPosition.lerp(this.targetPosition, 1 - Math.pow(0.0008, delta));
-    const travel = this.targetPosition.clone().sub(this.player.position);
+    const travel = this.playerPosition.clone().sub(previousPosition);
     this.player.position.copy(this.playerPosition);
 
     if (travel.lengthSq() > 0.0001) {
@@ -411,6 +448,8 @@ class StudioGame {
 
   private updatePanel(zone: StudioZone) {
     this.activeZoneId = zone.id;
+    this.visitedZoneIds.add(zone.id);
+    document.querySelector("[data-game-root]")?.setAttribute("data-active-zone", zone.id);
     document.querySelector("[data-active-kind]")?.replaceChildren(zone.kind);
     document.querySelector("[data-active-label]")?.replaceChildren(zone.label);
     document.querySelector("[data-zone-kind]")?.replaceChildren(zone.kind);
@@ -442,6 +481,46 @@ class StudioGame {
     });
   }
 
+  private markReady() {
+    if (this.qaSnapshot.ready) {
+      return;
+    }
+
+    this.qaSnapshot.ready = true;
+    document.documentElement.classList.add("game-ready");
+    document.documentElement.dataset.gameState = "ready";
+    document.querySelector("[data-game-loader]")?.remove();
+  }
+
+  private exposeQaSnapshot() {
+    window.__IT_ART_STUDIO_QA__ = this.qaSnapshot;
+  }
+
+  private syncQaSnapshot() {
+    const averageFrameMs =
+      this.frameDeltas.length > 0
+        ? this.frameDeltas.reduce((sum, item) => sum + item, 0) / this.frameDeltas.length
+        : 0;
+    const activeZone = zones.find((zone) => zone.id === this.activeZoneId) ?? defaultZone;
+
+    this.qaSnapshot.activeZoneId = activeZone.id;
+    this.qaSnapshot.activeZoneLabel = activeZone.label;
+    this.qaSnapshot.player = {
+      x: Number(this.playerPosition.x.toFixed(3)),
+      z: Number(this.playerPosition.z.toFixed(3))
+    };
+    this.qaSnapshot.canvas = {
+      width: this.canvas.width,
+      height: this.canvas.height,
+      dpr: this.renderer.getPixelRatio()
+    };
+    this.qaSnapshot.frameCount = this.frameCount;
+    this.qaSnapshot.averageFrameMs = Number(averageFrameMs.toFixed(2));
+    this.qaSnapshot.visitedZoneIds = [...this.visitedZoneIds];
+    this.qaSnapshot.reducedMotion = motionQuery.matches;
+    this.qaSnapshot.errors = [...this.errors];
+  }
+
   private updateMiniMap() {
     const marker = document.querySelector<HTMLElement>("[data-map-player]");
     if (!marker) {
@@ -471,6 +550,7 @@ const boot = () => {
   } catch (error) {
     console.error(error);
     document.documentElement.classList.add("game-fallback");
+    document.documentElement.dataset.gameState = "fallback";
     document.querySelector("[data-game-loader]")?.replaceChildren("Mode carte statique");
   }
 };

@@ -24,6 +24,7 @@ npm ci
 npm run dev
 npm run check
 npm run build
+npm run qa:game
 npm run preview
 ```
 
@@ -64,8 +65,10 @@ l'onglet **Actions**.
 - `src/pages/index.astro` : shell HTML de l'experience jouable
 - `src/layouts/BaseLayout.astro` : layout HTML, SEO de base, runtime client
 - `src/game/game.ts` : moteur Three.js leger, deplacement et interactions
+- `src/game/procedural-assets.ts` : landmarks 3D proceduraux par zone
 - `src/game/zones.ts` : contenu editorial de la cartographie
 - `src/styles/global.css` : design system, HUD, carte, mobile et fallback
+- `qa/README.md` : protocole QA Playwright avec screenshots et rapport
 - `PRODUCT.md` : contexte strategique pour agents et design
 - `DESIGN.md` : systeme visuel courant
 
