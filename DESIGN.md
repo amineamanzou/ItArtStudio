@@ -422,6 +422,20 @@ Gates V3.7:
 - le gate `prop-cluster-instancing` continue de reporter le budget net des
   artefacts projet pour prouver que les gains V3.6 restent intacts.
 
+Gates V3.8:
+
+- `project-artifact-visible`: projeter le kit projet actif dans le snapshot QA
+  via `screen.activeProjectArtifact` et verifier sa lisibilite par bbox,
+  occlusion UI, pixels ROI, edges et buckets couleur;
+- la projection utilise les matrices reelles des `THREE.InstancedMesh`, afin
+  que les bounds QA couvrent les pieces visibles du kit et pas seulement la
+  geometrie source;
+- `project-artifact-visual-coverage`: quick `4/4` zones, full `10/10` zones,
+  avec rejet des rectangles quasi identiques au landmark, a l'architecture de
+  lieu ou aux signature artifacts;
+- contrainte conservee: aucun nouvel objet de scene, `sceneObjects <= 955` et
+  `projectArtifactSceneObjects <= 10`.
+
 ## Components
 
 - `game-site`: surface principale.

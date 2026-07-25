@@ -41,6 +41,7 @@ const failures = [];
 const consoleMessages = [];
 const zonePerceptualProofs = new Map();
 const zoneCompositionProofs = new Map();
+const projectArtifactProofs = new Map();
 let screenshotIndex = 0;
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -871,6 +872,16 @@ async function driveWithRealKeyboard(page, target) {
         break;
       }
       await holdDriveKeys(page, keys, 120);
+      const afterInputSnapshot = await getQaSnapshot(page);
+      if (afterInputSnapshot?.player) {
+        addSample(afterInputSnapshot);
+        if (
+          afterInputSnapshot.screen?.activeRouteEncounter?.id &&
+          (afterInputSnapshot.routeEncounters?.activeIntensity ?? 0) >= 0.12
+        ) {
+          momentProofs.push(await collectGameplayMomentProof(page));
+        }
+      }
     } else {
       await page.waitForTimeout(120);
     }
@@ -985,6 +996,7 @@ async function checkRealDriveTour(browser) {
         await page.waitForTimeout(220);
         await inspectCameraSafeArea(page, `real-drive:${target.id}`);
         await inspectSignatureArtifactVisibility(page, `real-drive:${target.id}`);
+        await inspectProjectArtifactVisibility(page, `real-drive:${target.id}`);
         await inspectPlaceCompositionVisibility(page, `real-drive:${target.id}`);
       } else {
         scenarioFail(`real-drive:${target.id}`, "Real keyboard drive did not reach the target zone.", {
@@ -2724,6 +2736,290 @@ async function inspectSignatureArtifactVisibility(page, label) {
   return ok;
 }
 
+async function inspectProjectArtifactVisibility(page, label) {
+  const snapshot = await getQaSnapshot(page, { refresh: true });
+  const state = await page.evaluate((qa) => {
+    const round = (value, digits = 3) => Number(value.toFixed(digits));
+    const intersectArea = (a, b) => {
+      const left = Math.max(a.left, b.left);
+      const right = Math.min(a.right, b.right);
+      const top = Math.max(a.top, b.top);
+      const bottom = Math.min(a.bottom, b.bottom);
+      return Math.max(0, right - left) * Math.max(0, bottom - top);
+    };
+    const rectFrom = (rect) =>
+      rect
+        ? {
+            left: rect.clippedX ?? rect.x,
+            top: rect.clippedY ?? rect.y,
+            right: (rect.clippedX ?? rect.x) + (rect.clippedWidth ?? rect.width),
+            bottom: (rect.clippedY ?? rect.y) + (rect.clippedHeight ?? rect.height),
+            area: rect.clippedArea ?? rect.area ?? 0,
+            center: rect.center ?? null
+          }
+        : null;
+    const suspiciousOverlap = (source, candidate) => {
+      const sourceRect = rectFrom(source);
+      const candidateRect = rectFrom(candidate);
+      if (!sourceRect || !candidateRect || sourceRect.area <= 0 || candidateRect.area <= 0) {
+        return false;
+      }
+      const intersection = intersectArea(sourceRect, candidateRect);
+      const union = sourceRect.area + candidateRect.area - intersection;
+      const iou = union > 0 ? intersection / union : 0;
+      const centerDistance =
+        sourceRect.center && candidateRect.center
+          ? Math.hypot(sourceRect.center.x - candidateRect.center.x, sourceRect.center.y - candidateRect.center.y)
+          : 999;
+      return iou >= 0.9 && centerDistance <= 6;
+    };
+    const sampleCanvasRoi = (artifact) => {
+      const canvas = document.querySelector("canvas");
+      if (!(canvas instanceof HTMLCanvasElement) || !artifact || artifact.clippedWidth <= 1 || artifact.clippedHeight <= 1) {
+        return { sampled: false, brightRatio: 0, edgeTransitions: 0, colorBuckets: 0, roiWidth: 0, roiHeight: 0 };
+      }
+
+      const canvasRect = canvas.getBoundingClientRect();
+      const sourceLeft = Math.max(0, artifact.clippedX - canvasRect.left);
+      const sourceTop = Math.max(0, artifact.clippedY - canvasRect.top);
+      const sourceWidth = Math.min(artifact.clippedWidth, canvasRect.width - sourceLeft);
+      const sourceHeight = Math.min(artifact.clippedHeight, canvasRect.height - sourceTop);
+      if (sourceWidth <= 1 || sourceHeight <= 1) {
+        return { sampled: false, brightRatio: 0, edgeTransitions: 0, colorBuckets: 0, roiWidth: 0, roiHeight: 0 };
+      }
+
+      const scaleX = canvas.width / canvasRect.width;
+      const scaleY = canvas.height / canvasRect.height;
+      const sx = Math.max(0, Math.floor(sourceLeft * scaleX));
+      const sy = Math.max(0, Math.floor(sourceTop * scaleY));
+      const sw = Math.max(1, Math.min(canvas.width - sx, Math.ceil(sourceWidth * scaleX)));
+      const sh = Math.max(1, Math.min(canvas.height - sy, Math.ceil(sourceHeight * scaleY)));
+      const roiWidth = Math.max(18, Math.min(96, Math.round(sourceWidth)));
+      const roiHeight = Math.max(18, Math.min(96, Math.round(sourceHeight)));
+      const roi = document.createElement("canvas");
+      roi.width = roiWidth;
+      roi.height = roiHeight;
+      const ctx = roi.getContext("2d", { willReadFrequently: true });
+      if (!ctx) {
+        return { sampled: false, brightRatio: 0, edgeTransitions: 0, colorBuckets: 0, roiWidth, roiHeight };
+      }
+
+      let pixels;
+      try {
+        ctx.drawImage(canvas, sx, sy, sw, sh, 0, 0, roiWidth, roiHeight);
+        pixels = ctx.getImageData(0, 0, roiWidth, roiHeight).data;
+      } catch (error) {
+        return {
+          sampled: false,
+          error: error instanceof Error ? error.message : String(error),
+          brightRatio: 0,
+          edgeTransitions: 0,
+          colorBuckets: 0,
+          roiWidth,
+          roiHeight
+        };
+      }
+
+      let brightPixels = 0;
+      let edgeTransitions = 0;
+      const buckets = new Set();
+      const lumas = [];
+      for (let y = 0; y < roiHeight; y += 1) {
+        for (let x = 0; x < roiWidth; x += 1) {
+          const index = (y * roiWidth + x) * 4;
+          const r = pixels[index];
+          const g = pixels[index + 1];
+          const b = pixels[index + 2];
+          const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          lumas.push(luminance);
+          if (luminance >= 64) {
+            brightPixels += 1;
+          }
+          buckets.add(`${Math.floor(r / 36)}:${Math.floor(g / 36)}:${Math.floor(b / 36)}`);
+        }
+      }
+      const step = Math.max(2, Math.floor(Math.min(roiWidth, roiHeight) / 24));
+      for (let y = step; y < roiHeight; y += step) {
+        for (let x = step; x < roiWidth; x += step) {
+          const index = y * roiWidth + x;
+          if (Math.abs(lumas[index] - lumas[index - step]) >= 16) {
+            edgeTransitions += 1;
+          }
+          if (Math.abs(lumas[index] - lumas[index - step * roiWidth]) >= 16) {
+            edgeTransitions += 1;
+          }
+        }
+      }
+
+      return {
+        sampled: true,
+        brightRatio: round(brightPixels / (roiWidth * roiHeight)),
+        edgeTransitions,
+        colorBuckets: buckets.size,
+        roiWidth,
+        roiHeight
+      };
+    };
+
+    const selectors = [".game-hud", ".zone-panel", ".world-map", ".mobile-drive", ".mobile-zone-nav"];
+    const uiRects = selectors
+      .map((selector) => {
+        const node = document.querySelector(selector);
+        if (!(node instanceof HTMLElement)) {
+          return null;
+        }
+        const style = getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        if (
+          style.display === "none" ||
+          style.visibility === "hidden" ||
+          Number(style.opacity) === 0 ||
+          rect.width === 0 ||
+          rect.height === 0
+        ) {
+          return null;
+        }
+        return { selector, left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+      })
+      .filter(Boolean);
+
+    const artifact = qa?.screen?.activeProjectArtifact ?? null;
+    const zone = (qa?.world?.zones ?? []).find((item) => item.id === qa?.activeZoneId) ?? null;
+    const siblingOverlaps = [
+      ["landmark", qa?.screen?.activeLandmark ?? null],
+      ["placeArchitecture", qa?.screen?.activePlaceArchitecture ?? null],
+      ["signatureArtifact", qa?.screen?.activeSignatureArtifact ?? null]
+    ]
+      .filter(([, candidate]) => suspiciousOverlap(artifact, candidate))
+      .map(([name]) => name);
+    const center = artifact?.center ?? null;
+    const centerOccluders = center
+      ? uiRects
+          .filter(
+            (rect) =>
+              center.x >= rect.left - 10 &&
+              center.x <= rect.right + 10 &&
+              center.y >= rect.top - 10 &&
+              center.y <= rect.bottom + 10
+          )
+          .map((rect) => rect.selector)
+      : [];
+    const artifactRect = artifact
+      ? {
+          left: artifact.clippedX ?? artifact.x,
+          top: artifact.clippedY ?? artifact.y,
+          right: (artifact.clippedX ?? artifact.x) + (artifact.clippedWidth ?? artifact.width),
+          bottom: (artifact.clippedY ?? artifact.y) + (artifact.clippedHeight ?? artifact.height)
+        }
+      : null;
+    const uiOccludedArea = artifactRect ? uiRects.reduce((sum, rect) => sum + intersectArea(artifactRect, rect), 0) : 0;
+    const clippedArea = artifact?.clippedArea ?? artifact?.area ?? 0;
+    const uiOccludedRatio = clippedArea > 0 ? Math.min(1, uiOccludedArea / clippedArea) : 1;
+    const visibleRatio = artifact?.visibleRatio ?? 0;
+    const visibleAfterUiRatio = Math.max(0, visibleRatio * (1 - uiOccludedRatio));
+    const roi = sampleCanvasRoi(artifact);
+
+    return {
+      activeZoneId: qa?.activeZoneId ?? null,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      artifact,
+      zone,
+      siblingOverlaps,
+      centerOccluders,
+      uiOccludedArea: round(uiOccludedArea, 1),
+      uiOccludedRatio: round(uiOccludedRatio),
+      visibleAfterUiRatio: round(visibleAfterUiRatio),
+      roi
+    };
+  }, snapshot);
+
+  const isMobile = state.viewport.width <= 820;
+  const minWidth = isMobile ? 18 : 22;
+  const minHeight = isMobile ? 8 : 10;
+  const minArea = isMobile ? 180 : 320;
+  const minVisibleRatio = isMobile ? 0.34 : 0.42;
+  const maxUiOccludedRatio = isMobile ? 0.45 : 0.28;
+  const minVisibleAfterUiRatio = isMobile ? 0.28 : 0.36;
+  const minBrightRatio = isMobile ? 0.025 : 0.035;
+  const minEdgeTransitions = isMobile ? 3 : 4;
+  const minColorBuckets = 3;
+  const maxAreaRatio = isMobile ? 0.1 : 0.06;
+  const viewportArea = state.viewport.width * state.viewport.height;
+  const artifactAreaRatio = viewportArea > 0 ? (state.artifact?.clippedArea ?? 0) / viewportArea : 1;
+  const mobilePanelCenterTolerated =
+    isMobile &&
+    state.centerOccluders.length === 1 &&
+    state.centerOccluders[0] === ".zone-panel" &&
+    state.uiOccludedRatio <= maxUiOccludedRatio &&
+    state.visibleAfterUiRatio >= 0.55 &&
+    state.roi.sampled === true &&
+    state.roi.edgeTransitions >= 20 &&
+    state.roi.colorBuckets >= 8;
+  const ok =
+    state.artifact?.visible === true &&
+    state.artifact?.center?.visible === true &&
+    (state.artifact?.visibleRatio ?? 0) >= minVisibleRatio &&
+    (state.artifact?.cornerDepthCount ?? 0) >= 2 &&
+    state.artifact.width >= minWidth &&
+    state.artifact.height >= minHeight &&
+    state.artifact.clippedArea >= minArea &&
+    artifactAreaRatio <= maxAreaRatio &&
+    (state.centerOccluders.length === 0 || mobilePanelCenterTolerated) &&
+    state.siblingOverlaps.length === 0 &&
+    state.uiOccludedRatio <= maxUiOccludedRatio &&
+    state.visibleAfterUiRatio >= minVisibleAfterUiRatio &&
+    state.roi.sampled === true &&
+    state.roi.brightRatio >= minBrightRatio &&
+    state.roi.edgeTransitions >= minEdgeTransitions &&
+    state.roi.colorBuckets >= minColorBuckets &&
+    (state.zone?.projectArtifactObjects ?? 0) >= 2 &&
+    (state.zone?.projectArtifactSceneObjects ?? 0) === 1 &&
+    (state.zone?.projectArtifactActivityTypes?.length ?? 0) >= 1 &&
+    (state.zone?.projectArtifactSignatures?.length ?? 0) >= (state.zone?.projectArtifactObjects ?? 0) &&
+    (state.zone?.projectArtifactMaterials?.length ?? 0) >= 2;
+
+  const details = {
+    ...state,
+    artifactAreaRatio: Number(artifactAreaRatio.toFixed(3)),
+    mobilePanelCenterTolerated,
+    thresholds: {
+      minWidth,
+      minHeight,
+      minArea,
+      minVisibleRatio,
+      maxUiOccludedRatio,
+      minVisibleAfterUiRatio,
+      minBrightRatio,
+      minEdgeTransitions,
+      minColorBuckets,
+      maxAreaRatio
+    }
+  };
+  if (state.activeZoneId) {
+    projectArtifactProofs.set(state.activeZoneId, details);
+  }
+
+  if (ok) {
+    pass(`project-artifact-visible:${label}`, {
+      activeZoneId: details.activeZoneId,
+      artifact: details.artifact,
+      uiOccludedRatio: details.uiOccludedRatio,
+      visibleAfterUiRatio: details.visibleAfterUiRatio,
+      artifactAreaRatio: details.artifactAreaRatio,
+      roi: details.roi,
+      projectArtifactObjects: state.zone.projectArtifactObjects,
+      projectArtifactActivityTypes: state.zone.projectArtifactActivityTypes,
+      thresholds: details.thresholds
+    });
+  } else {
+    scenarioFail(`project-artifact-visible:${label}`, "Active project artifact kit is not visually readable.", {
+      ...details
+    });
+  }
+
+  return ok;
+}
+
 async function inspectPlaceCompositionVisibility(page, label) {
   const snapshot = await getQaSnapshot(page, { refresh: true });
   const state = await page.evaluate((qa) => {
@@ -3306,6 +3602,69 @@ async function checkZoneCompositionCoverage() {
   }
 }
 
+async function checkProjectArtifactVisualCoverage() {
+  const proofs = [...projectArtifactProofs.values()];
+  const expectedZones = qaProfile === "quick" ? 4 : 10;
+  const weakProofs = proofs.filter((proof) => {
+    const thresholds = proof.thresholds;
+    if (!thresholds) {
+      return true;
+    }
+    return (
+      proof.artifact?.visible !== true ||
+      proof.artifact?.center?.visible !== true ||
+      proof.artifact?.clippedArea < thresholds.minArea ||
+      proof.artifactAreaRatio > thresholds.maxAreaRatio ||
+      proof.visibleAfterUiRatio < thresholds.minVisibleAfterUiRatio ||
+      proof.uiOccludedRatio > thresholds.maxUiOccludedRatio ||
+      (proof.centerOccluders.length > 0 && proof.mobilePanelCenterTolerated !== true) ||
+      proof.siblingOverlaps.length > 0 ||
+      proof.roi?.sampled !== true ||
+      proof.roi?.brightRatio < thresholds.minBrightRatio ||
+      proof.roi?.edgeTransitions < thresholds.minEdgeTransitions ||
+      proof.roi?.colorBuckets < thresholds.minColorBuckets ||
+      (proof.zone?.projectArtifactObjects ?? 0) < 2 ||
+      (proof.zone?.projectArtifactSceneObjects ?? 0) !== 1
+    );
+  });
+  const weakestVisibleAfterUi = proofs
+    .filter((proof) => typeof proof.visibleAfterUiRatio === "number")
+    .sort((a, b) => a.visibleAfterUiRatio - b.visibleAfterUiRatio)[0];
+  const ok = proofs.length >= expectedZones && weakProofs.length === 0;
+
+  if (ok) {
+    pass("project-artifact-visual-coverage", {
+      sampledZones: proofs.length,
+      expectedZones,
+      weakest:
+        weakestVisibleAfterUi
+          ? {
+              zoneId: weakestVisibleAfterUi.activeZoneId,
+              visibleAfterUiRatio: weakestVisibleAfterUi.visibleAfterUiRatio,
+              uiOccludedRatio: weakestVisibleAfterUi.uiOccludedRatio,
+              artifactAreaRatio: weakestVisibleAfterUi.artifactAreaRatio,
+              roi: weakestVisibleAfterUi.roi
+            }
+          : null
+    });
+  } else {
+    scenarioFail("project-artifact-visual-coverage", "Not every sampled zone has a readable project artifact kit.", {
+      sampledZones: proofs.length,
+      expectedZones,
+      weakProofs: weakProofs.map((proof) => ({
+        activeZoneId: proof.activeZoneId,
+        visibleAfterUiRatio: proof.visibleAfterUiRatio,
+        uiOccludedRatio: proof.uiOccludedRatio,
+        artifactAreaRatio: proof.artifactAreaRatio,
+        siblingOverlaps: proof.siblingOverlaps,
+        roi: proof.roi,
+        projectArtifactObjects: proof.zone?.projectArtifactObjects,
+        projectArtifactSceneObjects: proof.zone?.projectArtifactSceneObjects
+      }))
+    });
+  }
+}
+
 async function checkLightingLayer(page, label) {
   const snapshot = await getQaSnapshot(page, { refresh: true });
   const lighting = snapshot?.lighting;
@@ -3878,6 +4237,7 @@ async function checkViewport(page, viewport, label, options = {}) {
   }
 
   await checkPlayableStageDominance(page, label, layout);
+  await inspectProjectArtifactVisibility(page, `viewport:${label}`);
 
   if (layout.textOverflow.length === 0) {
     pass(`text-overflow:${label}`);
@@ -4013,6 +4373,7 @@ async function checkMiniMapJumps(page) {
         await checkLightingLayer(page, `mini-map:${targetId}`);
         await page.waitForTimeout(300);
         await inspectSignatureArtifactVisibility(page, `mini-map:${targetId}`);
+        await inspectProjectArtifactVisibility(page, `mini-map:${targetId}`);
         await inspectPlaceCompositionVisibility(page, `mini-map:${targetId}`);
         await inspectZonePerceptualProof(page, `mini-map:${targetId}`);
         continue;
@@ -4040,6 +4401,7 @@ async function checkMiniMapJumps(page) {
       await checkLightingLayer(page, `mini-map:${targetId}`);
       await page.waitForTimeout(300);
       await inspectSignatureArtifactVisibility(page, `mini-map:${targetId}`);
+      await inspectProjectArtifactVisibility(page, `mini-map:${targetId}`);
       await inspectPlaceCompositionVisibility(page, `mini-map:${targetId}`);
       await inspectZonePerceptualProof(page, `mini-map:${targetId}`);
     } else {
@@ -4241,9 +4603,11 @@ async function writeReport() {
   const productionRuntimeScenario = scenarios.find((scenario) => scenario.name === "production-runtime-lightweight");
   const cameraSafeScenarios = scenarios.filter((scenario) => scenario.name.startsWith("camera-safe-area:"));
   const signatureVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("signature-artifact-visible:"));
+  const projectVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("project-artifact-visible:"));
   const placeCompositionScenarios = scenarios.filter((scenario) => scenario.name.startsWith("place-composition-visible:"));
   const lightingScenarios = scenarios.filter((scenario) => scenario.name.startsWith("fake-lighting-active:"));
   const perceptualProofScenarios = scenarios.filter((scenario) => scenario.name.startsWith("zone-perceptual-proof:"));
+  const projectArtifactCoverageScenario = scenarios.find((scenario) => scenario.name === "project-artifact-visual-coverage");
   const placeCompositionCoverageScenario = scenarios.find((scenario) => scenario.name === "place-composition-coverage");
   const perceptualDistanceScenario = scenarios.find((scenario) => scenario.name === "zone-perceptual-distance");
   const playableStageScenarios = scenarios.filter((scenario) => scenario.name.startsWith("playable-stage-dominance:"));
@@ -4253,10 +4617,16 @@ async function writeReport() {
   const miniMapSignatureVisibleScenarios = signatureVisibleScenarios.filter((scenario) =>
     scenario.name.startsWith("signature-artifact-visible:mini-map:")
   );
+  const miniMapProjectVisibleScenarios = projectVisibleScenarios.filter((scenario) =>
+    scenario.name.startsWith("project-artifact-visible:mini-map:")
+  );
   const miniMapPlaceCompositionScenarios = placeCompositionScenarios.filter((scenario) =>
     scenario.name.startsWith("place-composition-visible:mini-map:")
   );
   const weakestSignatureScenario = signatureVisibleScenarios
+    .filter((scenario) => typeof scenario.details?.visibleAfterUiRatio === "number")
+    .sort((a, b) => a.details.visibleAfterUiRatio - b.details.visibleAfterUiRatio)[0];
+  const weakestProjectScenario = projectVisibleScenarios
     .filter((scenario) => typeof scenario.details?.visibleAfterUiRatio === "number")
     .sort((a, b) => a.details.visibleAfterUiRatio - b.details.visibleAfterUiRatio)[0];
   const weakestPlaceCompositionScenario = placeCompositionScenarios
@@ -4433,6 +4803,22 @@ async function writeReport() {
         ? `${weakestSignatureScenario.name.replace("signature-artifact-visible:", "")}, visible-after-ui ${weakestSignatureScenario.details.visibleAfterUiRatio}, ROI bright ${weakestSignatureScenario.details.roi?.brightRatio}, edges ${weakestSignatureScenario.details.roi?.edgeTransitions}, buckets ${weakestSignatureScenario.details.roi?.colorBuckets}`
         : "n/a"
     }`,
+    `- Project artifact visible checks: ${projectVisibleScenarios.filter((scenario) => scenario.status === "pass").length}/${
+      projectVisibleScenarios.length
+    }`,
+    `- Mini-map project artifact visible checks: ${miniMapProjectVisibleScenarios.filter((scenario) => scenario.status === "pass").length}/${
+      miniMapProjectVisibleScenarios.length
+    }`,
+    `- Weakest project artifact visibility: ${
+      weakestProjectScenario
+        ? `${weakestProjectScenario.name.replace("project-artifact-visible:", "")}, visible-after-ui ${weakestProjectScenario.details.visibleAfterUiRatio}, ROI bright ${weakestProjectScenario.details.roi?.brightRatio}, edges ${weakestProjectScenario.details.roi?.edgeTransitions}, buckets ${weakestProjectScenario.details.roi?.colorBuckets}`
+        : "n/a"
+    }`,
+    `- Project artifact visual coverage: ${
+      projectArtifactCoverageScenario?.details
+        ? `${projectArtifactCoverageScenario.details.sampledZones}/${projectArtifactCoverageScenario.details.expectedZones} zones`
+        : "n/a"
+    }`,
     `- Place composition visible checks: ${placeCompositionScenarios.filter((scenario) => scenario.status === "pass").length}/${
       placeCompositionScenarios.length
     }`,
@@ -4505,6 +4891,7 @@ async function main() {
     const home = await capture(page, "home-loaded");
     await inspectCameraSafeArea(page, "home-loaded");
     await inspectSignatureArtifactVisibility(page, "home-loaded");
+    await inspectProjectArtifactVisibility(page, "home-loaded");
     await inspectPlaceCompositionVisibility(page, "home-loaded");
     await inspectZonePerceptualProof(page, "home-loaded");
     await checkLightingLayer(page, "home-loaded");
@@ -4548,6 +4935,7 @@ async function main() {
       await driveToZone(page, target);
       await checkActivationFeedback(page, target.id, beforeActivation?.activeFeedback?.sequence ?? 0);
       await checkLightingLayer(page, `keyboard:${target.id}`);
+      await inspectProjectArtifactVisibility(page, `keyboard:${target.id}`);
       await inspectPlaceCompositionVisibility(page, `keyboard:${target.id}`);
       await capture(page, target.id);
     }
@@ -4556,6 +4944,7 @@ async function main() {
     await checkContact(page);
     await checkMiniMapJumps(page);
     await checkZoneCompositionCoverage();
+    await checkProjectArtifactVisualCoverage();
     await checkZonePerceptualDistance();
     await capture(page, "mini-map-jumps");
     if (qaProfile === "quick") {

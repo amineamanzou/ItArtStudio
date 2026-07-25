@@ -78,8 +78,8 @@ const projectRecipes: Record<string, ProjectArtifactRecipe> = {
     [0.32, 0.34, 1.12]
   ]),
   "contact-portal": artifact("contact-brief", "first-conversation", "folio", "secondary", "tilt", [
-    [-0.88, 0.26, 1.08],
-    [-0.24, 0.34, 1.26]
+    [-0.88, 0.72, 1.08],
+    [-0.24, 0.8, 1.26]
   ])
 };
 
@@ -139,9 +139,9 @@ function createProjectArtifactMesh(zone: StudioZone, palette: Palette, recipe: P
   const activityTypes: string[] = [];
 
   recipe.positions.forEach((position, index) => {
-    const rotation = recipe.rotations?.[index] ?? [0, 0.22 + index * 0.24, index % 2 === 0 ? -0.08 : 0.08];
-    const scale = recipe.scales?.[index] ?? [1 + index * 0.06, 1, 1 - index * 0.04];
-    dummy.position.set(...position);
+    const rotation = readableRotation(recipe, index);
+    const scale = readableScale(recipe, index);
+    dummy.position.set(...readablePosition(position, index, recipe.positions.length));
     dummy.rotation.set(...rotation);
     dummy.scale.set(...scale);
     dummy.updateMatrix();
@@ -159,6 +159,36 @@ function createProjectArtifactMesh(zone: StudioZone, palette: Palette, recipe: P
   }
   tagProjectArtifact(mesh, zone, recipe, signatures, materialVariants, activityTypes);
   return mesh;
+}
+
+function readablePosition(position: [number, number, number], index: number, total: number): [number, number, number] {
+  const center = (total - 1) / 2;
+  const fan = index - center;
+  return [position[0] + fan * 0.045, position[1] + Math.abs(fan) * 0.045, position[2] + fan * 0.035];
+}
+
+function readableRotation(recipe: ProjectArtifactRecipe, index: number): [number, number, number] {
+  const explicit = recipe.rotations?.[index];
+  if (explicit) {
+    return explicit;
+  }
+  const side = index % 2 === 0 ? -1 : 1;
+  return [0.08 + index * 0.025, 0.36 + index * 0.28, side * (0.16 + index * 0.025)];
+}
+
+function readableScale(recipe: ProjectArtifactRecipe, index: number): [number, number, number] {
+  const explicit = recipe.scales?.[index];
+  if (explicit) {
+    return explicit;
+  }
+  const emphasis = 1 + index * 0.08;
+  if (recipe.form === "capsule" || recipe.form === "crystal") {
+    return [emphasis, 1.1, 1.08 - index * 0.02];
+  }
+  if (recipe.form === "lens") {
+    return [emphasis + 0.06, 1.18, 1.02 - index * 0.02];
+  }
+  return [emphasis + 0.08, 1.16, 1.04 - index * 0.015];
 }
 
 function geometryFor(form: ProjectArtifactRecipe["form"]) {
@@ -197,13 +227,21 @@ function materialFor(tone: ProjectArtifactRecipe["tone"], kind: ZoneKind, palett
 }
 
 function colorForInstance(tone: ProjectArtifactRecipe["tone"], kind: ZoneKind, palette: Palette, index: number) {
+  const primary = readableColor(palette[kind], palette.road, 0.16);
+  const secondary = readableColor(kind === "tech" ? palette.art : palette.tech, palette.road, 0.1);
+  const light = readableColor(palette.road, palette[kind], 0.08);
+  const counter = readableColor(palette.road, palette.ink, 0.18);
   if (tone === "light") {
-    return index % 2 === 0 ? palette.road : palette[kind];
+    return index % 2 === 0 ? light : primary;
   }
   if (tone === "secondary") {
-    return index % 2 === 0 ? (kind === "tech" ? palette.art : palette.tech) : palette.road;
+    return index % 2 === 0 ? secondary : counter;
   }
-  return index % 2 === 0 ? palette[kind] : palette.road;
+  return index % 2 === 0 ? primary : counter;
+}
+
+function readableColor(base: number, toward: number, amount: number) {
+  return new THREE.Color(base).lerp(new THREE.Color(toward), amount).getHex();
 }
 
 function tagProjectArtifact(

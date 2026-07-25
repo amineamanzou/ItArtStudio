@@ -310,6 +310,7 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
   - `physicsSamples`
 - `camera`
 - `screen`
+  - `activeProjectArtifact`
 - `lighting`
 - `canvas`
 - `frameCount`

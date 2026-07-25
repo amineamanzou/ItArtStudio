@@ -287,6 +287,7 @@ type QaSnapshot = {
     activeLandmark: ScreenRectQa & { zoneId: string };
     activePlaceArchitecture: ScreenRectQa & { zoneId: string; family: string | null };
     activeSignatureArtifact: ScreenRectQa & { zoneId: string };
+    activeProjectArtifact: ScreenRectQa & { zoneId: string };
     activeZoneComposition: ZoneCompositionQa;
     activeRouteEncounter: ScreenRectQa & { id: string | null; routeId: string | null; intensity: number; distance: number };
   };
@@ -579,6 +580,23 @@ class StudioGame {
         family: null
       },
       activeSignatureArtifact: {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        area: 0,
+        clippedX: 0,
+        clippedY: 0,
+        clippedWidth: 0,
+        clippedHeight: 0,
+        clippedArea: 0,
+        visibleRatio: 0,
+        cornerDepthCount: 0,
+        visible: false,
+        center: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false },
+        zoneId: defaultZone.id
+      },
+      activeProjectArtifact: {
         x: 0,
         y: 0,
         width: 0,
@@ -2273,6 +2291,7 @@ class StudioGame {
     const activeLandmark = this.landmarkMeshes.get(activeZone.id);
     const activePlaceArchitecture = this.placeArchitectureGroups.get(activeZone.id);
     const activeSignatureArtifact = this.signatureArtifactGroups.get(activeZone.id);
+    const activeProjectArtifact = this.projectArtifactGroups.get(activeZone.id);
     const previousScreen = this.qaSnapshot.screen;
     const activeLandmarkScreen = full && qaMode && activeLandmark
       ? this.projectObjectToScreenRect(activeLandmark)
@@ -2288,6 +2307,11 @@ class StudioGame {
       ? this.projectObjectToScreenRect(activeSignatureArtifact)
       : previousScreen.activeSignatureArtifact.zoneId === activeZone.id
         ? previousScreen.activeSignatureArtifact
+        : this.emptyScreenRect();
+    const activeProjectArtifactScreen = full && qaMode && activeProjectArtifact
+      ? this.projectObjectToScreenRect(activeProjectArtifact)
+      : previousScreen.activeProjectArtifact.zoneId === activeZone.id
+        ? previousScreen.activeProjectArtifact
         : this.emptyScreenRect();
     const activePlaceArchitectureFamily =
       typeof activePlaceArchitecture?.userData.placeArchitectureFamily === "string"
@@ -2330,6 +2354,10 @@ class StudioGame {
       },
       activeSignatureArtifact: {
         ...activeSignatureArtifactScreen,
+        zoneId: activeZone.id
+      },
+      activeProjectArtifact: {
+        ...activeProjectArtifactScreen,
         zoneId: activeZone.id
       },
       activeZoneComposition: full
@@ -2835,6 +2863,17 @@ class StudioGame {
   }
 
   private measureObject(object: THREE.Object3D): BoundsQa {
+    const box = this.computeObjectBounds(object);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    return {
+      width: Number(size.x.toFixed(3)),
+      height: Number(size.y.toFixed(3)),
+      depth: Number(size.z.toFixed(3))
+    };
+  }
+
+  private computeObjectBounds(object: THREE.Object3D) {
     object.updateWorldMatrix(true, true);
     const box = new THREE.Box3();
     const childBox = new THREE.Box3();
@@ -2871,13 +2910,8 @@ class StudioGame {
     if (!hasBounds) {
       box.setFromObject(object);
     }
-    const size = new THREE.Vector3();
-    box.getSize(size);
-    return {
-      width: Number(size.x.toFixed(3)),
-      height: Number(size.y.toFixed(3)),
-      depth: Number(size.z.toFixed(3))
-    };
+
+    return box;
   }
 
   private createZoneComposition(zoneId: string, layers: ScreenRectQa[]): ZoneCompositionQa {
@@ -3006,8 +3040,7 @@ class StudioGame {
   }
 
   private projectObjectToScreenRect(object: THREE.Object3D): ScreenRectQa {
-    object.updateWorldMatrix(true, true);
-    const bounds = new THREE.Box3().setFromObject(object);
+    const bounds = this.computeObjectBounds(object);
     if (bounds.isEmpty()) {
       return this.emptyScreenRect();
     }
