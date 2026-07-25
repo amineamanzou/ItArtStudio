@@ -6,6 +6,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY astro.config.mjs tsconfig.json ./
+COPY scripts/assert-production-bundle.mjs ./scripts/assert-production-bundle.mjs
 COPY src ./src
 COPY public ./public
 
