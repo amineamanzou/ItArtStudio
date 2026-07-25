@@ -52,6 +52,8 @@ The runner:
   desktop, tablet, mobile, and reduced-motion viewports;
 - verifies that a real keyboard route can drive into an active route encounter
   that is visible on screen together with a readable rover;
+- verifies that the scene graph keeps enough object-count headroom for future
+  modeled assets while preserving route guidance semantics;
 - verifies that rendered visual specs expose motion roles for biome-specific
   animation;
 - verifies that every zone exposes multiple local motion behaviors so the world
@@ -205,6 +207,10 @@ The runner:
   `screen.playerRect` and `screen.activeRouteEncounter` for visible screen-space
   bounds, low UI occlusion, sufficient active intensity, and sampled canvas ROI
   detail.
+- Scene graph headroom must keep the full rendered world below 1040 scene
+  objects. Route guidance may optimize implementation details, but it must still
+  expose one chevron and one stud per visualized segment, one encounter gate per
+  route, matching signatures, motion roles, and all gameplay visibility gates.
 - The real keyboard tour must prove kinematic driving: at least 90 physics
   samples over 120 frames, 75 moving samples, 35 input samples, 18 coasting
   samples, peak speed between 8 and 18 units/s, bounded acceleration and turn

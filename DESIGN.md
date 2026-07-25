@@ -378,6 +378,19 @@ Gates V3.4:
 - aucun nouvel objet 3D, aucune nouvelle lumiere: la vague renforce la preuve
   de qualite sans depasser le budget scene V3.
 
+Gates V3.5:
+
+- `scene graph headroom`: recuperer de la marge pour de futurs assets modelises
+  sans retirer de lieu, de route, de feedback ou de preuve QA;
+- les chevrons de route passent de deux barres dans un groupe a un seul mesh
+  procedural en V, avec les memes roles, signatures et animations de guidage;
+- verification Playwright `scene-graph-headroom`: scene sous 1040 objets,
+  objets de guidage alignes sur le nombre attendu de chevrons, studs et gates,
+  et conservation des preuves route-guidance, route encounters et gameplay
+  moment visibility;
+- objectif: sortir du plafond `1075/1080` avant d'ajouter des assets 3D plus
+  ambitieux.
+
 ## Components
 
 - `game-site`: surface principale.

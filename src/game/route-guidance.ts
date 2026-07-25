@@ -28,9 +28,28 @@ const material = (color: number, emissive = 0.12, opacity = 0.88) =>
     metalness: 0.18,
     emissive: color,
     emissiveIntensity: emissive,
+    side: THREE.DoubleSide,
     transparent: opacity < 1,
     opacity
   });
+
+const createChevronGeometry = () => {
+  const shape = new THREE.Shape();
+  shape.moveTo(-0.29, -0.22);
+  shape.lineTo(-0.09, -0.22);
+  shape.lineTo(0, 0.03);
+  shape.lineTo(0.09, -0.22);
+  shape.lineTo(0.29, -0.22);
+  shape.lineTo(0.1, 0.24);
+  shape.lineTo(-0.1, 0.24);
+  shape.lineTo(-0.29, -0.22);
+  const geometry = new THREE.ShapeGeometry(shape);
+  geometry.rotateX(-Math.PI * 0.5);
+  geometry.computeVertexNormals();
+  return geometry;
+};
+
+const chevronGeometry = createChevronGeometry();
 
 const tag = (object: THREE.Object3D, role: string, signature: string, routeId: string) => {
   object.userData.routeGuidanceRole = role;
@@ -96,16 +115,9 @@ export function createRouteGuidance(palette: RouteGuidancePalette): RenderedRout
       const midX = x1 + dx * 0.5;
       const midZ = z1 + dz * 0.5;
       const angle = Math.atan2(dx, dz);
-      const chevron = new THREE.Group();
+      const chevron = new THREE.Mesh(chevronGeometry, chevronMat);
       chevron.position.set(midX, 0.18, midZ);
       chevron.rotation.y = angle;
-      const left = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.034, 0.46), chevronMat);
-      const right = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.034, 0.46), chevronMat);
-      left.position.set(-0.13, 0, 0);
-      right.position.set(0.13, 0, 0);
-      left.rotation.y = 0.48;
-      right.rotation.y = -0.48;
-      chevron.add(left, right);
       add(chevron, "route-chevron", `route-chevron:${route.id}:${index}`, route.id);
 
       const stud = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.05, 8), studMat);

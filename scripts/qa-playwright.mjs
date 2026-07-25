@@ -960,6 +960,8 @@ async function checkRealDriveTour(browser) {
         position: { x: 0, z: -8.2 },
         route: [
           { id: "studio-gate", zoneId: "studio-gate", position: { x: 0, z: 0 }, timeoutMs: 9_000 },
+          { id: "values-plaza", zoneId: "values-plaza", position: { x: 0, z: 7.4 }, timeoutMs: 9_000 },
+          { id: "studio-gate", zoneId: "studio-gate", position: { x: 0, z: 0 }, timeoutMs: 9_000 },
           { id: "contact-portal", zoneId: "contact-portal", position: { x: 0, z: -8.2 }, timeoutMs: 9_000 }
         ]
       }
@@ -2008,10 +2010,11 @@ async function checkWorldRichness(page) {
 
   const surface = snapshot?.drive?.surface;
   const routeRoles = world?.routeGuidanceRoleCounts ?? {};
+  const expectedGuidanceObjects = surface ? surface.segmentCount * 2 + surface.routeCount : 0;
   const routeGuidanceRendered =
     world &&
     surface &&
-    world.routeGuidanceObjects >= surface.segmentCount * 3 &&
+    world.routeGuidanceObjects >= expectedGuidanceObjects &&
     world.routeGuidanceSignatures >= surface.segmentCount * 2 &&
     world.routeGuidanceMotionObjects >= surface.segmentCount * 2 &&
     world.routeGuidanceVisualizedSegments === surface.segmentCount &&
@@ -2027,6 +2030,7 @@ async function checkWorldRichness(page) {
       routeGuidanceMotionObjects: world.routeGuidanceMotionObjects,
       routeGuidanceVisualizedSegments: world.routeGuidanceVisualizedSegments,
       routeGuidanceRoleCounts: world.routeGuidanceRoleCounts,
+      expectedGuidanceObjects,
       surface,
       sceneObjects: world.sceneObjects
     });
@@ -2037,8 +2041,49 @@ async function checkWorldRichness(page) {
       routeGuidanceMotionObjects: world?.routeGuidanceMotionObjects,
       routeGuidanceVisualizedSegments: world?.routeGuidanceVisualizedSegments,
       routeGuidanceRoleCounts: world?.routeGuidanceRoleCounts,
+      expectedGuidanceObjects,
       surface,
       sceneObjects: world?.sceneObjects
+    });
+  }
+
+  const sceneGraphHeadroom =
+    world &&
+    surface &&
+    world.sceneObjects <= 1040 &&
+    1075 - world.sceneObjects >= 35 &&
+    world.routeGuidanceObjects === expectedGuidanceObjects &&
+    routeRoles["route-chevron"] === surface.segmentCount &&
+    routeRoles["route-stud"] === surface.segmentCount &&
+    routeRoles["route-encounter-gate"] === surface.routeCount &&
+    world.routeGuidanceSignatures >= expectedGuidanceObjects &&
+    world.routeGuidanceMotionObjects >= expectedGuidanceObjects;
+  if (sceneGraphHeadroom) {
+    pass("scene-graph-headroom", {
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: 1040,
+      baselineSceneObjects: 1075,
+      minFreedSceneObjects: 35,
+      freedFromPreviousBaseline: 1075 - world.sceneObjects,
+      routeGuidanceObjects: world.routeGuidanceObjects,
+      expectedGuidanceObjects,
+      segmentCount: surface.segmentCount,
+      routeCount: surface.routeCount,
+      qualityPreserved: true,
+      routeGuidanceRoleCounts: world.routeGuidanceRoleCounts
+    });
+  } else {
+    scenarioFail("scene-graph-headroom", "Scene graph does not leave enough asset budget headroom.", {
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: 1040,
+      baselineSceneObjects: 1075,
+      minFreedSceneObjects: 35,
+      freedFromPreviousBaseline: world?.sceneObjects ? 1075 - world.sceneObjects : null,
+      routeGuidanceObjects: world?.routeGuidanceObjects,
+      expectedGuidanceObjects,
+      qualityPreserved: false,
+      routeGuidanceRoleCounts: world?.routeGuidanceRoleCounts,
+      surface
     });
   }
 
@@ -4038,6 +4083,7 @@ async function writeReport() {
   const routeEncounterTriggeredScenario = scenarios.find((scenario) => scenario.name === "route-encounter-triggered:real-drive");
   const routeEncounterVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("route-encounter-visible:"));
   const roverReadableScenarios = scenarios.filter((scenario) => scenario.name.startsWith("rover-readable:"));
+  const sceneGraphHeadroomScenario = scenarios.find((scenario) => scenario.name === "scene-graph-headroom");
   const productionRuntimeScenario = scenarios.find((scenario) => scenario.name === "production-runtime-lightweight");
   const cameraSafeScenarios = scenarios.filter((scenario) => scenario.name.startsWith("camera-safe-area:"));
   const signatureVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("signature-artifact-visible:"));
@@ -4157,6 +4203,11 @@ async function writeReport() {
     `- Route encounters triggered: ${
       routeEncounterTriggeredScenario?.details?.routeEncounters
         ? `${routeEncounterTriggeredScenario.details.routeEncounters.visitedCount} visited, max intensity ${routeEncounterTriggeredScenario.details.routeEncounters.maxIntensity}, kinds ${Object.entries(routeEncounterTriggeredScenario.details.routeEncounterKinds ?? {}).filter(([, value]) => value).map(([kind]) => kind).join("/")}`
+        : "n/a"
+    }`,
+    `- Scene graph headroom: ${
+      sceneGraphHeadroomScenario?.details
+        ? `${sceneGraphHeadroomScenario.details.sceneObjects}/${sceneGraphHeadroomScenario.details.sceneObjectBudget}, freed ${sceneGraphHeadroomScenario.details.freedFromPreviousBaseline}/${sceneGraphHeadroomScenario.details.minFreedSceneObjects}, route guidance ${sceneGraphHeadroomScenario.details.routeGuidanceObjects}/${sceneGraphHeadroomScenario.details.expectedGuidanceObjects}, route roles chevron:${sceneGraphHeadroomScenario.details.routeGuidanceRoleCounts?.["route-chevron"] ?? "n/a"} stud:${sceneGraphHeadroomScenario.details.routeGuidanceRoleCounts?.["route-stud"] ?? "n/a"} gate:${sceneGraphHeadroomScenario.details.routeGuidanceRoleCounts?.["route-encounter-gate"] ?? "n/a"}, quality preserved ${sceneGraphHeadroomScenario.details.qualityPreserved ? "yes" : "no"}`
         : "n/a"
     }`,
     `- Route encounter visibility: ${routeEncounterVisibleScenarios.filter((scenario) => scenario.status === "pass").length}/${
