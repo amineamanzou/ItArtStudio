@@ -577,7 +577,9 @@ async function driveWithRealKeyboard(page, target) {
         activeZoneId: snapshot.activeZoneId,
         player,
         trail: snapshot.trail,
-        drive: snapshot.drive
+        drive: snapshot.drive,
+        camera: snapshot.camera,
+        screen: snapshot.screen
       });
 
       if (snapshot.activeZoneId === target.id) {
@@ -647,6 +649,8 @@ async function checkRealDriveTour(browser) {
           drive: snapshot.drive
         });
         await checkActivationFeedback(page, target.id, beforeActivation?.activeFeedback?.sequence ?? 0);
+        await page.waitForTimeout(220);
+        await inspectCameraSafeArea(page, `real-drive:${target.id}`);
       } else {
         scenarioFail(`real-drive:${target.id}`, "Real keyboard drive did not reach the target zone.", {
           result,
@@ -665,6 +669,13 @@ async function checkRealDriveTour(browser) {
     const xSpan = xValues.length > 0 ? Math.max(...xValues) - Math.min(...xValues) : 0;
     const zSpan = zValues.length > 0 ? Math.max(...zValues) - Math.min(...zValues) : 0;
     const maxStepDistance = Math.max(...routeResults.map((result) => result.maxSampleStepDistance), 0);
+    const cameraSamples = allSamples.filter((sample) => sample.camera && sample.screen);
+    const maxCameraLag = Math.max(...cameraSamples.map((sample) => sample.camera.lag ?? 99), 0);
+    const maxCameraDistance = Math.max(...cameraSamples.map((sample) => sample.camera.distanceToPlayer ?? 0), 0);
+    const minCameraDistance =
+      cameraSamples.length > 0 ? Math.min(...cameraSamples.map((sample) => sample.camera.distanceToPlayer ?? 99)) : 0;
+    const invisiblePlayerSamples = cameraSamples.filter((sample) => sample.screen?.player?.visible !== true);
+    const invisibleActiveZoneSamples = cameraSamples.filter((sample) => sample.screen?.activeZone?.visible !== true);
     const visitedTargets = targets.filter((target) => final?.visitedZoneIds?.includes(target.id)).map((target) => target.id);
     const driveGate =
       final?.activeZoneId === "contact-portal" &&
@@ -684,6 +695,14 @@ async function checkRealDriveTour(browser) {
       (final.trail?.activeMarks ?? 0) >= 10 &&
       (final.drive?.cameraDistance ?? 0) >= 10 &&
       (final.drive?.cameraDistance ?? 0) <= 18 &&
+      (final.camera?.lag ?? 99) <= 5.8 &&
+      final.screen?.player?.visible === true &&
+      final.screen?.activeZone?.visible === true &&
+      cameraSamples.length >= allSamples.length * 0.8 &&
+      invisiblePlayerSamples.length === 0 &&
+      maxCameraLag <= 5.8 &&
+      minCameraDistance >= 10 &&
+      maxCameraDistance <= 18 &&
       maxStepDistance <= 7;
 
     if (driveGate) {
@@ -693,9 +712,15 @@ async function checkRealDriveTour(browser) {
         xSpan: Number(xSpan.toFixed(3)),
         zSpan: Number(zSpan.toFixed(3)),
         maxStepDistance: Number(maxStepDistance.toFixed(3)),
+        maxCameraLag: Number(maxCameraLag.toFixed(3)),
+        minCameraDistance: Number(minCameraDistance.toFixed(3)),
+        maxCameraDistance: Number(maxCameraDistance.toFixed(3)),
+        invisibleActiveZoneSamples: invisibleActiveZoneSamples.length,
         visitedTargets,
         input: final.input,
         drive: final.drive,
+        camera: final.camera,
+        screen: final.screen,
         trail: final.trail
       });
     } else {
@@ -705,6 +730,11 @@ async function checkRealDriveTour(browser) {
         xSpan,
         zSpan,
         maxStepDistance,
+        maxCameraLag,
+        minCameraDistance,
+        maxCameraDistance,
+        invisiblePlayerSamples,
+        invisibleActiveZoneSamples,
         visitedTargets,
         input: final?.input,
         final,
@@ -987,6 +1017,110 @@ async function checkRuntimeFrameBudget(page, label = "runtime") {
   } else {
     scenarioFail(`performance:${label}-frame-budget`, "Runtime frame budget exceeded during live QA sampling.", stats);
   }
+}
+
+async function inspectCameraSafeArea(page, label) {
+  const snapshot = await getQaSnapshot(page);
+  const screenState = await page.evaluate((qa) => {
+    const selectors = [".game-hud", ".zone-panel", ".world-map", ".mobile-drive", ".mobile-zone-nav"];
+    const uiRects = selectors
+      .map((selector) => {
+        const node = document.querySelector(selector);
+        if (!(node instanceof HTMLElement)) {
+          return null;
+        }
+        const style = getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        if (
+          style.display === "none" ||
+          style.visibility === "hidden" ||
+          Number(style.opacity) === 0 ||
+          rect.width === 0 ||
+          rect.height === 0
+        ) {
+          return null;
+        }
+        return {
+          selector,
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height
+        };
+      })
+      .filter(Boolean);
+
+    const viewport = { width: window.innerWidth, height: window.innerHeight };
+    const insideFrame = (point, marginRatio) =>
+      Boolean(point) &&
+      point.visible === true &&
+      point.x >= viewport.width * marginRatio &&
+      point.x <= viewport.width * (1 - marginRatio) &&
+      point.y >= viewport.height * marginRatio &&
+      point.y <= viewport.height * (1 - marginRatio);
+    const occludersFor = (point, padding = 12) => {
+      if (!point) {
+        return [];
+      }
+      return uiRects
+        .filter(
+          (rect) =>
+            point.x >= rect.left - padding &&
+            point.x <= rect.right + padding &&
+            point.y >= rect.top - padding &&
+            point.y <= rect.bottom + padding
+        )
+        .map((rect) => rect.selector);
+    };
+
+    const player = qa?.screen?.player ?? null;
+    const activeZone = qa?.screen?.activeZone ?? null;
+    return {
+      viewport,
+      uiRects,
+      player,
+      activeZone,
+      playerInFrame: insideFrame(player, 0.08),
+      activeZoneInFrame: insideFrame(activeZone, 0.04),
+      playerOccluders: occludersFor(player, 14),
+      activeZoneOccluders: occludersFor(activeZone, 10),
+      camera: qa?.camera ?? null,
+      driveCameraDistance: qa?.drive?.cameraDistance ?? null,
+      activeZoneId: qa?.activeZoneId ?? null,
+      frameCount: qa?.frameCount ?? 0
+    };
+  }, snapshot);
+
+  const cameraLag = screenState.camera?.lag ?? Number.POSITIVE_INFINITY;
+  const cameraDistance = screenState.camera?.distanceToPlayer ?? screenState.driveCameraDistance ?? 0;
+  const ok =
+    screenState.playerInFrame &&
+    screenState.activeZoneInFrame &&
+    screenState.playerOccluders.length === 0 &&
+    screenState.activeZoneOccluders.length === 0 &&
+    cameraLag <= 5.8 &&
+    cameraDistance >= 10 &&
+    cameraDistance <= 18;
+
+  if (ok) {
+    pass(`camera-safe-area:${label}`, {
+      activeZoneId: screenState.activeZoneId,
+      player: screenState.player,
+      activeZone: screenState.activeZone,
+      camera: screenState.camera,
+      uiRects: screenState.uiRects.map((rect) => rect.selector)
+    });
+  } else {
+    scenarioFail(`camera-safe-area:${label}`, "Camera framing does not keep the playable subject and active zone readable.", {
+      ...screenState,
+      cameraLagLimit: 5.8,
+      cameraDistanceRange: [10, 18]
+    });
+  }
+
+  return ok;
 }
 
 async function measureLayout(page) {
@@ -1603,6 +1737,7 @@ async function writeReport() {
   const trailScenario = scenarios.find((scenario) => scenario.name === "rover-trail:keyboard-route");
   const activationScenarios = scenarios.filter((scenario) => scenario.name.startsWith("activation-feedback:"));
   const realDriveScenario = scenarios.find((scenario) => scenario.name === "real-drive-tour");
+  const cameraSafeScenarios = scenarios.filter((scenario) => scenario.name.startsWith("camera-safe-area:"));
   const world = worldScenario?.details?.world;
   const player = playerScenario?.details?.player;
   const localMotionBehaviorTypes = visualScenario?.details?.localMotionBehaviorTypes ?? [];
@@ -1666,7 +1801,15 @@ async function writeReport() {
     }`,
     `- Real drive tour: ${
       realDriveScenario?.details
-        ? `${realDriveScenario.details.distanceDelta} units over ${realDriveScenario.details.frameDelta} frames, max step ${realDriveScenario.details.maxStepDistance}`
+        ? `${realDriveScenario.details.distanceDelta} units over ${realDriveScenario.details.frameDelta} frames, max step ${realDriveScenario.details.maxStepDistance}, camera lag max ${realDriveScenario.details.maxCameraLag}, camera distance ${realDriveScenario.details.minCameraDistance}-${realDriveScenario.details.maxCameraDistance}, sticky active-zone offscreen samples ${realDriveScenario.details.invisibleActiveZoneSamples}`
+        : "n/a"
+    }`,
+    `- Camera safe-area checks: ${cameraSafeScenarios.filter((scenario) => scenario.status === "pass").length}/${
+      cameraSafeScenarios.length
+    }`,
+    `- Final camera: ${
+      realDriveScenario?.details?.camera
+        ? `lag ${realDriveScenario.details.camera.lag}, distance ${realDriveScenario.details.camera.distanceToPlayer}, player screen ${realDriveScenario.details.screen?.player?.x}/${realDriveScenario.details.screen?.player?.y}`
         : "n/a"
     }`,
     "",
@@ -1710,6 +1853,7 @@ async function main() {
     await assertBrandIdentity(page);
     await checkRuntimeFrameBudget(page, "pre-capture");
     const home = await capture(page, "home-loaded");
+    await inspectCameraSafeArea(page, "home-loaded");
     await checkVisibleZoneControls(page, "desktop");
     const desktopLayout = await measureLayout(page);
     if (desktopLayout.overlaps.length === 0 && desktopLayout.coverage <= 0.38) {

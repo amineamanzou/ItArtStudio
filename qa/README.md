@@ -62,6 +62,9 @@ The runner:
   headless Chromium while preserving `lastInputMode: keyboard`;
 - opens a separate `?qa=1&realKeys=1` page where the deterministic keyboard
   hook is absent, then drives a tour with real `keyboard.down/up` events;
+- projects the rover and active zone into screen coordinates, then checks that
+  they stay readable and outside visible HUD, panel, mini-map, and mobile
+  controls;
 - clicks mini-map buttons with real pointer coordinates after a DOM hit-test and
   verifies active zone state, `aria-pressed`, pointer input mode, and player
   marker convergence;
@@ -121,6 +124,10 @@ The runner:
   single-sample jumps larger than the physical threshold. Input telemetry must
   show balanced real keydown/keyup events, no active keys left behind, and no
   deterministic hook calls during the route.
+- Camera safe-area checks must prove that the projected rover stays visible
+  throughout sampled real keyboard driving, that each reached active zone is
+  visible at stabilized checkpoints and not under fixed UI surfaces, and that
+  camera lag stays within the calibrated budget during the tour.
 - Frame telemetry must be present in the QA snapshot.
 - Runtime frame budget warms up briefly, then must record at least 85 rendered
   frames over a 6s live window before screenshot sampling begins, with
@@ -157,6 +164,9 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
 - `world`
 - `player`
 - `trail`
+- `drive`
+- `camera`
+- `screen`
 - `canvas`
 - `frameCount`
 - `averageFrameMs`

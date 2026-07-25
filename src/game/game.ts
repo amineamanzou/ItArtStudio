@@ -27,6 +27,8 @@ const colors: Record<ZoneKind | "ground" | "road" | "ink", number> = {
 type DriveKey = "up" | "down" | "left" | "right";
 
 type BoundsQa = { width: number; height: number; depth: number };
+type Vec3Qa = { x: number; y: number; z: number };
+type ScreenPointQa = { x: number; y: number; ndcX: number; ndcY: number; visible: boolean };
 type TrailMark = { mesh: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>; age: number; maxAge: number };
 type ActivationFeedback = {
   group: THREE.Group;
@@ -102,6 +104,17 @@ type QaSnapshot = {
     rotationChange: number;
     cameraDistance: number;
   };
+  camera: {
+    position: Vec3Qa;
+    target: Vec3Qa;
+    desired: Vec3Qa;
+    lag: number;
+    distanceToPlayer: number;
+  };
+  screen: {
+    player: ScreenPointQa;
+    activeZone: ScreenPointQa & { zoneId: string };
+  };
   input: {
     activeKeys: DriveKey[];
     keyboardDownCount: number;
@@ -151,6 +164,8 @@ class StudioGame {
   private readonly errors: string[] = [];
   private readonly playerPosition = new THREE.Vector3(0, 0.28, 0);
   private readonly targetPosition = new THREE.Vector3(0, 0.28, 0);
+  private readonly cameraTarget = new THREE.Vector3(0, 0, 0);
+  private readonly cameraDesired = new THREE.Vector3(8, 9.4, 8);
   private activeZoneId = defaultZone.id;
   private frameId = 0;
   private lastFrameTime = performance.now();
@@ -220,6 +235,17 @@ class StudioGame {
     player: { x: 0, z: 0, rotationY: 0, meshCount: 0, wheelCount: 0, bounds: { width: 0, height: 0, depth: 0 } },
     trail: { totalMarks: 0, activeMarks: 0, maxOpacity: 0 },
     drive: { totalDistance: 0, positionSamples: [], averageSpeed: 0, rotationChange: 0, cameraDistance: 0 },
+    camera: {
+      position: { x: 8, y: 9, z: 8 },
+      target: { x: 0, y: 0, z: 0 },
+      desired: { x: 8, y: 9.4, z: 8 },
+      lag: 0,
+      distanceToPlayer: 0
+    },
+    screen: {
+      player: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false },
+      activeZone: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false, zoneId: defaultZone.id }
+    },
     input: { activeKeys: [], keyboardDownCount: 0, keyboardUpCount: 0, lastKeyboardCode: null, qaStepHookCalls: 0 },
     activeFeedback: {
       zoneId: defaultZone.id,
@@ -286,7 +312,9 @@ class StudioGame {
     this.scene.add(key);
 
     this.camera.position.set(8, 9, 8);
-    this.camera.lookAt(0, 0, 0);
+    this.cameraTarget.set(0, 0, 0);
+    this.cameraDesired.set(8, 9.4, 8);
+    this.camera.lookAt(this.cameraTarget);
   }
 
   private setWorld() {
@@ -929,6 +957,7 @@ class StudioGame {
     this.updateTrail(0.08);
     this.updateActiveZone();
     this.updateMiniMap();
+    this.updateCamera(0.08);
     this.syncQaSnapshot();
   }
 
@@ -1285,9 +1314,14 @@ class StudioGame {
   private updateCamera(delta: number) {
     const target = this.playerPosition;
     const impulse = motionQuery.matches ? 0 : this.cameraImpulse;
-    const desired = new THREE.Vector3(target.x + 8 + impulse * 0.24, 9.4 + impulse * 0.42, target.z + 8 + impulse * 0.24);
-    this.camera.position.lerp(desired, 1 - Math.pow(0.001, delta));
-    this.camera.lookAt(target.x, impulse * 0.12, target.z);
+    this.cameraDesired.set(
+      target.x + 8 + impulse * 0.24,
+      9.4 + impulse * 0.42,
+      target.z + 8 + impulse * 0.24
+    );
+    this.camera.position.lerp(this.cameraDesired, 1 - Math.pow(0.001, delta));
+    this.cameraTarget.set(target.x, impulse * 0.12, target.z);
+    this.camera.lookAt(this.cameraTarget);
     this.cameraImpulse = Math.max(0, this.cameraImpulse - delta * 2.2);
   }
 
@@ -1453,6 +1487,21 @@ class StudioGame {
       rotationChange: Number(this.totalRotationChange.toFixed(3)),
       cameraDistance: Number(this.camera.position.distanceTo(this.playerPosition).toFixed(3))
     };
+    const activeZonePoint = new THREE.Vector3(activeZone.position[0], 0.28, activeZone.position[1]);
+    this.qaSnapshot.camera = {
+      position: this.toVec3Qa(this.camera.position),
+      target: this.toVec3Qa(this.cameraTarget),
+      desired: this.toVec3Qa(this.cameraDesired),
+      lag: Number(this.camera.position.distanceTo(this.cameraDesired).toFixed(3)),
+      distanceToPlayer: Number(this.camera.position.distanceTo(this.playerPosition).toFixed(3))
+    };
+    this.qaSnapshot.screen = {
+      player: this.projectToScreen(this.playerPosition),
+      activeZone: {
+        ...this.projectToScreen(activeZonePoint),
+        zoneId: activeZone.id
+      }
+    };
     this.qaSnapshot.input = {
       activeKeys: [...this.keys],
       keyboardDownCount: this.keyboardDownCount,
@@ -1486,6 +1535,35 @@ class StudioGame {
     this.qaSnapshot.visitedZoneIds = [...this.visitedZoneIds];
     this.qaSnapshot.reducedMotion = motionQuery.matches;
     this.qaSnapshot.errors = [...this.errors];
+  }
+
+  private toVec3Qa(value: THREE.Vector3): Vec3Qa {
+    return {
+      x: Number(value.x.toFixed(3)),
+      y: Number(value.y.toFixed(3)),
+      z: Number(value.z.toFixed(3))
+    };
+  }
+
+  private projectToScreen(point: THREE.Vector3): ScreenPointQa {
+    const rect = this.canvas.getBoundingClientRect();
+    const projected = point.clone().project(this.camera);
+    const x = rect.left + ((projected.x + 1) / 2) * rect.width;
+    const y = rect.top + ((1 - projected.y) / 2) * rect.height;
+
+    return {
+      x: Number(x.toFixed(1)),
+      y: Number(y.toFixed(1)),
+      ndcX: Number(projected.x.toFixed(3)),
+      ndcY: Number(projected.y.toFixed(3)),
+      visible:
+        projected.z >= -1 &&
+        projected.z <= 1 &&
+        x >= rect.left &&
+        x <= rect.right &&
+        y >= rect.top &&
+        y <= rect.bottom
+    };
   }
 
   private inspectZoneAsset(zone: StudioZone): ZoneAssetQa {

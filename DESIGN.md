@@ -219,6 +219,17 @@ Gates V2.0:
   insuffisante, saut d'echantillon trop grand, trail trop faible ou camera hors
   budget.
 
+Gates V2.1:
+
+- telemetrie camera enrichie: position, cible, position desiree, lag et distance
+  au joueur;
+- projection screen-space du rover et de la zone active dans le snapshot QA;
+- verification Playwright que le joueur reste dans le viewport pendant la
+  conduite et que chaque zone atteinte reste lisible aux checkpoints stabilises,
+  hors HUD, panneau, mini-map et controles mobiles visibles;
+- rejet QA si la conduite reste techniquement possible mais devient illisible
+  par occlusion UI, cadrage trop serre ou camera qui ne suit pas assez vite.
+
 ## Components
 
 - `game-site`: surface principale.
