@@ -45,6 +45,9 @@ The runner:
   motif, roles, signatures, and non-duplicated surface fingerprints;
 - verifies that route guidance is derived from the road graph and materializes
   every drive segment with visible chevrons and studs;
+- verifies that the road graph exposes lightweight route encounter gates and
+  that the real keyboard route triggers discovery moments across studio, tech,
+  and art routes;
 - verifies that rendered visual specs expose motion roles for biome-specific
   animation;
 - verifies that every zone exposes multiple local motion behaviors so the world
@@ -182,6 +185,11 @@ The runner:
   chevron and stud roles present for each segment, guidance marker count
   reported in drive telemetry, and scene object count kept within the V2.8
   budget.
+- Route encounters must materialize one lightweight gate per world route, keep
+  the total scene object count within the V3 budget, and be triggered by the
+  real keyboard tour. The tour must visit at least five route encounters, reach
+  a measured max intensity >= 0.45, and include studio, tech, and art route
+  families.
 - The real keyboard tour must prove kinematic driving: at least 90 physics
   samples over 120 frames, 75 moving samples, 35 input samples, 18 coasting
   samples, peak speed between 8 and 18 units/s, bounded acceleration and turn

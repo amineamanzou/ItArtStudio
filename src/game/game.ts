@@ -7,7 +7,7 @@ import {
   sampleDriveSurface,
   type DriveSurfaceTelemetry
 } from "./drive-surfaces";
-import { createRouteGuidance } from "./route-guidance";
+import { createRouteGuidance, type RouteEncounterGate } from "./route-guidance";
 import { createZoneSignatureArtifacts } from "./zone-signature-artifacts";
 import { createZonePlaceArchitecture } from "./zone-place-architecture";
 import { createWorldScenery } from "./world-scenery";
@@ -124,6 +124,19 @@ type LightingQa = {
   shadowCastingLightCount: number;
 };
 
+type RouteEncountersQa = {
+  gateCount: number;
+  objectCount: number;
+  activeId: string | null;
+  activeRouteId: string | null;
+  activeDistance: number;
+  activeIntensity: number;
+  activeCount: number;
+  visitedIds: string[];
+  visitedCount: number;
+  maxIntensity: number;
+};
+
 type ZoneAssetQa = {
   id: string;
   meshCount: number;
@@ -214,6 +227,8 @@ type QaSnapshot = {
     routeGuidanceMotionObjects: number;
     routeGuidanceRoleCounts: Record<string, number>;
     routeGuidanceVisualizedSegments: number;
+    routeEncounterObjects: number;
+    routeEncounterGates: number;
     materialVariants: number;
     motionRoles: number;
     motionRolesByType: Record<string, number>;
@@ -274,6 +289,7 @@ type QaSnapshot = {
     cameraImpulse: number;
   };
   lighting: LightingQa;
+  routeEncounters: RouteEncountersQa;
   canvas: { width: number; height: number; dpr: number };
   frameCount: number;
   averageFrameMs: number;
@@ -326,6 +342,7 @@ class StudioGame {
   private terrainLayerCount = 0;
   private routeGuidanceObjectCount = 0;
   private routeGuidanceVisualizedSegments = 0;
+  private routeEncounterObjectCount = 0;
   private motionRoleCount = 0;
   private playerPartCount = 0;
   private readonly renderedVisualSpecIds = new Set<string>();
@@ -345,10 +362,18 @@ class StudioGame {
   private readonly signatureArtifactGroups = new Map<string, THREE.Object3D>();
   private readonly worldSceneryMotionObjects: THREE.Object3D[] = [];
   private readonly routeGuidanceMotionObjects: THREE.Object3D[] = [];
+  private readonly routeEncounterGates: RouteEncounterGate[] = [];
+  private readonly visitedRouteEncounterIds = new Set<string>();
   private activeLightPool!: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
   private routeLightPool!: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
   private lightPoolObjectCount = 0;
   private currentNearestRouteId: string | null = null;
+  private currentRouteEncounterId: string | null = null;
+  private currentRouteEncounterRouteId: string | null = null;
+  private currentRouteEncounterDistance = 0;
+  private currentRouteEncounterIntensity = 0;
+  private currentRouteEncounterActiveCount = 0;
+  private maxRouteEncounterIntensity = 0;
   private readonly wheelMeshes: THREE.Mesh[] = [];
   private readonly trailMarks: TrailMark[] = [];
   private readonly frameDeltas: number[] = [];
@@ -414,6 +439,8 @@ class StudioGame {
       routeGuidanceMotionObjects: 0,
       routeGuidanceRoleCounts: {},
       routeGuidanceVisualizedSegments: 0,
+      routeEncounterObjects: 0,
+      routeEncounterGates: 0,
       materialVariants: 0,
       motionRoles: 0,
       motionRolesByType: {},
@@ -573,6 +600,18 @@ class StudioGame {
       realLightCount: 0,
       shadowCastingLightCount: 0
     },
+    routeEncounters: {
+      gateCount: 0,
+      objectCount: 0,
+      activeId: null,
+      activeRouteId: null,
+      activeDistance: 0,
+      activeIntensity: 0,
+      activeCount: 0,
+      visitedIds: [],
+      visitedCount: 0,
+      maxIntensity: 0
+    },
     canvas: { width: 0, height: 0, dpr: 1 },
     frameCount: 0,
     averageFrameMs: 0,
@@ -702,9 +741,11 @@ class StudioGame {
     this.scene.add(rendered.group);
     this.routeGuidanceObjectCount += rendered.objectCount;
     this.routeGuidanceVisualizedSegments += rendered.visualizedSegmentCount;
+    this.routeEncounterObjectCount += rendered.encounterGates.length;
     this.decorativeObjectCount += rendered.objectCount;
     this.motionRoleCount += rendered.motionObjects.length;
     this.routeGuidanceMotionObjects.push(...rendered.motionObjects);
+    this.routeEncounterGates.push(...rendered.encounterGates);
     for (const signature of rendered.signatures) {
       this.routeGuidanceSignatureIds.add(signature);
     }
@@ -1423,6 +1464,7 @@ class StudioGame {
     this.updateLightingPools(delta);
     this.updateWorldSceneryMotion(delta);
     this.updateRouteGuidanceMotion(delta);
+    this.updateRouteEncounterFeedback(delta);
     this.updateCamera(delta);
     this.updateMiniMap();
     this.renderer.render(this.scene, this.camera);
@@ -1734,11 +1776,53 @@ class StudioGame {
       if (behavior === "pulse") {
         object.position.y = baseY + Math.sin(phase) * 0.018;
         object.scale.setScalar(1 + Math.sin(phase * 1.2) * 0.035);
+      } else if (behavior === "encounter-idle") {
+        object.position.y = baseY + Math.sin(phase * 1.1) * 0.02;
       } else {
         object.position.y = baseY + Math.sin(phase * 1.4) * 0.012;
         object.rotation.y = baseRotationY + Math.sin(phase * 0.8) * 0.035 + delta * 0.02;
       }
     });
+  }
+
+  private updateRouteEncounterFeedback(delta: number) {
+    let nearest: { gate: RouteEncounterGate; distance: number; intensity: number } | null = null;
+    let activeCount = 0;
+    const phaseBase = motionQuery.matches ? 0 : this.elapsedTime * 2.4;
+
+    for (const gate of this.routeEncounterGates) {
+      const distance = Math.hypot(this.playerPosition.x - gate.object.position.x, this.playerPosition.z - gate.object.position.z);
+      const intensity = clamp(1 - distance / 1.75, 0, 1);
+      const pulse = motionQuery.matches ? 0 : (Math.sin(phaseBase + gate.object.id * 0.17) * 0.5 + 0.5) * 0.05;
+      const targetScale = 1 + intensity * 0.22 + pulse;
+      const targetY = gate.baseY + (motionQuery.matches ? 0 : Math.sin(phaseBase + gate.object.id * 0.23) * 0.018) + intensity * 0.13;
+      const smoothing = 1 - Math.pow(0.0015, delta);
+
+      gate.object.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), smoothing);
+      gate.object.position.y += (targetY - gate.object.position.y) * smoothing;
+      gate.object.userData.routeEncounterIntensity = Number(intensity.toFixed(3));
+      gate.object.userData.routeEncounterDistance = Number(distance.toFixed(3));
+
+      if (gate.object instanceof THREE.Mesh && gate.object.material instanceof THREE.MeshStandardMaterial) {
+        gate.object.material.emissiveIntensity = 0.22 + intensity * 0.62 + pulse;
+        gate.object.material.opacity = 0.68 + intensity * 0.28;
+      }
+
+      if (intensity >= 0.18) {
+        activeCount += 1;
+        this.visitedRouteEncounterIds.add(gate.id);
+      }
+      if (!nearest || distance < nearest.distance) {
+        nearest = { gate, distance, intensity };
+      }
+    }
+
+    this.currentRouteEncounterActiveCount = activeCount;
+    this.currentRouteEncounterId = nearest?.gate.id ?? null;
+    this.currentRouteEncounterRouteId = nearest?.gate.routeId ?? null;
+    this.currentRouteEncounterDistance = Number((nearest?.distance ?? 0).toFixed(3));
+    this.currentRouteEncounterIntensity = Number((nearest?.intensity ?? 0).toFixed(3));
+    this.maxRouteEncounterIntensity = Math.max(this.maxRouteEncounterIntensity, this.currentRouteEncounterIntensity);
   }
 
   private updateLightingPools(delta: number) {
@@ -2010,6 +2094,8 @@ class StudioGame {
         routeGuidanceMotionObjects: this.routeGuidanceMotionObjects.length,
         routeGuidanceRoleCounts: { ...this.routeGuidanceRoleCounts },
         routeGuidanceVisualizedSegments: this.routeGuidanceVisualizedSegments,
+        routeEncounterObjects: this.routeEncounterObjectCount,
+        routeEncounterGates: this.routeEncounterGates.length,
         materialVariants: this.materialVariantIds.size,
         motionRoles: this.motionRoleCount,
         motionRolesByType,
@@ -2181,6 +2267,18 @@ class StudioGame {
       nearestRouteId: this.currentNearestRouteId,
       realLightCount,
       shadowCastingLightCount
+    };
+    this.qaSnapshot.routeEncounters = {
+      gateCount: this.routeEncounterGates.length,
+      objectCount: this.routeEncounterObjectCount,
+      activeId: this.currentRouteEncounterId,
+      activeRouteId: this.currentRouteEncounterRouteId,
+      activeDistance: this.currentRouteEncounterDistance,
+      activeIntensity: this.currentRouteEncounterIntensity,
+      activeCount: this.currentRouteEncounterActiveCount,
+      visitedIds: [...this.visitedRouteEncounterIds],
+      visitedCount: this.visitedRouteEncounterIds.size,
+      maxIntensity: Number(this.maxRouteEncounterIntensity.toFixed(3))
     };
     this.qaSnapshot.canvas = {
       width: this.canvas.width,

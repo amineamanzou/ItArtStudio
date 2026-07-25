@@ -337,6 +337,21 @@ Gates V3.1:
 - rejet QA si le lieu actif est present dans l'inventaire mais ne se lit pas
   comme une scene 3D coherente a l'ecran.
 
+Gates V3.2:
+
+- `route encounters`: un portique procedural leger par route du graphe monde,
+  rendu dans la couche `route-guidance` sans nouvelle vraie lumiere ni shadow
+  map dynamique;
+- feedback de proximite pendant la conduite: scale, lift, emissive et opacite
+  reagissent quand le rover traverse un seuil de route;
+- snapshot QA enrichi avec `routeEncounters`: nombre de gates, objets, gate
+  actif, route active, distance, intensite, gates visites et intensite max;
+- verification Playwright `route-encounters-rendered` pour prouver un gate par
+  route en restant sous le budget scene V3;
+- verification `route-encounter-triggered:real-drive` sur le vrai trajet
+  clavier pour prouver que les seuils sont decouverts par conduite, avec
+  couverture studio, tech et art.
+
 ## Components
 
 - `game-site`: surface principale.

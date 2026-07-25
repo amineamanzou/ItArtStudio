@@ -9,8 +9,16 @@ export type RenderedRouteGuidance = {
   objectCount: number;
   signatures: Set<string>;
   motionObjects: THREE.Object3D[];
+  encounterGates: RouteEncounterGate[];
   roleCounts: Record<string, number>;
   visualizedSegmentCount: number;
+};
+
+export type RouteEncounterGate = {
+  id: string;
+  routeId: string;
+  object: THREE.Object3D;
+  baseY: number;
 };
 
 const material = (color: number, emissive = 0.12, opacity = 0.88) =>
@@ -28,7 +36,8 @@ const tag = (object: THREE.Object3D, role: string, signature: string, routeId: s
   object.userData.routeGuidanceRole = role;
   object.userData.routeGuidanceSignature = signature;
   object.userData.routeGuidanceRouteId = routeId;
-  object.userData.localMotionBehavior = role === "route-chevron" ? "pulse" : "blink";
+  object.userData.localMotionBehavior =
+    role === "route-chevron" ? "pulse" : role === "route-encounter-gate" ? "encounter-idle" : "blink";
   object.userData.motionBaseY = object.position.y;
   object.userData.motionBaseRotationY = object.rotation.y;
   object.traverse((child) => {
@@ -45,6 +54,7 @@ export function createRouteGuidance(palette: RouteGuidancePalette): RenderedRout
   group.name = "route-guidance";
   const signatures = new Set<string>();
   const motionObjects: THREE.Object3D[] = [];
+  const encounterGates: RouteEncounterGate[] = [];
   const roleCounts: Record<string, number> = {};
   const zoneById = new Map(zones.map((zone) => [zone.id, zone]));
   let objectCount = 0;
@@ -104,9 +114,15 @@ export function createRouteGuidance(palette: RouteGuidancePalette): RenderedRout
       add(stud, "route-stud", `route-stud:${route.id}:${index}`, route.id);
       visualizedSegmentCount += 1;
     }
+
+    const routeGate = createEncounterGate(route.id, routeColor, points);
+    if (routeGate) {
+      add(routeGate.object, "route-encounter-gate", `route-encounter:${route.id}`, route.id);
+      encounterGates.push(routeGate);
+    }
   }
 
-  return { group, objectCount, signatures, motionObjects, roleCounts, visualizedSegmentCount };
+  return { group, objectCount, signatures, motionObjects, encounterGates, roleCounts, visualizedSegmentCount };
 }
 
 function countMeshes(object: THREE.Object3D) {
@@ -117,4 +133,55 @@ function countMeshes(object: THREE.Object3D) {
     }
   });
   return count;
+}
+
+function createEncounterGate(routeId: string, color: number, points: Array<[number, number]>): RouteEncounterGate | null {
+  const segments = [];
+  let totalLength = 0;
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const [x1, z1] = points[index];
+    const [x2, z2] = points[index + 1];
+    const length = Math.hypot(x2 - x1, z2 - z1);
+    if (length <= 0.01) {
+      continue;
+    }
+    segments.push({ x1, z1, x2, z2, length });
+    totalLength += length;
+  }
+  if (segments.length === 0) {
+    return null;
+  }
+
+  let remaining = totalLength * 0.52;
+  let selected = segments[0];
+  for (const segment of segments) {
+    selected = segment;
+    if (remaining <= segment.length) {
+      break;
+    }
+    remaining -= segment.length;
+  }
+
+  const t = THREE.MathUtils.clamp(remaining / selected.length, 0.18, 0.82);
+  const x = selected.x1 + (selected.x2 - selected.x1) * t;
+  const z = selected.z1 + (selected.z2 - selected.z1) * t;
+  const angle = Math.atan2(selected.x2 - selected.x1, selected.z2 - selected.z1);
+  const gate = new THREE.Mesh(
+    new THREE.TorusGeometry(0.32, 0.018, 8, 32),
+    material(color, 0.32, 0.86)
+  );
+  gate.name = `route-encounter-${routeId}`;
+  gate.position.set(x, 0.66, z);
+  gate.rotation.y = angle;
+  gate.userData.routeEncounterId = `encounter:${routeId}`;
+  gate.userData.routeEncounterRouteId = routeId;
+  gate.userData.motionBaseY = gate.position.y;
+  gate.userData.motionBaseScale = 1;
+
+  return {
+    id: `encounter:${routeId}`,
+    routeId,
+    object: gate,
+    baseY: gate.position.y
+  };
 }

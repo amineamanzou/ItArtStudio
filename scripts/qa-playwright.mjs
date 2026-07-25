@@ -1026,6 +1026,39 @@ async function checkRealDriveTour(browser) {
       });
     }
 
+    const routeEncounters = final?.routeEncounters;
+    const visitedEncounterIds = routeEncounters?.visitedIds ?? [];
+    const routeEncounterKinds = {
+      studio: visitedEncounterIds.some((id) => id.includes("spine-")),
+      tech: visitedEncounterIds.some((id) => id.includes("tech-")),
+      art: visitedEncounterIds.some((id) => id.includes("art-"))
+    };
+    const routeEncounterGate =
+      routeEncounters &&
+      routeEncounters.gateCount >= 11 &&
+      routeEncounters.objectCount >= 11 &&
+      routeEncounters.visitedCount >= 5 &&
+      routeEncounters.maxIntensity >= 0.45 &&
+      routeEncounterKinds.studio &&
+      routeEncounterKinds.tech &&
+      routeEncounterKinds.art;
+
+    if (routeEncounterGate) {
+      pass("route-encounter-triggered:real-drive", {
+        routeEncounters,
+        routeEncounterKinds,
+        expectedMinVisited: 5,
+        expectedMinIntensity: 0.45
+      });
+    } else {
+      scenarioFail("route-encounter-triggered:real-drive", "Real keyboard route did not trigger enough route encounter gates.", {
+        routeEncounters,
+        routeEncounterKinds,
+        expectedMinVisited: 5,
+        expectedMinIntensity: 0.45
+      });
+    }
+
     await capture(page, "real-drive-tour");
   } finally {
     await releaseDriveKeys(page);
@@ -1499,6 +1532,38 @@ async function checkWorldRichness(page) {
       routeGuidanceRoleCounts: world?.routeGuidanceRoleCounts,
       surface,
       sceneObjects: world?.sceneObjects
+    });
+  }
+
+  const routeEncountersRendered =
+    world &&
+    surface &&
+    world.routeEncounterGates === surface.routeCount &&
+    world.routeEncounterObjects === surface.routeCount &&
+    routeRoles["route-encounter-gate"] === surface.routeCount &&
+    world.routeGuidanceSignatures >= surface.segmentCount * 2 + surface.routeCount &&
+    world.routeGuidanceMotionObjects >= surface.segmentCount * 2 + surface.routeCount &&
+    world.sceneObjects <= 1080;
+  if (routeEncountersRendered) {
+    pass("route-encounters-rendered", {
+      routeEncounterGates: world.routeEncounterGates,
+      routeEncounterObjects: world.routeEncounterObjects,
+      routeGuidanceRoleCounts: world.routeGuidanceRoleCounts,
+      routeGuidanceSignatures: world.routeGuidanceSignatures,
+      routeGuidanceMotionObjects: world.routeGuidanceMotionObjects,
+      surface,
+      sceneObjects: world.sceneObjects
+    });
+  } else {
+    scenarioFail("route-encounters-rendered", "Road graph does not expose lightweight route encounter gates.", {
+      routeEncounterGates: world?.routeEncounterGates,
+      routeEncounterObjects: world?.routeEncounterObjects,
+      routeGuidanceRoleCounts: world?.routeGuidanceRoleCounts,
+      routeGuidanceSignatures: world?.routeGuidanceSignatures,
+      routeGuidanceMotionObjects: world?.routeGuidanceMotionObjects,
+      surface,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: 1080
     });
   }
 
@@ -3244,6 +3309,8 @@ async function writeReport() {
   const realDriveContinuityScenario = scenarios.find((scenario) => scenario.name === "real-drive-continuity");
   const realDriveKinematicsScenario = scenarios.find((scenario) => scenario.name === "real-drive-kinematics");
   const realDriveRouteScenario = scenarios.find((scenario) => scenario.name === "real-drive-route-adherence");
+  const routeEncountersRenderedScenario = scenarios.find((scenario) => scenario.name === "route-encounters-rendered");
+  const routeEncounterTriggeredScenario = scenarios.find((scenario) => scenario.name === "route-encounter-triggered:real-drive");
   const productionRuntimeScenario = scenarios.find((scenario) => scenario.name === "production-runtime-lightweight");
   const cameraSafeScenarios = scenarios.filter((scenario) => scenario.name.startsWith("camera-safe-area:"));
   const signatureVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("signature-artifact-visible:"));
@@ -3349,6 +3416,16 @@ async function writeReport() {
     `- Real drive route adherence: ${
       realDriveRouteScenario?.details?.surface
         ? `${realDriveRouteScenario.details.surface.routeAdherenceRatio} adherence, ${realDriveRouteScenario.details.surface.onRouteSamples}/${realDriveRouteScenario.details.surface.samples} on-route samples, routes ${realDriveRouteScenario.details.coveredExpectedRouteIds?.length ?? 0}/${realDriveRouteScenario.details.expectedRouteIds?.length ?? 0}`
+        : "n/a"
+    }`,
+    `- Route encounters rendered: ${
+      routeEncountersRenderedScenario?.details
+        ? `${routeEncountersRenderedScenario.details.routeEncounterGates} gates, ${routeEncountersRenderedScenario.details.routeEncounterObjects} objects, scene ${routeEncountersRenderedScenario.details.sceneObjects}`
+        : "n/a"
+    }`,
+    `- Route encounters triggered: ${
+      routeEncounterTriggeredScenario?.details?.routeEncounters
+        ? `${routeEncounterTriggeredScenario.details.routeEncounters.visitedCount} visited, max intensity ${routeEncounterTriggeredScenario.details.routeEncounters.maxIntensity}, kinds ${Object.entries(routeEncounterTriggeredScenario.details.routeEncounterKinds ?? {}).filter(([, value]) => value).map(([kind]) => kind).join("/")}`
         : "n/a"
     }`,
     `- Production runtime lightweight: ${
