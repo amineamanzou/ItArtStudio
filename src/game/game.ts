@@ -528,12 +528,21 @@ type LightingQa = {
 type RouteEncountersQa = {
   gateCount: number;
   objectCount: number;
+  profileCount: number;
+  profiles: string[];
+  signatureCount: number;
+  partCount: number;
+  minPartsPerGate: number;
+  roles: string[];
   activeId: string | null;
   activeRouteId: string | null;
+  activeProfile: string | null;
+  activePartCount: number;
   activeDistance: number;
   activeIntensity: number;
   activeCount: number;
   visitedIds: string[];
+  visitedProfiles: string[];
   visitedCount: number;
   maxIntensity: number;
 };
@@ -792,7 +801,14 @@ type QaSnapshot = {
     activeProjectArtifact: ScreenRectQa & { zoneId: string };
     identityRibbon: ScreenRectQa;
     activeZoneComposition: ZoneCompositionQa;
-    activeRouteEncounter: ScreenRectQa & { id: string | null; routeId: string | null; intensity: number; distance: number };
+    activeRouteEncounter: ScreenRectQa & {
+      id: string | null;
+      routeId: string | null;
+      profile: string | null;
+      partCount: number;
+      intensity: number;
+      distance: number;
+    };
   };
   input: {
     activeKeys: DriveKey[];
@@ -883,6 +899,8 @@ class StudioGame {
   private routeGuidanceObjectCount = 0;
   private routeGuidanceVisualizedSegments = 0;
   private routeEncounterObjectCount = 0;
+  private routeEncounterPartCount = 0;
+  private routeEncounterMinPartsPerGate = 0;
   private motionRoleCount = 0;
   private playerPartCount = 0;
   private readonly renderedVisualSpecIds = new Set<string>();
@@ -900,6 +918,9 @@ class StudioGame {
   private readonly routeSurfaceSignatureIds = new Set<string>();
   private readonly routeGuidanceSignatureIds = new Set<string>();
   private readonly routeGuidanceRoleCounts: Record<string, number> = {};
+  private readonly routeEncounterProfiles = new Set<string>();
+  private readonly routeEncounterSignatures = new Set<string>();
+  private readonly routeEncounterRoles = new Set<string>();
   private readonly zoneMotionObjects = new Map<string, THREE.Object3D[]>();
   private readonly activationFeedbackByZone = new Map<string, ActivationFeedback>();
   private readonly landmarkMeshes = new Map<string, THREE.Object3D>();
@@ -912,6 +933,7 @@ class StudioGame {
   private readonly routeGuidanceMotionObjects: THREE.Object3D[] = [];
   private readonly routeEncounterGates: RouteEncounterGate[] = [];
   private readonly visitedRouteEncounterIds = new Set<string>();
+  private readonly visitedRouteEncounterProfiles = new Set<string>();
   private activeLightPool!: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
   private routeLightPool!: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
   private waterSurfaceFxMesh: THREE.InstancedMesh<THREE.TorusGeometry, THREE.MeshBasicMaterial> | null = null;
@@ -920,6 +942,8 @@ class StudioGame {
   private currentNearestRouteId: string | null = null;
   private currentRouteEncounterId: string | null = null;
   private currentRouteEncounterRouteId: string | null = null;
+  private currentRouteEncounterProfile: string | null = null;
+  private currentRouteEncounterPartCount = 0;
   private currentRouteEncounterGate: RouteEncounterGate | null = null;
   private currentRouteEncounterDistance = 0;
   private currentRouteEncounterIntensity = 0;
@@ -1434,6 +1458,8 @@ class StudioGame {
         center: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false },
         id: null,
         routeId: null,
+        profile: null,
+        partCount: 0,
         intensity: 0,
         distance: 0
       }
@@ -1467,12 +1493,21 @@ class StudioGame {
     routeEncounters: {
       gateCount: 0,
       objectCount: 0,
+      profileCount: 0,
+      profiles: [],
+      signatureCount: 0,
+      partCount: 0,
+      minPartsPerGate: 0,
+      roles: [],
       activeId: null,
       activeRouteId: null,
+      activeProfile: null,
+      activePartCount: 0,
       activeDistance: 0,
       activeIntensity: 0,
       activeCount: 0,
       visitedIds: [],
+      visitedProfiles: [],
       visitedCount: 0,
       maxIntensity: 0
     },
@@ -1706,10 +1741,24 @@ class StudioGame {
     this.routeGuidanceObjectCount += rendered.objectCount;
     this.routeGuidanceVisualizedSegments += rendered.visualizedSegmentCount;
     this.routeEncounterObjectCount += rendered.encounterGates.length;
+    this.routeEncounterPartCount += rendered.encounterGates.reduce((sum, gate) => sum + gate.partCount, 0);
+    const minGateParts = rendered.encounterGates.reduce(
+      (min, gate) => Math.min(min, gate.partCount),
+      rendered.encounterGates.length > 0 ? Number.POSITIVE_INFINITY : 0
+    );
+    this.routeEncounterMinPartsPerGate =
+      this.routeEncounterMinPartsPerGate === 0 ? minGateParts : Math.min(this.routeEncounterMinPartsPerGate, minGateParts);
     this.decorativeObjectCount += rendered.objectCount;
     this.motionRoleCount += rendered.motionObjects.length;
     this.routeGuidanceMotionObjects.push(...rendered.motionObjects);
     this.routeEncounterGates.push(...rendered.encounterGates);
+    for (const gate of rendered.encounterGates) {
+      this.routeEncounterProfiles.add(gate.profile);
+      this.routeEncounterSignatures.add(gate.signature);
+      for (const role of gate.roles) {
+        this.routeEncounterRoles.add(role);
+      }
+    }
     for (const signature of rendered.signatures) {
       this.routeGuidanceSignatureIds.add(signature);
     }
@@ -3598,6 +3647,7 @@ class StudioGame {
       if (intensity >= 0.18) {
         activeCount += 1;
         this.visitedRouteEncounterIds.add(gate.id);
+        this.visitedRouteEncounterProfiles.add(gate.profile);
       }
       if (!nearest || distance < nearest.distance) {
         nearest = { gate, distance, intensity };
@@ -3607,6 +3657,8 @@ class StudioGame {
     this.currentRouteEncounterActiveCount = activeCount;
     this.currentRouteEncounterId = nearest?.gate.id ?? null;
     this.currentRouteEncounterRouteId = nearest?.gate.routeId ?? null;
+    this.currentRouteEncounterProfile = nearest?.gate.profile ?? null;
+    this.currentRouteEncounterPartCount = nearest?.gate.partCount ?? 0;
     this.currentRouteEncounterGate = nearest?.gate ?? null;
     this.currentRouteEncounterDistance = Number((nearest?.distance ?? 0).toFixed(3));
     this.currentRouteEncounterIntensity = Number((nearest?.intensity ?? 0).toFixed(3));
@@ -4303,6 +4355,8 @@ class StudioGame {
         ...activeRouteEncounterScreen,
         id: this.currentRouteEncounterId,
         routeId: this.currentRouteEncounterRouteId,
+        profile: this.currentRouteEncounterProfile,
+        partCount: this.currentRouteEncounterPartCount,
         intensity: this.currentRouteEncounterIntensity,
         distance: this.currentRouteEncounterDistance
       }
@@ -4360,12 +4414,21 @@ class StudioGame {
     this.qaSnapshot.routeEncounters = {
       gateCount: this.routeEncounterGates.length,
       objectCount: this.routeEncounterObjectCount,
+      profileCount: this.routeEncounterProfiles.size,
+      profiles: [...this.routeEncounterProfiles].sort(),
+      signatureCount: this.routeEncounterSignatures.size,
+      partCount: this.routeEncounterPartCount,
+      minPartsPerGate: Number(this.routeEncounterMinPartsPerGate.toFixed(3)),
+      roles: [...this.routeEncounterRoles].sort(),
       activeId: this.currentRouteEncounterId,
       activeRouteId: this.currentRouteEncounterRouteId,
+      activeProfile: this.currentRouteEncounterProfile,
+      activePartCount: this.currentRouteEncounterPartCount,
       activeDistance: this.currentRouteEncounterDistance,
       activeIntensity: this.currentRouteEncounterIntensity,
       activeCount: this.currentRouteEncounterActiveCount,
       visitedIds: [...this.visitedRouteEncounterIds],
+      visitedProfiles: [...this.visitedRouteEncounterProfiles].sort(),
       visitedCount: this.visitedRouteEncounterIds.size,
       maxIntensity: Number(this.maxRouteEncounterIntensity.toFixed(3))
     };

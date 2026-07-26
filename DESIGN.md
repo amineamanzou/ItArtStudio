@@ -854,6 +854,18 @@ Gates V7.0:
   une premiere sensation de soundscape jouable sans augmenter le budget scene,
   avant un futur sound pack plus riche.
 
+Gates V7.1:
+
+- les `route encounters` ne sont plus de simples anneaux: chaque route expose
+  un micro-setpiece procedural fusionne en un seul mesh, avec profils
+  `studio-threshold`, `tech-checkpoint`, `art-runway` et `contact-mail-gate`;
+- la richesse vient des pieces internes de geometrie, pas d'une inflation du
+  scene graph: un gate reste un objet logique traversable par route, sans
+  collision ni obstacle invisible;
+- `route-encounter-setpieces` verifie le nombre de profils, les signatures, les
+  roles semantiques, le minimum de pieces par gate et le budget strict
+  `sceneObjects <= 940`.
+
 ## Components
 
 - `game-site`: surface principale.

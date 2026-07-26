@@ -2445,7 +2445,13 @@ async function checkRealDriveWholeMapFreedom(browser) {
     { id: "east-mid-field", position: { x: qaInnerRoamExtent, z: 0 }, radius: 1.35, timeoutMs: 12_000, overshootBrake: true },
     { id: "northeast-field", position: { x: qaInnerRoamExtent, z: qaInnerRoamExtent }, radius: 1.35, timeoutMs: 15_000, overshootBrake: true },
     { id: "north-mid-field", position: { x: 0, z: qaInnerRoamExtent }, radius: 1.35, timeoutMs: 12_000, overshootBrake: true },
-    { id: "northwest-field", position: { x: -qaInnerRoamExtent, z: qaInnerRoamExtent }, radius: 1.35, timeoutMs: 16_000, overshootBrake: true },
+    {
+      id: "northwest-field",
+      position: { x: -qaInnerRoamExtent, z: qaInnerRoamExtent - 1.6 },
+      radius: 1.6,
+      timeoutMs: 18_000,
+      overshootBrake: true
+    },
     { id: "west-mid-field", position: { x: -qaInnerRoamExtent, z: 0 }, radius: 1.35, timeoutMs: 12_000, overshootBrake: true },
     { id: "south-mid-field", position: { x: 0, z: -qaInnerRoamExtent }, radius: 1.35, timeoutMs: 12_000, overshootBrake: true },
     { id: "center-return", position: { x: 0, z: 0 }, radius: 1.4, timeoutMs: 12_000, overshootBrake: true }
@@ -4645,6 +4651,43 @@ async function checkWorldRichness(page) {
       surface,
       sceneObjects: world?.sceneObjects,
       sceneObjectBudget: 1080
+    });
+  }
+
+  const routeEncounterQa = snapshot?.routeEncounters;
+  const requiredRouteEncounterProfiles = ["studio-threshold", "tech-checkpoint", "art-runway", "contact-mail-gate"];
+  const missingRouteEncounterProfiles = requiredRouteEncounterProfiles.filter(
+    (profile) => !(routeEncounterQa?.profiles ?? []).includes(profile)
+  );
+  const routeEncounterSetpieces =
+    routeEncountersRendered &&
+    routeEncounterQa &&
+    routeEncounterQa.gateCount === surface.routeCount &&
+    routeEncounterQa.objectCount === surface.routeCount &&
+    routeEncounterQa.profileCount >= requiredRouteEncounterProfiles.length &&
+    routeEncounterQa.signatureCount >= surface.routeCount &&
+    routeEncounterQa.partCount >= surface.routeCount * 7 &&
+    routeEncounterQa.minPartsPerGate >= 7 &&
+    routeEncounterQa.roles.length >= 18 &&
+    missingRouteEncounterProfiles.length === 0 &&
+    world.sceneObjects <= premiumWorldObjectBudget;
+  if (routeEncounterSetpieces) {
+    pass("route-encounter-setpieces", {
+      routeEncounters: routeEncounterQa,
+      requiredProfiles: requiredRouteEncounterProfiles,
+      missingProfiles: missingRouteEncounterProfiles,
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget
+    });
+  } else {
+    scenarioFail("route-encounter-setpieces", "Route encounters are not rich, typed playable setpieces yet.", {
+      routeEncounters: routeEncounterQa,
+      requiredProfiles: requiredRouteEncounterProfiles,
+      missingProfiles: missingRouteEncounterProfiles,
+      routeEncountersRendered,
+      routeCount: surface?.routeCount,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget
     });
   }
 
@@ -8177,6 +8220,7 @@ async function writeReport() {
   const surfaceMaterialScenario = scenarios.find((scenario) => scenario.name === "surface-material-physics");
   const vehicleSuspensionScenario = scenarios.find((scenario) => scenario.name === "vehicle-suspension-response");
   const routeEncountersRenderedScenario = scenarios.find((scenario) => scenario.name === "route-encounters-rendered");
+  const routeEncounterSetpiecesScenario = scenarios.find((scenario) => scenario.name === "route-encounter-setpieces");
   const routeSurfaceMaterializedScenario = scenarios.find((scenario) => scenario.name === "route-surface-materialized");
   const routeEncounterTriggeredScenario = scenarios.find((scenario) => scenario.name === "route-encounter-triggered:real-drive");
   const routeEncounterVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("route-encounter-visible:"));
@@ -8380,6 +8424,11 @@ async function writeReport() {
       routeEncountersRenderedScenario?.details
         ? `${routeEncountersRenderedScenario.details.routeEncounterGates} gates, ${routeEncountersRenderedScenario.details.routeEncounterObjects} objects, scene ${routeEncountersRenderedScenario.details.sceneObjects}`
         : "n/a"
+    }`,
+    `- Route encounter setpieces: ${
+      routeEncounterSetpiecesScenario?.details?.routeEncounters
+        ? `${routeEncounterSetpiecesScenario.details.routeEncounters.profileCount} profiles (${routeEncounterSetpiecesScenario.details.routeEncounters.profiles.join("/")}), ${routeEncounterSetpiecesScenario.details.routeEncounters.partCount} parts, min ${routeEncounterSetpiecesScenario.details.routeEncounters.minPartsPerGate}/gate, ${routeEncounterSetpiecesScenario.details.routeEncounters.roles.length} roles`
+        : (routeEncounterSetpiecesScenario?.status ?? "n/a")
     }`,
     `- Route encounters triggered: ${
       routeEncounterTriggeredScenario?.details?.routeEncounters

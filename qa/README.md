@@ -263,6 +263,10 @@ The runner:
   real keyboard tour. The tour must visit at least five route encounters, reach
   a measured max intensity >= 0.45, and include studio, tech, and art route
   families.
+- Route encounter setpieces must keep that one-gate-per-route contract while
+  replacing plain rings with typed procedural micro-levels. The QA snapshot must
+  expose at least four profiles, seven internal parts per gate, rich semantic
+  roles, unique signatures, and keep the strict `sceneObjects <= 940` budget.
 - Playable stage dominance must prove more than low aggregate UI coverage. The
   runner measures unioned UI occlusion, a clear center-stage rectangle, rover
   projection, and active place-composition occlusion. Desktop/tablet views must
