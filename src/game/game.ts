@@ -13,7 +13,15 @@ import { createZoneSignatureArtifacts } from "./zone-signature-artifacts";
 import { createZoneProjectArtifacts } from "./zone-project-artifacts";
 import { createZonePlaceArchitecture } from "./zone-place-architecture";
 import { createWorldScenery } from "./world-scenery";
-import { sampleWorldMaterial, worldMaterialRegions, type WorldMaterialKind, type WorldMaterialSample } from "./world-materials";
+import {
+  sampleTerrain,
+  sampleWorldMaterial,
+  terrainConfig,
+  worldMaterialRegions,
+  type TerrainSample,
+  type WorldMaterialKind,
+  type WorldMaterialSample
+} from "./world-materials";
 import { createZoneSetDressing } from "./zone-set-dressing";
 import { zoneVisualSpecs, type ZoneVisualSpec } from "./visual-specs";
 import { renderZoneVisuals } from "./zone-visual-renderer";
@@ -173,6 +181,11 @@ type DrivePhysicsSampleQa = {
   rideHeight: number;
   pitch: number;
   roll: number;
+  terrainHeight: number;
+  terrainGrade: number;
+  terrainNormalY: number;
+  terrainFeatureId: string | null;
+  terrainGroundDelta: number;
   hasInput: boolean;
 };
 type SurfaceMaterialQa = {
@@ -182,10 +195,18 @@ type SurfaceMaterialQa = {
   rideHeight: number;
   pitch: number;
   roll: number;
+  terrainHeight: number;
+  terrainGrade: number;
+  terrainNormalY: number;
+  terrainFeatureId: string | null;
   waterSamples: number;
   rampSamples: number;
   fieldSamples: number;
   roadSamples: number;
+  terrainSamples: number;
+  minTerrainHeight: number;
+  maxTerrainHeight: number;
+  maxTerrainGrade: number;
   materialTransitions: number;
   maxWaterIntensity: number;
   maxRampRideHeight: number;
@@ -193,6 +214,7 @@ type SurfaceMaterialQa = {
   emittedFxMarks: number;
   waterRegionCount: number;
   rampRegionCount: number;
+  terrainFeatureCount: number;
 };
 type BoundaryQa = {
   worldHalfExtent: number;
@@ -425,6 +447,12 @@ type QaSnapshot = {
     identityRibbonObjects: number;
     identityRibbonSignatures: number;
     terrainLayers: number;
+    terrainHeightRange: number;
+    terrainMinHeight: number;
+    terrainMaxHeight: number;
+    terrainVertexCount: number;
+    terrainGradeMax: number;
+    terrainFeatureCount: number;
     routeGuidanceObjects: number;
     routeGuidanceSignatures: number;
     routeGuidanceMotionObjects: number;
@@ -437,7 +465,17 @@ type QaSnapshot = {
     motionRolesByType: Record<string, number>;
     zones: ZoneAssetQa[];
   };
-  player: { x: number; z: number; rotationY: number; meshCount: number; wheelCount: number; bounds: BoundsQa };
+  player: {
+    x: number;
+    y: number;
+    z: number;
+    groundY: number;
+    groundDelta: number;
+    rotationY: number;
+    meshCount: number;
+    wheelCount: number;
+    bounds: BoundsQa;
+  };
   trail: { totalMarks: number; activeMarks: number; maxOpacity: number };
   drive: {
     totalDistance: number;
@@ -559,6 +597,12 @@ class StudioGame {
   private sceneryObjectCount = 0;
   private worldSceneryMotionObjectCount = 0;
   private terrainLayerCount = 0;
+  private terrainHeightRange = 0;
+  private terrainMinHeight = 0;
+  private terrainMaxHeight = 0;
+  private terrainVertexCount = 0;
+  private terrainGradeMax = 0;
+  private terrainFeatureCount = 0;
   private routeGuidanceObjectCount = 0;
   private routeGuidanceVisualizedSegments = 0;
   private routeEncounterObjectCount = 0;
@@ -635,9 +679,14 @@ class StudioGame {
   private currentSteeringInput = 0;
   private currentThrottleInput = 0;
   private currentWorldMaterial: WorldMaterialSample = sampleWorldMaterial(this.playerPosition, true);
+  private currentTerrain: TerrainSample = sampleTerrain(this.playerPosition);
   private currentRideHeight = 0;
   private currentRidePitch = 0;
   private currentRideRoll = 0;
+  private terrainSamples = 0;
+  private minSampledTerrainHeight = Number.POSITIVE_INFINITY;
+  private maxSampledTerrainHeight = Number.NEGATIVE_INFINITY;
+  private maxSampledTerrainGrade = 0;
   private waterMaterialSamples = 0;
   private rampMaterialSamples = 0;
   private fieldMaterialSamples = 0;
@@ -741,6 +790,12 @@ class StudioGame {
       identityRibbonObjects: 0,
       identityRibbonSignatures: 0,
       terrainLayers: 0,
+      terrainHeightRange: 0,
+      terrainMinHeight: 0,
+      terrainMaxHeight: 0,
+      terrainVertexCount: 0,
+      terrainGradeMax: 0,
+      terrainFeatureCount: 0,
       routeGuidanceObjects: 0,
       routeGuidanceSignatures: 0,
       routeGuidanceMotionObjects: 0,
@@ -753,7 +808,17 @@ class StudioGame {
       motionRolesByType: {},
       zones: []
     },
-    player: { x: 0, z: 0, rotationY: 0, meshCount: 0, wheelCount: 0, bounds: { width: 0, height: 0, depth: 0 } },
+    player: {
+      x: 0,
+      y: 0.28,
+      z: 0,
+      groundY: 0,
+      groundDelta: 0.28,
+      rotationY: 0,
+      meshCount: 0,
+      wheelCount: 0,
+      bounds: { width: 0, height: 0, depth: 0 }
+    },
     trail: { totalMarks: 0, activeMarks: 0, maxOpacity: 0 },
     drive: {
       totalDistance: 0,
@@ -798,17 +863,26 @@ class StudioGame {
         rideHeight: 0,
         pitch: 0,
         roll: 0,
+        terrainHeight: 0,
+        terrainGrade: 0,
+        terrainNormalY: 1,
+        terrainFeatureId: null,
         waterSamples: 0,
         rampSamples: 0,
         fieldSamples: 0,
         roadSamples: 0,
+        terrainSamples: 0,
+        minTerrainHeight: 0,
+        maxTerrainHeight: 0,
+        maxTerrainGrade: 0,
         materialTransitions: 0,
         maxWaterIntensity: 0,
         maxRampRideHeight: 0,
         activeFxMarks: 0,
         emittedFxMarks: 0,
         waterRegionCount: worldMaterialRegions.water.length,
-        rampRegionCount: worldMaterialRegions.ramps.length
+        rampRegionCount: worldMaterialRegions.ramps.length,
+        terrainFeatureCount: terrainConfig.featureCount
       },
       boundary: {
         worldHalfExtent,
@@ -1181,6 +1255,12 @@ class StudioGame {
     this.worldSceneryMotionObjectCount += rendered.motionObjectCount;
     this.identityRibbonGroup = rendered.identityRibbon;
     this.terrainLayerCount += rendered.terrainLayers;
+    this.terrainHeightRange = rendered.terrainHeightRange;
+    this.terrainMinHeight = rendered.terrainMinHeight;
+    this.terrainMaxHeight = rendered.terrainMaxHeight;
+    this.terrainVertexCount = rendered.terrainVertexCount;
+    this.terrainGradeMax = rendered.terrainGradeMax;
+    this.terrainFeatureCount = rendered.terrainFeatureCount;
     this.decorativeObjectCount += rendered.objectCount;
     this.motionRoleCount += rendered.motionObjectCount;
     this.worldSceneryMotionObjects.push(...rendered.motionObjects);
@@ -2113,8 +2193,10 @@ class StudioGame {
     }
 
     this.applyWorldBoundary(0.08);
+    this.currentTerrain = sampleTerrain(this.playerPosition);
+    this.currentRideHeight = this.currentTerrain.height;
     this.targetPosition.copy(this.playerPosition);
-    this.player.position.copy(this.playerPosition);
+    this.player.position.set(this.playerPosition.x, this.playerPosition.y + this.currentRideHeight, this.playerPosition.z);
     const travel = this.playerPosition.clone().sub(previousPosition);
     if (travel.lengthSq() > 0.0001 || direction === "left" || direction === "right") {
       this.playerVelocity.copy(travel).divideScalar(0.08);
@@ -2165,7 +2247,9 @@ class StudioGame {
     this.lastDriveTurnRate = 0;
     this.targetPosition.set(zone.position[0], 0.28, zone.position[1]);
     this.playerPosition.copy(this.targetPosition);
-    this.player.position.copy(this.playerPosition);
+    this.currentTerrain = sampleTerrain(this.playerPosition);
+    this.currentRideHeight = this.currentTerrain.height;
+    this.player.position.set(this.playerPosition.x, this.playerPosition.y + this.currentRideHeight, this.playerPosition.z);
     this.updateMiniMap();
     this.updatePanel(zone);
   }
@@ -2375,12 +2459,14 @@ class StudioGame {
     }
     const routeSurfaceAfter = sampleDriveSurface(this.playerPosition);
     const materialAfter = sampleWorldMaterial(this.playerPosition, routeSurfaceAfter.onRoute);
+    const terrainAfter = sampleTerrain(this.playerPosition);
     this.currentWorldMaterial = materialAfter;
+    this.currentTerrain = terrainAfter;
     const poseForward = this.forwardVector();
     const poseRight = new THREE.Vector3(poseForward.z, 0, -poseForward.x).normalize();
     this.currentForwardSpeed = this.playerVelocity.dot(poseForward);
     this.currentLateralSpeed = this.playerVelocity.dot(poseRight);
-    this.updateRidePose(materialAfter, delta);
+    this.updateRidePose(materialAfter, terrainAfter, delta);
     this.player.position.set(this.playerPosition.x, this.playerPosition.y + this.currentRideHeight, this.playerPosition.z);
     this.player.rotation.x = this.currentRidePitch;
     this.player.rotation.z = this.currentRideRoll;
@@ -2394,7 +2480,7 @@ class StudioGame {
       }
     }
     if (!guidedMove) {
-      this.recordDriveTelemetry(travel, delta, previousRotationY, hasManualInput, throttle, turn, materialAfter);
+      this.recordDriveTelemetry(travel, delta, previousRotationY, hasManualInput, throttle, turn, materialAfter, terrainAfter);
     }
     this.updateTrail(delta);
     this.updateSurfaceFx(delta);
@@ -2404,13 +2490,20 @@ class StudioGame {
     return new THREE.Vector3(Math.sin(this.player.rotation.y), 0, Math.cos(this.player.rotation.y)).normalize();
   }
 
-  private updateRidePose(material: WorldMaterialSample, delta: number) {
+  private updateRidePose(material: WorldMaterialSample, terrain: TerrainSample, delta: number) {
     const smoothing = 1 - Math.pow(0.0008, delta);
     const speedLean = clamp(this.currentLateralSpeed / 6, -0.22, 0.22);
     const throttleLean = clamp(this.currentForwardSpeed / playerMaxForwardSpeed, -0.18, 0.18);
-    this.currentRideHeight += (material.rideHeight - this.currentRideHeight) * smoothing;
-    this.currentRidePitch += (material.pitch - throttleLean * 0.08 - this.currentRidePitch) * smoothing;
-    this.currentRideRoll += (material.roll - speedLean * 0.16 - this.currentRideRoll) * smoothing;
+    const forward = this.forwardVector();
+    const right = new THREE.Vector3(forward.z, 0, -forward.x).normalize();
+    const normalY = Math.max(0.2, terrain.normal.y);
+    const gradient = new THREE.Vector3(-terrain.normal.x / normalY, 0, -terrain.normal.z / normalY);
+    const terrainPitch = clamp(-gradient.dot(forward) * 0.68, -0.24, 0.24);
+    const terrainRoll = clamp(gradient.dot(right) * 0.62, -0.24, 0.24);
+    const targetRideHeight = material.rideHeight + terrain.height;
+    this.currentRideHeight += (targetRideHeight - this.currentRideHeight) * smoothing;
+    this.currentRidePitch += (material.pitch + terrainPitch - throttleLean * 0.08 - this.currentRidePitch) * smoothing;
+    this.currentRideRoll += (material.roll + terrainRoll - speedLean * 0.16 - this.currentRideRoll) * smoothing;
   }
 
   private normalizePlayerRotation() {
@@ -2486,7 +2579,8 @@ class StudioGame {
     hasInput = false,
     throttleInput = 0,
     steeringInput = 0,
-    material: WorldMaterialSample = this.currentWorldMaterial
+    material: WorldMaterialSample = this.currentWorldMaterial,
+    terrain: TerrainSample = this.currentTerrain
   ) {
     const distance = travel.length();
     if (distance <= 0.001) {
@@ -2535,6 +2629,10 @@ class StudioGame {
     } else {
       this.roadMaterialSamples += 1;
     }
+    this.terrainSamples += 1;
+    this.minSampledTerrainHeight = Math.min(this.minSampledTerrainHeight, terrain.height);
+    this.maxSampledTerrainHeight = Math.max(this.maxSampledTerrainHeight, terrain.height);
+    this.maxSampledTerrainGrade = Math.max(this.maxSampledTerrainGrade, terrain.grade);
     this.lastDriveTurnRate = delta > 0 ? turnDelta / delta : 0;
     this.peakDriveTurnRate = Math.max(this.peakDriveTurnRate, this.lastDriveTurnRate);
     this.totalDriveTurnRate += this.lastDriveTurnRate;
@@ -2564,6 +2662,11 @@ class StudioGame {
       rideHeight: Number(this.currentRideHeight.toFixed(3)),
       pitch: Number(this.currentRidePitch.toFixed(3)),
       roll: Number(this.currentRideRoll.toFixed(3)),
+      terrainHeight: terrain.height,
+      terrainGrade: terrain.grade,
+      terrainNormalY: terrain.normal.y,
+      terrainFeatureId: terrain.dominantFeatureId,
+      terrainGroundDelta: Number((this.player.position.y - terrain.height).toFixed(3)),
       hasInput
     });
     if (this.drivePhysicsSamples.length > 720) {
@@ -3157,6 +3260,12 @@ class StudioGame {
         identityRibbonObjects,
         identityRibbonSignatures: identityRibbonSignatures.size,
         terrainLayers: this.terrainLayerCount,
+        terrainHeightRange: this.terrainHeightRange,
+        terrainMinHeight: this.terrainMinHeight,
+        terrainMaxHeight: this.terrainMaxHeight,
+        terrainVertexCount: this.terrainVertexCount,
+        terrainGradeMax: this.terrainGradeMax,
+        terrainFeatureCount: this.terrainFeatureCount,
         routeGuidanceObjects: this.routeGuidanceObjectCount,
         routeGuidanceSignatures: this.routeGuidanceSignatureIds.size,
         routeGuidanceMotionObjects: this.routeGuidanceMotionObjects.length,
@@ -3173,7 +3282,10 @@ class StudioGame {
     const playerBounds = this.measureObject(this.player);
     this.qaSnapshot.player = {
       x: Number(this.playerPosition.x.toFixed(3)),
+      y: Number(this.player.position.y.toFixed(3)),
       z: Number(this.playerPosition.z.toFixed(3)),
+      groundY: this.currentTerrain.height,
+      groundDelta: Number((this.player.position.y - this.currentTerrain.height).toFixed(3)),
       rotationY: Number(this.player.rotation.y.toFixed(3)),
       meshCount: this.playerPartCount,
       wheelCount: this.wheelMeshes.length,
@@ -3234,17 +3346,26 @@ class StudioGame {
         rideHeight: Number(this.currentRideHeight.toFixed(3)),
         pitch: Number(this.currentRidePitch.toFixed(3)),
         roll: Number(this.currentRideRoll.toFixed(3)),
+        terrainHeight: this.currentTerrain.height,
+        terrainGrade: this.currentTerrain.grade,
+        terrainNormalY: this.currentTerrain.normal.y,
+        terrainFeatureId: this.currentTerrain.dominantFeatureId,
         waterSamples: this.waterMaterialSamples,
         rampSamples: this.rampMaterialSamples,
         fieldSamples: this.fieldMaterialSamples,
         roadSamples: this.roadMaterialSamples,
+        terrainSamples: this.terrainSamples,
+        minTerrainHeight: Number((Number.isFinite(this.minSampledTerrainHeight) ? this.minSampledTerrainHeight : 0).toFixed(3)),
+        maxTerrainHeight: Number((Number.isFinite(this.maxSampledTerrainHeight) ? this.maxSampledTerrainHeight : 0).toFixed(3)),
+        maxTerrainGrade: Number(this.maxSampledTerrainGrade.toFixed(3)),
         materialTransitions: this.materialTransitionCount,
         maxWaterIntensity: Number(this.maxWaterIntensity.toFixed(3)),
         maxRampRideHeight: Number(this.maxRampRideHeight.toFixed(3)),
         activeFxMarks: this.surfaceFxMarks.filter((mark) => mark.opacity > 0.02).length,
         emittedFxMarks: this.emittedSurfaceFxMarks,
         waterRegionCount: worldMaterialRegions.water.length,
-        rampRegionCount: worldMaterialRegions.ramps.length
+        rampRegionCount: worldMaterialRegions.ramps.length,
+        terrainFeatureCount: terrainConfig.featureCount
       },
       boundary: {
         worldHalfExtent,

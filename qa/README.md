@@ -289,10 +289,13 @@ The runner:
   samples, peak speed between 8 and 18 units/s, bounded acceleration and turn
   rates, p95 acceleration <= 82, normalized per-frame displacement <= 2.35, and
   a measured drag release.
-- The world must expose at least five terrain layers, 60 scenery objects, 24
-  scenery signatures, 20 animated scenery objects, and all expected scenery
-  roles: terrain edge, tech skyline, art sculpture, studio threshold, route
-  light.
+- The world must expose at least six terrain layers including a shared
+  visual/physics heightfield: height range >= 0.45, at least six terrain
+  features, bounded vertex count, measurable grade, and scene object budget
+  preserved.
+- `vehicle-terrain-response` must drive with real keys across multiple terrain
+  features and prove variable terrain height, stable ground clearance, and
+  pitch/roll response to sampled terrain normals.
 - Rendered semantic material variants must cover the variants declared by the
   zone spec.
 - Applied animation hints must match the zone spec.

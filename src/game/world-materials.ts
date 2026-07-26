@@ -16,6 +16,27 @@ export type WorldMaterialSample = {
   roll: number;
 };
 
+export type TerrainFeatureKind = "ridge" | "basin" | "mound";
+
+export type TerrainFeature = {
+  id: string;
+  kind: TerrainFeatureKind;
+  center: [number, number];
+  radiusX: number;
+  radiusZ: number;
+  rotation: number;
+  height: number;
+};
+
+export type TerrainSample = {
+  height: number;
+  normal: { x: number; y: number; z: number };
+  grade: number;
+  roughness: number;
+  wetness: number;
+  dominantFeatureId: string | null;
+};
+
 type WaterRegion = {
   id: string;
   center: [number, number];
@@ -46,6 +67,15 @@ const rampRegions: RampRegion[] = [
   { id: "art-sweep", center: [4.85, -3.95], width: 2.8, depth: 0.9, rotation: 0.72, height: 0.22, direction: 1 },
   { id: "studio-crossing", center: [0.15, 2.9], width: 3.15, depth: 0.78, rotation: -0.18, height: 0.2, direction: -1 },
   { id: "mail-bank", center: [-0.85, -6.35], width: 2.55, depth: 0.82, rotation: 0.04, height: 0.2, direction: 1 }
+];
+
+const terrainFeatures: TerrainFeature[] = [
+  { id: "tech-ridge", kind: "ridge", center: [-6.7, 0.1], radiusX: 6.4, radiusZ: 3.2, rotation: -0.24, height: 0.34 },
+  { id: "art-mound", kind: "mound", center: [6.2, 1.2], radiusX: 5.5, radiusZ: 3.9, rotation: 0.36, height: 0.29 },
+  { id: "studio-spine", kind: "ridge", center: [0, 3.7], radiusX: 2.6, radiusZ: 6.9, rotation: -0.06, height: 0.26 },
+  { id: "contact-basin", kind: "basin", center: [0.1, -7.1], radiusX: 4.2, radiusZ: 2.4, rotation: 0.02, height: -0.24 },
+  { id: "harbor-cut", kind: "basin", center: [-6.2, -8.2], radiusX: 4.1, radiusZ: 2.8, rotation: -0.18, height: -0.2 },
+  { id: "atelier-lift", kind: "mound", center: [5.6, -3.7], radiusX: 3.7, radiusZ: 2.4, rotation: 0.42, height: 0.23 }
 ];
 
 const fieldSample: WorldMaterialSample = {
@@ -83,6 +113,62 @@ const rotatePoint = (x: number, z: number, rotation: number) => {
     x: x * cos - z * sin,
     z: x * sin + z * cos
   };
+};
+
+const sampleTerrainHeightRaw = (x: number, z: number) => {
+  let height = Math.sin(x * 0.22 + z * 0.09) * 0.035 + Math.cos(z * 0.18 - x * 0.04) * 0.028;
+  let dominantFeatureId: string | null = null;
+  let dominantWeight = 0;
+
+  for (const feature of terrainFeatures) {
+    const local = rotatePoint(x - feature.center[0], z - feature.center[1], feature.rotation);
+    const distance = (local.x / feature.radiusX) ** 2 + (local.z / feature.radiusZ) ** 2;
+    if (distance > 1) {
+      continue;
+    }
+    const falloff = Math.cos(Math.sqrt(distance) * Math.PI * 0.5) ** 2;
+    const shape = feature.kind === "ridge" ? falloff * (0.72 + Math.cos(local.x / feature.radiusX * Math.PI) * 0.28) : falloff;
+    const contribution = feature.height * shape;
+    height += contribution;
+    if (Math.abs(contribution) > dominantWeight) {
+      dominantWeight = Math.abs(contribution);
+      dominantFeatureId = feature.id;
+    }
+  }
+
+  return { height, dominantFeatureId };
+};
+
+export function sampleTerrain(position: THREE.Vector3): TerrainSample {
+  const center = sampleTerrainHeightRaw(position.x, position.z);
+  const step = 0.32;
+  const xPlus = sampleTerrainHeightRaw(position.x + step, position.z).height;
+  const xMinus = sampleTerrainHeightRaw(position.x - step, position.z).height;
+  const zPlus = sampleTerrainHeightRaw(position.x, position.z + step).height;
+  const zMinus = sampleTerrainHeightRaw(position.x, position.z - step).height;
+  const dHx = (xPlus - xMinus) / (step * 2);
+  const dHz = (zPlus - zMinus) / (step * 2);
+  const normal = new THREE.Vector3(-dHx, 1, -dHz).normalize();
+  const grade = Math.hypot(dHx, dHz);
+  const water = sampleWater(position);
+
+  return {
+    height: Number(center.height.toFixed(3)),
+    normal: {
+      x: Number(normal.x.toFixed(3)),
+      y: Number(normal.y.toFixed(3)),
+      z: Number(normal.z.toFixed(3))
+    },
+    grade: Number(grade.toFixed(3)),
+    roughness: Number(THREE.MathUtils.clamp(0.35 + grade * 2.8, 0.35, 1).toFixed(3)),
+    wetness: Number((water?.intensity ?? 0).toFixed(3)),
+    dominantFeatureId: center.dominantFeatureId
+  };
+}
+
+export const terrainConfig = {
+  features: terrainFeatures,
+  featureCount: terrainFeatures.length
 };
 
 function sampleWater(position: THREE.Vector3) {

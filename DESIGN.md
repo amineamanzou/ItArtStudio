@@ -614,6 +614,17 @@ Gates V4.9:
   remplacees par des formes plus narratives au lieu d'ajouter une couche de
   decoration.
 
+Gates V5.0:
+
+- `terrain-heightfield-materialized` ajoute un vrai heightfield procedural
+  partage par le rendu et la physique: range de hauteur, normales, grade,
+  vertex count et features exposes dans le snapshot QA;
+- `vehicle-terrain-response` prouve par conduite clavier reelle que le rover
+  suit le relief: hauteur terrain variable, garde au sol stable, pitch/roll
+  correlés aux normales et plusieurs features traversees;
+- le heightfield reste un seul mesh colore par vertex pour conserver le budget
+  strict `sceneObjects <= 940` et eviter une inflation d'objets decoratifs.
+
 ## Components
 
 - `game-site`: surface principale.

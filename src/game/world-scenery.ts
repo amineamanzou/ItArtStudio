@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { WorldRoute, ZoneKind } from "./zones";
 import { worldRoutes, zones } from "./zones";
-import { worldMaterialRegions } from "./world-materials";
+import { sampleTerrain, terrainConfig, worldMaterialRegions } from "./world-materials";
 
 export type WorldSceneryPalette = Record<ZoneKind | "ground" | "road" | "ink", number>;
 
@@ -13,6 +13,12 @@ export type RenderedWorldScenery = {
   motionObjects: THREE.Object3D[];
   motionObjectCount: number;
   identityRibbon: THREE.Object3D | null;
+  terrainHeightRange: number;
+  terrainMinHeight: number;
+  terrainMaxHeight: number;
+  terrainVertexCount: number;
+  terrainGradeMax: number;
+  terrainFeatureCount: number;
 };
 
 type SceneRole =
@@ -108,6 +114,11 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
   let objectCount = 0;
   let motionObjectCount = 0;
   let terrainLayers = 0;
+  let terrainHeightRange = 0;
+  let terrainMinHeight = 0;
+  let terrainMaxHeight = 0;
+  let terrainVertexCount = 0;
+  let terrainGradeMax = 0;
 
   const add = (
     object: THREE.Object3D,
@@ -148,6 +159,17 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
     opacity: 0.68
   });
 
+  const heightfield = createTerrainHeightfield(terrainMat);
+  add(heightfield.mesh, "terrain-edge", "terrain:heightfield:shared-physics", undefined, {
+    signatures: ["terrain:heightfield:shared-physics", ...terrainConfig.features.map((feature) => `terrain-feature:${feature.id}`)]
+  });
+  terrainLayers += 1;
+  terrainHeightRange = heightfield.heightRange;
+  terrainMinHeight = heightfield.minHeight;
+  terrainMaxHeight = heightfield.maxHeight;
+  terrainVertexCount = heightfield.vertexCount;
+  terrainGradeMax = heightfield.gradeMax;
+
   const terrainSpecs = [
     ["outer-cut", 17.8, 1.18, 0.92, -0.012, terrainShade, -0.18],
     ["field-shelf", 16.7, 1.12, 0.88, 0.0, terrainMat, 0.14],
@@ -177,7 +199,88 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
   const identityRibbon = addIdentityRibbon(add, palette, roadMat, inkMat);
   addRouteLights(add, worldRoutes, roadMat);
 
-  return { group, objectCount, terrainLayers, signatures, motionObjects, motionObjectCount, identityRibbon };
+  return {
+    group,
+    objectCount,
+    terrainLayers,
+    signatures,
+    motionObjects,
+    motionObjectCount,
+    identityRibbon,
+    terrainHeightRange,
+    terrainMinHeight,
+    terrainMaxHeight,
+    terrainVertexCount,
+    terrainGradeMax,
+    terrainFeatureCount: terrainConfig.featureCount
+  };
+}
+
+function createTerrainHeightfield(mat: THREE.Material) {
+  const size = 34;
+  const segments = 30;
+  const half = size / 2;
+  const positions: number[] = [];
+  const colors: number[] = [];
+  const indices: number[] = [];
+  let minHeight = Number.POSITIVE_INFINITY;
+  let maxHeight = Number.NEGATIVE_INFINITY;
+  let gradeMax = 0;
+  const base = new THREE.Color(0x12342c);
+  const high = new THREE.Color(0x2f5b48);
+  const low = new THREE.Color(0x0b1d1a);
+
+  for (let zIndex = 0; zIndex <= segments; zIndex += 1) {
+    const z = -half + (zIndex / segments) * size;
+    for (let xIndex = 0; xIndex <= segments; xIndex += 1) {
+      const x = -half + (xIndex / segments) * size;
+      const terrain = sampleTerrain(new THREE.Vector3(x, 0, z));
+      minHeight = Math.min(minHeight, terrain.height);
+      maxHeight = Math.max(maxHeight, terrain.height);
+      gradeMax = Math.max(gradeMax, terrain.grade);
+      positions.push(x, terrain.height - 0.034, z);
+      const color = terrain.height >= 0 ? base.clone().lerp(high, Math.min(1, terrain.height / 0.42)) : base.clone().lerp(low, Math.min(1, Math.abs(terrain.height) / 0.3));
+      colors.push(color.r, color.g, color.b);
+    }
+  }
+
+  for (let zIndex = 0; zIndex < segments; zIndex += 1) {
+    for (let xIndex = 0; xIndex < segments; xIndex += 1) {
+      const a = zIndex * (segments + 1) + xIndex;
+      const b = a + 1;
+      const c = a + segments + 1;
+      const d = c + 1;
+      indices.push(a, c, b, b, c, d);
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  const terrainMat = (mat as THREE.MeshStandardMaterial).clone();
+  terrainMat.vertexColors = true;
+  terrainMat.opacity = Math.min(0.92, terrainMat.opacity);
+  terrainMat.transparent = true;
+  const mesh = new THREE.Mesh(geometry, terrainMat);
+  mesh.name = "shared-physics-heightfield";
+  mesh.renderOrder = -4;
+  mesh.receiveShadow = true;
+  mesh.userData.terrainHeightfield = true;
+  mesh.userData.terrainFeatureCount = terrainConfig.featureCount;
+  mesh.userData.terrainVertexCount = positions.length / 3;
+  mesh.userData.terrainHeightRange = Number((maxHeight - minHeight).toFixed(3));
+  mesh.userData.terrainGradeMax = Number(gradeMax.toFixed(3));
+
+  return {
+    mesh,
+    minHeight: Number(minHeight.toFixed(3)),
+    maxHeight: Number(maxHeight.toFixed(3)),
+    heightRange: Number((maxHeight - minHeight).toFixed(3)),
+    gradeMax: Number(gradeMax.toFixed(3)),
+    vertexCount: positions.length / 3
+  };
 }
 
 function addWaterBodies(
