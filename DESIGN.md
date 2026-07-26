@@ -1220,6 +1220,27 @@ Gates V8.13:
   restent visibles et que la lisibilite des zones ne repose pas sur un voile
   colore.
 
+Gates V8.14:
+
+- le runtime public normal charge maintenant une couche GLB `core` curatee,
+  issue des placements candidats de `?assets=map`, au lieu de rester purement
+  procedural;
+- `?assets=off` devient l'echappatoire de comparaison procedural-only, tandis
+  que `?assets=preview` garde la planche de specimens et `?assets=map` garde la
+  preuve complete de composition large;
+- le core public reste volontairement selectif: routes, pont, eau, relief,
+  vegetation et les trois hero locations doivent etre visibles sans importer
+  toute la densite du banc d'inspection;
+- les GLB du core public sont compactes a l'import pour reduire le nombre
+  d'objets Three.js; la QA distingue maintenant `world.sceneObjects` pour le
+  budget procedural et `externalAssets.sceneObjects` pour le budget GLB;
+- `external-asset-core-runtime` refuse une page publique sans assets GLB, sans
+  roles terrain lisibles, sans les signatures `Cloud Dock`, `Design Atelier` et
+  `Observability Tower`, ou avec chemins d'assets non compatibles GitHub Pages;
+- cette promotion est une reduction du bruit: elle rend les assets acceptes
+  visibles par defaut tout en conservant `?assets=map` pour tester la
+  bibliotheque complete avant une future composition plus ambitieuse.
+
 ## Components
 
 - `game-site`: surface principale.

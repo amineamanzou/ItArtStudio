@@ -38,7 +38,9 @@ const qaMode = searchParams.has("qa");
 const realKeyboardQaMode = searchParams.has("realKeys");
 const externalAssetPreviewMode = searchParams.get("assets") === "preview";
 const externalAssetMapMode = searchParams.get("assets") === "map";
-const externalAssetRuntimeMode = externalAssetPreviewMode || externalAssetMapMode;
+const externalAssetDisabledMode = searchParams.get("assets") === "off";
+const externalAssetCoreMode = !externalAssetDisabledMode && !externalAssetPreviewMode && !externalAssetMapMode;
+const externalAssetRuntimeMode = !externalAssetDisabledMode;
 const playerMaxForwardSpeed = qaMode ? 12.8 : 10.5;
 const playerMaxReverseSpeed = qaMode ? 6.4 : 4.2;
 const playerAcceleration = qaMode ? 38 : 24;
@@ -61,7 +63,7 @@ const colors: Record<ZoneKind | "ground" | "road" | "ink", number> = {
 function createDefaultExternalAssetTelemetry(enabled: boolean): ExternalAssetPreviewTelemetry {
   return {
     enabled,
-    mode: enabled ? (externalAssetMapMode ? "map" : "preview") : "off",
+    mode: enabled ? (externalAssetMapMode ? "map" : externalAssetPreviewMode ? "preview" : "core") : "off",
     requested: 0,
     loaded: 0,
     failed: 0,
@@ -714,6 +716,8 @@ type QaSnapshot = {
   zoneCount: number;
   world: {
     sceneObjects: number;
+    totalSceneObjects: number;
+    externalAssetSceneObjects: number;
     decorativeObjects: number;
     roadSegments: number;
     routeSurfaceObjects: number;
@@ -1148,6 +1152,8 @@ class StudioGame {
     zoneCount: zones.length,
     world: {
       sceneObjects: 0,
+      totalSceneObjects: 0,
+      externalAssetSceneObjects: 0,
       decorativeObjects: 0,
       roadSegments: 0,
       routeSurfaceObjects: 0,
@@ -1712,7 +1718,13 @@ class StudioGame {
     }
 
     void import("./asset-loader")
-      .then((loader) => (externalAssetMapMode ? loader.createExternalAssetMapLayer() : loader.createExternalAssetPreview()))
+      .then((loader) =>
+        externalAssetMapMode
+          ? loader.createExternalAssetMapLayer()
+          : externalAssetPreviewMode
+            ? loader.createExternalAssetPreview()
+            : loader.createExternalAssetCoreLayer()
+      )
       .then(({ group, telemetry }) => {
         this.externalAssetPreviewGroup = group;
         this.externalAssetsTelemetry = telemetry;
@@ -1726,7 +1738,7 @@ class StudioGame {
         this.externalAssetsTelemetry = {
           ...this.externalAssetsTelemetry,
           enabled: true,
-          mode: externalAssetMapMode ? "map" : "preview",
+          mode: externalAssetMapMode ? "map" : externalAssetPreviewMode ? "preview" : externalAssetCoreMode ? "core" : "off",
           failed: this.externalAssetsTelemetry.failed + 1,
           errors: [...this.externalAssetsTelemetry.errors, message]
         };
@@ -4000,10 +4012,21 @@ class StudioGame {
     this.qaSnapshot.activeZoneLabel = activeZone.label;
     if (full) {
       let sceneObjects = 0;
+      let totalSceneObjects = 0;
+      let externalAssetSceneObjects = 0;
       let landmarkObjects = 0;
       this.scene.traverse((object) => {
-        sceneObjects += 1;
-        if (typeof object.userData.landmarkZone === "string") {
+        if (object === this.scene) {
+          return;
+        }
+        totalSceneObjects += 1;
+        const externalAssetObject = object.userData.externalAsset === true || object.userData.externalAssetMapPlacement === true;
+        if (externalAssetObject) {
+          externalAssetSceneObjects += 1;
+        } else {
+          sceneObjects += 1;
+        }
+        if (!externalAssetObject && typeof object.userData.landmarkZone === "string") {
           landmarkObjects += 1;
         }
       });
@@ -4138,6 +4161,8 @@ class StudioGame {
 
       this.qaSnapshot.world = {
         sceneObjects,
+        totalSceneObjects,
+        externalAssetSceneObjects,
         decorativeObjects: this.decorativeObjectCount,
         roadSegments: this.roadSegmentCount,
         routeSurfaceObjects: this.routeSurfaceObjectCount,

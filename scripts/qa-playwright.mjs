@@ -5162,6 +5162,105 @@ async function checkExternalAssetPreview(browser) {
   }
 }
 
+async function checkExternalAssetCoreRuntime(page) {
+  await page.waitForFunction(
+    () => {
+      const assets = window.__IT_ART_STUDIO_QA__?.externalAssets;
+      return Boolean(
+        document.documentElement.classList.contains("game-ready") &&
+          window.__IT_ART_STUDIO_QA__?.ready === true &&
+          assets?.enabled &&
+          assets.mode === "core" &&
+          assets.requested >= 14 &&
+          assets.loaded + assets.failed >= assets.requested &&
+          window.__IT_ART_STUDIO_QA__?.frameCount > 6
+      );
+    },
+    { timeout: 24_000 }
+  );
+
+  const proof = await capture(page, "external-asset-core-runtime");
+  const externalAssets = proof.snapshot?.externalAssets;
+  const requiredRoles = ["bridge", "hero-location", "relief", "road", "route-edge", "vegetation", "water"];
+  const missingRoles = requiredRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
+  const requiredHeroLocationIds = ["cloud-dock", "design-atelier", "observability-tower"];
+  const requiredHeroLocationRoles = {
+    "cloud-dock": ["server-cloud-node", "cloud-circuit-bridge", "rack-core"],
+    "design-atelier": ["mannequin-fabric-rack", "atelier-drape-frame", "cutting-table"],
+    "observability-tower": ["telemetry-radar-mast", "telemetry-screen-array", "screen-wall"]
+  };
+  const weakHeroLocations = requiredHeroLocationIds.filter((zoneId) => {
+    const placementCount = externalAssets?.heroLocationPlacementCounts?.[zoneId] ?? 0;
+    const roles = externalAssets?.heroLocationRoles?.[zoneId] ?? [];
+    const missingHeroRoles = (requiredHeroLocationRoles[zoneId] ?? []).filter((role) => !roles.includes(role));
+    return placementCount < 3 || roles.length < 3 || missingHeroRoles.length > 0;
+  });
+  const corePathBase = new URL(baseUrl).pathname.replace(/\/$/u, "");
+  const expectedAssetPathPrefixes = ["vendor", "local"].map((scope) =>
+    `${corePathBase}/assets/models/${scope}/`.replace(/^\/\//u, "/")
+  );
+  const unsafePaths = (externalAssets?.publicPaths ?? []).filter((publicPath) => {
+    try {
+      const parsed = new URL(publicPath, baseUrl);
+      return parsed.pathname.includes("/public/") || !expectedAssetPathPrefixes.some((prefix) => parsed.pathname.startsWith(prefix));
+    } catch {
+      return true;
+    }
+  });
+
+  const gate =
+    externalAssets?.enabled === true &&
+    externalAssets.mode === "core" &&
+    externalAssets.requested >= 14 &&
+    externalAssets.loaded >= externalAssets.requested &&
+    externalAssets.failed === 0 &&
+    externalAssets.visible >= externalAssets.requested &&
+    externalAssets.uniqueFiles >= 12 &&
+    externalAssets.collections >= 7 &&
+    externalAssets.placements >= 14 &&
+    externalAssets.clusters >= 9 &&
+    externalAssets.routeLinkedPlacements >= 12 &&
+    externalAssets.waterLinkedPlacements >= 1 &&
+    externalAssets.reliefLinkedPlacements >= 1 &&
+    externalAssets.vegetationLinkedPlacements >= 1 &&
+    externalAssets.primaryPlacements >= 13 &&
+    externalAssets.supportPlacements >= 1 &&
+    externalAssets.contextPlacements === 0 &&
+    externalAssets.promotionCandidates >= externalAssets.requested &&
+    externalAssets.heroLocationPlacements >= 9 &&
+    requiredHeroLocationIds.every((zoneId) => externalAssets.heroLocationIds?.includes(zoneId)) &&
+    (externalAssets.maxNonHeroClusterDensity ?? externalAssets.maxClusterDensity) <= 3 &&
+    (externalAssets.maxHeroLocationClusterDensity ?? 0) <= 3 &&
+    externalAssets.actualMinGroundClearance >= 0.08 &&
+    externalAssets.actualCoplanarRiskPlacements === 0 &&
+    externalAssets.mapCoverageWidth >= 42 &&
+    externalAssets.mapCoverageDepth >= 42 &&
+    missingRoles.length === 0 &&
+    weakHeroLocations.length === 0 &&
+    unsafePaths.length === 0 &&
+    (externalAssets.errors?.length ?? 0) === 0 &&
+    proof.canvas.ok;
+
+  if (gate) {
+    pass("external-asset-core-runtime", {
+      externalAssets,
+      canvas: proof.canvas,
+      baseUrl
+    });
+  } else {
+    scenarioFail("external-asset-core-runtime", "The public runtime did not load a clean curated GLB core layer.", {
+      externalAssets,
+      canvas: proof.canvas,
+      baseUrl,
+      missingRoles,
+      weakHeroLocations,
+      requiredHeroLocationRoles,
+      unsafePaths,
+      expectedAssetPathPrefixes
+    });
+  }
+}
+
 async function checkExternalAssetMapComposition(browser) {
   const mapUrl = withSearchParam(baseUrl, "assets", "map");
   const mapPage = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
@@ -9161,6 +9260,7 @@ async function writeReport() {
   const worldScenario = scenarios.find((scenario) => scenario.name === "world-richness");
   const rendererBudgetScenario = scenarios.find((scenario) => scenario.name === "renderer-budget");
   const mapTextureRuntimeScenario = scenarios.find((scenario) => scenario.name === "map-texture-runtime");
+  const externalAssetCoreScenario = scenarios.find((scenario) => scenario.name === "external-asset-core-runtime");
   const externalAssetPreviewScenario = scenarios.find((scenario) => scenario.name === "external-asset-preview-runtime");
   const externalAssetMapScenario = scenarios.find((scenario) => scenario.name === "external-asset-map-composition");
   const visualScenario = scenarios.find((scenario) => scenario.name === "visual-specs-rendered");
@@ -9279,6 +9379,11 @@ async function writeReport() {
       externalAssetPreviewScenario?.details?.externalAssets
         ? `${externalAssetPreviewScenario.status}, files ${externalAssetPreviewScenario.details.externalAssets.loaded}/${externalAssetPreviewScenario.details.externalAssets.requested}, roles ${externalAssetPreviewScenario.details.externalAssets.terrainRoles.join("/")}`
         : (externalAssetPreviewScenario?.status ?? "n/a")
+    }`,
+    `- External asset core: ${
+      externalAssetCoreScenario?.details?.externalAssets
+        ? `${externalAssetCoreScenario.status}, placements ${externalAssetCoreScenario.details.externalAssets.placements}, unique files ${externalAssetCoreScenario.details.externalAssets.uniqueFiles}, roles ${externalAssetCoreScenario.details.externalAssets.terrainRoles.join("/")}, hero locations ${(externalAssetCoreScenario.details.externalAssets.heroLocationIds ?? []).join("/")}, coverage ${externalAssetCoreScenario.details.externalAssets.mapCoverageWidth}x${externalAssetCoreScenario.details.externalAssets.mapCoverageDepth}`
+        : (externalAssetCoreScenario?.status ?? "n/a")
     }`,
     `- External asset map: ${
       externalAssetMapScenario?.details?.externalAssets
@@ -9660,6 +9765,7 @@ async function main() {
         scenarioFail("static-dist-canvas-nonblank", "Static dist canvas did not render enough non-dark sampled pixels.", home.canvas);
       }
       await checkWorldRichness(page);
+      await checkExternalAssetCoreRuntime(page);
       await checkExternalAssetPreview(browser);
       await checkExternalAssetMapComposition(browser);
       await checkStaticPlayableProofReel(browser, page, home);
@@ -9701,6 +9807,7 @@ async function main() {
       scenarioFail("canvas-color-families", "Canvas did not expose the tech/art/studio color families.", home.canvas);
     }
     await checkWorldRichness(page);
+    await checkExternalAssetCoreRuntime(page);
     await checkExternalAssetPreview(browser);
     await checkExternalAssetMapComposition(browser);
     await checkAudioLayer(browser);

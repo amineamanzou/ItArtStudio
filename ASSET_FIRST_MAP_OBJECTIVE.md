@@ -125,6 +125,9 @@ Baseline actuelle:
   soit 317.2 KB / 7 592 triangles;
 - textures runtime acceptees et promues: route, vegetation/open-field, eau,
   relief;
+- runtime public: couche GLB `core` curatee par defaut, avec `?assets=off` pour
+  comparer le fallback procedural-only, `?assets=preview` pour la planche de
+  specimens et `?assets=map` pour la composition complete;
 - chaque fichier runtime doit rester declare dans le manifest et passer
   `npm run assets:validate`.
 
@@ -142,6 +145,12 @@ Exigences:
   hors budget;
 - telemetrie QA: placements, roles terrain, assets uniques, clearances,
   densite, preuves screen-space.
+- mode `core` public: sous-ensemble stable de placements acceptes, assez riche
+  pour prouver le vocabulaire asset-first sans importer toute la couche
+  d'inspection.
+- budget runtime separe: `world.sceneObjects` suit le monde procedural et
+  `externalAssets.sceneObjects` suit le noyau GLB, afin que la reduction du
+  bruit et la promotion des assets restent deux leviers mesurables.
 
 La phase texture suit le meme principe: source, licence, chemin public
 GitHub Pages-safe, poids, role terrain, fallback et fichier runtime declare.
@@ -189,6 +198,8 @@ Baseline actuelle:
   `telemetry-radar-mast` et `telemetry-screen-array`;
 - les nouveaux assets signature sont repartis en micro-clusters pour enrichir
   les silhouettes sans creer d'empilement visuel.
+- la page publique charge deja un noyau de signatures par lieu: au moins trois
+  roles hero-location par zone dans la QA `external-asset-core-runtime`.
 
 Definition of done:
 
@@ -222,6 +233,8 @@ Le protocole doit prouver:
 - captures avant/apres par zone;
 - lisibilite route/eau/relief/vegetation;
 - reconnaissance des trois hero locations sans texte;
+- presence d'une couche GLB `core` sur la page publique et d'une couche
+  `?assets=map` plus dense pour l'inspection;
 - absence de scintillement, z-fighting et assets casses;
 - budget renderer et scene graph preserve;
 - regression mobile et desktop couverte.

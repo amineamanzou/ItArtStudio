@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import worldAssetManifest from "../../assets/world-assets.manifest.json";
 import { sampleTerrain, worldMaterialRegions } from "./world-materials";
 import { worldRoutes, zones } from "./zones";
@@ -23,7 +24,7 @@ type WorldAssetManifest = {
 
 export type ExternalAssetPreviewTelemetry = {
   enabled: boolean;
-  mode: "off" | "preview" | "map";
+  mode: "off" | "preview" | "core" | "map";
   requested: number;
   loaded: number;
   failed: number;
@@ -246,16 +247,24 @@ export async function createExternalAssetPreview() {
   return { group, telemetry };
 }
 
-export async function createExternalAssetMapLayer() {
-  const group = new THREE.Group();
-  group.name = "external-asset-map-layer";
-  group.userData.externalAssetMapLayer = true;
+export async function createExternalAssetCoreLayer() {
+  return createExternalAssetPlacementLayer("core", createCorePlacementSpecs());
+}
 
-  const telemetry = createExternalAssetTelemetry(true, "map");
+export async function createExternalAssetMapLayer() {
+  return createExternalAssetPlacementLayer("map", createMapPlacementSpecs());
+}
+
+async function createExternalAssetPlacementLayer(mode: "core" | "map", placements: MapPlacementSpec[]) {
+  const group = new THREE.Group();
+  group.name = mode === "core" ? "external-asset-core-layer" : "external-asset-map-layer";
+  group.userData.externalAssetMapLayer = true;
+  group.userData.externalAssetCoreLayer = mode === "core";
+
+  const telemetry = createExternalAssetTelemetry(true, mode);
   const loader = new GLTFLoader();
   const cache = new Map<string, Promise<THREE.Object3D>>();
   const acceptedAssets = getAcceptedModelCollections();
-  const placements = createMapPlacementSpecs();
 
   const jobs = placements
     .map((spec) => {
@@ -308,7 +317,7 @@ export async function createExternalAssetMapLayer() {
 
   const results = await Promise.allSettled(
     jobs.map(async ({ asset, spec }) => {
-      const { object, url } = await loadNormalizedObject(loader, asset, spec, cache);
+      const { object, url } = await loadNormalizedObject(loader, asset, spec, cache, mode === "core");
       const wrapper = object;
       applyMapCurationStyle(wrapper, spec);
       const actualGroundClearance = measureActualGroundClearance(wrapper);
@@ -394,16 +403,64 @@ function getAcceptedModelCollections() {
   );
 }
 
-async function loadNormalizedObject(loader: GLTFLoader, asset: ManifestAsset, spec: PreviewSpec, cache?: Map<string, Promise<THREE.Object3D>>) {
+async function loadNormalizedObject(
+  loader: GLTFLoader,
+  asset: ManifestAsset,
+  spec: PreviewSpec,
+  cache?: Map<string, Promise<THREE.Object3D>>,
+  compact = false
+) {
   const url = createRuntimeAssetUrl(asset.publicPath ?? "", spec.preferredFile);
   if (!cache?.has(url)) {
     cache?.set(url, loader.loadAsync(url).then((gltf) => gltf.scene));
   }
   const source = cache ? (await cache.get(url))?.clone(true) : (await loader.loadAsync(url)).scene;
+  const preparedSource = compact ? compactObjectTree(source ?? new THREE.Group(), spec.preferredFile) : (source ?? new THREE.Group());
   return {
-    object: normalizePreviewObject(source ?? new THREE.Group(), spec),
+    object: normalizePreviewObject(preparedSource, spec),
     url
   };
+}
+
+function compactObjectTree(source: THREE.Object3D, label: string) {
+  source.updateWorldMatrix(true, true);
+  const materialBuckets = new Map<string, { material: THREE.Material; geometries: THREE.BufferGeometry[] }>();
+
+  source.traverse((object) => {
+    if (!(object instanceof THREE.Mesh) || !(object.geometry instanceof THREE.BufferGeometry)) {
+      return;
+    }
+    const material = Array.isArray(object.material) ? object.material[0] : object.material;
+    if (!material) {
+      return;
+    }
+    let bucket = materialBuckets.get(material.uuid);
+    if (!bucket) {
+      bucket = { material: material.clone(), geometries: [] };
+      materialBuckets.set(material.uuid, bucket);
+    }
+    const geometry = object.geometry.clone();
+    geometry.applyMatrix4(object.matrixWorld);
+    bucket.geometries.push(geometry);
+  });
+
+  if (materialBuckets.size === 0) {
+    return source;
+  }
+
+  const compactGroup = new THREE.Group();
+  compactGroup.name = `compact-external-asset:${label}`;
+  for (const [index, bucket] of [...materialBuckets.values()].entries()) {
+    const merged = mergeGeometries(bucket.geometries, false);
+    if (!merged) {
+      continue;
+    }
+    const mesh = new THREE.Mesh(merged, bucket.material);
+    mesh.name = `compact-external-asset:${label}:${index}`;
+    compactGroup.add(mesh);
+  }
+
+  return compactGroup.children.length > 0 ? compactGroup : source;
 }
 
 function collectRejectedResults(results: Array<PromiseSettledResult<unknown>>, telemetry: ExternalAssetPreviewTelemetry) {
@@ -469,6 +526,28 @@ function createMapPlacementSpecs(): MapPlacementSpec[] {
     ...createVegetationPlacementSpecs(),
     ...createHeroLocationPlacementSpecs()
   ];
+}
+
+function createCorePlacementSpecs(): MapPlacementSpec[] {
+  const corePlacementIds = new Set([
+    "route:studio-crossing-road-proof",
+    "route:spine-contact-gate:bridge",
+    "water:tech-harbor",
+    "relief:tech-ridge",
+    "vegetation:studio-oak",
+    "hero:cloud-dock:server-cloud-node",
+    "hero:cloud-dock:cloud-circuit-bridge",
+    "hero:cloud-dock:rack-core",
+    "hero:design-atelier:mannequin-fabric-rack",
+    "hero:design-atelier:atelier-drape-frame",
+    "hero:design-atelier:cutting-table",
+    "hero:observability-tower:telemetry-radar-mast",
+    "hero:observability-tower:telemetry-screen-array",
+    "hero:observability-tower:signal-pylon",
+    "hero:observability-tower:screen-wall"
+  ]);
+
+  return createMapPlacementSpecs().filter((spec) => corePlacementIds.has(spec.id));
 }
 
 function createRoutePlacementSpecs(): MapPlacementSpec[] {
