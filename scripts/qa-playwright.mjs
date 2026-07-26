@@ -59,8 +59,8 @@ const screenshotsDir = path.join(outputRoot, "screenshots");
 const reportJsonPath = path.join(outputRoot, "report.json");
 const reportMdPath = path.join(outputRoot, "report.md");
 const premiumWorldObjectBudget = 940;
-const qaWorldHalfExtent = 28;
-const qaInnerRoamExtent = 24.2;
+const qaWorldHalfExtent = 34;
+const qaInnerRoamExtent = 29.4;
 const qaBoundaryTargetExtent = qaWorldHalfExtent + 1.8;
 
 const scenarios = [];
@@ -2572,8 +2572,9 @@ async function checkRealDriveWholeMapFreedom(browser) {
         .map((sample) => `${sample.x >= 0 ? "east" : "west"}-${sample.z >= 0 ? "north" : "south"}`)
     );
     const interiorEdgeBands = new Set();
+    const interiorBandMaxDistance = Math.max(4.2, qaWorldHalfExtent - qaInnerRoamExtent + 0.8);
     for (const sample of offRoutePhysics) {
-      if ((sample.boundaryDistance ?? 99) <= 1.4 || (sample.boundaryDistance ?? 99) >= 4.2) {
+      if ((sample.boundaryDistance ?? 99) <= 1.4 || (sample.boundaryDistance ?? 99) >= interiorBandMaxDistance) {
         continue;
       }
       if (sample.x >= qaInnerRoamExtent - 1) interiorEdgeBands.add("east");
@@ -2600,8 +2601,8 @@ async function checkRealDriveWholeMapFreedom(browser) {
     const expectedBands = qaProfile === "quick" ? 3 : 4;
     const freedomGate =
       targetCoverageGate &&
-      xSpan >= 46 &&
-      zSpan >= 46 &&
+      xSpan >= 56 &&
+      zSpan >= 56 &&
       quadrants.size >= expectedQuadrants &&
       interiorEdgeBands.size >= expectedBands &&
       distanceDelta >= (qaProfile === "quick" ? 128 : 175) &&
@@ -2625,6 +2626,7 @@ async function checkRealDriveWholeMapFreedom(browser) {
         zSpan: Number(zSpan.toFixed(3)),
         quadrants: [...quadrants].sort(),
         interiorEdgeBands: [...interiorEdgeBands].sort(),
+        interiorBandMaxDistance: Number(interiorBandMaxDistance.toFixed(3)),
         distanceDelta,
         offRoutePhysicsSamples: offRoutePhysics.length,
         maxRouteDistance: Number(maxRouteDistance.toFixed(3)),
@@ -2650,6 +2652,7 @@ async function checkRealDriveWholeMapFreedom(browser) {
         zSpan,
         quadrants: [...quadrants].sort(),
         interiorEdgeBands: [...interiorEdgeBands].sort(),
+        interiorBandMaxDistance,
         distanceDelta,
         offRoutePhysicsSamples: offRoutePhysics.length,
         maxRouteDistance,
@@ -5210,11 +5213,11 @@ async function checkExternalAssetMapComposition(browser) {
       externalAssets.waterPlacements >= 4 &&
       externalAssets.reliefPlacements >= 5 &&
       externalAssets.vegetationPlacements >= 12 &&
-      externalAssets.mapCoverageWidth >= 42 &&
-      externalAssets.mapCoverageDepth >= 42 &&
-      externalAssets.mapCoverageArea >= 1764 &&
-      externalAssets.bounds.width >= 42 &&
-      externalAssets.bounds.depth >= 42 &&
+      externalAssets.mapCoverageWidth >= 56 &&
+      externalAssets.mapCoverageDepth >= 56 &&
+      externalAssets.mapCoverageArea >= 3136 &&
+      externalAssets.bounds.width >= 56 &&
+      externalAssets.bounds.depth >= 56 &&
       externalAssets.bounds.height >= 1 &&
       missingRoles.length === 0 &&
       weakScreenRoles.length === 0 &&

@@ -301,7 +301,7 @@ function createAiArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactM
     { role: "evaluation-conveyor", signature: "eval-score-c", materialVariant: "accent-score" }
   ]);
 
-  const evaluationDisplay = box([0.86, 0.18, 0.08], mats.light, [0.32, 1.78, -0.36]);
+  const evaluationDisplay = box([0.86, 0.22, 0.08], mats.light, [0.32, 1.83, -0.36]);
   evaluationDisplay.rotation.y = 0.18;
   add(group, evaluationDisplay, zone, "evaluation-conveyor", "agent-evaluation-display", "light-evaluation-display", "blink");
 

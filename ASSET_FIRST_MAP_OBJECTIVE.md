@@ -158,12 +158,13 @@ Principes:
 
 Baseline actuelle:
 
-- monde jouable: `56x56`;
-- roam QA interieur: `+-24.2`;
-- terrain: features physiques reparties au centre et en peripherie;
-- eau: six regions, dont deux respirations de bord;
-- rampes: huit transitions, sans collision bloquante;
-- GLB opt-in `?assets=map`: couverture attendue au moins `42x42`.
+- monde jouable: `68x68`;
+- roam QA interieur: `+-29.4`;
+- terrain: features physiques reparties au centre, en peripherie et sur les
+  nouvelles terrasses nord/est/ouest;
+- eau: huit regions, dont plusieurs respirations de bord;
+- rampes: dix transitions, sans collision bloquante;
+- GLB opt-in `?assets=map`: couverture attendue au moins `56x56`.
 
 ## Phase 4 - Trois Hero Locations
 

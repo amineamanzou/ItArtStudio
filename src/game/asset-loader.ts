@@ -476,51 +476,65 @@ function createRoutePlacementSpecs(): MapPlacementSpec[] {
   const edgeFiles = ["light-square.glb", "light-curved.glb", "construction-cone.glb", "construction-barrier.glb"];
   const bridgeFiles = ["bridge_wood.glb", "path_wood.glb"];
 
-  return worldRoutes.flatMap((route, index) => {
-    const from = zoneById.get(route.from);
-    const to = zoneById.get(route.to);
-    if (!from || !to) {
-      return [];
-    }
-    const points = [
-      new THREE.Vector2(from.position[0], from.position[1]),
-      ...(route.via ?? []).map(([x, z]) => new THREE.Vector2(x, z)),
-      new THREE.Vector2(to.position[0], to.position[1])
-    ];
-    const sample = samplePolyline(points, 0.5);
-    const side = index % 2 === 0 ? 1 : -1;
-    return [
-      createPlacement(`route:${route.id}:road`, `route:${route.id}`, "route", "primary", true, "road", roadFiles[index % roadFiles.length], [sample.x, sample.z], 1.36, sample.angle),
-      createPlacement(
-        `route:${route.id}:edge`,
-        `route:${route.id}`,
-        "route",
-        "support",
-        index % 2 === 0,
-        "route-edge",
-        edgeFiles[index % edgeFiles.length],
-        [sample.x + Math.cos(sample.angle) * side * 0.72, sample.z - Math.sin(sample.angle) * side * 0.72],
-        0.74,
-        sample.angle + Math.PI * 0.5
-      ),
-      ...(index % 3 === 0
-        ? [
-            createPlacement(
-              `route:${route.id}:bridge`,
-              `route:${route.id}`,
-              "route",
-              "primary",
-              true,
-              "bridge",
-              bridgeFiles[index % bridgeFiles.length],
-              [sample.x - Math.cos(sample.angle) * side * 0.52, sample.z + Math.sin(sample.angle) * side * 0.52],
-              1.48,
-              sample.angle + Math.PI * 0.5
-            )
-          ]
-        : [])
-    ];
-  });
+  return [
+    ...worldRoutes.flatMap((route, index) => {
+      const from = zoneById.get(route.from);
+      const to = zoneById.get(route.to);
+      if (!from || !to) {
+        return [];
+      }
+      const points = [
+        new THREE.Vector2(from.position[0], from.position[1]),
+        ...(route.via ?? []).map(([x, z]) => new THREE.Vector2(x, z)),
+        new THREE.Vector2(to.position[0], to.position[1])
+      ];
+      const sample = samplePolyline(points, 0.5);
+      const side = index % 2 === 0 ? 1 : -1;
+      return [
+        createPlacement(`route:${route.id}:road`, `route:${route.id}`, "route", "primary", true, "road", roadFiles[index % roadFiles.length], [sample.x, sample.z], 1.36, sample.angle),
+        createPlacement(
+          `route:${route.id}:edge`,
+          `route:${route.id}`,
+          "route",
+          "support",
+          index % 2 === 0,
+          "route-edge",
+          edgeFiles[index % edgeFiles.length],
+          [sample.x + Math.cos(sample.angle) * side * 0.72, sample.z - Math.sin(sample.angle) * side * 0.72],
+          0.74,
+          sample.angle + Math.PI * 0.5
+        ),
+        ...(index % 3 === 0
+          ? [
+              createPlacement(
+                `route:${route.id}:bridge`,
+                `route:${route.id}`,
+                "route",
+                "primary",
+                true,
+                "bridge",
+                bridgeFiles[index % bridgeFiles.length],
+                [sample.x - Math.cos(sample.angle) * side * 0.52, sample.z + Math.sin(sample.angle) * side * 0.52],
+                1.48,
+                sample.angle + Math.PI * 0.5
+              )
+            ]
+          : [])
+      ];
+    }),
+    createPlacement(
+      "route:studio-crossing-road-proof",
+      "route:studio-crossing-road-proof",
+      "route",
+      "primary",
+      true,
+      "road",
+      "road-straight.glb",
+      [0.6, 4.8],
+      1.42,
+      -0.18
+    )
+  ];
 }
 
 function createWaterPlacementSpecs(): MapPlacementSpec[] {
@@ -535,143 +549,150 @@ function createWaterPlacementSpecs(): MapPlacementSpec[] {
 
 function createReliefPlacementSpecs(): MapPlacementSpec[] {
   return [
-    createPlacement("relief:tech-ridge", "relief:tech-ridge", "relief", "primary", true, "relief", "cliff_blockSlope_rock.glb", [-18.7, 2.2], 1.62, -0.2),
-    createPlacement("relief:harbor-cut", "relief:harbor-cut", "relief", "primary", true, "relief", "cliff_corner_rock.glb", [-15.4, -21.5], 1.44, 0.42),
-    createPlacement("relief:art-mound", "relief:art-mound", "relief", "support", true, "relief", "rock_largeC.glb", [18.4, 6.4], 1.28, -0.32),
-    createPlacement("relief:studio-spine", "relief:studio-spine", "relief", "support", true, "relief", "cliff_steps_rock.glb", [-1.8, 18.3], 1.34, 0.08),
-    createPlacement("relief:north-field", "relief:north-field", "relief", "context", false, "relief", "rock_largeA.glb", [8.8, 24.6], 1.22, -0.18),
-    createPlacement("relief:south-field", "relief:south-field", "relief", "context", false, "relief", "rock_tallA.glb", [-8.5, -25.1], 1.3, 0.26),
-    createPlacement("relief:west-cut", "relief:west-cut", "relief", "context", false, "relief", "rock_largeA.glb", [-24.8, 8.5], 1.16, 0.14),
-    createPlacement("relief:east-shelf", "relief:east-shelf", "relief", "context", false, "relief", "cliff_half_rock.glb", [24.2, 10.8], 1.18, -0.26),
+    createPlacement("relief:tech-ridge", "relief:tech-ridge", "relief", "primary", true, "relief", "cliff_blockSlope_rock.glb", [-24.6, 2.8], 1.62, -0.2),
+    createPlacement("relief:harbor-cut", "relief:harbor-cut", "relief", "primary", true, "relief", "cliff_corner_rock.glb", [-19.2, -29.1], 1.44, 0.42),
+    createPlacement("relief:art-mound", "relief:art-mound", "relief", "support", true, "relief", "rock_largeC.glb", [23.8, 8.0], 1.28, -0.32),
+    createPlacement("relief:studio-spine", "relief:studio-spine", "relief", "support", true, "relief", "cliff_steps_rock.glb", [-2.2, 24.8], 1.34, 0.08),
+    createPlacement("relief:north-field", "relief:north-field", "relief", "context", false, "relief", "rock_largeA.glb", [10.8, 31.8], 1.22, -0.18),
+    createPlacement("relief:south-field", "relief:south-field", "relief", "context", false, "relief", "rock_tallA.glb", [-10.5, -31.9], 1.3, 0.26),
+    createPlacement("relief:west-cut", "relief:west-cut", "relief", "context", false, "relief", "rock_largeA.glb", [-31.8, 10.2], 1.16, 0.14),
+    createPlacement("relief:east-shelf", "relief:east-shelf", "relief", "context", false, "relief", "cliff_half_rock.glb", [31.2, 13.4], 1.18, -0.26),
+    createPlacement("relief:north-terrace", "relief:north-terrace", "relief", "context", false, "relief", "cliff_corner_rock.glb", [4.6, 32.2], 1.16, 0.16),
+    createPlacement("relief:west-cloud-basin", "relief:west-cloud-basin", "relief", "context", false, "relief", "rock_largeC.glb", [-32.4, -17.8], 1.14, -0.22),
+    createPlacement("relief:east-atelier-plain", "relief:east-atelier-plain", "relief", "context", false, "relief", "cliff_blockSlope_rock.glb", [32.0, -11.4], 1.16, 0.34),
     createPlacement("relief:studio-crossing-proof", "relief:studio-crossing-proof", "relief", "support", true, "relief", "rock_largeC.glb", [2.8, 6.5], 1.18, -0.12)
   ];
 }
 
 function createVegetationPlacementSpecs(): MapPlacementSpec[] {
   return [
-    createPlacement("vegetation:tech-tree", "vegetation:tech-west", "vegetation", "support", true, "vegetation", "tree_cone.glb", [-21.4, -8.8], 1.5, 0.1),
-    createPlacement("vegetation:tech-bush", "vegetation:tech-west", "vegetation", "context", false, "vegetation", "plant_bush.glb", [-24.4, 4.1], 1.12, -0.24),
-    createPlacement("vegetation:studio-oak", "vegetation:studio-north", "vegetation", "support", true, "vegetation", "tree_oak.glb", [4.8, 19.8], 1.65, -0.22),
-    createPlacement("vegetation:studio-grass", "vegetation:studio-north", "vegetation", "context", false, "vegetation", "grass.glb", [-4.8, 24.4], 1.08, 0.1),
-    createPlacement("vegetation:art-palm", "vegetation:art-east", "vegetation", "support", true, "vegetation", "tree_palm.glb", [22.9, -13.8], 1.55, 0.34),
-    createPlacement("vegetation:art-flower", "vegetation:art-east", "vegetation", "context", false, "vegetation", "flower_yellowA.glb", [25.2, -4.2], 1.05, -0.16),
-    createPlacement("vegetation:foundry-bush", "vegetation:foundry", "vegetation", "context", false, "vegetation", "plant_bushLarge.glb", [23.1, 5.9], 1.24, -0.38),
-    createPlacement("vegetation:foundry-tree", "vegetation:foundry", "vegetation", "support", true, "vegetation", "tree_default.glb", [25.2, 11.6], 1.46, 0.28),
-    createPlacement("vegetation:contact-grass", "vegetation:contact-south", "vegetation", "context", false, "vegetation", "grass_large.glb", [-3.8, -23.4], 1.18, 0.16),
-    createPlacement("vegetation:contact-bush", "vegetation:contact-south", "vegetation", "context", false, "vegetation", "plant_bush.glb", [4.8, -26.2], 1.1, -0.12),
-    createPlacement("vegetation:north-tree", "vegetation:north-field", "vegetation", "context", false, "vegetation", "tree_fat.glb", [-13.6, 25.3], 1.42, 0.24),
-    createPlacement("vegetation:south-tree", "vegetation:south-field", "vegetation", "context", false, "vegetation", "tree_default.glb", [13.4, -25.4], 1.42, -0.18),
-    createPlacement("vegetation:west-field", "vegetation:west-field", "vegetation", "context", false, "vegetation", "tree_cone.glb", [-25.8, -17.2], 1.36, 0.18),
-    createPlacement("vegetation:east-field", "vegetation:east-field", "vegetation", "context", false, "vegetation", "plant_bushLarge.glb", [26.0, 20.8], 1.2, -0.2),
+    createPlacement("vegetation:tech-tree", "vegetation:tech-west", "vegetation", "support", true, "vegetation", "tree_cone.glb", [-27.4, -10.8], 1.5, 0.1),
+    createPlacement("vegetation:tech-bush", "vegetation:tech-west", "vegetation", "context", false, "vegetation", "plant_bush.glb", [-31.2, 4.8], 1.12, -0.24),
+    createPlacement("vegetation:studio-oak", "vegetation:studio-north", "vegetation", "support", true, "vegetation", "tree_oak.glb", [5.8, 27.4], 1.65, -0.22),
+    createPlacement("vegetation:studio-grass", "vegetation:studio-north", "vegetation", "context", false, "vegetation", "grass.glb", [-5.8, 31.4], 1.08, 0.1),
+    createPlacement("vegetation:art-palm", "vegetation:art-east", "vegetation", "support", true, "vegetation", "tree_palm.glb", [28.4, -17.8], 1.55, 0.34),
+    createPlacement("vegetation:art-flower", "vegetation:art-east", "vegetation", "context", false, "vegetation", "flower_yellowA.glb", [31.2, -5.4], 1.05, -0.16),
+    createPlacement("vegetation:foundry-bush", "vegetation:foundry", "vegetation", "context", false, "vegetation", "plant_bushLarge.glb", [29.6, 7.6], 1.24, -0.38),
+    createPlacement("vegetation:foundry-tree", "vegetation:foundry", "vegetation", "support", true, "vegetation", "tree_default.glb", [32.0, 14.8], 1.46, 0.28),
+    createPlacement("vegetation:contact-grass", "vegetation:contact-south", "vegetation", "context", false, "vegetation", "grass_large.glb", [-4.8, -30.4], 1.18, 0.16),
+    createPlacement("vegetation:contact-bush", "vegetation:contact-south", "vegetation", "context", false, "vegetation", "plant_bush.glb", [6.2, -32.2], 1.1, -0.12),
+    createPlacement("vegetation:north-tree", "vegetation:north-field", "vegetation", "context", false, "vegetation", "tree_fat.glb", [-16.8, 32.0], 1.42, 0.24),
+    createPlacement("vegetation:south-tree", "vegetation:south-field", "vegetation", "context", false, "vegetation", "tree_default.glb", [16.6, -32.0], 1.42, -0.18),
+    createPlacement("vegetation:west-field", "vegetation:west-field", "vegetation", "context", false, "vegetation", "tree_cone.glb", [-32.0, -22.0], 1.36, 0.18),
+    createPlacement("vegetation:east-field", "vegetation:east-field", "vegetation", "context", false, "vegetation", "plant_bushLarge.glb", [32.0, 25.6], 1.2, -0.2),
+    createPlacement("vegetation:west-marsh", "vegetation:west-marsh", "vegetation", "context", false, "vegetation", "grass_large.glb", [-32.3, -3.4], 1.08, 0.12),
+    createPlacement("vegetation:east-pond", "vegetation:east-pond", "vegetation", "context", false, "vegetation", "flower_yellowA.glb", [32.2, 18.4], 1.04, -0.12),
+    createPlacement("vegetation:north-terrace", "vegetation:north-terrace", "vegetation", "context", false, "vegetation", "tree_fat.glb", [3.2, 32.4], 1.28, 0.2),
+    createPlacement("vegetation:south-mail-edge", "vegetation:south-mail-edge", "vegetation", "context", false, "vegetation", "plant_bushLarge.glb", [-13.8, -32.1], 1.12, -0.18),
     createPlacement("vegetation:studio-crossing-proof", "vegetation:studio-crossing-proof", "vegetation", "support", true, "vegetation", "tree_oak.glb", [-3.2, 6.8], 1.32, 0.14)
   ];
 }
 
 function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
   return [
-    createPlacement("hero:cloud-dock:server-cloud-node", "hero:cloud-dock", "route", "primary", true, "hero-location", "server-cloud-node.glb", [-8.75, -16.72], 2.1, -0.12, {
+    createPlacement("hero:cloud-dock:server-cloud-node", "hero:cloud-dock", "route", "primary", true, "hero-location", "server-cloud-node.glb", [-11.95, -23.12], 2.1, -0.12, {
       assetId: "accepted-itart-signature-hero-core",
       heroLocation: "cloud-dock",
       heroRole: "server-cloud-node"
     }),
-    createPlacement("hero:cloud-dock:server-pylon", "hero:cloud-dock", "route", "primary", true, "route-edge", "bridge-pillar.glb", [-7.9, -16.9], 1.8, 0.08, {
+    createPlacement("hero:cloud-dock:server-pylon", "hero:cloud-dock", "route", "primary", true, "route-edge", "bridge-pillar.glb", [-11.1, -23.3], 1.8, 0.08, {
       heroLocation: "cloud-dock",
       heroRole: "server-pylon"
     }),
-    createPlacement("hero:cloud-dock:electric-mast", "hero:cloud-dock", "route", "support", true, "route-edge", "light-curved.glb", [-6.6, -15.9], 1.25, -0.42, {
+    createPlacement("hero:cloud-dock:electric-mast", "hero:cloud-dock", "route", "support", true, "route-edge", "light-curved.glb", [-9.8, -22.3], 1.25, -0.42, {
       heroLocation: "cloud-dock",
       heroRole: "electric-mast"
     }),
-    createPlacement("hero:cloud-dock:platform-span", "hero:cloud-dock", "route", "support", true, "road", "road-bridge.glb", [-8.6, -18.0], 1.8, Math.PI * 0.42, {
+    createPlacement("hero:cloud-dock:platform-span", "hero:cloud-dock", "route", "support", true, "road", "road-bridge.glb", [-11.8, -24.4], 1.8, Math.PI * 0.42, {
       heroLocation: "cloud-dock",
       heroRole: "platform-span"
     }),
-    createPlacement("hero:cloud-dock:rack-core", "hero:cloud-dock", "route", "primary", true, "hero-location", "machine-fortified.glb", [-9.4, -16.2], 1.72, -0.08, {
+    createPlacement("hero:cloud-dock:rack-core", "hero:cloud-dock", "route", "primary", true, "hero-location", "machine-fortified.glb", [-12.6, -22.6], 1.72, -0.08, {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "cloud-dock",
       heroRole: "rack-core"
     }),
-    createPlacement("hero:cloud-dock:cable-trunk", "hero:cloud-dock", "route", "support", true, "hero-location", "pipe-large-junction.glb", [-10.6, -17.35], 1.38, Math.PI * 0.25, {
+    createPlacement("hero:cloud-dock:cable-trunk", "hero:cloud-dock", "route", "support", true, "hero-location", "pipe-large-junction.glb", [-13.8, -23.75], 1.38, Math.PI * 0.25, {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "cloud-dock",
       heroRole: "cable-trunk"
     }),
-    createPlacement("hero:cloud-dock:service-deck", "hero:cloud-dock", "route", "support", true, "hero-location", "catwalk-straight.glb", [-7.1, -18.85], 1.86, Math.PI * 0.42, {
+    createPlacement("hero:cloud-dock:service-deck", "hero:cloud-dock", "route", "support", true, "hero-location", "catwalk-straight.glb", [-10.3, -25.25], 1.86, Math.PI * 0.42, {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "cloud-dock",
       heroRole: "service-deck"
     }),
-    createPlacement("hero:cloud-dock:ops-screen", "hero:cloud-dock", "route", "support", true, "hero-location", "screen-panel-wide.glb", [-6.45, -17.18], 1.28, -0.62, {
+    createPlacement("hero:cloud-dock:ops-screen", "hero:cloud-dock", "route", "support", true, "hero-location", "screen-panel-wide.glb", [-9.65, -23.58], 1.28, -0.62, {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "cloud-dock",
       heroRole: "ops-screen"
     }),
-    createPlacement("hero:design-atelier:mannequin-fabric-rack", "hero:design-atelier", "route", "primary", true, "hero-location", "atelier-mannequin-rack.glb", [15.15, -7.45], 2.0, Math.PI * 0.58, {
+    createPlacement("hero:design-atelier:mannequin-fabric-rack", "hero:design-atelier", "route", "primary", true, "hero-location", "atelier-mannequin-rack.glb", [20.35, -9.05], 2.0, Math.PI * 0.58, {
       assetId: "accepted-itart-signature-hero-core",
       heroLocation: "design-atelier",
       heroRole: "mannequin-fabric-rack"
     }),
-    createPlacement("hero:design-atelier:cutting-table", "hero:design-atelier", "route", "primary", true, "hero-location", "top-large-checkerboard.glb", [15.6, -7.8], 1.85, Math.PI * 0.5, {
+    createPlacement("hero:design-atelier:cutting-table", "hero:design-atelier", "route", "primary", true, "hero-location", "top-large-checkerboard.glb", [20.8, -9.4], 1.85, Math.PI * 0.5, {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "design-atelier",
       heroRole: "cutting-table"
     }),
-    createPlacement("hero:design-atelier:worktop", "hero:design-atelier", "route", "support", true, "hero-location", "top-large.glb", [14.15, -7.15], 1.5, Math.PI * 0.5, {
+    createPlacement("hero:design-atelier:worktop", "hero:design-atelier", "route", "support", true, "hero-location", "top-large.glb", [19.35, -8.75], 1.5, Math.PI * 0.5, {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "design-atelier",
       heroRole: "worktop"
     }),
-    createPlacement("hero:design-atelier:pattern-corner", "hero:design-atelier", "route", "support", true, "bridge", "path_woodCorner.glb", [16.9, -6.8], 1.3, -0.14, {
+    createPlacement("hero:design-atelier:pattern-corner", "hero:design-atelier", "route", "support", true, "bridge", "path_woodCorner.glb", [22.1, -8.4], 1.3, -0.14, {
       heroLocation: "design-atelier",
       heroRole: "pattern-corner"
     }),
-    createPlacement("hero:design-atelier:swatch-marker", "hero:design-atelier", "vegetation", "support", true, "vegetation", "flower_yellowA.glb", [17.5, -8.4], 1.2, 0.28, {
+    createPlacement("hero:design-atelier:swatch-marker", "hero:design-atelier", "vegetation", "support", true, "vegetation", "flower_yellowA.glb", [22.7, -10.0], 1.2, 0.28, {
       heroLocation: "design-atelier",
       heroRole: "swatch-marker"
     }),
-    createPlacement("hero:design-atelier:swatch-crate", "hero:design-atelier", "route", "support", true, "hero-location", "box-wide.glb", [17.95, -7.35], 1.16, 0.12, {
+    createPlacement("hero:design-atelier:swatch-crate", "hero:design-atelier", "route", "support", true, "hero-location", "box-wide.glb", [23.15, -8.95], 1.16, 0.12, {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "design-atelier",
       heroRole: "swatch-crate"
     }),
-    createPlacement("hero:design-atelier:reference-screen", "hero:design-atelier", "route", "support", true, "hero-location", "screen-flat.glb", [14.65, -8.95], 1.08, -0.7, {
+    createPlacement("hero:design-atelier:reference-screen", "hero:design-atelier", "route", "support", true, "hero-location", "screen-flat.glb", [19.85, -10.55], 1.08, -0.7, {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "design-atelier",
       heroRole: "reference-screen"
     }),
-    createPlacement("hero:observability-tower:telemetry-radar-mast", "hero:observability-tower", "route", "primary", true, "hero-location", "telemetry-radar-mast.glb", [-17.55, 7.25], 2.35, 0.16, {
+    createPlacement("hero:observability-tower:telemetry-radar-mast", "hero:observability-tower", "route", "primary", true, "hero-location", "telemetry-radar-mast.glb", [-22.95, 9.25], 2.35, 0.16, {
       assetId: "accepted-itart-signature-hero-core",
       heroLocation: "observability-tower",
       heroRole: "telemetry-radar-mast"
     }),
-    createPlacement("hero:observability-tower:signal-pylon", "hero:observability-tower", "route", "primary", true, "route-edge", "bridge-pillar.glb", [-17.4, 7.8], 2.2, 0, {
+    createPlacement("hero:observability-tower:signal-pylon", "hero:observability-tower", "route", "primary", true, "route-edge", "bridge-pillar.glb", [-22.8, 9.8], 2.2, 0, {
       heroLocation: "observability-tower",
       heroRole: "signal-pylon"
     }),
-    createPlacement("hero:observability-tower:beacon-light", "hero:observability-tower", "route", "support", true, "route-edge", "light-square.glb", [-16.2, 8.8], 1.0, 0.24, {
+    createPlacement("hero:observability-tower:beacon-light", "hero:observability-tower", "route", "support", true, "route-edge", "light-square.glb", [-21.6, 10.8], 1.0, 0.24, {
       heroLocation: "observability-tower",
       heroRole: "beacon-light"
     }),
-    createPlacement("hero:observability-tower:radar-ring", "hero:observability-tower", "route", "support", true, "road", "road-roundabout.glb", [-18.5, 6.9], 1.7, 0.2, {
+    createPlacement("hero:observability-tower:radar-ring", "hero:observability-tower", "route", "support", true, "road", "road-roundabout.glb", [-23.9, 8.9], 1.7, 0.2, {
       heroLocation: "observability-tower",
       heroRole: "radar-ring"
     }),
-    createPlacement("hero:observability-tower:screen-wall", "hero:observability-tower", "route", "primary", true, "hero-location", "screen-wide.glb", [-16.05, 7.25], 1.38, 0.44, {
+    createPlacement("hero:observability-tower:screen-wall", "hero:observability-tower", "route", "primary", true, "hero-location", "screen-wide.glb", [-21.45, 9.25], 1.38, 0.44, {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "observability-tower",
       heroRole: "screen-wall"
     }),
-    createPlacement("hero:observability-tower:trace-panel", "hero:observability-tower", "route", "support", true, "hero-location", "screen-hanging-wide.glb", [-18.95, 8.15], 1.18, -0.18, {
+    createPlacement("hero:observability-tower:trace-panel", "hero:observability-tower", "route", "support", true, "hero-location", "screen-hanging-wide.glb", [-24.35, 10.15], 1.18, -0.18, {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "observability-tower",
       heroRole: "trace-panel"
     }),
-    createPlacement("hero:observability-tower:data-pipe", "hero:observability-tower", "route", "support", true, "hero-location", "pipe-glass-large-long.glb", [-17.85, 5.75], 1.42, Math.PI * 0.5, {
+    createPlacement("hero:observability-tower:data-pipe", "hero:observability-tower", "route", "support", true, "hero-location", "pipe-glass-large-long.glb", [-23.25, 7.75], 1.42, Math.PI * 0.5, {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "observability-tower",
       heroRole: "data-pipe"
     }),
-    createPlacement("hero:observability-tower:service-platform", "hero:observability-tower", "route", "support", true, "hero-location", "catwalk-corner.glb", [-19.35, 6.35], 1.5, 0.2, {
+    createPlacement("hero:observability-tower:service-platform", "hero:observability-tower", "route", "support", true, "hero-location", "catwalk-corner.glb", [-24.75, 8.35], 1.5, 0.2, {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "observability-tower",
       heroRole: "service-platform"

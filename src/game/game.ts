@@ -1890,7 +1890,7 @@ class StudioGame {
         roughness: 0.92,
         metalness: 0.02,
         transparent: true,
-        opacity: Math.min(0.18, opacity + 0.035),
+        opacity: Math.min(0.135, opacity + 0.02),
         depthWrite: false
       })
     );

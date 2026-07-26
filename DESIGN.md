@@ -1170,6 +1170,21 @@ Gates V8.10:
 - les prochains remplacements premium devront partir de ces silhouettes comme
   briefs Blender: rack serveur plus riche, mannequin drape, mat radar anime.
 
+Gates V8.11:
+
+- la carte jouable passe de `56x56` a `68x68`, avec zones, routes, eau,
+  rampes, relief et vegetation redeployes pour creer de vrais trajets et des
+  respirations peripheriques;
+- les trois clusters GLB hero-location restent attaches a leurs nouveaux lieux:
+  `Cloud Dock` au sud-ouest tech, `Design Atelier` a l'est art et
+  `Observability Tower` au nord-ouest tech;
+- `real-drive-whole-map-freedom` cible maintenant les bandes interieures
+  `+-29.4`, et `external-asset-map-composition` doit prouver une couverture GLB
+  d'au moins `56x56`;
+- cette tranche garde le gameplay comme support: la preuve principale est une
+  map plus grande, plus lisible, avec assets et surfaces materialises sans
+  obstacle invisible.
+
 ## Components
 
 - `game-site`: surface principale.

@@ -150,7 +150,7 @@ The runner:
   promotion candidates, bounded cluster density, measured bounding-box ground
   clearance, no coplanar placement risk, visible screen-space role rectangles
   for route/water/relief/vegetation, and a wide non-flat canvas proof covering
-  at least a `42x42` map vocabulary footprint.
+  at least a `56x56` map vocabulary footprint.
 - The same opt-in map layer must also prove the first hero-location GLB
   composition pass: `cloud-dock`, `design-atelier`, and
   `observability-tower` each need at least three runtime placements, three
