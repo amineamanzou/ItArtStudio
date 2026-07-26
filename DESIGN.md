@@ -225,12 +225,14 @@ Gates V2.0:
 - tour clavier reel via `keyboard.down/up` sur `ai-lab`,
   `observability-tower`, `design-atelier` et `contact-portal`;
 - telemetrie de conduite exposee dans `drive`: distance totale, samples de
-  position, vitesse moyenne, rotation cumulee et distance camera;
+  position, vitesse moyenne, rotation cumulee, distance camera, vitesse
+  avant/laterale, angle de drift, acceleration et samples hors route;
 - telemetrie d'input exposee dans `input`: touches actives, compteurs
   `keydown`/`keyup`, dernier code clavier et appels au hook deterministe;
-- rejet QA si la route ressemble a un teleport: trop peu de frames, distance
-  insuffisante, saut d'echantillon trop grand, trail trop faible ou camera hors
-  budget.
+- rejet QA si la route ressemble a un teleport, si le rover tourne sur place
+  comme comportement principal, si le drift n'est pas mesurable, si la distance
+  est insuffisante, si un saut d'echantillon est trop grand, si le trail est trop
+  faible ou si la camera sort du budget.
 
 Gates V2.1:
 
@@ -281,14 +283,16 @@ Gates V2.5:
 
 - surface de conduite derivee des routes visuelles `worldRoutes`, avec disques
   de liberte autour des zones;
-- friction et magnetisme doux hors route pour donner au rover une sensation de
-  conduite guidee sans le mettre sur rails;
+- absence de magnetisme hors route: le rover peut quitter les routes et rouler
+  sur la carte sans snap-back ni obstacle invisible, avec seulement la limite
+  lisible du monde;
 - telemetrie `drive.surface`: samples, ratio d'adherence, distance max hors
   route, routes visitees et largeur de route;
 - tour clavier reel par waypoints de graphe, pas seulement par diagonales vers
   les coordonnees de zones;
-- rejet QA si la conduite ne couvre pas les routes attendues, sort trop souvent
-  du graphe ou manque de continuite camera/trail.
+- rejet QA si la conduite ne couvre pas les routes attendues, reste collee au
+  graphe, ne prouve pas l'exploration libre, ou manque de continuite
+  camera/trail.
 
 Gates V2.8:
 

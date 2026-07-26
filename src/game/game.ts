@@ -25,12 +25,16 @@ const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 const searchParams = new URLSearchParams(window.location.search);
 const qaMode = searchParams.has("qa");
 const realKeyboardQaMode = searchParams.has("realKeys");
-const playerSpeed = qaMode ? 15.5 : 7.4;
-const playerAcceleration = qaMode ? 46 : 18;
-const playerDrag = qaMode ? 8.4 : 4.1;
-const playerTurnSpeed = qaMode ? 3.6 : 3;
-const worldSoftBoundary = 13.4;
-const worldHardBoundary = 16.2;
+const playerMaxForwardSpeed = qaMode ? 12.8 : 9.2;
+const playerMaxReverseSpeed = qaMode ? 6.4 : 4.2;
+const playerAcceleration = qaMode ? 38 : 20;
+const playerBrakeAcceleration = qaMode ? 58 : 28;
+const playerRollingDrag = qaMode ? 1.9 : 1.35;
+const playerLateralGrip = qaMode ? 4.6 : 4.2;
+const playerDriftGrip = qaMode ? 1.45 : 1.75;
+const playerTurnSpeed = qaMode ? 4.15 : 2.65;
+const playerSteerReferenceSpeed = qaMode ? 6.4 : 6.2;
+const worldHalfExtent = mapRange / 2;
 
 const colors: Record<ZoneKind | "ground" | "road" | "ink", number> = {
   tech: 0x17d2ff,
@@ -129,6 +133,13 @@ type DriveDynamicsQa = {
   lastAcceleration: number;
   peakAcceleration: number;
   averageAcceleration: number;
+  forwardSpeed: number;
+  lateralSpeed: number;
+  driftAngle: number;
+  steeringInput: number;
+  throttleInput: number;
+  offRouteSamples: number;
+  freeRoamRatio: number;
   movingSamples: number;
   inputSamples: number;
   coastingSamples: number;
@@ -147,6 +158,13 @@ type DrivePhysicsSampleQa = {
   speed: number;
   acceleration: number;
   turnRate: number;
+  forwardSpeed: number;
+  lateralSpeed: number;
+  driftAngle: number;
+  steeringInput: number;
+  throttleInput: number;
+  onRoute: boolean;
+  routeDistance: number;
   hasInput: boolean;
 };
 type ScreenRectQa = {
@@ -533,10 +551,16 @@ class StudioGame {
   private driveMovingSamples = 0;
   private driveInputSamples = 0;
   private driveCoastingSamples = 0;
+  private driveOffRouteSamples = 0;
   private lastDriveTurnRate = 0;
   private peakDriveTurnRate = 0;
   private totalDriveTurnRate = 0;
   private driveTurnSamples = 0;
+  private currentForwardSpeed = 0;
+  private currentLateralSpeed = 0;
+  private currentDriftAngle = 0;
+  private currentSteeringInput = 0;
+  private currentThrottleInput = 0;
   private readonly drivePositionSamples: Array<{ frame: number; x: number; z: number }> = [];
   private readonly drivePhysicsSamples: DrivePhysicsSampleQa[] = [];
   private keyboardDownCount = 0;
@@ -632,6 +656,13 @@ class StudioGame {
         lastAcceleration: 0,
         peakAcceleration: 0,
         averageAcceleration: 0,
+        forwardSpeed: 0,
+        lateralSpeed: 0,
+        driftAngle: 0,
+        steeringInput: 0,
+        throttleInput: 0,
+        offRouteSamples: 0,
+        freeRoamRatio: 0,
         movingSamples: 0,
         inputSamples: 0,
         coastingSamples: 0,
@@ -1683,7 +1714,14 @@ class StudioGame {
         wheel.rotation.x += travel.length() * 3.8;
       }
     }
-    this.recordDriveTelemetry(travel, 0.08, previousRotationY, true);
+    this.recordDriveTelemetry(
+      travel,
+      0.08,
+      previousRotationY,
+      true,
+      direction === "up" ? 1 : direction === "down" ? -1 : 0,
+      direction === "right" ? 1 : direction === "left" ? -1 : 0
+    );
     this.emitTrail(previousPosition, travel);
     this.updateTrail(0.08);
     this.updateActiveZone();
@@ -1718,6 +1756,9 @@ class StudioGame {
     this.lastDriveAcceleration = 0;
     this.lastDriveTurnRate = 0;
     this.targetPosition.set(zone.position[0], 0.28, zone.position[1]);
+    this.playerPosition.copy(this.targetPosition);
+    this.player.position.copy(this.playerPosition);
+    this.updateMiniMap();
     this.updatePanel(zone);
   }
 
@@ -1777,32 +1818,52 @@ class StudioGame {
 
     const previousPosition = this.playerPosition.clone();
     const previousRotationY = this.player.rotation.y;
-    let allowRoutePull = false;
     let guidedMove = false;
+    const hasManualInput = throttle !== 0 || turn !== 0;
 
-    if (turn !== 0) {
-      const reverseTurnFactor = throttle < 0 ? -0.62 : 1;
-      this.player.rotation.y += turn * playerTurnSpeed * reverseTurnFactor * delta;
-      this.normalizePlayerRotation();
-    }
+    if (hasManualInput || this.playerVelocity.lengthSq() > 0.0001) {
+      const forward = this.forwardVector();
+      const right = new THREE.Vector3(forward.z, 0, -forward.x).normalize();
+      let forwardSpeed = this.playerVelocity.dot(forward);
+      let lateralSpeed = this.playerVelocity.dot(right);
 
-    if (throttle !== 0) {
-      allowRoutePull = true;
-      const direction = this.forwardVector().multiplyScalar(throttle);
-      const proposedPosition = this.playerPosition.clone().add(direction.clone().multiplyScalar(delta * playerSpeed));
-      const proposedSurface = sampleDriveSurface(proposedPosition);
-      const speedMultiplier = proposedSurface.onRoute ? 1 : 0.62;
-      const desiredVelocity = direction.multiplyScalar(playerSpeed * speedMultiplier);
-      const velocityDelta = desiredVelocity.sub(this.playerVelocity);
-      const maxVelocityChange = playerAcceleration * delta;
-      if (velocityDelta.length() > maxVelocityChange) {
-        velocityDelta.setLength(maxVelocityChange);
+      if (throttle > 0) {
+        forwardSpeed += playerAcceleration * delta;
+      } else if (throttle < 0) {
+        const braking = forwardSpeed > 0.25 ? playerBrakeAcceleration : playerAcceleration * 0.72;
+        forwardSpeed -= braking * delta;
       }
-      this.playerVelocity.add(velocityDelta);
+
+      forwardSpeed = clamp(forwardSpeed, -playerMaxReverseSpeed, playerMaxForwardSpeed);
+
+      const speedForSteering = Math.abs(forwardSpeed) + Math.abs(lateralSpeed) * 0.35;
+      const steerAuthority = clamp(speedForSteering / playerSteerReferenceSpeed, 0, 1);
+      if (turn !== 0 && steerAuthority > 0.02) {
+        const reverseSteer = forwardSpeed < -0.2 ? -0.68 : 1;
+        const slipBoost = clamp(Math.abs(lateralSpeed) / Math.max(1, Math.abs(forwardSpeed)), 0, 1) * 0.26;
+        this.player.rotation.y += turn * playerTurnSpeed * steerAuthority * reverseSteer * (1 + slipBoost) * delta;
+        this.normalizePlayerRotation();
+      }
+
+      const grip = turn !== 0 && Math.abs(forwardSpeed) > 1.1 ? playerDriftGrip : playerLateralGrip;
+      lateralSpeed *= Math.exp(-grip * delta);
+      if (turn !== 0 && Math.abs(forwardSpeed) > 2.2) {
+        lateralSpeed += turn * Math.abs(forwardSpeed) * 0.72 * delta;
+      }
+
+      const rollingDrag = Math.exp(-playerRollingDrag * delta);
+      if (throttle === 0) {
+        forwardSpeed *= rollingDrag;
+      }
+      if (Math.abs(forwardSpeed) < 0.025) {
+        forwardSpeed = 0;
+      }
+      if (Math.abs(lateralSpeed) < 0.025) {
+        lateralSpeed = 0;
+      }
+
+      this.playerVelocity.copy(forward.multiplyScalar(forwardSpeed).add(right.multiplyScalar(lateralSpeed)));
       this.playerPosition.add(this.playerVelocity.clone().multiplyScalar(delta));
-      if (!proposedSurface.onRoute) {
-        this.pullPlayerTowardRoute(proposedSurface, delta);
-      }
       this.targetPosition.copy(this.playerPosition);
     } else if (this.playerPosition.distanceToSquared(this.targetPosition) > 0.04) {
       guidedMove = true;
@@ -1811,20 +1872,6 @@ class StudioGame {
       if (this.playerPosition.distanceToSquared(this.targetPosition) <= 0.04) {
         this.playerPosition.copy(this.targetPosition);
       }
-    } else if (this.playerVelocity.lengthSq() > 0.0001) {
-      this.playerVelocity.multiplyScalar(Math.exp(-playerDrag * delta));
-      if (this.playerVelocity.lengthSq() < 0.0025) {
-        this.playerVelocity.set(0, 0, 0);
-      }
-      this.playerPosition.add(this.playerVelocity.clone().multiplyScalar(delta));
-      this.targetPosition.copy(this.playerPosition);
-      allowRoutePull = true;
-    }
-
-    const settledSurface = sampleDriveSurface(this.playerPosition);
-    if (allowRoutePull && !settledSurface.onRoute) {
-      this.pullPlayerTowardRoute(settledSurface, delta);
-      this.targetPosition.copy(this.playerPosition);
     }
 
     this.applyWorldBoundary(delta);
@@ -1844,7 +1891,7 @@ class StudioGame {
       }
     }
     if (!guidedMove) {
-      this.recordDriveTelemetry(travel, delta, previousRotationY, throttle !== 0 || turn !== 0);
+      this.recordDriveTelemetry(travel, delta, previousRotationY, hasManualInput, throttle, turn);
     }
     this.updateTrail(delta);
   }
@@ -1857,44 +1904,47 @@ class StudioGame {
     this.player.rotation.y = angleDelta(0, this.player.rotation.y);
   }
 
-  private applyWorldBoundary(delta: number) {
-    const horizontal = new THREE.Vector2(this.playerPosition.x, this.playerPosition.z);
-    const distance = horizontal.length();
-    if (distance <= worldSoftBoundary) {
-      return;
-    }
+  private applyWorldBoundary(_delta: number) {
+    const beforeX = this.playerPosition.x;
+    const beforeZ = this.playerPosition.z;
+    this.playerPosition.x = clamp(this.playerPosition.x, -worldHalfExtent, worldHalfExtent);
+    this.playerPosition.z = clamp(this.playerPosition.z, -worldHalfExtent, worldHalfExtent);
 
-    const inward = new THREE.Vector3(-horizontal.x, 0, -horizontal.y).normalize();
-    const overflow = distance - worldSoftBoundary;
-    this.playerVelocity.addScaledVector(inward, Math.min(playerSpeed, overflow * 2.4) * delta);
-    if (distance > worldHardBoundary) {
-      horizontal.setLength(worldHardBoundary);
-      this.playerPosition.x = horizontal.x;
-      this.playerPosition.z = horizontal.y;
-      this.playerVelocity.multiplyScalar(0.24);
+    if (this.playerPosition.x !== beforeX && Math.sign(this.playerVelocity.x) === Math.sign(beforeX - this.playerPosition.x)) {
+      this.playerVelocity.x *= -0.18;
+    }
+    if (this.playerPosition.z !== beforeZ && Math.sign(this.playerVelocity.z) === Math.sign(beforeZ - this.playerPosition.z)) {
+      this.playerVelocity.z *= -0.18;
     }
   }
 
-  private pullPlayerTowardRoute(surface: ReturnType<typeof sampleDriveSurface>, delta: number) {
-    const correction = new THREE.Vector3(surface.nearest.x - this.playerPosition.x, 0, surface.nearest.z - this.playerPosition.z);
-    const distance = correction.length();
-    if (distance <= 0.001) {
-      return;
-    }
-
-    correction.setLength(Math.min(distance, playerSpeed * delta * 0.28));
-    this.playerPosition.add(correction);
-  }
-
-  private recordDriveTelemetry(travel: THREE.Vector3, delta: number, previousRotationY: number, hasInput = false) {
+  private recordDriveTelemetry(
+    travel: THREE.Vector3,
+    delta: number,
+    previousRotationY: number,
+    hasInput = false,
+    throttleInput = 0,
+    steeringInput = 0
+  ) {
     const distance = travel.length();
     if (distance <= 0.001) {
       return;
     }
 
+    const forward = this.forwardVector();
+    const right = new THREE.Vector3(forward.z, 0, -forward.x).normalize();
     const speed = this.playerVelocity.length();
+    const forwardSpeed = this.playerVelocity.dot(forward);
+    const lateralSpeed = this.playerVelocity.dot(right);
+    const driftAngle = speed > 0.01 ? Math.atan2(Math.abs(lateralSpeed), Math.max(0.001, Math.abs(forwardSpeed))) : 0;
+    const surface = sampleDriveSurface(this.playerPosition);
     const acceleration = delta > 0 ? Math.abs(speed - this.lastDriveSpeed) / delta : 0;
     const turnDelta = Math.abs(angleDelta(previousRotationY, this.player.rotation.y));
+    this.currentForwardSpeed = forwardSpeed;
+    this.currentLateralSpeed = lateralSpeed;
+    this.currentDriftAngle = driftAngle;
+    this.currentSteeringInput = steeringInput;
+    this.currentThrottleInput = throttleInput;
     this.totalDriveDistance += distance;
     this.driveElapsedTime += delta;
     this.totalRotationChange += turnDelta;
@@ -1907,6 +1957,7 @@ class StudioGame {
     this.driveMovingSamples += speed > 0.2 ? 1 : 0;
     this.driveInputSamples += hasInput ? 1 : 0;
     this.driveCoastingSamples += !hasInput && speed > 0.2 ? 1 : 0;
+    this.driveOffRouteSamples += surface.onRoute ? 0 : 1;
     this.lastDriveTurnRate = delta > 0 ? turnDelta / delta : 0;
     this.peakDriveTurnRate = Math.max(this.peakDriveTurnRate, this.lastDriveTurnRate);
     this.totalDriveTurnRate += this.lastDriveTurnRate;
@@ -1922,12 +1973,19 @@ class StudioGame {
       speed: Number(speed.toFixed(3)),
       acceleration: Number(acceleration.toFixed(3)),
       turnRate: Number(this.lastDriveTurnRate.toFixed(3)),
+      forwardSpeed: Number(forwardSpeed.toFixed(3)),
+      lateralSpeed: Number(lateralSpeed.toFixed(3)),
+      driftAngle: Number(driftAngle.toFixed(3)),
+      steeringInput,
+      throttleInput,
+      onRoute: surface.onRoute,
+      routeDistance: surface.distance,
       hasInput
     });
-    if (this.drivePhysicsSamples.length > 220) {
+    if (this.drivePhysicsSamples.length > 720) {
       this.drivePhysicsSamples.shift();
     }
-    this.driveSurfaceTelemetry = recordDriveSurfaceSample(this.driveSurfaceTelemetry, sampleDriveSurface(this.playerPosition));
+    this.driveSurfaceTelemetry = recordDriveSurfaceSample(this.driveSurfaceTelemetry, surface);
     this.drivePositionSamples.push({
       frame: this.frameCount,
       x: Number(this.playerPosition.x.toFixed(3)),
@@ -2520,6 +2578,13 @@ class StudioGame {
         averageAcceleration: Number(
           (this.driveDynamicsSamples > 0 ? this.totalDriveAcceleration / this.driveDynamicsSamples : 0).toFixed(3)
         ),
+        forwardSpeed: Number(this.currentForwardSpeed.toFixed(3)),
+        lateralSpeed: Number(this.currentLateralSpeed.toFixed(3)),
+        driftAngle: Number(this.currentDriftAngle.toFixed(3)),
+        steeringInput: this.currentSteeringInput,
+        throttleInput: this.currentThrottleInput,
+        offRouteSamples: this.driveOffRouteSamples,
+        freeRoamRatio: Number((this.driveDynamicsSamples > 0 ? this.driveOffRouteSamples / this.driveDynamicsSamples : 0).toFixed(3)),
         movingSamples: this.driveMovingSamples,
         inputSamples: this.driveInputSamples,
         coastingSamples: this.driveCoastingSamples,

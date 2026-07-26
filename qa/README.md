@@ -281,12 +281,19 @@ The runner:
   sparks, nine visible feedback objects, max opacity >= 0.12, and max scale >=
   1.06 in the short activation window.
 - Real keyboard tour must run without `window.__IT_ART_STUDIO_QA_STEP__`, visit
-  `ai-lab`, `observability-tower`, `design-atelier`, and `contact-portal`, span
-  at least 40 rendered frames and 26 world units, cover both axes, rotate the
-  player, leave visible trail marks, keep camera distance in budget, and avoid
-  single-sample jumps larger than the physical threshold. Input telemetry must
-  show balanced real keydown/keyup events, no active keys left behind, and no
-  deterministic hook calls during the route.
+  `ai-lab`, `observability-tower`, `design-atelier`, and `contact-portal`, and
+  only count zone destinations as reached once the zone is truly active. It must
+  span at least 40 rendered frames and 26 world units, cover both axes, rotate
+  the player while moving, leave visible trail marks, keep camera distance in
+  budget, and avoid single-sample jumps larger than the physical threshold.
+  Input telemetry must show balanced real keydown/keyup events, no active keys
+  left behind, and no deterministic hook calls during the route.
+- Real keyboard physics must prove acceleration, braking/drag, bounded turn
+  rate, lateral slip, and measurable drift without allowing stationary spin as
+  the primary turning behavior.
+- Real keyboard free-roam must drive to an off-route field, prove the rover can
+  leave the route graph, and still keep the player visible without snap-back or
+  invisible obstacle behavior.
 - Camera safe-area checks must prove that the projected rover stays visible
   throughout sampled real keyboard driving, that each reached active zone is
   visible at stabilized checkpoints and not under fixed UI surfaces, and that

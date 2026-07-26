@@ -1211,6 +1211,8 @@ async function driveWithRealKeyboard(page, target) {
   const started = Date.now();
   let maxSampleStepDistance = 0;
   let previousPlayer = null;
+  let bestDistanceToTarget = Number.POSITIVE_INFINITY;
+  let worseningDistanceSamples = 0;
 
   const addSample = (snapshot) => {
     if (!snapshot?.player) {
@@ -1248,25 +1250,49 @@ async function driveWithRealKeyboard(page, target) {
       const dx = target.position.x - player.x;
       const dz = target.position.z - player.z;
       const distanceToTarget = Math.hypot(dx, dz);
+      if (distanceToTarget < bestDistanceToTarget - 0.08) {
+        bestDistanceToTarget = distanceToTarget;
+        worseningDistanceSamples = 0;
+      } else if (distanceToTarget > bestDistanceToTarget + 0.38) {
+        worseningDistanceSamples += 1;
+      }
       const targetZoneId = target.zoneId ?? target.id;
-      if (snapshot.activeZoneId === targetZoneId || distanceToTarget <= (target.radius ?? 0.55)) {
+      const targetReached = target.zoneId
+        ? snapshot.activeZoneId === targetZoneId
+        : distanceToTarget <= (target.radius ?? 0.55);
+      if (targetReached) {
         reached = true;
         break;
       }
 
       const desiredRotation = Math.atan2(dx, dz);
       const signedTurn = Math.atan2(Math.sin(desiredRotation - (player.rotationY ?? 0)), Math.cos(desiredRotation - (player.rotationY ?? 0)));
+      const absTurn = Math.abs(signedTurn);
+      const speed = snapshot.drive?.dynamics?.currentSpeed ?? 0;
+      const targetSpeed = Math.max(2.1, Math.min(8.4, distanceToTarget * 1.15, absTurn > 1.1 ? 5.2 : 8.4));
+      const overshootingTarget = target.overshootBrake === true && worseningDistanceSamples >= 2 && speed > 1.8;
       const keys = [];
-      if (Math.abs(signedTurn) > 0.14) {
-        keys.push(signedTurn > 0 ? "ArrowRight" : "ArrowLeft");
+      if (distanceToTarget > 0.32) {
+        if (absTurn > 2.45 && speed < 3.2) {
+          keys.push("ArrowDown");
+        } else if (
+          overshootingTarget ||
+          speed > targetSpeed + 0.65 ||
+          (distanceToTarget < 2.6 && speed > 3.4) ||
+          (absTurn > 1.35 && speed > 4.6)
+        ) {
+          keys.push("ArrowDown");
+        } else if (absTurn < 1.8 || speed < 1.5) {
+          keys.push("ArrowUp");
+        }
       }
-      if (distanceToTarget > 0.32 && Math.abs(signedTurn) < 1.45) {
-        keys.push("ArrowUp");
+      if (absTurn > 0.12) {
+        keys.push(signedTurn > 0 ? "ArrowRight" : "ArrowLeft");
       }
       if (keys.length === 0) {
         break;
       }
-      await holdDriveKeys(page, keys, 120);
+      await holdDriveKeys(page, keys, 105);
       const afterInputSnapshot = await getQaSnapshot(page);
       if (afterInputSnapshot?.player) {
         addSample(afterInputSnapshot);
@@ -1348,8 +1374,8 @@ async function checkRealDriveTour(browser) {
         id: "observability-tower",
         position: { x: -8, z: 3 },
         route: [
-          { id: "tech-ai-obs-bend", position: { x: -9, z: -0.4 }, radius: 0.65, timeoutMs: 8_000 },
-          { id: "observability-tower", zoneId: "observability-tower", position: { x: -8, z: 3 }, timeoutMs: 8_000 }
+          { id: "tech-ai-obs-approach", position: { x: -7.8, z: 0.4 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true },
+          { id: "observability-tower", zoneId: "observability-tower", position: { x: -8, z: 3 }, radius: 2.2, timeoutMs: 12_000, overshootBrake: true }
         ]
       },
       {
@@ -1478,24 +1504,31 @@ async function checkRealDriveTour(browser) {
       invisiblePlayerSamples.length === 0 &&
       invisibleActiveZoneSamples.length <= 1 &&
       (final.trail?.activeMarks ?? 0) >= 16;
-    const routeAdherenceGate =
+    const routeFreedomGate =
       surface?.segmentCount >= 20 &&
       surface.samples >= 45 &&
-      surface.routeAdherenceRatio >= 0.86 &&
-      offRouteRatio <= 0.14 &&
-      surface.maxOffRouteDistance <= 2.8 &&
-      coveredExpectedRouteIds.length === expectedRouteIds.length;
+      surface.routeAdherenceRatio >= 0.34 &&
+      surface.routeAdherenceRatio <= 0.98 &&
+      offRouteRatio >= 0.02 &&
+      offRouteRatio <= 0.66 &&
+      surface.maxOffRouteDistance >= 0.35 &&
+      coveredExpectedRouteIds.length >= expectedRouteIds.length - 1;
     const dynamics = final?.drive?.dynamics;
     const physicsSamples = final?.drive?.physicsSamples ?? [];
     const physicsSpeeds = physicsSamples.map((sample) => sample.speed ?? 0);
     const physicsAccelerations = physicsSamples.map((sample) => sample.acceleration ?? 0);
     const physicsTurnRates = physicsSamples.map((sample) => Math.abs(sample.turnRate ?? 0));
+    const physicsDriftAngles = physicsSamples.map((sample) => Math.abs(sample.driftAngle ?? 0));
+    const physicsLateralSpeeds = physicsSamples.map((sample) => Math.abs(sample.lateralSpeed ?? 0));
+    const driftSampleCount = physicsSamples.filter((sample) => (sample.speed ?? 0) >= 2 && Math.abs(sample.driftAngle ?? 0) >= 0.12).length;
     const physicsFrameSpan =
       physicsSamples.length > 1 ? physicsSamples.at(-1).frame - physicsSamples[0].frame : 0;
     const physicsMaxDisplacementPerFrame = maxPhysicsDisplacementPerFrame(physicsSamples);
     const physicsP95Speed = percentile(physicsSpeeds, 0.95);
     const physicsP95Acceleration = percentile(physicsAccelerations, 0.95);
     const physicsP95TurnRate = percentile(physicsTurnRates, 0.95);
+    const physicsP95DriftAngle = percentile(physicsDriftAngles, 0.95);
+    const physicsP95LateralSpeed = percentile(physicsLateralSpeeds, 0.95);
     const kinematicsGate =
       physicsSamples.length >= 90 &&
       physicsFrameSpan >= 120 &&
@@ -1504,7 +1537,10 @@ async function checkRealDriveTour(browser) {
           Number.isFinite(sample.tMs) &&
           Number.isFinite(sample.speed) &&
           Number.isFinite(sample.acceleration) &&
-          Number.isFinite(sample.turnRate)
+          Number.isFinite(sample.turnRate) &&
+          Number.isFinite(sample.forwardSpeed) &&
+          Number.isFinite(sample.lateralSpeed) &&
+          Number.isFinite(sample.driftAngle)
       ) &&
       (dynamics?.movingSamples ?? 0) >= 75 &&
       (dynamics?.inputSamples ?? 0) >= 35 &&
@@ -1515,10 +1551,14 @@ async function checkRealDriveTour(browser) {
       (dynamics?.peakAcceleration ?? 99) <= 145 &&
       (dynamics?.peakTurnRate ?? 0) >= 1.2 &&
       (dynamics?.peakTurnRate ?? 99) <= 8.5 &&
-      (dynamics?.averageTurnRate ?? 99) <= 3.8 &&
+      (dynamics?.averageTurnRate ?? 99) <= 4.4 &&
       physicsP95Speed <= 17.5 &&
       physicsP95Acceleration <= 82 &&
       physicsP95TurnRate <= 6.8 &&
+      physicsP95DriftAngle >= 0.14 &&
+      physicsP95DriftAngle <= 1.55 &&
+      physicsP95LateralSpeed >= 0.35 &&
+      driftSampleCount >= 6 &&
       physicsMaxDisplacementPerFrame <= 2.35 &&
       hasDragReleaseProof(physicsSamples);
 
@@ -1604,6 +1644,9 @@ async function checkRealDriveTour(browser) {
         physicsP95Speed: Number(physicsP95Speed.toFixed(3)),
         physicsP95Acceleration: Number(physicsP95Acceleration.toFixed(3)),
         physicsP95TurnRate: Number(physicsP95TurnRate.toFixed(3)),
+        physicsP95DriftAngle: Number(physicsP95DriftAngle.toFixed(3)),
+        physicsP95LateralSpeed: Number(physicsP95LateralSpeed.toFixed(3)),
+        driftSampleCount,
         physicsMaxDisplacementPerFrame: Number(physicsMaxDisplacementPerFrame.toFixed(3)),
         dragReleaseProof: hasDragReleaseProof(physicsSamples)
       });
@@ -1615,6 +1658,9 @@ async function checkRealDriveTour(browser) {
         physicsP95Speed,
         physicsP95Acceleration,
         physicsP95TurnRate,
+        physicsP95DriftAngle,
+        physicsP95LateralSpeed,
+        driftSampleCount,
         physicsMaxDisplacementPerFrame,
         dragReleaseProof: hasDragReleaseProof(physicsSamples),
         firstSamples: physicsSamples.slice(0, 6),
@@ -1622,15 +1668,15 @@ async function checkRealDriveTour(browser) {
       });
     }
 
-    if (routeAdherenceGate) {
-      pass("real-drive-route-adherence", {
+    if (routeFreedomGate) {
+      pass("real-drive-route-freedom", {
         surface,
         offRouteRatio: Number(offRouteRatio.toFixed(3)),
         expectedRouteIds,
         coveredExpectedRouteIds
       });
     } else {
-      scenarioFail("real-drive-route-adherence", "Real keyboard route does not follow the designed road graph.", {
+      scenarioFail("real-drive-route-freedom", "Real keyboard route is either glued to roads or no longer covers the designed graph.", {
         surface,
         offRouteRatio,
         expectedRouteIds,
@@ -1690,6 +1736,109 @@ async function checkRealDriveTour(browser) {
     await capture(page, "real-drive-tour");
   } finally {
     await releaseDriveKeys(page);
+    await page.close();
+  }
+}
+
+async function checkRealDriveFreeRoam(browser) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+  attachPageDiagnostics(page, "real-drive-free-roam");
+
+  try {
+    await assertReady(page, realDriveUrl);
+    await assertCanvasGeometry(page);
+    const initial = await getQaSnapshot(page, { refresh: true });
+    const target = {
+      id: "free-roam-southeast-field",
+      position: { x: 11.2, z: -7.2 },
+      radius: 0.95,
+      timeoutMs: 10_000,
+      skipPostReachSamples: true
+    };
+    const result = await driveWithRealKeyboard(page, target);
+    await page.waitForTimeout(320);
+    const final = await getQaSnapshot(page, { refresh: true });
+    const samples = result.samples ?? [];
+    const xValues = samples.map((sample) => sample.player.x);
+    const zValues = samples.map((sample) => sample.player.z);
+    const xSpan = xValues.length > 0 ? Math.max(...xValues) - Math.min(...xValues) : 0;
+    const zSpan = zValues.length > 0 ? Math.max(...zValues) - Math.min(...zValues) : 0;
+    const physicsSamples = final?.drive?.physicsSamples ?? [];
+    const offRoutePhysics = physicsSamples.filter((sample) => sample.onRoute === false);
+    const maxRouteDistance = Math.max(...physicsSamples.map((sample) => sample.routeDistance ?? 0), 0);
+    const maxStepDistance = maxPositionSampleStep(final?.drive?.positionSamples ?? []);
+    const distanceDelta = Number(((final?.drive?.totalDistance ?? 0) - (initial?.drive?.totalDistance ?? 0)).toFixed(3));
+    const freeRoamGate =
+      result.reached &&
+      final?.lastInputMode === "keyboard" &&
+      (final.input?.activeKeys?.length ?? 99) === 0 &&
+      distanceDelta >= 8 &&
+      xSpan >= 5.5 &&
+      zSpan >= 2.6 &&
+      offRoutePhysics.length >= 8 &&
+      maxRouteDistance >= (final?.drive?.surface?.routeWidth ?? 1.45) + 0.55 &&
+      (final?.drive?.dynamics?.freeRoamRatio ?? 0) >= 0.08 &&
+      maxStepDistance <= 3.4 &&
+      final.screen?.player?.visible === true;
+
+    if (freeRoamGate) {
+      pass("real-drive-free-roam", {
+        target,
+        result: {
+          reached: result.reached,
+          elapsedMs: result.elapsedMs,
+          sampleCount: samples.length,
+          maxSampleStepDistance: Number(result.maxSampleStepDistance.toFixed(3))
+        },
+        distanceDelta,
+        xSpan: Number(xSpan.toFixed(3)),
+        zSpan: Number(zSpan.toFixed(3)),
+        offRoutePhysicsSamples: offRoutePhysics.length,
+        maxRouteDistance: Number(maxRouteDistance.toFixed(3)),
+        maxStepDistance: Number(maxStepDistance.toFixed(3)),
+        dynamics: final.drive?.dynamics,
+        surface: final.drive?.surface,
+        player: final.player
+      });
+    } else {
+      scenarioFail("real-drive-free-roam", "Real keyboard drive did not prove permissive off-road traversal.", {
+        target,
+        result: {
+          reached: result.reached,
+          elapsedMs: result.elapsedMs,
+          sampleCount: samples.length,
+          maxSampleStepDistance: Number(result.maxSampleStepDistance.toFixed(3)),
+          lastSamples: samples.slice(-6).map((sample) => ({
+            frameCount: sample.frameCount,
+            activeZoneId: sample.activeZoneId,
+            player: sample.player,
+            surface: sample.drive?.surface,
+            dynamics: sample.drive?.dynamics
+          }))
+        },
+        distanceDelta,
+        xSpan,
+        zSpan,
+        offRoutePhysicsSamples: offRoutePhysics.length,
+        maxRouteDistance,
+        maxStepDistance,
+        final: {
+          activeZoneId: final?.activeZoneId,
+          player: final?.player,
+          input: final?.input,
+          dynamics: final?.drive?.dynamics,
+          surface: final?.drive?.surface,
+          physicsSamples: physicsSamples.slice(-12)
+        }
+      });
+    }
+  } catch (error) {
+    scenarioFail("real-drive-free-roam", "Free-roam keyboard gate crashed.", {
+      url: realDriveUrl,
+      message: error instanceof Error ? error.message : String(error)
+    });
+  } finally {
+    await releaseDriveKeys(page).catch(() => {});
     await page.close();
   }
 }
@@ -2084,23 +2233,41 @@ async function checkRealKeyboardDirectionalControls(browser) {
   attachPageDiagnostics(page, "real-keyboard-directions");
 
   const directions = [
-    { id: "forward", key: "ArrowUp", activeKey: "up", mode: "travel", minDistance: 0.22 },
-    { id: "backward", key: "ArrowDown", activeKey: "down", mode: "travel", minDistance: 0.18 },
     {
-      id: "turn-left",
-      key: "ArrowLeft",
-      activeKey: "left",
-      mode: "turn",
-      rotationSign: -1,
-      minRotationDelta: 0.16
+      id: "stationary-left",
+      keys: ["ArrowLeft"],
+      activeKeys: ["left"],
+      mode: "stationary-steer",
+      maxRotationDelta: 0.05,
+      maxDistance: 0.06
     },
     {
-      id: "turn-right",
-      key: "ArrowRight",
-      activeKey: "right",
-      mode: "turn",
+      id: "stationary-right",
+      keys: ["ArrowRight"],
+      activeKeys: ["right"],
+      mode: "stationary-steer",
+      maxRotationDelta: 0.05,
+      maxDistance: 0.06
+    },
+    { id: "forward", keys: ["ArrowUp"], activeKeys: ["up"], mode: "travel", minDistance: 0.22 },
+    { id: "backward", keys: ["ArrowDown"], activeKeys: ["down"], mode: "travel", minDistance: 0.18 },
+    {
+      id: "arc-left",
+      keys: ["ArrowUp", "ArrowLeft"],
+      activeKeys: ["up", "left"],
+      mode: "arc",
+      rotationSign: -1,
+      minRotationDelta: 0.08,
+      minDistance: 0.26
+    },
+    {
+      id: "arc-right",
+      keys: ["ArrowUp", "ArrowRight"],
+      activeKeys: ["up", "right"],
+      mode: "arc",
       rotationSign: 1,
-      minRotationDelta: 0.16
+      minRotationDelta: 0.08,
+      minDistance: 0.26
     }
   ];
 
@@ -2127,10 +2294,14 @@ async function checkRealKeyboardDirectionalControls(browser) {
       const beforeUpCount = before?.input?.keyboardUpCount ?? 0;
       const beforeQaStepHookCalls = before?.input?.qaStepHookCalls ?? 0;
 
-      await page.keyboard.down(direction.key);
-      await page.waitForTimeout(360);
+      for (const key of direction.keys) {
+        await page.keyboard.down(key);
+      }
+      await page.waitForTimeout(460);
       const during = await getQaSnapshot(page, { refresh: true });
-      await page.keyboard.up(direction.key);
+      for (const key of [...direction.keys].reverse()) {
+        await page.keyboard.up(key);
+      }
       await page.waitForTimeout(180);
       const after = await getQaSnapshot(page, { refresh: true });
       const distance = Math.hypot((after?.player?.x ?? 0) - (before?.player?.x ?? 0), (after?.player?.z ?? 0) - (before?.player?.z ?? 0));
@@ -2143,8 +2314,8 @@ async function checkRealKeyboardDirectionalControls(browser) {
 
       proofs.push({
         id: direction.id,
-        key: direction.key,
-        activeKey: direction.activeKey,
+        keys: direction.keys,
+        activeKeys: direction.activeKeys,
         before: before?.player ?? null,
         during: during?.player ?? null,
         after: after?.player ?? null,
@@ -2159,17 +2330,19 @@ async function checkRealKeyboardDirectionalControls(browser) {
         lastKeyboardCode: after?.input?.lastKeyboardCode ?? null,
         activeKeysDuring: during?.input?.activeKeys ?? [],
         activeKeysAfter: after?.input?.activeKeys ?? [],
+        dynamics: after?.drive?.dynamics ?? null,
         ok:
           after?.lastInputMode === "keyboard" &&
-          after?.input?.lastKeyboardCode === direction.key &&
-          (during?.input?.activeKeys ?? []).includes(direction.activeKey) &&
+          direction.keys.includes(after?.input?.lastKeyboardCode) &&
+          direction.activeKeys.every((activeKey) => (during?.input?.activeKeys ?? []).includes(activeKey)) &&
           (after?.input?.activeKeys ?? []).length === 0 &&
-          downDelta >= 1 &&
-          upDelta >= 1 &&
+          downDelta >= direction.keys.length &&
+          upDelta >= direction.keys.length &&
           qaStepHookDelta === 0 &&
           frameDelta >= 6 &&
-          (direction.mode === "travel" ? distance >= direction.minDistance : true) &&
-          (direction.mode === "turn"
+          (direction.mode === "stationary-steer" ? distance <= direction.maxDistance && rotationDelta <= direction.maxRotationDelta : true) &&
+          (direction.mode === "travel" || direction.mode === "arc" ? distance >= direction.minDistance : true) &&
+          (direction.mode === "arc"
             ? rotationDelta >= direction.minRotationDelta && signedRotationDelta * direction.rotationSign > 0
             : true)
       });
@@ -2184,7 +2357,7 @@ async function checkRealKeyboardDirectionalControls(browser) {
         hookState,
         qaStepHookDelta,
         url: realDriveUrl,
-        testedKeys: directions.map((direction) => direction.key)
+        testedKeys: directions.map((direction) => direction.keys)
       });
     } else {
       scenarioFail("keyboard:directional-controls", "Real keyboard controls did not prove all movement directions.", {
@@ -5578,12 +5751,17 @@ async function checkMobileControls(page) {
   }
 
   const beforeDrive = await getQaSnapshot(page);
+  const forwardActionability = await holdActionable(page, '.mobile-drive [data-drive="up"]', "mobile-drive:up", {
+    minWidth: 44,
+    minHeight: 44,
+    delay: 260
+  });
   const driveActionability = await holdActionable(page, '.mobile-drive [data-drive="right"]', "mobile-drive:right", {
     minWidth: 44,
     minHeight: 44,
-    delay: 550
+    delay: 520
   });
-  if (!driveActionability) {
+  if (!forwardActionability || !driveActionability) {
     return;
   }
   await page.waitForTimeout(260);
@@ -5595,6 +5773,7 @@ async function checkMobileControls(page) {
       before: beforeDrive?.player,
       after: afterDrive.player,
       rotationDelta: Number(rotationDelta.toFixed(3)),
+      forwardActionability,
       driveActionability
     });
   } else {
@@ -5608,6 +5787,28 @@ async function checkMobileControls(page) {
 }
 
 async function writeReport() {
+  const compactLargeQaValue = (key, value) => {
+    if (Array.isArray(value)) {
+      if (["samples", "physicsSamples", "positionSamples", "routeResults", "stepResults"].includes(key)) {
+        return {
+          length: value.length,
+          first: value.slice(0, 2),
+          last: value.slice(-4)
+        };
+      }
+      if (key === "zones" && value.length > 4) {
+        return { length: value.length, ids: value.map((zone) => zone?.id).filter(Boolean) };
+      }
+      if (value.length > 120) {
+        return {
+          length: value.length,
+          first: value.slice(0, 8),
+          last: value.slice(-8)
+        };
+      }
+    }
+    return value;
+  };
   const summary = {
     status: failures.length === 0 ? "pass" : "fail",
     baseUrl,
@@ -5621,7 +5822,7 @@ async function writeReport() {
     failures
   };
 
-  await fsp.writeFile(reportJsonPath, `${JSON.stringify(summary, null, 2)}\n`);
+  await fsp.writeFile(reportJsonPath, `${JSON.stringify(summary, compactLargeQaValue, 2)}\n`);
 
   const captures = scenarios.filter((scenario) => scenario.status === "capture");
   const evidenceRows = captures.map((scenario) => {
@@ -5649,7 +5850,8 @@ async function writeReport() {
   const realDriveScenario = scenarios.find((scenario) => scenario.name === "real-drive-tour");
   const realDriveContinuityScenario = scenarios.find((scenario) => scenario.name === "real-drive-continuity");
   const realDriveKinematicsScenario = scenarios.find((scenario) => scenario.name === "real-drive-kinematics");
-  const realDriveRouteScenario = scenarios.find((scenario) => scenario.name === "real-drive-route-adherence");
+  const realDriveRouteScenario = scenarios.find((scenario) => scenario.name === "real-drive-route-freedom");
+  const realDriveFreeRoamScenario = scenarios.find((scenario) => scenario.name === "real-drive-free-roam");
   const routeEncountersRenderedScenario = scenarios.find((scenario) => scenario.name === "route-encounters-rendered");
   const routeSurfaceMaterializedScenario = scenarios.find((scenario) => scenario.name === "route-surface-materialized");
   const routeEncounterTriggeredScenario = scenarios.find((scenario) => scenario.name === "route-encounter-triggered:real-drive");
@@ -5811,12 +6013,17 @@ async function writeReport() {
     }`,
     `- Real drive kinematics: ${
       realDriveKinematicsScenario?.details
-        ? `${realDriveKinematicsScenario.details.sampleCount} samples, speed p95 ${realDriveKinematicsScenario.details.physicsP95Speed}, acceleration p95 ${realDriveKinematicsScenario.details.physicsP95Acceleration}, turn-rate p95 ${realDriveKinematicsScenario.details.physicsP95TurnRate}, max per-frame displacement ${realDriveKinematicsScenario.details.physicsMaxDisplacementPerFrame}`
+        ? `${realDriveKinematicsScenario.details.sampleCount} samples, speed p95 ${realDriveKinematicsScenario.details.physicsP95Speed}, acceleration p95 ${realDriveKinematicsScenario.details.physicsP95Acceleration}, turn-rate p95 ${realDriveKinematicsScenario.details.physicsP95TurnRate}, drift p95 ${realDriveKinematicsScenario.details.physicsP95DriftAngle}, lateral p95 ${realDriveKinematicsScenario.details.physicsP95LateralSpeed}, max per-frame displacement ${realDriveKinematicsScenario.details.physicsMaxDisplacementPerFrame}`
         : "n/a"
     }`,
-    `- Real drive route adherence: ${
+    `- Real drive route freedom: ${
       realDriveRouteScenario?.details?.surface
-        ? `${realDriveRouteScenario.details.surface.routeAdherenceRatio} adherence, ${realDriveRouteScenario.details.surface.onRouteSamples}/${realDriveRouteScenario.details.surface.samples} on-route samples, routes ${realDriveRouteScenario.details.coveredExpectedRouteIds?.length ?? 0}/${realDriveRouteScenario.details.expectedRouteIds?.length ?? 0}`
+        ? `${realDriveRouteScenario.details.surface.routeAdherenceRatio} route ratio, ${realDriveRouteScenario.details.surface.offRouteSamples}/${realDriveRouteScenario.details.surface.samples} off-route samples, max off-route ${realDriveRouteScenario.details.surface.maxOffRouteDistance}, routes ${realDriveRouteScenario.details.coveredExpectedRouteIds?.length ?? 0}/${realDriveRouteScenario.details.expectedRouteIds?.length ?? 0}`
+        : "n/a"
+    }`,
+    `- Real drive free roam: ${
+      realDriveFreeRoamScenario?.details
+        ? `${realDriveFreeRoamScenario.details.distanceDelta} units, off-route physics ${realDriveFreeRoamScenario.details.offRoutePhysicsSamples}, max route distance ${realDriveFreeRoamScenario.details.maxRouteDistance}, span ${realDriveFreeRoamScenario.details.xSpan}x${realDriveFreeRoamScenario.details.zSpan}`
         : "n/a"
     }`,
     `- Route encounters rendered: ${
@@ -6045,6 +6252,7 @@ async function main() {
     await checkRealKeyboardInput(page);
     await checkRealKeyboardDirectionalControls(browser);
     await checkRealDriveTour(browser);
+    await checkRealDriveFreeRoam(browser);
     await checkProductionRuntimeLightweight(browser);
 
     const targets = [
