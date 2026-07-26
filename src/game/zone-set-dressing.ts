@@ -57,12 +57,14 @@ const recipes: Record<string, ZoneDressingRecipe> = {
   "observability-tower": {
     signature: "radar-trace-tower",
     primitives: [
-      ring("trace-orbit-low", "trace-ring", "accent", [0, 0.62, 0], [1.28, 0.025, 1.28], [Math.PI * 0.5, 0, 0.2]),
-      ring("trace-orbit-high", "trace-ring", "light", [0, 1.18, 0], [1.02, 0.02, 1.02], [Math.PI * 0.5, 0, -0.35]),
+      cylinder("antenna-mast", "antenna-array", "light", [0.94, 0.62, 0.72], [0.045, 1.04, 0.045], [0.18, 0, -0.18]),
+      cone("antenna-dish", "antenna-array", "accent", [0.94, 1.22, 0.72], [0.28, 0.36, 0.28], [0.6, 0, -0.5]),
       block("metric-screen-a", "metric-screen", "dark", [-1.3, 0.46, -0.82], [0.46, 0.82, 0.06], [0, 0.18, 0]),
+      block("metric-panel-relief", "metric-panel-relief", "light", [-1.02, 0.84, -0.76], [0.34, 0.08, 0.18], [0, 0.18, 0]),
       block("log-stack-b", "signal-stack", "accent", [-0.78, 0.4, -0.82], [0.22, 0.72, 0.22]),
       beam("sampled-trace-line", "trace-beam", "light", [-1.34, 0.82, 0.9], [1.24, 1.22, -0.74], 0.018),
-      sign("obs-sign", "wayfinding-sign", "accent", [1.16, 0.72, 1.28], "TRACE")
+      block("trace-sample-grid", "trace-sample-grid", "secondary", [0.36, 0.34, 1.12], [0.72, 0.08, 0.34], [0, -0.22, 0]),
+      sphere("trace-sample-dot", "trace-sample-grid", "accent", [0.68, 0.54, 1.04], [0.12, 0.12, 0.12])
     ]
   },
   "architecture-bridge": {

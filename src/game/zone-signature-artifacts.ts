@@ -7,6 +7,8 @@ type ArtifactRole =
   | "threshold-glyph"
   | "agent-core"
   | "trace-helix"
+  | "telemetry-tower"
+  | "metric-array"
   | "load-lattice"
   | "cloud-vessel"
   | "composition-wall"
@@ -200,14 +202,27 @@ function createAiArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactM
 }
 
 function createTraceArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactMaterials) {
-  const points = Array.from({ length: 9 }, (_, index) => {
-    const t = index / 8;
-    const angle = t * Math.PI * 2.6;
-    return new THREE.Vector3(Math.cos(angle) * 0.54, 0.55 + t * 1.22, Math.sin(angle) * 0.54);
-  });
-  add(group, tube(points, 0.022, mats.accent), zone, "trace-helix", "trace-spiral", "accent-helix", "sweep");
-  points.slice(1, -1).forEach((point, index) => {
-    add(group, sphere(0.075, index % 2 ? mats.light : mats.secondary, [point.x, point.y, point.z]), zone, "trace-helix", `trace-sample-${index}`, index % 2 ? "light-sample" : "secondary-sample", "blink");
+  add(group, cylinder(0.08, 0.18, 1.42, mats.dark, [0, 1.04, -0.78], 18), zone, "telemetry-tower", "trace-core-mast", "dark-mast", "pulse");
+  add(group, cylinder(0.42, 0.5, 0.12, mats.secondary, [0, 0.42, -0.78], 24), zone, "telemetry-tower", "radar-base-dish", "secondary-dish", "tilt");
+  add(group, box([0.82, 0.12, 0.38], mats.light, [0, 1.34, -0.78]), zone, "telemetry-tower", "metric-bridge", "light-bridge", "tilt");
+  add(group, ring(0.64, 0.018, mats.accent, [0, 1.7, -0.78], [Math.PI * 0.5, 0.14, 0.26]), zone, "telemetry-tower", "radar-crown-outer", "accent-crown", "sweep");
+  add(group, ring(0.42, 0.014, mats.light, [0, 1.7, -0.78], [Math.PI * 0.5, -0.48, -0.18]), zone, "telemetry-tower", "radar-crown-inner", "light-crown", "sweep");
+  add(
+    group,
+    tube([
+      new THREE.Vector3(-0.58, 0.62, -0.78),
+      new THREE.Vector3(-0.24, 1.08, -0.98),
+      new THREE.Vector3(0.36, 1.5, -0.66),
+      new THREE.Vector3(0.68, 1.86, -0.88)
+    ], 0.018, mats.accent),
+    zone,
+    "trace-helix",
+    "sampled-trace-spine",
+    "accent-spine",
+    "sweep"
+  );
+  [-0.28, 0, 0.28].forEach((x, index) => {
+    add(group, box([0.12, 0.16 + index * 0.08, 0.08], index % 2 ? mats.light : mats.secondary, [x, 1.5 + index * 0.1, -0.54]), zone, "metric-array", `latency-bar-${index}`, index % 2 ? "light-bar" : "secondary-bar", "blink");
   });
 }
 

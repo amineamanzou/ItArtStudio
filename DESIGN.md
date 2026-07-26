@@ -650,6 +650,17 @@ Gates V5.2:
   claire et tres transparente, separee du `inkMat` structurel, afin d'eviter
   les grands arcs noirs qui saturent les captures desktop/mobile.
 
+Gates V5.3:
+
+- `observability-tower` remplace son simple helix par une vraie silhouette de
+  tour telemetry: mat central, base radar, pont de metriques, double couronne,
+  trace echantillonnee et barres de latence;
+- son set dressing abandonne les anneaux generiques au profit d'un vocabulaire
+  instrumente: antenne, panneau metrique en relief et grille d'echantillons;
+- `priority-signature-assets` exige les familles `telemetry-tower`,
+  `trace-helix` et `metric-array` sur Observability, avec enveloppe lisible et
+  maintien du budget `sceneObjects <= 940`.
+
 ## Components
 
 - `game-site`: surface principale.

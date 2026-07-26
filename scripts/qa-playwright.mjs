@@ -54,7 +54,14 @@ const priorityPlaceCompositionProofs = new Map();
 const projectArtifactProofs = new Map();
 const priorityPlaceZoneIds = ["observability-tower", "cloud-dock", "design-atelier", "contact-portal"];
 const expectedPrioritySetDressingRoles = {
-  "observability-tower": ["metric-screen", "signal-stack", "trace-beam"],
+  "observability-tower": [
+    "metric-screen",
+    "signal-stack",
+    "trace-beam",
+    "antenna-array",
+    "metric-panel-relief",
+    "trace-sample-grid"
+  ],
   "cloud-dock": [
     "server-rack",
     "cloud-puff",
@@ -65,6 +72,9 @@ const expectedPrioritySetDressingRoles = {
   ],
   "design-atelier": ["canvas-wall", "color-swatch", "paint-tool"],
   "contact-portal": ["postal-desk", "mail-tray", "sorting-belt", "reply-portal-field"]
+};
+const expectedPrioritySignatureFamilies = {
+  "observability-tower": ["telemetry-tower", "trace-helix", "metric-array"]
 };
 let screenshotIndex = 0;
 
@@ -3232,6 +3242,49 @@ async function checkWorldRichness(page) {
   } else {
     scenarioFail("themed-set-dressing", "Priority zones do not expose enough specific environmental set dressing.", {
       proofs: themedSetDressingProofs,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget
+    });
+  }
+
+  const prioritySignatureProofs = Object.entries(expectedPrioritySignatureFamilies).map(([zoneId, expectedFamilies]) => {
+    const zone = visualSpecZones.find((item) => item.id === zoneId);
+    const families = new Set(zone?.signatureArtifactFamilies ?? []);
+    return {
+      zoneId,
+      expectedFamilies,
+      families: [...families].sort(),
+      missingFamilies: expectedFamilies.filter((family) => !families.has(family)),
+      signatures: zone?.signatureArtifactSignatures ?? [],
+      roles: zone?.signatureArtifactRoles ?? [],
+      objectCount: zone?.signatureArtifactObjects ?? 0,
+      bounds: zone?.signatureArtifactBounds ?? null,
+      fingerprint: zone?.signatureArtifactFingerprint ?? null
+    };
+  });
+  const prioritySignatureAssets =
+    world &&
+    prioritySignatureProofs.every(
+      (proof) =>
+        proof.missingFamilies.length === 0 &&
+        proof.objectCount >= 8 &&
+        proof.signatures.length >= 8 &&
+        proof.roles.length >= 8 &&
+        (proof.bounds?.height ?? 0) >= 1.45 &&
+        (proof.bounds?.width ?? 0) >= 0.9 &&
+        (proof.bounds?.depth ?? 0) >= 0.5 &&
+        Boolean(proof.fingerprint)
+    ) &&
+    world.sceneObjects <= premiumWorldObjectBudget;
+  if (prioritySignatureAssets) {
+    pass("priority-signature-assets", {
+      proofs: prioritySignatureProofs,
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget
+    });
+  } else {
+    scenarioFail("priority-signature-assets", "Priority signature assets are not distinctive enough.", {
+      proofs: prioritySignatureProofs,
       sceneObjects: world?.sceneObjects,
       sceneObjectBudget: premiumWorldObjectBudget
     });
