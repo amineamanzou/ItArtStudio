@@ -8,7 +8,7 @@ import {
   type DriveSurfaceTelemetry
 } from "./drive-surfaces";
 import { createRouteGuidance, type RouteEncounterGate } from "./route-guidance";
-import { createRoadRibbonGeometry } from "./road-ribbons";
+import { createRoadRibbonGeometry, roadRibbonVisualConfig } from "./road-ribbons";
 import { createZoneSignatureArtifacts } from "./zone-signature-artifacts";
 import { createZoneProjectArtifacts } from "./zone-project-artifacts";
 import { createZonePlaceArchitecture } from "./zone-place-architecture";
@@ -427,6 +427,21 @@ type QaSnapshot = {
     routeSurfaceDetailSignatures: number;
     routeSurfaceDetailParts: number;
     routeSurfaceVertexCount: number;
+    routeSurfaceStyle: {
+      bedRadiusRatio: number;
+      shoulderOffsetRatio: number;
+      shoulderRadius: number;
+      signalRadius: number;
+      dashDepthRatio: number;
+      dashChevronAngle: number;
+      underlayOpacity: number;
+      laneOpacity: number;
+      laneEmissiveIntensity: number;
+      polygonOffsetFactor: number;
+      polygonOffsetUnits: number;
+      underlayColor: number;
+      castsShadow: boolean;
+    };
     landmarkObjects: number;
     playerParts: number;
     visualSpecs: number;
@@ -770,6 +785,21 @@ class StudioGame {
       routeSurfaceDetailSignatures: 0,
       routeSurfaceDetailParts: 0,
       routeSurfaceVertexCount: 0,
+      routeSurfaceStyle: {
+        bedRadiusRatio: roadRibbonVisualConfig.bedRadiusRatio,
+        shoulderOffsetRatio: roadRibbonVisualConfig.shoulderOffsetRatio,
+        shoulderRadius: roadRibbonVisualConfig.shoulderRadius,
+        signalRadius: roadRibbonVisualConfig.signalRadius,
+        dashDepthRatio: roadRibbonVisualConfig.dashDepthRatio,
+        dashChevronAngle: roadRibbonVisualConfig.dashChevronAngle,
+        underlayOpacity: 0.14,
+        laneOpacity: 0.78,
+        laneEmissiveIntensity: 0.22,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -1,
+        underlayColor: 0x6a766d,
+        castsShadow: false
+      },
       landmarkObjects: 0,
       playerParts: 0,
       visualSpecs: 0,
@@ -1376,12 +1406,20 @@ class StudioGame {
   }
 
   private addRoads() {
-    const underlay = new THREE.MeshStandardMaterial({
-      color: colors.ink,
-      roughness: 0.78,
-      metalness: 0.1,
+    const routeSurfaceStyle = {
+      underlayOpacity: 0.14,
+      laneOpacity: 0.78,
+      laneEmissiveIntensity: 0.22,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
+      underlayColor: 0x6a766d,
+      castsShadow: false
+    };
+    const underlay = new THREE.MeshBasicMaterial({
+      color: routeSurfaceStyle.underlayColor,
       transparent: true,
-      opacity: 0.72
+      opacity: routeSurfaceStyle.underlayOpacity,
+      depthWrite: false
     });
     const routeMaterial = new THREE.MeshStandardMaterial({
       color: colors.road,
@@ -1408,9 +1446,12 @@ class StudioGame {
         roughness: 0.52,
         metalness: 0.24,
         emissive: accent,
-        emissiveIntensity: 0.18,
+        emissiveIntensity: routeSurfaceStyle.laneEmissiveIntensity,
         transparent: true,
-        opacity: 0.88
+        opacity: routeSurfaceStyle.laneOpacity,
+        polygonOffset: true,
+        polygonOffsetFactor: routeSurfaceStyle.polygonOffsetFactor,
+        polygonOffsetUnits: routeSurfaceStyle.polygonOffsetUnits
       });
       const points = [
         new THREE.Vector3(from.position[0], 0.075, from.position[1]),
@@ -1430,8 +1471,9 @@ class StudioGame {
       route.userData.routeSurfaceDetailParts = ribbon.laneDetailCount;
       route.userData.routeSurfaceVertexCount = ribbon.lane.getAttribute("position").count;
       route.userData.routeSurfaceSignatures = ribbon.signatures.slice(3);
-      base.receiveShadow = true;
-      route.castShadow = true;
+      base.receiveShadow = false;
+      route.castShadow = routeSurfaceStyle.castsShadow;
+      route.receiveShadow = false;
       this.scene.add(base, route);
       this.roadSegmentCount += 2;
       this.routeSurfaceObjectCount += 2;
@@ -1452,7 +1494,7 @@ class StudioGame {
       node.userData.routeSurfaceDetailParts = 1;
       node.userData.routeSurfaceVertexCount = node.geometry.getAttribute("position").count;
       node.userData.routeSurfaceSignatures = [`road:${routeInfo.id}:destination-node`];
-      node.castShadow = true;
+      node.castShadow = routeSurfaceStyle.castsShadow;
       this.scene.add(node);
       this.routeSurfaceObjectCount += 1;
       this.routeSurfaceDetailPartCount += 1;
@@ -3240,6 +3282,21 @@ class StudioGame {
         routeSurfaceDetailSignatures: this.routeSurfaceSignatureIds.size,
         routeSurfaceDetailParts: this.routeSurfaceDetailPartCount,
         routeSurfaceVertexCount: this.routeSurfaceVertexCount,
+        routeSurfaceStyle: {
+          bedRadiusRatio: roadRibbonVisualConfig.bedRadiusRatio,
+          shoulderOffsetRatio: roadRibbonVisualConfig.shoulderOffsetRatio,
+          shoulderRadius: roadRibbonVisualConfig.shoulderRadius,
+          signalRadius: roadRibbonVisualConfig.signalRadius,
+          dashDepthRatio: roadRibbonVisualConfig.dashDepthRatio,
+          dashChevronAngle: roadRibbonVisualConfig.dashChevronAngle,
+          underlayOpacity: 0.14,
+          laneOpacity: 0.78,
+          laneEmissiveIntensity: 0.22,
+          polygonOffsetFactor: -1,
+          polygonOffsetUnits: -1,
+          underlayColor: 0x6a766d,
+          castsShadow: false
+        },
         landmarkObjects,
         playerParts: this.playerPartCount,
         visualSpecs: this.renderedVisualSpecIds.size,

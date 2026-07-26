@@ -636,6 +636,20 @@ Gates V5.1:
   remplace par trois primitives procedurales, sans ajout net d'objets de scene,
   avec maintien obligatoire du budget `sceneObjects <= 940`.
 
+Gates V5.2:
+
+- les routes deviennent un guidage de gameplay moins dominant: underlay noir
+  remplace par une empreinte terrain sombre, tres amincie et a basse opacite,
+  rails rapproches, lane coloree plus lisible;
+- les tirets de route sont remplaces par des mini-chevrons fusionnes dans la
+  geometrie `route-lane`, sans nouvel `Object3D`;
+- `route-surface-materialized` verifie maintenant le profil visuel des routes:
+  ratios de rayon/offset, opacites, emissive, chevrons, absence d'ombre portee
+  et `polygonOffset` pour limiter le scintillement terrain/route.
+- les courbes de relief `terrain-contour` utilisent une encre topographique
+  claire et tres transparente, separee du `inkMat` structurel, afin d'eviter
+  les grands arcs noirs qui saturent les captures desktop/mobile.
+
 ## Components
 
 - `game-site`: surface principale.

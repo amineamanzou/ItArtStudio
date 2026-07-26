@@ -1436,13 +1436,13 @@ async function checkRealDriveArcadeKeyboard(browser) {
     { label: "coast-a", keys: [], durationMs: 260 },
     { label: "left-arc", keys: ["ArrowUp", "ArrowLeft"], durationMs: 1150 },
     { label: "coast-b", keys: [], durationMs: 220 },
-    { label: "right-arc", keys: ["ArrowUp", "ArrowRight"], durationMs: 1250 },
-    { label: "coast-c", keys: [], durationMs: 240 },
+    { label: "right-arc", keys: ["ArrowUp", "ArrowRight"], durationMs: 1120 },
+    { label: "coast-c", keys: [], durationMs: 320 },
     { label: "brake", keys: ["ArrowDown"], durationMs: 560 },
     { label: "reverse-left", keys: ["ArrowDown", "ArrowLeft"], durationMs: 680 },
     { label: "recover", keys: [], durationMs: 280 },
-    { label: "finish-right", keys: ["ArrowUp", "ArrowRight"], durationMs: 980 },
-    { label: "final-coast", keys: [], durationMs: 760 }
+    { label: "finish-right", keys: ["ArrowUp", "ArrowRight"], durationMs: 760 },
+    { label: "final-coast", keys: [], durationMs: 1030 }
   ];
 
   const snapshots = [];
@@ -2033,8 +2033,8 @@ async function checkRealDriveTour(browser) {
       radius: 1.1,
       timeoutMs: 10_000,
       route: [
-        { id: "route-encounter-art-via-studio", position: { x: 0, z: 0 }, radius: 1.45, timeoutMs: 12_000, overshootBrake: true },
-        { id: "route-encounter:art-gate-design", position: { x: 3.8, z: -2.38 }, radius: 1.35, timeoutMs: 10_000, overshootBrake: true }
+        { id: "route-encounter-art-via-design", zoneId: "design-atelier", position: { x: 6.9, z: -3.2 }, radius: 3.2, timeoutMs: 14_000, overshootBrake: true },
+        { id: "route-encounter:art-gate-design", position: { x: 3.8, z: -2.38 }, radius: 1.45, timeoutMs: 12_000, overshootBrake: true }
       ]
     });
 
@@ -3881,6 +3881,19 @@ async function checkWorldRichness(page) {
   const routeSurfaceMaterialized =
     world &&
     surface &&
+    world.routeSurfaceStyle?.bedRadiusRatio <= 0.055 &&
+    world.routeSurfaceStyle?.shoulderOffsetRatio <= 0.22 &&
+    world.routeSurfaceStyle?.shoulderRadius <= 0.025 &&
+    world.routeSurfaceStyle?.signalRadius >= 0.024 &&
+    world.routeSurfaceStyle?.dashDepthRatio <= 0.26 &&
+    world.routeSurfaceStyle?.dashChevronAngle >= 0.36 &&
+    world.routeSurfaceStyle?.underlayOpacity <= 0.15 &&
+    world.routeSurfaceStyle?.underlayColor === 0x6a766d &&
+    world.routeSurfaceStyle?.laneOpacity >= 0.72 &&
+    world.routeSurfaceStyle?.laneEmissiveIntensity >= 0.18 &&
+    world.routeSurfaceStyle?.polygonOffsetFactor <= -1 &&
+    world.routeSurfaceStyle?.polygonOffsetUnits <= -1 &&
+    world.routeSurfaceStyle?.castsShadow === false &&
     world.routeSurfaceObjects === world.roadSegments + surface.routeCount &&
     world.routeSurfaceDetailParts >= surface.routeCount * 9 &&
     world.routeSurfaceDetailSignatures >= surface.routeCount * 6 &&
@@ -3894,6 +3907,7 @@ async function checkWorldRichness(page) {
       routeSurfaceDetailSignatures: world.routeSurfaceDetailSignatures,
       routeSurfaceVertexCount: world.routeSurfaceVertexCount,
       routeSurfaceVertexBudget: 24_000,
+      routeSurfaceStyle: world.routeSurfaceStyle,
       roadSegments: world.roadSegments,
       routeCount: surface.routeCount,
       sceneObjects: world.sceneObjects,
@@ -3906,6 +3920,7 @@ async function checkWorldRichness(page) {
       routeSurfaceDetailSignatures: world?.routeSurfaceDetailSignatures,
       routeSurfaceVertexCount: world?.routeSurfaceVertexCount,
       routeSurfaceVertexBudget: 24_000,
+      routeSurfaceStyle: world?.routeSurfaceStyle,
       roadSegments: world?.roadSegments,
       routeCount: surface?.routeCount,
       sceneObjects: world?.sceneObjects,

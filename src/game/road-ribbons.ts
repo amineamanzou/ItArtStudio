@@ -11,23 +11,37 @@ export type RoadRibbonGeometry = {
 
 type RoutePoint = THREE.Vector3;
 
+export const roadRibbonVisualConfig = {
+  bedRadiusRatio: 0.052,
+  shoulderOffsetRatio: 0.21,
+  shoulderRadius: 0.024,
+  signalOffsetRatio: 0.15,
+  signalRadius: 0.025,
+  dashWidth: 0.08,
+  dashHeight: 0.032,
+  dashDepthRatio: 0.24,
+  dashChevronAngle: 0.42,
+  dashSpreadRatio: 0.07,
+  dashCount: 4
+};
+
 export function createRoadRibbonGeometry(points: RoutePoint[], routeId: string, routeWidth: number): RoadRibbonGeometry {
   const bedCurve = new THREE.CatmullRomCurve3(points);
-  const shoulderOffset = routeWidth * 0.32;
-  const signalOffset = routeWidth * 0.15;
+  const shoulderOffset = routeWidth * roadRibbonVisualConfig.shoulderOffsetRatio;
+  const signalOffset = routeWidth * roadRibbonVisualConfig.signalOffsetRatio;
   const railA = offsetCurve(points, shoulderOffset);
   const railB = offsetCurve(points, -shoulderOffset);
   const signalA = offsetCurve(points, signalOffset);
   const signalB = offsetCurve(points, -signalOffset);
 
   const bedParts = [
-    new THREE.TubeGeometry(bedCurve, 10, routeWidth * 0.12, 5, false),
-    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(railA), 10, 0.036, 5, false),
-    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(railB), 10, 0.036, 5, false)
+    new THREE.TubeGeometry(bedCurve, 10, routeWidth * roadRibbonVisualConfig.bedRadiusRatio, 5, false),
+    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(railA), 10, roadRibbonVisualConfig.shoulderRadius, 5, false),
+    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(railB), 10, roadRibbonVisualConfig.shoulderRadius, 5, false)
   ];
   const laneParts = [
-    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(signalA), 10, 0.022, 5, false),
-    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(signalB), 10, 0.022, 5, false),
+    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(signalA), 10, roadRibbonVisualConfig.signalRadius, 5, false),
+    new THREE.TubeGeometry(new THREE.CatmullRomCurve3(signalB), 10, roadRibbonVisualConfig.signalRadius, 5, false),
     ...createPulseDashes(bedCurve, routeWidth)
   ];
 
@@ -72,21 +86,32 @@ function offsetCurve(points: RoutePoint[], distance: number) {
 
 function createPulseDashes(curve: THREE.CatmullRomCurve3, routeWidth: number) {
   const parts: THREE.BufferGeometry[] = [];
-  const dashCount = 4;
+  const dashCount = roadRibbonVisualConfig.dashCount;
   for (let index = 1; index <= dashCount; index += 1) {
     const t = index / (dashCount + 1);
     const center = curve.getPoint(t);
     const tangent = curve.getTangent(t).normalize();
+    const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
     const angle = Math.atan2(tangent.x, tangent.z);
-    const dash = new THREE.BoxGeometry(0.1, 0.035, routeWidth * 0.42);
-    const matrix = new THREE.Matrix4();
-    matrix.compose(
-      new THREE.Vector3(center.x, center.y + 0.045, center.z),
-      new THREE.Quaternion().setFromEuler(new THREE.Euler(0, angle + Math.PI * 0.5, 0)),
-      new THREE.Vector3(1, 1, 1)
-    );
-    dash.applyMatrix4(matrix);
-    parts.push(dash);
+    for (const side of [-1, 1] as const) {
+      const dash = new THREE.BoxGeometry(
+        roadRibbonVisualConfig.dashWidth,
+        roadRibbonVisualConfig.dashHeight,
+        routeWidth * roadRibbonVisualConfig.dashDepthRatio
+      );
+      const matrix = new THREE.Matrix4();
+      const position = center
+        .clone()
+        .addScaledVector(normal, side * routeWidth * roadRibbonVisualConfig.dashSpreadRatio)
+        .addScaledVector(tangent, -routeWidth * 0.018);
+      matrix.compose(
+        new THREE.Vector3(position.x, position.y + 0.045, position.z),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(0, angle + Math.PI * 0.5 + side * roadRibbonVisualConfig.dashChevronAngle, 0)),
+        new THREE.Vector3(1, 1, 1)
+      );
+      dash.applyMatrix4(matrix);
+      parts.push(dash);
+    }
   }
   return parts;
 }

@@ -145,6 +145,12 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
   const terrainMat = material(palette.ground, 0.02, 0.04, 0.74);
   const terrainShade = material(palette.ink, 0.01, 0.02, 0.62);
   const roadMat = material(palette.road, 0.14, 0.12, 0.92);
+  const contourMat = new THREE.MeshBasicMaterial({
+    color: 0x7b8371,
+    transparent: true,
+    opacity: 0.2,
+    depthWrite: false
+  });
   const techMat = material(palette.tech, 0.2, 0.24, 0.94);
   const artMat = material(palette.art, 0.2, 0.12, 0.94);
   const studioMat = material(palette.studio, 0.2, 0.14, 0.94);
@@ -192,7 +198,7 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
 
   addWaterBodies(add, waterMat, studioMat);
   addReliefRamps(add, techMat, artMat, studioMat, roadMat, inkMat);
-  addSurfaceDetails(add, studioMat, roadMat, inkMat);
+  addSurfaceDetails(add, studioMat, roadMat, contourMat);
   addTechSkyline(add, techMat, roadMat, inkMat);
   addArtSculptures(add, artMat, roadMat, inkMat);
   addStudioThreshold(add, studioMat, techMat, artMat, roadMat);
