@@ -926,7 +926,8 @@ Gates V7.5:
   production, couvrant home, les dix lieux via mini-map, trois route encounters
   au clavier reel et un passage mobile/touch en scope local complet;
 - le scope CI garde la meme gate mais limite les captures de lieux a trois zones
-  representatives pour que Pages reste deployable a chaque push;
+  representatives et un route encounter clavier stable pour que Pages reste
+  deployable a chaque push;
 - cette gate doit rendre le livrable auditable humainement, pas seulement
   verifier que le canvas charge.
 

@@ -288,7 +288,8 @@ The runner:
   only a runtime smoke test. Local full scope keeps auditable captures for home,
   all ten mini-map zones, three real-keyboard route encounters, and a
   mobile/touch pass on the built artifact; GitHub Actions uses the same gate in
-  compact scope over three representative zones to keep Pages deploys bounded.
+  compact scope over three representative zones, one stable real-keyboard route
+  encounter, and mobile/touch to keep Pages deploys bounded.
 - `bruno-simon-grade-objective` is the next blocking product bar: QA evidence
   must protect modeled place assets, clean textures, water, relief, free-roam
   traversal without invisible blockers, arcade acceleration/braking/drift,

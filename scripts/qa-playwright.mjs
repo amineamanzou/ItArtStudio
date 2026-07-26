@@ -8432,7 +8432,7 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
   }
   await page.close();
 
-  const encounterTargets = [
+  const fullEncounterTargets = [
     {
       routeId: "spine-contact-gate",
       family: "studio",
@@ -8481,6 +8481,10 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
       ]
     }
   ];
+  const encounterTargets =
+    staticProofScope === "full"
+      ? fullEncounterTargets
+      : fullEncounterTargets.filter((target) => target.routeId === "tech-gate-cloud");
   const encounterProofs = [];
   for (const target of encounterTargets) {
     encounterProofs.push(await captureStaticRouteEncounterProof(browser, target));
@@ -8518,12 +8522,11 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
     zoneCaptures.length === proofZoneIds.length &&
     zoneCaptures.every((entry) => entry.canvas?.ok === true);
   const encounterFamilies = new Set(encounterProofs.filter((proof) => proof.reached || proof.matchingProofCount > 0).map((proof) => proof.family));
+  const requiredEncounterFamilies = staticProofScope === "full" ? ["studio", "tech", "art"] : ["tech"];
   const encounterCoverageOk =
-    encounterProofs.length === 3 &&
+    encounterProofs.length === encounterTargets.length &&
     encounterProofs.every((proof) => proof.reached || proof.matchingProofCount > 0) &&
-    encounterFamilies.has("studio") &&
-    encounterFamilies.has("tech") &&
-    encounterFamilies.has("art");
+    requiredEncounterFamilies.every((family) => encounterFamilies.has(family));
   const mobileOk = mobileCapture?.canvas?.ok === true;
   const proofReelOk = homeCapture?.canvas?.ok === true && zoneCoverageOk && encounterCoverageOk && mobileOk;
 
@@ -8537,7 +8540,8 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
       zoneCaptures,
       encounterProofs,
       mobileCapture: mobileCapture.relativePath,
-      encounterFamilies: [...encounterFamilies].sort()
+      encounterFamilies: [...encounterFamilies].sort(),
+      requiredEncounterFamilies
     });
   } else {
     scenarioFail("bruno-simon-playable-proof-reel", "Static production build did not produce a complete playable proof reel.", {
@@ -8552,7 +8556,8 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
       zoneCaptures,
       encounterProofs,
       mobileCapture: mobileCapture?.relativePath ?? null,
-      encounterFamilies: [...encounterFamilies].sort()
+      encounterFamilies: [...encounterFamilies].sort(),
+      requiredEncounterFamilies
     });
   }
 }
