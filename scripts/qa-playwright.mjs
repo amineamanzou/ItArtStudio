@@ -59,8 +59,8 @@ const screenshotsDir = path.join(outputRoot, "screenshots");
 const reportJsonPath = path.join(outputRoot, "report.json");
 const reportMdPath = path.join(outputRoot, "report.md");
 const premiumWorldObjectBudget = 940;
-const qaWorldHalfExtent = 22;
-const qaInnerRoamExtent = 18.8;
+const qaWorldHalfExtent = 28;
+const qaInnerRoamExtent = 24.2;
 const qaBoundaryTargetExtent = qaWorldHalfExtent + 1.8;
 
 const scenarios = [];
@@ -2253,27 +2253,27 @@ async function checkRealDriveTour(browser) {
     const artEncounterDrive = await inspectRouteEncounterFromFreshDrive(browser, {
       label: "real-drive:art-gate-design",
       routeId: "art-gate-design",
-      position: { x: 4.9, z: -3.7 },
+      position: { x: 6.4, z: -4.84 },
       radius: 1.1,
       timeoutMs: 10_000,
       route: [
         { id: "route-encounter-art-via-design", zoneId: "design-atelier", position: { x: 10.8, z: -5.2 }, radius: 3.4, timeoutMs: 16_000, overshootBrake: true },
-        { id: "route-encounter:art-gate-design", position: { x: 4.9, z: -3.7 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true }
+        { id: "route-encounter:art-gate-design", position: { x: 6.4, z: -4.84 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true }
       ]
     });
 
     const techEncounterDrive = await inspectRouteEncounterFromFreshDrive(browser, {
       label: "real-drive:tech-gate-cloud",
       routeId: "tech-gate-cloud",
-      position: { x: -2.706, z: -6.136 },
+      position: { x: -4.45, z: -10.08 },
       radius: 1.2,
       timeoutMs: 12_000,
       allowMiss: true,
       route: [
-        { id: "route-encounter-tech-via-gate-cloud", position: { x: -2.4, z: -5.2 }, radius: 1.45, timeoutMs: 10_000, overshootBrake: true },
+        { id: "route-encounter-tech-via-gate-cloud", position: { x: -3.8, z: -8.6 }, radius: 1.45, timeoutMs: 10_000, overshootBrake: true },
         {
           id: "route-encounter:tech-gate-cloud",
-          position: { x: -2.706, z: -6.136 },
+          position: { x: -4.45, z: -10.08 },
           radius: 0.9,
           timeoutMs: 14_000,
           overshootBrake: true,
@@ -2285,16 +2285,16 @@ async function checkRealDriveTour(browser) {
     const encounterDrive = await inspectRouteEncounterFromFreshDrive(browser, {
       label: "real-drive:spine-contact-gate",
       routeId: "spine-contact-gate",
-      position: { x: 0, z: -6.6 },
+      position: { x: 0, z: -9.79 },
       radius: 1.45,
       timeoutMs: 12_000,
       verifyVisibility: false,
       route: [
-        { id: "route-encounter-spine-approach", position: { x: 0.9, z: -2.7 }, radius: 1.45, timeoutMs: 10_000, overshootBrake: true },
-        { id: "route-encounter-spine-align", position: { x: 0.28, z: -5.15 }, radius: 1.25, timeoutMs: 10_000, overshootBrake: true },
+        { id: "route-encounter-spine-approach", position: { x: 0.9, z: -4.7 }, radius: 1.45, timeoutMs: 10_000, overshootBrake: true },
+        { id: "route-encounter-spine-align", position: { x: 0.28, z: -7.9 }, radius: 1.25, timeoutMs: 10_000, overshootBrake: true },
         {
           id: "route-encounter:spine-contact-gate",
-          position: { x: 0, z: -6.6 },
+          position: { x: 0, z: -9.79 },
           radius: 1.55,
           timeoutMs: 14_000,
           overshootBrake: true,
@@ -2381,7 +2381,7 @@ async function checkRealDriveFreeRoam(browser) {
     const initial = await getQaSnapshot(page, { refresh: true });
     const target = {
       id: "free-roam-southeast-field",
-      position: { x: 16.8, z: -12.8 },
+      position: { x: 21.5, z: -18.8 },
       radius: 1.8,
       timeoutMs: 10_000,
       overshootBrake: true,
@@ -2404,9 +2404,9 @@ async function checkRealDriveFreeRoam(browser) {
       result.reached &&
       final?.lastInputMode === "keyboard" &&
       (final.input?.activeKeys?.length ?? 99) === 0 &&
-      distanceDelta >= 8 &&
-      xSpan >= 5.5 &&
-      zSpan >= 2.6 &&
+      distanceDelta >= 10 &&
+      xSpan >= 7 &&
+      zSpan >= 4 &&
       offRoutePhysics.length >= 8 &&
       maxRouteDistance >= (final?.drive?.surface?.routeWidth ?? 1.45) + 0.55 &&
       (final?.drive?.dynamics?.freeRoamRatio ?? 0) >= 0.08 &&
@@ -2563,14 +2563,14 @@ async function checkRealDriveWholeMapFreedom(browser) {
     const expectedBands = qaProfile === "quick" ? 3 : 4;
     const freedomGate =
       targetCoverageGate &&
-      xSpan >= 36.8 &&
-      zSpan >= 36.8 &&
+      xSpan >= 46 &&
+      zSpan >= 46 &&
       quadrants.size >= expectedQuadrants &&
       interiorEdgeBands.size >= expectedBands &&
-      distanceDelta >= (qaProfile === "quick" ? 104 : 145) &&
+      distanceDelta >= (qaProfile === "quick" ? 128 : 175) &&
       offRoutePhysics.length >= (qaProfile === "quick" ? 155 : 225) &&
       (final?.drive?.dynamics?.freeRoamRatio ?? 0) >= 0.36 &&
-      maxRouteDistance >= (final?.drive?.surface?.routeWidth ?? 1.45) + 4 &&
+      maxRouteDistance >= (final?.drive?.surface?.routeWidth ?? 1.45) + 6 &&
       maxPhysicsStep <= 1.1 &&
       maxPositionStep <= maxPositionStepLimit &&
       outOfBoundsSamples.length === 0 &&
@@ -4233,7 +4233,9 @@ async function checkWorldRichness(page) {
     "surface-detail:water:tech-harbor:harbor-angular:",
     "surface-detail:water:art-lagoon:lagoon-asymmetric:",
     "surface-detail:water:studio-canal:canal-longitudinal:",
-    "surface-detail:water:foundry-cooling-pool:cooling-tight-rings:"
+    "surface-detail:water:foundry-cooling-pool:cooling-tight-rings:",
+    "surface-detail:water:north-reflection-cut:north-reflection:",
+    "surface-detail:water:south-postal-basin:postal-basin:"
   ];
   const expectedSurfaceDetailRampProfiles = [
     "surface-detail:ramp:tech-delta:delta-blue-steps:",
@@ -4241,8 +4243,16 @@ async function checkWorldRichness(page) {
     "surface-detail:ramp:art-sweep:art-sweep-strokes:",
     "surface-detail:ramp:studio-crossing:studio-crossbars:",
     "surface-detail:ramp:mail-bank:mail-bank-folds:",
-    "surface-detail:ramp:foundry-roll:foundry-roll-cuts:"
+    "surface-detail:ramp:foundry-roll:foundry-roll-cuts:",
+    "surface-detail:ramp:north-shelf:north-shelf-strata:",
+    "surface-detail:ramp:south-shelf:south-shelf-folds:"
   ];
+  const expectedWaterBodies = expectedSurfaceDetailWaterProfiles.length;
+  const expectedReliefRamps = expectedSurfaceDetailRampProfiles.length;
+  const expectedWaterFoam = expectedWaterBodies * 2;
+  const expectedShorePins = expectedWaterBodies * 4;
+  const expectedWaterCrossings = expectedWaterBodies * 4;
+  const expectedRampChevrons = expectedReliefRamps * 3;
   const surfaceDetailSignatures = world?.surfaceDetailSignatures ?? [];
   const missingSurfaceDetailRegionProfiles = [
     ...expectedSurfaceDetailWaterProfiles,
@@ -4254,21 +4264,21 @@ async function checkWorldRichness(page) {
   const duplicateSurfaceDetailSignatures = world?.duplicateSurfaceDetailSignatures ?? [];
   const premiumSurfaceDetails =
     world &&
-    world.surfaceDetailPartCounts?.["water-foam"] === 8 &&
-    world.surfaceDetailPartCounts?.["shore-pin"] === 16 &&
-    world.surfaceDetailPartCounts?.["water-crossing"] === 16 &&
-    world.surfaceDetailPartCounts?.["ramp-chevron"] === 18 &&
+    world.surfaceDetailPartCounts?.["water-foam"] >= expectedWaterFoam &&
+    world.surfaceDetailPartCounts?.["shore-pin"] >= expectedShorePins &&
+    world.surfaceDetailPartCounts?.["water-crossing"] >= expectedWaterCrossings &&
+    world.surfaceDetailPartCounts?.["ramp-chevron"] >= expectedRampChevrons &&
     world.surfaceDetailPartCounts?.["terrain-contour"] >= 9 &&
-    world.surfaceDetailProfiles >= 10 &&
-    world.surfaceDetailWaterProfiles === 4 &&
-    world.surfaceDetailRampProfiles === 6 &&
+    world.surfaceDetailProfiles >= expectedWaterBodies + expectedReliefRamps &&
+    world.surfaceDetailWaterProfiles >= expectedWaterBodies &&
+    world.surfaceDetailRampProfiles >= expectedReliefRamps &&
     world.surfaceDetailColorVariants >= 12 &&
     (world.missingSurfaceDetailProfiles ?? []).length === 0 &&
     missingSurfaceDetailRegionProfiles.length === 0 &&
     duplicateSurfaceDetailSignatures.length === 0 &&
-    world.sceneryRoleCounts?.["surface-detail"] >= 17 &&
-    world.sceneryRoleCounts?.["water-body"] >= 3 &&
-    world.sceneryRoleCounts?.["relief-ramp"] >= 5 &&
+    world.sceneryRoleCounts?.["surface-detail"] >= expectedWaterBodies * 2 + expectedReliefRamps + 9 &&
+    world.sceneryRoleCounts?.["water-body"] >= expectedWaterBodies &&
+    world.sceneryRoleCounts?.["relief-ramp"] >= expectedReliefRamps &&
     world.sceneryObjects >= 180 &&
     world.scenerySignatures >= 75 &&
     world.sceneryMotionObjects >= 55 &&
@@ -4320,11 +4330,11 @@ async function checkWorldRichness(page) {
 
   const waterLevelDesign =
     world &&
-    world.surfaceDetailPartCounts?.["water-crossing"] === 16 &&
+    world.surfaceDetailPartCounts?.["water-crossing"] >= expectedWaterCrossings &&
     missingWaterCrossingProfiles.length === 0 &&
-    world.surfaceDetailSignatures.filter((signature) => signature.includes(":crossing-plank-")).length >= 16 &&
-    world.sceneryRoleCounts?.["water-body"] >= 4 &&
-    world.sceneryRoleCounts?.["surface-detail"] >= 23 &&
+    world.surfaceDetailSignatures.filter((signature) => signature.includes(":crossing-plank-")).length >= expectedWaterCrossings &&
+    world.sceneryRoleCounts?.["water-body"] >= expectedWaterBodies &&
+    world.sceneryRoleCounts?.["surface-detail"] >= expectedWaterBodies * 2 + expectedReliefRamps + 9 &&
     world.surfaceDetailColorVariants >= 12 &&
     world.sceneObjects <= premiumWorldObjectBudget;
   if (waterLevelDesign) {
@@ -5115,11 +5125,11 @@ async function checkExternalAssetMapComposition(browser) {
       externalAssets.waterPlacements >= 4 &&
       externalAssets.reliefPlacements >= 5 &&
       externalAssets.vegetationPlacements >= 12 &&
-      externalAssets.mapCoverageWidth >= 30 &&
-      externalAssets.mapCoverageDepth >= 30 &&
-      externalAssets.mapCoverageArea >= 900 &&
-      externalAssets.bounds.width >= 30 &&
-      externalAssets.bounds.depth >= 30 &&
+      externalAssets.mapCoverageWidth >= 42 &&
+      externalAssets.mapCoverageDepth >= 42 &&
+      externalAssets.mapCoverageArea >= 1764 &&
+      externalAssets.bounds.width >= 42 &&
+      externalAssets.bounds.depth >= 42 &&
       externalAssets.bounds.height >= 1 &&
       missingRoles.length === 0 &&
       weakScreenRoles.length === 0 &&
@@ -8621,25 +8631,25 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
     {
       routeId: "spine-contact-gate",
       family: "studio",
-      position: { x: 0, z: -6.6 },
+      position: { x: 0, z: -9.79 },
       radius: 1.55,
       timeoutMs: 14_000,
       route: [
-        { id: "static-spine-align", position: { x: 0.28, z: -5.15 }, radius: 1.25, timeoutMs: 10_000, overshootBrake: true },
-        { id: "static-spine-contact-gate", position: { x: 0, z: -6.6 }, radius: 1.55, timeoutMs: 14_000, overshootBrake: true }
+        { id: "static-spine-align", position: { x: 0.28, z: -7.9 }, radius: 1.25, timeoutMs: 10_000, overshootBrake: true },
+        { id: "static-spine-contact-gate", position: { x: 0, z: -9.79 }, radius: 1.55, timeoutMs: 14_000, overshootBrake: true }
       ]
     },
     {
       routeId: "tech-gate-cloud",
       family: "tech",
-      position: { x: -2.706, z: -6.136 },
+      position: { x: -4.45, z: -10.08 },
       radius: 1.2,
       timeoutMs: 12_000,
       route: [
-        { id: "static-tech-via-gate-cloud", position: { x: -2.4, z: -5.2 }, radius: 1.45, timeoutMs: 10_000, overshootBrake: true },
+        { id: "static-tech-via-gate-cloud", position: { x: -3.8, z: -8.6 }, radius: 1.45, timeoutMs: 10_000, overshootBrake: true },
         {
           id: "static-tech-gate-cloud",
-          position: { x: -2.706, z: -6.136 },
+          position: { x: -4.45, z: -10.08 },
           radius: 0.9,
           timeoutMs: 14_000,
           overshootBrake: true,
@@ -8650,14 +8660,14 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
     {
       routeId: "art-gate-design",
       family: "art",
-      position: { x: 5.96, z: -3.97 },
+      position: { x: 6.4, z: -4.84 },
       radius: 1.1,
       timeoutMs: 12_000,
       route: [
-        { id: "static-art-via-gate", position: { x: 4.9, z: -3.7 }, radius: 1.35, timeoutMs: 10_000, overshootBrake: true },
+        { id: "static-art-via-gate", position: { x: 5.2, z: -4.1 }, radius: 1.35, timeoutMs: 10_000, overshootBrake: true },
         {
           id: "static-art-gate-design",
-          position: { x: 5.96, z: -3.97 },
+          position: { x: 6.4, z: -4.84 },
           radius: 0.85,
           timeoutMs: 12_000,
           overshootBrake: true,
@@ -9131,7 +9141,7 @@ async function writeReport() {
     `- Scenery roles: ${
       world?.sceneryRoleCounts ? Object.entries(world.sceneryRoleCounts).map(([role, count]) => `${role}:${count}`).join(", ") : "n/a"
     }`,
-    `- Surface detail profiles: ${world?.surfaceDetailProfiles ?? "n/a"} total, water ${world?.surfaceDetailWaterProfiles ?? "n/a"}/4, ramp ${world?.surfaceDetailRampProfiles ?? "n/a"}/6, colors ${world?.surfaceDetailColorVariants ?? "n/a"}`,
+    `- Surface detail profiles: ${world?.surfaceDetailProfiles ?? "n/a"} total, water ${world?.surfaceDetailWaterProfiles ?? "n/a"}/6, ramp ${world?.surfaceDetailRampProfiles ?? "n/a"}/8, colors ${world?.surfaceDetailColorVariants ?? "n/a"}`,
     `- Water level design: ${
       waterLevelDesignScenario?.details
         ? `${waterLevelDesignScenario.status}, crossings ${waterLevelDesignScenario.details.waterCrossings}, water bodies ${waterLevelDesignScenario.details.waterBodies}, surface roles ${waterLevelDesignScenario.details.surfaceDetailRoles}`

@@ -149,7 +149,8 @@ The runner:
   water, relief and vegetation linkage, primary/support/context curation,
   promotion candidates, bounded cluster density, measured bounding-box ground
   clearance, no coplanar placement risk, visible screen-space role rectangles
-  for route/water/relief/vegetation, and a wide non-flat canvas proof.
+  for route/water/relief/vegetation, and a wide non-flat canvas proof covering
+  at least a `42x42` map vocabulary footprint.
 - `assets:validate` must also prove accepted runtime texture coverage for the
   core enlarged-map material roles: road, water, relief, and vegetation/field.
 - Every zone must expose a label, modeled landmark objects, mesh count, and

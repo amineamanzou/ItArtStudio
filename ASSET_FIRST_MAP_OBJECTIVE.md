@@ -1,4 +1,36 @@
-# Objectif Asset-First Map
+# Objectif Fige - Asset-First Map
+
+## Nouvel Objectif De Boucle Agentic
+
+Atteindre un niveau de qualite proche d'une vitrine interactive type Bruno Simon
+en inversant la priorite du projet: ne plus agrandir la carte avec du bruit
+procedural, mais construire d'abord une bibliotheque d'assets GLB/glTF et de
+textures web-ready, puis utiliser ce vocabulaire visuel pour agrandir le monde,
+composer trois hero locations premium et valider chaque iteration par QA
+visuelle jouee au clavier.
+
+La prochaine boucle agentic doit donc livrer une progression mesurable sur:
+
+- la quantite et la qualite des assets utilisables en production;
+- la coherence du terrain, des routes, de la verdure, de l'eau et du relief;
+- la lisibilite des trois lieux signatures;
+- la reduction du bruit procedural;
+- la capacite de la QA a prouver visuellement que le site devient un monde
+  exploratoire premium.
+
+## Plan Fige
+
+1. Collecter et curer un maximum d'assets accelerateurs.
+2. Stabiliser le pipeline GLB/glTF et textures.
+3. Agrandir une map volontairement peu dense mais coherentement preparee.
+4. Construire les trois hero locations avec la bibliotheque d'assets.
+5. Reduire le bruit procedural et les doublons visuels.
+6. Iterer en boucle QA jusqu'a obtenir des captures comparables a un livrable
+   premium.
+
+Ce plan remplace l'approche "on agrandit d'abord puis on habille ensuite".
+L'ordre est volontaire: les assets et textures creent le langage visuel, la map
+s'agrandit ensuite avec ce langage, puis les lieux deviennent memorables.
 
 ## Intention
 
@@ -19,7 +51,7 @@ du terrain, la lisibilite des assets, la qualite des textures et la reduction du
 bruit procedural, avec une QA visuelle qui prouve que les lieux sont
 reconnaissables sans lire le texte.
 
-## Ordre Fige
+## Ordre Operationnel
 
 1. Collecter et curer la bibliotheque d'assets et textures.
 2. Stabiliser le pipeline GLB/glTF.
@@ -27,6 +59,24 @@ reconnaissables sans lire le texte.
 4. Composer les trois hero locations.
 5. Reduire le bruit procedural.
 6. Iterer avec une QA visuelle et performance.
+
+## Definition De Succes
+
+Le prochain jalon est considere reussi seulement si:
+
+- les assets runtime ont une source, une licence, un role narratif, un poids et
+  un fallback documentes;
+- les textures route, vegetation, eau et relief sont disponibles en runtime et
+  verifiees par le manifest;
+- la map agrandie garde des routes, respirations, berges, reliefs et zones de
+  transition coherents;
+- `Cloud Dock`, `Design Atelier` et `Observability Tower` sont reconnaissables
+  en screenshot sans lire les panneaux HTML;
+- les captures QA desktop prouvent le chargement, l'exploration clavier,
+  l'absence de scintillement evident, la presence d'eau, de relief, de verdure
+  et d'assets 3D;
+- les proceduraux generiques diminuent a chaque vague ou restent uniquement
+  comme fallback, FX ou structure temporaire assumee.
 
 ## Phase 1 - Bibliotheque Assets Et Textures
 
@@ -96,6 +146,15 @@ Principes:
 - eviter les murs invisibles: le decor guide, il ne bloque pas gratuitement;
 - construire des silhouettes lointaines et des points de repere;
 - laisser des zones vides assumees pour donner de l'echelle.
+
+Baseline actuelle:
+
+- monde jouable: `56x56`;
+- roam QA interieur: `+-24.2`;
+- terrain: features physiques reparties au centre et en peripherie;
+- eau: six regions, dont deux respirations de bord;
+- rampes: huit transitions, sans collision bloquante;
+- GLB opt-in `?assets=map`: couverture attendue au moins `42x42`.
 
 ## Phase 4 - Trois Hero Locations
 

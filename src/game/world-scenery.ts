@@ -576,7 +576,9 @@ function addSurfaceDetails(
     "tech-harbor": { id: "harbor-angular", foam: [1.12, 0.62], pinAngle: 0.18, pinLift: 0.06, foamColor: 0x4fdff6, pinColor: 0xfff2b0 },
     "art-lagoon": { id: "lagoon-asymmetric", foam: [0.96, 0.76], pinAngle: 0.68, pinLift: 0.02, foamColor: 0xff6f8e, pinColor: 0xffd166 },
     "studio-canal": { id: "canal-longitudinal", foam: [1.18, 0.58], pinAngle: -0.12, pinLift: 0.08, foamColor: 0xffd85c, pinColor: 0x54d8f2 },
-    "foundry-cooling-pool": { id: "cooling-tight-rings", foam: [0.88, 0.55], pinAngle: 0.42, pinLift: 0.04, foamColor: 0x83f4ff, pinColor: 0xff7a97 }
+    "foundry-cooling-pool": { id: "cooling-tight-rings", foam: [0.88, 0.55], pinAngle: 0.42, pinLift: 0.04, foamColor: 0x83f4ff, pinColor: 0xff7a97 },
+    "north-reflection-cut": { id: "north-reflection", foam: [1.04, 0.6], pinAngle: -0.32, pinLift: 0.05, foamColor: 0x7ef7ff, pinColor: 0xf6c95b },
+    "south-postal-basin": { id: "postal-basin", foam: [0.92, 0.64], pinAngle: 0.22, pinLift: 0.035, foamColor: 0x66e6ff, pinColor: 0xfff0b8 }
   };
   const rampProfiles: Record<string, { id: string; offset: number; scale: number; color: number; lift: number }> = {
     "tech-delta": { id: "delta-blue-steps", offset: 0.04, scale: 1.06, color: 0x42d9ff, lift: 0.02 },
@@ -584,7 +586,9 @@ function addSurfaceDetails(
     "art-sweep": { id: "art-sweep-strokes", offset: 0.12, scale: 1.18, color: 0xff6c87, lift: 0.01 },
     "studio-crossing": { id: "studio-crossbars", offset: -0.1, scale: 1, color: 0xffd45a, lift: 0.03 },
     "mail-bank": { id: "mail-bank-folds", offset: 0.02, scale: 0.96, color: 0xfff2b0, lift: 0.035 },
-    "foundry-roll": { id: "foundry-roll-cuts", offset: -0.14, scale: 1.08, color: 0x4fdff6, lift: 0.025 }
+    "foundry-roll": { id: "foundry-roll-cuts", offset: -0.14, scale: 1.08, color: 0x4fdff6, lift: 0.025 },
+    "north-shelf": { id: "north-shelf-strata", offset: 0.08, scale: 1.02, color: 0xffd85c, lift: 0.02 },
+    "south-shelf": { id: "south-shelf-folds", offset: -0.04, scale: 0.98, color: 0x7ef7ff, lift: 0.025 }
   };
 
   const waterFoam = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.012, 6, 72), instancedColorMaterial(roadMat), waterFoamCount);

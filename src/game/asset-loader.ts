@@ -483,37 +483,43 @@ function createWaterPlacementSpecs(): MapPlacementSpec[] {
   const files = ["ground_riverStraight.glb", "ground_riverBend.glb", "ground_riverRocks.glb", "lily_large.glb"];
   return [
     ...worldMaterialRegions.water.map((region, index) =>
-      createPlacement(`water:${region.id}`, `water:${region.id}`, "water", index === 3 ? "support" : "primary", true, "water", files[index % files.length], region.center, index === 3 ? 1.12 : 1.74, region.rotation)
+      createPlacement(`water:${region.id}`, `water:${region.id}`, "water", index >= 4 ? "context" : index === 3 ? "support" : "primary", true, "water", files[index % files.length], region.center, index >= 4 ? 1.05 : index === 3 ? 1.12 : 1.74, region.rotation)
     ),
-    createPlacement("water:studio-crossing-proof", "water:studio-crossing-proof", "water", "support", true, "water", "ground_riverStraight.glb", [-0.8, 4.2], 1.46, -0.18)
+    createPlacement("water:studio-crossing-proof", "water:studio-crossing-proof", "water", "support", true, "water", "ground_riverStraight.glb", [-0.8, 5.9], 1.46, -0.18)
   ];
 }
 
 function createReliefPlacementSpecs(): MapPlacementSpec[] {
   return [
-    createPlacement("relief:tech-ridge", "relief:tech-ridge", "relief", "primary", true, "relief", "cliff_blockSlope_rock.glb", [-12.7, 1.6], 1.62, -0.2),
-    createPlacement("relief:harbor-cut", "relief:harbor-cut", "relief", "primary", true, "relief", "cliff_corner_rock.glb", [-10.4, -14.5], 1.44, 0.42),
-    createPlacement("relief:art-mound", "relief:art-mound", "relief", "support", true, "relief", "rock_largeC.glb", [12.6, 4.2], 1.28, -0.32),
-    createPlacement("relief:studio-spine", "relief:studio-spine", "relief", "support", true, "relief", "cliff_steps_rock.glb", [-1.4, 11.7], 1.34, 0.08),
-    createPlacement("relief:north-field", "relief:north-field", "relief", "context", false, "relief", "rock_largeA.glb", [6.8, 18.2], 1.22, -0.18),
-    createPlacement("relief:south-field", "relief:south-field", "relief", "context", false, "relief", "rock_tallA.glb", [-6.2, -18.4], 1.3, 0.26)
+    createPlacement("relief:tech-ridge", "relief:tech-ridge", "relief", "primary", true, "relief", "cliff_blockSlope_rock.glb", [-18.7, 2.2], 1.62, -0.2),
+    createPlacement("relief:harbor-cut", "relief:harbor-cut", "relief", "primary", true, "relief", "cliff_corner_rock.glb", [-15.4, -21.5], 1.44, 0.42),
+    createPlacement("relief:art-mound", "relief:art-mound", "relief", "support", true, "relief", "rock_largeC.glb", [18.4, 6.4], 1.28, -0.32),
+    createPlacement("relief:studio-spine", "relief:studio-spine", "relief", "support", true, "relief", "cliff_steps_rock.glb", [-1.8, 18.3], 1.34, 0.08),
+    createPlacement("relief:north-field", "relief:north-field", "relief", "context", false, "relief", "rock_largeA.glb", [8.8, 24.6], 1.22, -0.18),
+    createPlacement("relief:south-field", "relief:south-field", "relief", "context", false, "relief", "rock_tallA.glb", [-8.5, -25.1], 1.3, 0.26),
+    createPlacement("relief:west-cut", "relief:west-cut", "relief", "context", false, "relief", "rock_largeA.glb", [-24.8, 8.5], 1.16, 0.14),
+    createPlacement("relief:east-shelf", "relief:east-shelf", "relief", "context", false, "relief", "cliff_half_rock.glb", [24.2, 10.8], 1.18, -0.26),
+    createPlacement("relief:studio-crossing-proof", "relief:studio-crossing-proof", "relief", "support", true, "relief", "rock_largeC.glb", [2.8, 6.5], 1.18, -0.12)
   ];
 }
 
 function createVegetationPlacementSpecs(): MapPlacementSpec[] {
   return [
-    createPlacement("vegetation:tech-tree", "vegetation:tech-west", "vegetation", "support", true, "vegetation", "tree_cone.glb", [-14.8, -5.6], 1.5, 0.1),
-    createPlacement("vegetation:tech-bush", "vegetation:tech-west", "vegetation", "context", false, "vegetation", "plant_bush.glb", [-16.4, 2.8], 1.12, -0.24),
-    createPlacement("vegetation:studio-oak", "vegetation:studio-north", "vegetation", "support", true, "vegetation", "tree_oak.glb", [3.6, 12.8], 1.65, -0.22),
-    createPlacement("vegetation:studio-grass", "vegetation:studio-north", "vegetation", "context", false, "vegetation", "grass.glb", [-3.4, 17.8], 1.08, 0.1),
-    createPlacement("vegetation:art-palm", "vegetation:art-east", "vegetation", "support", true, "vegetation", "tree_palm.glb", [15.7, -8.8], 1.55, 0.34),
-    createPlacement("vegetation:art-flower", "vegetation:art-east", "vegetation", "context", false, "vegetation", "flower_yellowA.glb", [18.1, -2.6], 1.05, -0.16),
-    createPlacement("vegetation:foundry-bush", "vegetation:foundry", "vegetation", "context", false, "vegetation", "plant_bushLarge.glb", [15.8, 3.9], 1.24, -0.38),
-    createPlacement("vegetation:foundry-tree", "vegetation:foundry", "vegetation", "support", true, "vegetation", "tree_default.glb", [18.4, 7.6], 1.46, 0.28),
-    createPlacement("vegetation:contact-grass", "vegetation:contact-south", "vegetation", "context", false, "vegetation", "grass_large.glb", [-2.8, -14.8], 1.18, 0.16),
-    createPlacement("vegetation:contact-bush", "vegetation:contact-south", "vegetation", "context", false, "vegetation", "plant_bush.glb", [3.2, -18.6], 1.1, -0.12),
-    createPlacement("vegetation:north-tree", "vegetation:north-field", "vegetation", "context", false, "vegetation", "tree_fat.glb", [-9.2, 18.5], 1.42, 0.24),
-    createPlacement("vegetation:south-tree", "vegetation:south-field", "vegetation", "context", false, "vegetation", "tree_default.glb", [9.6, -18.1], 1.42, -0.18)
+    createPlacement("vegetation:tech-tree", "vegetation:tech-west", "vegetation", "support", true, "vegetation", "tree_cone.glb", [-21.4, -8.8], 1.5, 0.1),
+    createPlacement("vegetation:tech-bush", "vegetation:tech-west", "vegetation", "context", false, "vegetation", "plant_bush.glb", [-24.4, 4.1], 1.12, -0.24),
+    createPlacement("vegetation:studio-oak", "vegetation:studio-north", "vegetation", "support", true, "vegetation", "tree_oak.glb", [4.8, 19.8], 1.65, -0.22),
+    createPlacement("vegetation:studio-grass", "vegetation:studio-north", "vegetation", "context", false, "vegetation", "grass.glb", [-4.8, 24.4], 1.08, 0.1),
+    createPlacement("vegetation:art-palm", "vegetation:art-east", "vegetation", "support", true, "vegetation", "tree_palm.glb", [22.9, -13.8], 1.55, 0.34),
+    createPlacement("vegetation:art-flower", "vegetation:art-east", "vegetation", "context", false, "vegetation", "flower_yellowA.glb", [25.2, -4.2], 1.05, -0.16),
+    createPlacement("vegetation:foundry-bush", "vegetation:foundry", "vegetation", "context", false, "vegetation", "plant_bushLarge.glb", [23.1, 5.9], 1.24, -0.38),
+    createPlacement("vegetation:foundry-tree", "vegetation:foundry", "vegetation", "support", true, "vegetation", "tree_default.glb", [25.2, 11.6], 1.46, 0.28),
+    createPlacement("vegetation:contact-grass", "vegetation:contact-south", "vegetation", "context", false, "vegetation", "grass_large.glb", [-3.8, -23.4], 1.18, 0.16),
+    createPlacement("vegetation:contact-bush", "vegetation:contact-south", "vegetation", "context", false, "vegetation", "plant_bush.glb", [4.8, -26.2], 1.1, -0.12),
+    createPlacement("vegetation:north-tree", "vegetation:north-field", "vegetation", "context", false, "vegetation", "tree_fat.glb", [-13.6, 25.3], 1.42, 0.24),
+    createPlacement("vegetation:south-tree", "vegetation:south-field", "vegetation", "context", false, "vegetation", "tree_default.glb", [13.4, -25.4], 1.42, -0.18),
+    createPlacement("vegetation:west-field", "vegetation:west-field", "vegetation", "context", false, "vegetation", "tree_cone.glb", [-25.8, -17.2], 1.36, 0.18),
+    createPlacement("vegetation:east-field", "vegetation:east-field", "vegetation", "context", false, "vegetation", "plant_bushLarge.glb", [26.0, 20.8], 1.2, -0.2),
+    createPlacement("vegetation:studio-crossing-proof", "vegetation:studio-crossing-proof", "vegetation", "support", true, "vegetation", "tree_oak.glb", [-3.2, 6.8], 1.32, 0.14)
   ];
 }
 

@@ -1108,6 +1108,19 @@ Gates V8.6:
 - la prochaine boucle peut agrandir le terrain avec une base materiau verifiee
   au lieu d'etirer uniquement des aplats proceduraux.
 
+Gates V8.7:
+
+- la carte jouable passe de `44x44` a `56x56`, avec zones repositionnees,
+  routes allongees, eau, rampes et features terrain redeployees sur les bords
+  pour donner de vraies respirations d'exploration;
+- l'expansion ne gonfle pas le scene graph par reflexe: les nouvelles eaux,
+  rampes et marqueurs restent portes par les familles instanciees existantes;
+- la QA `real-drive-whole-map-freedom` cible maintenant les bandes interieures
+  `+-24.2`, et `external-asset-map-composition` doit prouver une couverture GLB
+  d'au moins `42x42`;
+- cette tranche prepare les trois hero locations premium en augmentant l'espace
+  disponible avant d'ajouter des assets plus narratifs.
+
 ## Components
 
 - `game-site`: surface principale.

@@ -1631,7 +1631,7 @@ class StudioGame {
 
   private setScene() {
     this.scene.background = new THREE.Color(0x07100e);
-    this.scene.fog = new THREE.Fog(0x07100e, 18, 52);
+    this.scene.fog = new THREE.Fog(0x07100e, 24, 72);
 
     const hemi = new THREE.HemisphereLight(0xfff0d0, 0x0b1624, 2.2);
     this.scene.add(hemi);
