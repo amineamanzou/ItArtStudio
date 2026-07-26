@@ -4972,12 +4972,15 @@ async function checkExternalAssetPreview(browser) {
   attachPageDiagnostics(previewPage, "external-assets");
 
   try {
-    await assertReady(previewPage, previewUrl);
+    await previewPage.goto(previewUrl, { waitUntil: "domcontentloaded", timeout: 20_000 });
+    await previewPage.waitForLoadState("load", { timeout: 15_000 }).catch(() => {});
     await previewPage.waitForFunction(
       () => {
         const assets = window.__IT_ART_STUDIO_QA__?.externalAssets;
         return Boolean(
-          assets?.enabled &&
+          document.documentElement.classList.contains("game-ready") &&
+            window.__IT_ART_STUDIO_QA__?.ready === true &&
+            assets?.enabled &&
             assets.requested >= 6 &&
             assets.loaded + assets.failed >= assets.requested &&
             window.__IT_ART_STUDIO_QA__?.frameCount > 6
