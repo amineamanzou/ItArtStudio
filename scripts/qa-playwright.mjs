@@ -70,12 +70,13 @@ const expectedPrioritySetDressingRoles = {
     "cluster-status-pin",
     "deployment-lane"
   ],
-  "design-atelier": ["canvas-wall", "color-swatch", "paint-tool"],
+  "design-atelier": ["canvas-wall", "drafting-table", "material-roll", "color-swatch", "paint-tool", "studio-lamp", "layout-pin"],
   "contact-portal": ["postal-desk", "mail-tray", "sorting-belt", "reply-portal-field"]
 };
 const expectedPrioritySignatureFamilies = {
   "observability-tower": ["telemetry-tower", "trace-helix", "metric-array"],
-  "cloud-dock": ["cloud-platform", "server-array", "electric-cloud"]
+  "cloud-dock": ["cloud-platform", "server-array", "electric-cloud"],
+  "design-atelier": ["composition-wall", "pattern-table", "material-palette", "atelier-light-rig"]
 };
 let screenshotIndex = 0;
 
@@ -3325,6 +3326,44 @@ async function checkWorldRichness(page) {
       signatures: cloudDockZone?.signatureArtifactSignatures ?? [],
       roles: cloudDockZone?.signatureArtifactRoles ?? [],
       families: [...cloudSignatureFamilies].sort()
+    });
+  }
+
+  const designAtelierZone = visualSpecZones.find((item) => item.id === "design-atelier");
+  const designSignatureFamilies = new Set(designAtelierZone?.signatureArtifactFamilies ?? []);
+  const designSignatureHeadroom =
+    world &&
+    designAtelierZone &&
+    world.sceneObjects <= premiumWorldObjectBudget - 2 &&
+    (designAtelierZone.signatureArtifactObjects ?? 0) >= 9 &&
+    (designAtelierZone.signatureArtifactSceneObjects ?? 0) <= 6 &&
+    (designAtelierZone.signatureArtifactSignatures?.length ?? 0) >= 9 &&
+    (designAtelierZone.signatureArtifactRoles?.length ?? 0) >= 9 &&
+    ["composition-wall", "pattern-table", "material-palette", "atelier-light-rig"].every((family) =>
+      designSignatureFamilies.has(family)
+    );
+  if (designSignatureHeadroom) {
+    pass("design-signature-headroom", {
+      zoneId: designAtelierZone.id,
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget,
+      semanticSignatureObjects: designAtelierZone.signatureArtifactObjects,
+      physicalSignatureSceneObjects: designAtelierZone.signatureArtifactSceneObjects,
+      signatures: designAtelierZone.signatureArtifactSignatures,
+      roles: designAtelierZone.signatureArtifactRoles,
+      families: [...designSignatureFamilies].sort()
+    });
+  } else {
+    scenarioFail("design-signature-headroom", "Design Atelier signature is not rich enough within the compressed scene budget.", {
+      zoneId: designAtelierZone?.id ?? null,
+      sceneObjects: world?.sceneObjects,
+      requiredSceneObjectsMax: premiumWorldObjectBudget - 2,
+      sceneObjectBudget: premiumWorldObjectBudget,
+      semanticSignatureObjects: designAtelierZone?.signatureArtifactObjects,
+      physicalSignatureSceneObjects: designAtelierZone?.signatureArtifactSceneObjects,
+      signatures: designAtelierZone?.signatureArtifactSignatures ?? [],
+      roles: designAtelierZone?.signatureArtifactRoles ?? [],
+      families: [...designSignatureFamilies].sort()
     });
   }
 

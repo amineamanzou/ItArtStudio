@@ -14,6 +14,9 @@ type ArtifactRole =
   | "server-array"
   | "electric-cloud"
   | "composition-wall"
+  | "pattern-table"
+  | "material-palette"
+  | "atelier-light-rig"
   | "wireframe-knot"
   | "garment-fold"
   | "value-crossing"
@@ -336,16 +339,55 @@ function createCloudArtifacts(group: THREE.Group, zone: StudioZone, mats: Artifa
 }
 
 function createDesignArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactMaterials) {
-  add(group, box([1.16, 0.74, 0.06], mats.light, [0.24, 1.18, -0.82]), zone, "composition-wall", "canvas-plane", "light-plane", "tilt");
-  const curve = tube([
-    new THREE.Vector3(-0.24, 1.1, -0.76),
-    new THREE.Vector3(0.12, 1.44, -0.75),
-    new THREE.Vector3(0.58, 1.08, -0.74)
-  ], 0.018, mats.accent);
-  add(group, curve, zone, "composition-wall", "gesture-line", "accent-gesture", "pulse");
-  for (let index = 0; index < 5; index += 1) {
-    add(group, box([0.16, 0.08, 0.16], index % 2 ? mats.secondary : mats.accent, [-0.18 + index * 0.24, 0.58, 0.92]), zone, "composition-wall", `swatch-specimen-${index}`, index % 2 ? "secondary-swatch" : "accent-swatch", "pulse");
-  }
+  add(group, box([1.22, 0.88, 0.06], mats.light, [0.18, 1.2, -0.82]), zone, "composition-wall", "canvas-plane", "light-plane", "tilt");
+
+  const easelFrame = instancedBoxes([1, 1, 0.055], mats.dark, [
+    { position: [-0.48, 1.2, -0.76], scale: [0.055, 1.06, 1], color: mats.dark.color.getHex() },
+    { position: [0.84, 1.2, -0.76], scale: [0.055, 1.06, 1], color: mats.dark.color.getHex() },
+    { position: [0.18, 1.68, -0.76], scale: [1.38, 0.055, 1], color: mats.accent.color.getHex() },
+    { position: [0.18, 0.72, -0.76], scale: [1.22, 0.055, 1], color: mats.secondary.color.getHex() }
+  ]);
+  add(group, easelFrame, zone, "composition-wall", "easel-frame-cluster", "instanced-frame", "pulse");
+  tagSemanticParts(easelFrame, zone, [
+    { role: "composition-wall", signature: "easel-left-rail", materialVariant: "dark-frame" },
+    { role: "composition-wall", signature: "easel-right-rail", materialVariant: "dark-frame" },
+    { role: "composition-wall", signature: "easel-top-rail", materialVariant: "accent-frame" },
+    { role: "composition-wall", signature: "easel-bottom-rail", materialVariant: "secondary-frame" }
+  ]);
+
+  add(group, tube([
+    new THREE.Vector3(-0.32, 1.1, -0.75),
+    new THREE.Vector3(-0.04, 1.52, -0.74),
+    new THREE.Vector3(0.34, 1.34, -0.73),
+    new THREE.Vector3(0.64, 1.56, -0.72)
+  ], 0.02, mats.accent), zone, "composition-wall", "paint-gesture-curve", "accent-gesture", "pulse");
+
+  const draftingTable = box([1.12, 0.14, 0.54], mats.dark, [0.22, 0.48, 0.72]);
+  draftingTable.rotation.y = -0.34;
+  add(group, draftingTable, zone, "pattern-table", "diagonal-drafting-table", "dark-table", "tilt");
+
+  add(group, tube([
+    new THREE.Vector3(-0.7, 1.94, 0.52),
+    new THREE.Vector3(-0.22, 1.7, 0.38),
+    new THREE.Vector3(0.38, 1.02, 0.56),
+    new THREE.Vector3(0.72, 0.74, 0.78)
+  ], 0.026, mats.secondary), zone, "atelier-light-rig", "diagonal-studio-lamp", "secondary-light-rig", "sweep");
+
+  const swatches = instancedBoxes([0.18, 0.08, 0.18], mats.light, [
+    { position: [-0.36, 0.66, 1.0], color: mats.accent.color.getHex() },
+    { position: [-0.1, 0.6, 0.92], color: mats.secondary.color.getHex() },
+    { position: [0.16, 0.64, 0.98], color: mats.light.color.getHex() },
+    { position: [0.42, 0.58, 0.9], color: mats.accent.color.getHex() },
+    { position: [0.68, 0.62, 0.96], color: mats.secondary.color.getHex() }
+  ]);
+  add(group, swatches, zone, "material-palette", "material-rail-cluster", "instanced-materials", "blink");
+  tagSemanticParts(swatches, zone, [
+    { role: "material-palette", signature: "material-swatch-0", materialVariant: "accent-swatch" },
+    { role: "material-palette", signature: "material-swatch-1", materialVariant: "secondary-swatch" },
+    { role: "material-palette", signature: "material-swatch-2", materialVariant: "light-swatch" },
+    { role: "material-palette", signature: "material-swatch-3", materialVariant: "accent-swatch" },
+    { role: "material-palette", signature: "material-swatch-4", materialVariant: "secondary-swatch" }
+  ]);
 }
 
 function createFoundryArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactMaterials) {

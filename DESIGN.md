@@ -687,6 +687,21 @@ Gates V5.5:
 - cette vague cree du headroom avant les prochains assets premium: toute
   augmentation de qualite doit conserver ou reduire le bruit structurel.
 
+Gates V5.6:
+
+- `design-atelier` remplace sa signature simple mur + swatches par un poste
+  d'atelier plus lisible: canvas encadre, rails d'easel instancies, geste de
+  peinture, table de drafting diagonale, light rig et rail matiere instancie;
+- `priority-signature-assets` exige maintenant les familles `composition-wall`,
+  `pattern-table`, `material-palette` et `atelier-light-rig` sur Design
+  Atelier, avec au moins huit roles/signatures et une enveloppe 3D lisible;
+- le set dressing `creative-direction-atelier` remplace le panneau texte par une
+  table de drafting, un rouleau matiere, une lampe studio et un pin de layout:
+  la zone doit se reconnaitre par silhouette et usage, pas par label;
+- les repetitions d'atelier utilisent la meme logique semantique que Cloud:
+  plusieurs parties QA distinctes peuvent etre portees par un `InstancedMesh`
+  pour garder la qualite percue sans regonfler le scene graph.
+
 ## Components
 
 - `game-site`: surface principale.

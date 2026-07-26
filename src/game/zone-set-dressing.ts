@@ -92,14 +92,16 @@ const recipes: Record<string, ZoneDressingRecipe> = {
     ]
   },
   "design-atelier": {
-    signature: "paint-swatch-atelier",
+    signature: "creative-direction-atelier",
     primitives: [
       block("paper-wall", "canvas-wall", "light", [0, 0.8, -1.36], [1.35, 0.72, 0.06]),
-      block("swatch-tech", "color-swatch", "secondary", [-0.78, 0.35, 1.16], [0.34, 0.12, 0.34]),
-      block("swatch-art", "color-swatch", "accent", [-0.34, 0.35, 1.16], [0.34, 0.12, 0.34]),
-      block("swatch-studio", "color-swatch", "light", [0.1, 0.35, 1.16], [0.34, 0.12, 0.34]),
-      cylinder("paint-pot", "paint-tool", "accent", [0.82, 0.28, 1.08], [0.18, 0.32, 0.18]),
-      sign("design-sign", "wayfinding-sign", "accent", [1.2, 0.76, -1.12], "DESIGN")
+      block("drafting-table", "drafting-table", "dark", [0.2, 0.34, 1.06], [0.9, 0.14, 0.5], [0, -0.24, 0]),
+      cylinder("material-roll", "material-roll", "secondary", [-0.82, 0.48, 1.08], [0.1, 0.66, 0.1], [Math.PI * 0.5, 0, 0.22]),
+      block("swatch-tech", "color-swatch", "secondary", [-0.4, 0.48, 1.18], [0.28, 0.1, 0.28]),
+      block("swatch-art", "color-swatch", "accent", [-0.06, 0.44, 1.1], [0.28, 0.1, 0.28]),
+      cylinder("paint-pot", "paint-tool", "accent", [0.8, 0.28, 1.0], [0.16, 0.32, 0.16]),
+      cone("studio-lamp", "studio-lamp", "light", [1.04, 0.78, -1.04], [0.2, 0.46, 0.2], [0.58, 0, 0.34]),
+      sphere("layout-pin", "layout-pin", "accent", [0.52, 1.08, -1.28], [0.09, 0.09, 0.09])
     ]
   },
   "three-d-foundry": {
