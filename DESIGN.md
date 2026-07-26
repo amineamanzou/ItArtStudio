@@ -702,6 +702,21 @@ Gates V5.6:
   plusieurs parties QA distinctes peuvent etre portees par un `InstancedMesh`
   pour garder la qualite percue sans regonfler le scene graph.
 
+Gates V5.7:
+
+- `contact-portal` remplace sa signature ring + carte par un bureau postal
+  miniature: comptoir, bac de tri, portail vertical de reponse, pile
+  d'enveloppes instanciee, pli d'enveloppe, arc de signal et points de
+  livraison instancies;
+- `priority-signature-assets` exige maintenant les familles `postal-counter`,
+  `reply-portal`, `mail-packet` et `delivery-signal` sur Contact Portal;
+- le set dressing `postal-reply-office` retire le panneau `MAIL` au profit d'une
+  pile courrier, d'un beacon de cachet et d'une lumiere courier: le lieu doit
+  raconter le passage a l'action sans dependance a un label;
+- `contact-signature-headroom` verifie que Contact conserve au moins onze
+  parties signature semantiques avec sept objets physiques ou moins, en gardant
+  `sceneObjects <= 938`.
+
 ## Components
 
 - `game-site`: surface principale.

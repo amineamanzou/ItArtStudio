@@ -20,7 +20,10 @@ type ArtifactRole =
   | "wireframe-knot"
   | "garment-fold"
   | "value-crossing"
-  | "contact-signal";
+  | "postal-counter"
+  | "reply-portal"
+  | "mail-packet"
+  | "delivery-signal";
 
 export type RenderedZoneSignatureArtifacts = {
   group: THREE.Group;
@@ -430,10 +433,38 @@ function createValuesArtifacts(group: THREE.Group, zone: StudioZone, mats: Artif
 }
 
 function createContactArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactMaterials) {
-  add(group, ring(0.76, 0.035, mats.light, [0, 1.08, -0.74], [Math.PI * 0.5, 0.15, 0]), zone, "contact-signal", "signal-ring", "light-ring", "sweep");
-  add(group, box([0.72, 0.42, 0.05], mats.accent, [0, 0.92, -0.72]), zone, "contact-signal", "mail-card", "accent-card", "pulse");
-  add(group, tube([new THREE.Vector3(-0.34, 0.98, -0.67), new THREE.Vector3(0, 0.78, -0.65), new THREE.Vector3(0.34, 0.98, -0.67)], 0.016, mats.light), zone, "contact-signal", "mail-fold", "light-fold", "pulse");
-  for (let index = 0; index < 3; index += 1) {
-    add(group, sphere(0.07, index % 2 ? mats.secondary : mats.light, [-0.52 + index * 0.52, 1.62, -0.72]), zone, "contact-signal", `signal-dot-${index}`, index % 2 ? "secondary-dot" : "light-dot", "blink");
-  }
+  add(group, box([1.08, 0.28, 0.54], mats.dark, [-0.08, 0.48, -0.76]), zone, "postal-counter", "service-counter", "dark-counter", "pulse");
+  add(group, box([0.62, 0.12, 0.38], mats.secondary, [0.28, 0.72, -0.74]), zone, "postal-counter", "mail-sort-tray", "secondary-tray", "blink");
+  add(group, ring(0.74, 0.032, mats.light, [0.1, 1.14, -0.72], [0, 0.16, 0]), zone, "reply-portal", "reply-field-ring", "light-ring", "sweep");
+  const mailStack = instancedBoxes([0.58, 0.24, 0.045], mats.light, [
+    { position: [-0.04, 0.92, -0.68], scale: [1, 1, 1], color: mats.accent.color.getHex() },
+    { position: [0.08, 0.98, -0.66], scale: [0.9, 0.86, 1], color: mats.light.color.getHex() },
+    { position: [0.2, 1.04, -0.64], scale: [0.84, 0.78, 1], color: mats.secondary.color.getHex() },
+    { position: [0.32, 1.1, -0.62], scale: [0.76, 0.68, 1], color: mats.accent.color.getHex() }
+  ]);
+  add(group, mailStack, zone, "mail-packet", "envelope-stack", "instanced-envelopes", "pulse");
+  tagSemanticParts(mailStack, zone, [
+    { role: "mail-packet", signature: "message-card-0", materialVariant: "accent-card" },
+    { role: "mail-packet", signature: "message-card-1", materialVariant: "light-card" },
+    { role: "mail-packet", signature: "message-card-2", materialVariant: "secondary-card" },
+    { role: "mail-packet", signature: "message-card-3", materialVariant: "accent-card" }
+  ]);
+  add(group, tube([new THREE.Vector3(-0.28, 1.08, -0.66), new THREE.Vector3(0.1, 0.84, -0.64), new THREE.Vector3(0.48, 1.08, -0.66)], 0.016, mats.light), zone, "mail-packet", "envelope-fold", "light-fold", "pulse");
+  add(group, tube([
+    new THREE.Vector3(-0.72, 0.82, 0.18),
+    new THREE.Vector3(-0.28, 1.2, -0.16),
+    new THREE.Vector3(0.34, 1.42, -0.42),
+    new THREE.Vector3(0.82, 1.26, -0.72)
+  ], 0.018, mats.secondary), zone, "delivery-signal", "sorting-signal-arc", "secondary-signal", "sweep");
+  const signalDots = instancedBoxes([0.09, 0.09, 0.09], mats.light, [
+    { position: [-0.5, 1.58, -0.72], color: mats.light.color.getHex() },
+    { position: [0.02, 1.7, -0.72], color: mats.secondary.color.getHex() },
+    { position: [0.54, 1.56, -0.72], color: mats.light.color.getHex() }
+  ]);
+  add(group, signalDots, zone, "delivery-signal", "signal-dot-cluster", "instanced-dots", "blink");
+  tagSemanticParts(signalDots, zone, [
+    { role: "delivery-signal", signature: "signal-dot-0", materialVariant: "light-dot" },
+    { role: "delivery-signal", signature: "signal-dot-1", materialVariant: "secondary-dot" },
+    { role: "delivery-signal", signature: "signal-dot-2", materialVariant: "light-dot" }
+  ]);
 }

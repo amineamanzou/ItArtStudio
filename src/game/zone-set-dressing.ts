@@ -140,14 +140,16 @@ const recipes: Record<string, ZoneDressingRecipe> = {
     ]
   },
   "contact-portal": {
-    signature: "mail-portal-threshold",
+    signature: "postal-reply-office",
     primitives: [
       block("postal-desk", "postal-desk", "secondary", [-0.72, 0.28, -0.82], [0.94, 0.34, 0.62]),
       block("mail-tray", "mail-tray", "accent", [0.76, 0.42, -0.82], [0.66, 0.22, 0.5], [0, -0.16, 0]),
       beam("sorting-belt-a", "sorting-belt", "light", [-1.08, 0.82, 0.96], [0, 1.18, 1.36], 0.024),
       beam("sorting-belt-b", "sorting-belt", "accent", [1.08, 0.82, 0.96], [0, 1.18, 1.36], 0.024),
       ring("reply-portal-field", "reply-portal-field", "light", [0, 0.9, 0.18], [1.12, 0.028, 1.12], [Math.PI * 0.5, 0.16, 0]),
-      sign("contact-sign", "wayfinding-sign", "light", [0, 0.82, -1.38], "MAIL")
+      block("mail-stack", "mail-stack", "light", [-0.06, 0.7, -1.3], [0.66, 0.1, 0.12], [0, 0.12, 0]),
+      sphere("stamp-beacon", "stamp-beacon", "light", [0.82, 0.84, -1.16], [0.11, 0.11, 0.11]),
+      cone("courier-light", "courier-light", "accent", [-0.92, 0.86, -1.12], [0.18, 0.44, 0.18], [0.58, 0, -0.28])
     ]
   }
 };

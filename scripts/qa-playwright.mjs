@@ -71,12 +71,13 @@ const expectedPrioritySetDressingRoles = {
     "deployment-lane"
   ],
   "design-atelier": ["canvas-wall", "drafting-table", "material-roll", "color-swatch", "paint-tool", "studio-lamp", "layout-pin"],
-  "contact-portal": ["postal-desk", "mail-tray", "sorting-belt", "reply-portal-field"]
+  "contact-portal": ["postal-desk", "mail-tray", "sorting-belt", "reply-portal-field", "mail-stack", "stamp-beacon", "courier-light"]
 };
 const expectedPrioritySignatureFamilies = {
   "observability-tower": ["telemetry-tower", "trace-helix", "metric-array"],
   "cloud-dock": ["cloud-platform", "server-array", "electric-cloud"],
-  "design-atelier": ["composition-wall", "pattern-table", "material-palette", "atelier-light-rig"]
+  "design-atelier": ["composition-wall", "pattern-table", "material-palette", "atelier-light-rig"],
+  "contact-portal": ["postal-counter", "reply-portal", "mail-packet", "delivery-signal"]
 };
 let screenshotIndex = 0;
 
@@ -3364,6 +3365,48 @@ async function checkWorldRichness(page) {
       signatures: designAtelierZone?.signatureArtifactSignatures ?? [],
       roles: designAtelierZone?.signatureArtifactRoles ?? [],
       families: [...designSignatureFamilies].sort()
+    });
+  }
+
+  const contactPortalZone = visualSpecZones.find((item) => item.id === "contact-portal");
+  const contactSignatureFamilies = new Set(contactPortalZone?.signatureArtifactFamilies ?? []);
+  const contactSignatureHeadroom =
+    world &&
+    contactPortalZone &&
+    world.sceneObjects <= premiumWorldObjectBudget - 2 &&
+    (contactPortalZone.signatureArtifactObjects ?? 0) >= 11 &&
+    (contactPortalZone.signatureArtifactSceneObjects ?? 0) <= 7 &&
+    (contactPortalZone.signatureArtifactObjects ?? 0) > (contactPortalZone.signatureArtifactSceneObjects ?? 0) &&
+    (contactPortalZone.signatureArtifactSignatures?.length ?? 0) >= 11 &&
+    (contactPortalZone.signatureArtifactRoles?.length ?? 0) >= 11 &&
+    (contactPortalZone.signatureArtifactBounds?.height ?? 0) >= 1.45 &&
+    (contactPortalZone.signatureArtifactBounds?.width ?? 0) >= 1 &&
+    (contactPortalZone.signatureArtifactBounds?.depth ?? 0) >= 0.6 &&
+    ["postal-counter", "reply-portal", "mail-packet", "delivery-signal"].every((family) =>
+      contactSignatureFamilies.has(family)
+    );
+  if (contactSignatureHeadroom) {
+    pass("contact-signature-headroom", {
+      zoneId: contactPortalZone.id,
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget,
+      semanticSignatureObjects: contactPortalZone.signatureArtifactObjects,
+      physicalSignatureSceneObjects: contactPortalZone.signatureArtifactSceneObjects,
+      signatures: contactPortalZone.signatureArtifactSignatures,
+      roles: contactPortalZone.signatureArtifactRoles,
+      families: [...contactSignatureFamilies].sort()
+    });
+  } else {
+    scenarioFail("contact-signature-headroom", "Contact Portal signature is not rich enough within the compressed scene budget.", {
+      zoneId: contactPortalZone?.id ?? null,
+      sceneObjects: world?.sceneObjects,
+      requiredSceneObjectsMax: premiumWorldObjectBudget - 2,
+      sceneObjectBudget: premiumWorldObjectBudget,
+      semanticSignatureObjects: contactPortalZone?.signatureArtifactObjects,
+      physicalSignatureSceneObjects: contactPortalZone?.signatureArtifactSceneObjects,
+      signatures: contactPortalZone?.signatureArtifactSignatures ?? [],
+      roles: contactPortalZone?.signatureArtifactRoles ?? [],
+      families: [...contactSignatureFamilies].sort()
     });
   }
 
