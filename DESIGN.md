@@ -842,6 +842,18 @@ Gates V6.9:
 - cette vague doit remplacer et condenser plutot qu'empiler: le monde conserve
   au moins 24 slots libres sous `sceneObjects <= 940`.
 
+Gates V7.0:
+
+- chaque lieu porte maintenant une signature sonore legere derivee de la zone
+  active: mood, frequence d'ambiance, gain d'ambiance et offsets moteur /
+  acceleration;
+- `audio-layer` ne prouve plus seulement que des oscillateurs existent: il
+  verifie aussi trois empreintes sonores distinctes `tech`, `art` et `studio`
+  via navigation mini-map pendant que le son est actif;
+- cette vague n'ajoute aucun `Object3D` et aucun asset audio lourd: elle cree
+  une premiere sensation de soundscape jouable sans augmenter le budget scene,
+  avant un futur sound pack plus riche.
+
 ## Components
 
 - `game-site`: surface principale.

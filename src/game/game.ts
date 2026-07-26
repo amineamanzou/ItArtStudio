@@ -54,6 +54,98 @@ const colors: Record<ZoneKind | "ground" | "road" | "ink", number> = {
   ink: 0x101015
 };
 
+type ZoneAudioSignature = {
+  id: string;
+  mood: string;
+  ambienceFrequency: number;
+  ambienceGain: number;
+  engineFrequencyOffset: number;
+  accelerationFrequencyOffset: number;
+};
+
+const zoneAudioSignatures: Record<string, ZoneAudioSignature> = {
+  "studio-gate": {
+    id: "studio-threshold",
+    mood: "warm central hum",
+    ambienceFrequency: 52,
+    ambienceGain: 0.034,
+    engineFrequencyOffset: 0,
+    accelerationFrequencyOffset: 0
+  },
+  "ai-lab": {
+    id: "agent-lab-pulse",
+    mood: "precise evaluation pulse",
+    ambienceFrequency: 67,
+    ambienceGain: 0.038,
+    engineFrequencyOffset: 12,
+    accelerationFrequencyOffset: 34
+  },
+  "observability-tower": {
+    id: "telemetry-radar-scan",
+    mood: "slow radar telemetry",
+    ambienceFrequency: 58,
+    ambienceGain: 0.04,
+    engineFrequencyOffset: 8,
+    accelerationFrequencyOffset: 18
+  },
+  "architecture-bridge": {
+    id: "structural-load-hum",
+    mood: "taut structural resonance",
+    ambienceFrequency: 49,
+    ambienceGain: 0.036,
+    engineFrequencyOffset: 6,
+    accelerationFrequencyOffset: 12
+  },
+  "cloud-dock": {
+    id: "cloud-power-bus",
+    mood: "harbor power bus",
+    ambienceFrequency: 61,
+    ambienceGain: 0.039,
+    engineFrequencyOffset: 10,
+    accelerationFrequencyOffset: 24
+  },
+  "design-atelier": {
+    id: "atelier-light-room",
+    mood: "soft studio room",
+    ambienceFrequency: 44,
+    ambienceGain: 0.033,
+    engineFrequencyOffset: -4,
+    accelerationFrequencyOffset: -16
+  },
+  "three-d-foundry": {
+    id: "foundry-scan-bed",
+    mood: "scanner bed shimmer",
+    ambienceFrequency: 47,
+    ambienceGain: 0.037,
+    engineFrequencyOffset: 2,
+    accelerationFrequencyOffset: 10
+  },
+  "fashion-room": {
+    id: "runway-fabric-air",
+    mood: "fabric runway air",
+    ambienceFrequency: 41,
+    ambienceGain: 0.032,
+    engineFrequencyOffset: -8,
+    accelerationFrequencyOffset: -22
+  },
+  "values-plaza": {
+    id: "shared-civic-chord",
+    mood: "shared civic chord",
+    ambienceFrequency: 55,
+    ambienceGain: 0.035,
+    engineFrequencyOffset: 0,
+    accelerationFrequencyOffset: 0
+  },
+  "contact-portal": {
+    id: "postal-reply-bell",
+    mood: "postal reply bell",
+    ambienceFrequency: 63,
+    ambienceGain: 0.034,
+    engineFrequencyOffset: 4,
+    accelerationFrequencyOffset: 26
+  }
+};
+
 const surfaceFxProfiles: Record<
   SurfaceFxProfile,
   {
@@ -451,6 +543,9 @@ type AudioQa = {
   initialized: boolean;
   muted: boolean;
   contextState: AudioContextState | "unsupported" | "uninitialized";
+  zoneSignatureId: string;
+  zoneSignatureMood: string;
+  zoneSignatureKind: ZoneKind;
   engineGain: number;
   driftGain: number;
   ambienceGain: number;
@@ -459,6 +554,7 @@ type AudioQa = {
   rampGain: number;
   brakeGain: number;
   engineFrequency: number;
+  ambienceFrequency: number;
   surfaceFrequency: number;
   toggleVisible: boolean;
   togglePressed: boolean;
@@ -924,7 +1020,10 @@ class StudioGame {
   private audioMuted = true;
   private audioInitialized = false;
   private currentEngineFrequency = 0;
+  private currentAmbienceFrequency = 0;
   private currentSurfaceFrequency = 0;
+  private currentZoneAudioSignature = zoneAudioSignatures[defaultZone.id];
+  private currentZoneAudioKind: ZoneKind = defaultZone.kind;
   private currentEngineGain = 0;
   private currentDriftGain = 0;
   private currentAmbienceGain = 0;
@@ -1392,7 +1491,11 @@ class StudioGame {
       rampGain: 0,
       brakeGain: 0,
       engineFrequency: 0,
+      ambienceFrequency: 0,
       surfaceFrequency: 0,
+      zoneSignatureId: zoneAudioSignatures[defaultZone.id].id,
+      zoneSignatureMood: zoneAudioSignatures[defaultZone.id].mood,
+      zoneSignatureKind: defaultZone.kind,
       toggleVisible: false,
       togglePressed: false
     },
@@ -2745,11 +2848,14 @@ class StudioGame {
       this.currentWorldMaterial.kind === "ramp"
         ? clamp(this.currentWorldMaterial.intensity * 0.78 + Math.abs(this.currentRideHeight) * 3.4 + speedRatio * 0.18, 0, 1)
         : 0;
-    const targetFrequency = 62 + speedRatio * 145 + throttleEnergy * 18;
+    const activeZone = zones.find((zone) => zone.id === this.activeZoneId) ?? defaultZone;
+    const zoneSignature = zoneAudioSignatures[activeZone.id] ?? zoneAudioSignatures[defaultZone.id];
+    const targetFrequency = 62 + speedRatio * 145 + throttleEnergy * 18 + zoneSignature.engineFrequencyOffset;
+    const targetAmbienceFrequency = zoneSignature.ambienceFrequency + speedRatio * 18;
     const targetSurfaceFrequency = 86 + waterRatio * 46 + rampRatio * 118;
     const targetEngineGain = this.audioMuted ? 0 : 0.045 + speedRatio * 0.13 + throttleEnergy * 0.025;
     const targetDriftGain = this.audioMuted ? 0 : driftRatio * 0.095;
-    const targetAmbienceGain = this.audioMuted ? 0 : 0.032;
+    const targetAmbienceGain = this.audioMuted ? 0 : zoneSignature.ambienceGain;
     const targetAccelerationGain = this.audioMuted ? 0 : throttleEnergy * (0.012 + accelerationRatio * 0.058);
     const targetWaterGain = this.audioMuted ? 0 : waterRatio * 0.078;
     const targetRampGain = this.audioMuted ? 0 : rampRatio * 0.058;
@@ -2759,9 +2865,13 @@ class StudioGame {
     this.engineGain.gain.setTargetAtTime(targetEngineGain, now, 0.08);
     this.driftOscillator.frequency.setTargetAtTime(190 + driftRatio * 330, now, 0.05);
     this.driftGain.gain.setTargetAtTime(targetDriftGain, now, 0.06);
-    this.ambienceOscillator.frequency.setTargetAtTime(42 + speedRatio * 18, now, 0.4);
+    this.ambienceOscillator.frequency.setTargetAtTime(targetAmbienceFrequency, now, 0.4);
     this.ambienceGain.gain.setTargetAtTime(targetAmbienceGain, now, 0.2);
-    this.accelerationOscillator.frequency.setTargetAtTime(280 + accelerationRatio * 420 + speedRatio * 80, now, 0.04);
+    this.accelerationOscillator.frequency.setTargetAtTime(
+      280 + accelerationRatio * 420 + speedRatio * 80 + zoneSignature.accelerationFrequencyOffset,
+      now,
+      0.04
+    );
     this.accelerationGain.gain.setTargetAtTime(targetAccelerationGain, now, 0.05);
     this.waterOscillator.frequency.setTargetAtTime(targetSurfaceFrequency, now, 0.12);
     this.waterGain.gain.setTargetAtTime(targetWaterGain, now, 0.09);
@@ -2771,7 +2881,10 @@ class StudioGame {
     this.brakeGain.gain.setTargetAtTime(targetBrakeGain, now, 0.04);
 
     this.currentEngineFrequency = targetFrequency;
+    this.currentAmbienceFrequency = targetAmbienceFrequency;
     this.currentSurfaceFrequency = targetSurfaceFrequency;
+    this.currentZoneAudioSignature = zoneSignature;
+    this.currentZoneAudioKind = activeZone.kind;
     this.currentEngineGain = targetEngineGain;
     this.currentDriftGain = targetDriftGain;
     this.currentAmbienceGain = targetAmbienceGain;
@@ -4262,6 +4375,9 @@ class StudioGame {
       initialized: this.audioInitialized,
       muted: this.audioMuted,
       contextState: this.audioContext?.state ?? (this.audioSupported() ? "uninitialized" : "unsupported"),
+      zoneSignatureId: this.currentZoneAudioSignature.id,
+      zoneSignatureMood: this.currentZoneAudioSignature.mood,
+      zoneSignatureKind: this.currentZoneAudioKind,
       engineGain: Number(this.currentEngineGain.toFixed(3)),
       driftGain: Number(this.currentDriftGain.toFixed(3)),
       ambienceGain: Number(this.currentAmbienceGain.toFixed(3)),
@@ -4270,6 +4386,7 @@ class StudioGame {
       rampGain: Number(this.currentRampGain.toFixed(3)),
       brakeGain: Number(this.currentBrakeGain.toFixed(3)),
       engineFrequency: Number(this.currentEngineFrequency.toFixed(1)),
+      ambienceFrequency: Number(this.currentAmbienceFrequency.toFixed(1)),
       surfaceFrequency: Number(this.currentSurfaceFrequency.toFixed(1)),
       toggleVisible: Boolean(
         this.audioToggleButton &&

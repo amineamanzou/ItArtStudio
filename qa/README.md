@@ -241,8 +241,9 @@ The runner:
   world budget.
 - `audio-layer` must prove the browser can initialize sound from a user action,
   expose engine, ambience, acceleration, drift, water and ramp gains while
-  driving in `?qa=1&realKeys=1`, keep the toggle state visible, and mute every
-  observable gain back to zero.
+  driving in `?qa=1&realKeys=1`, prove distinct tech/art/studio zone audio
+  signatures from mini-map navigation, keep the toggle state visible, and mute
+  every observable gain back to zero.
 - `premium-world-detail-distribution` samples each screenshot canvas outside
   UI rectangles and rejects viewports with too many flat tiles, not enough rich
   tiles, weak median edges, weak color buckets or a large flat cluster.

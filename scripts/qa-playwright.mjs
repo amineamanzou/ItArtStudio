@@ -4767,6 +4767,32 @@ async function checkAudioLayer(browser) {
       brakeSnapshot?.audio;
     const waterAudio = waterSnapshot?.audio;
     const rampAudio = rampSnapshot?.audio;
+    const zoneAudioTargets = [
+      { zoneId: "ai-lab", kind: "tech", expectedSignature: "agent-lab-pulse" },
+      { zoneId: "design-atelier", kind: "art", expectedSignature: "atelier-light-room" },
+      { zoneId: "values-plaza", kind: "studio", expectedSignature: "shared-civic-chord" }
+    ];
+    const zoneAudioProofs = [];
+    for (const target of zoneAudioTargets) {
+      const click = await clickActionable(page, `.world-map [data-zone-jump="${target.zoneId}"]`, `audio-zone:${target.zoneId}`, {
+        minWidth: 12,
+        minHeight: 12
+      });
+      await page.waitForTimeout(420);
+      const snapshot = await getQaSnapshot(page, { refresh: true });
+      zoneAudioProofs.push({
+        zoneId: target.zoneId,
+        expectedKind: target.kind,
+        expectedSignature: target.expectedSignature,
+        clicked: Boolean(click),
+        activeZoneId: snapshot?.activeZoneId ?? null,
+        audio: snapshot?.audio ?? null
+      });
+    }
+    const zoneAudioFrequencies = zoneAudioProofs.map((proof) => proof.audio?.ambienceFrequency ?? 0);
+    const zoneAudioFrequencySpread =
+      zoneAudioFrequencies.length > 0 ? Math.max(...zoneAudioFrequencies) - Math.min(...zoneAudioFrequencies) : 0;
+    const zoneAudioSignatureIds = new Set(zoneAudioProofs.map((proof) => proof.audio?.zoneSignatureId).filter(Boolean));
     const activeOk =
       activeAudio?.supported === true &&
       activeAudio.initialized === true &&
@@ -4778,6 +4804,20 @@ async function checkAudioLayer(browser) {
       activeAudio.engineGain > 0 &&
       activeAudio.ambienceGain > 0 &&
       activeAudio.accelerationGain >= 0.006;
+    const zoneAudioOk =
+      zoneAudioProofs.length === zoneAudioTargets.length &&
+      zoneAudioSignatureIds.size === zoneAudioTargets.length &&
+      zoneAudioFrequencySpread >= 16 &&
+      zoneAudioProofs.every(
+        (proof) =>
+          proof.clicked === true &&
+          proof.activeZoneId === proof.zoneId &&
+          proof.audio?.muted === false &&
+          proof.audio?.zoneSignatureKind === proof.expectedKind &&
+          proof.audio?.zoneSignatureId === proof.expectedSignature &&
+          (proof.audio?.ambienceGain ?? 0) >= 0.03 &&
+          (proof.audio?.ambienceFrequency ?? 0) >= 40
+      );
     const driftOk =
       driftAudio?.muted === false &&
       driftAudio.driftGain >= 0.008 &&
@@ -4817,10 +4857,12 @@ async function checkAudioLayer(browser) {
       mutedAudio.rampGain <= 0.001 &&
       mutedAudio.brakeGain <= 0.001;
 
-    if (activeOk && driftOk && brakeOk && waterOk && rampOk && mutedOk) {
+    if (activeOk && zoneAudioOk && driftOk && brakeOk && waterOk && rampOk && mutedOk) {
       pass("audio-layer", {
         actionability,
         activeAudio,
+        zoneAudioProofs,
+        zoneAudioFrequencySpread,
         driftAudio,
         brakeAudio,
         brakeAudioPeak: { maxBrakeGain, brakingForwardSamples },
@@ -4835,12 +4877,15 @@ async function checkAudioLayer(browser) {
       scenarioFail("audio-layer", "Procedural audio did not prove engine, acceleration, drift, brake, water, ramp, and mute layers.", {
         actionability,
         activeOk,
+        zoneAudioOk,
         driftOk,
         brakeOk,
         waterOk,
         rampOk,
         mutedOk,
         activeAudio,
+        zoneAudioProofs,
+        zoneAudioFrequencySpread,
         driftAudio,
         brakeAudio,
         brakeAudioPeak: { maxBrakeGain, brakingForwardSamples, brakeSamples: brakeSnapshots.length },
@@ -8128,6 +8173,7 @@ async function writeReport() {
     realDriveKinematicsScenarios.at(-1);
   const realDriveRouteScenario = scenarios.find((scenario) => scenario.name === "real-drive-route-freedom");
   const realDriveFreeRoamScenario = scenarios.find((scenario) => scenario.name === "real-drive-free-roam");
+  const audioScenario = scenarios.find((scenario) => scenario.name === "audio-layer");
   const surfaceMaterialScenario = scenarios.find((scenario) => scenario.name === "surface-material-physics");
   const vehicleSuspensionScenario = scenarios.find((scenario) => scenario.name === "vehicle-suspension-response");
   const routeEncountersRenderedScenario = scenarios.find((scenario) => scenario.name === "route-encounters-rendered");
@@ -8314,6 +8360,11 @@ async function writeReport() {
       realDriveFreeRoamScenario?.details
         ? `${realDriveFreeRoamScenario.details.distanceDelta} units, off-route physics ${realDriveFreeRoamScenario.details.offRoutePhysicsSamples}, max route distance ${realDriveFreeRoamScenario.details.maxRouteDistance}, span ${realDriveFreeRoamScenario.details.xSpan}x${realDriveFreeRoamScenario.details.zSpan}`
         : "n/a"
+    }`,
+    `- Zone audio signatures: ${
+      audioScenario?.details?.zoneAudioProofs
+        ? `${audioScenario.details.zoneAudioProofs.map((proof) => `${proof.zoneId}:${proof.audio?.zoneSignatureId ?? "n/a"}@${proof.audio?.ambienceFrequency ?? "n/a"}Hz`).join(", ")}; spread ${audioScenario.details.zoneAudioFrequencySpread}`
+        : (audioScenario?.status ?? "n/a")
     }`,
     `- Surface material physics: ${
       surfaceMaterialScenario?.details?.material
