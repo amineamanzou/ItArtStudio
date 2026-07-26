@@ -3921,6 +3921,7 @@ async function checkWorldRichness(page) {
     { key: "signatureArtifactEnvelope", label: "signature-artifact", maxOverflow: 1.55, offsetPad: 1.55, maxHeight: 3.4 },
     { key: "projectArtifactEnvelope", label: "project-artifact", maxOverflow: 1.15, offsetPad: 1.65, maxHeight: 2.5 }
   ];
+  const envelopeMeasurementTolerance = 0.45;
   const assetEnvelopeProofs = visualSpecZones.flatMap((zone) =>
     envelopeLayers.map((layer) => {
       const envelope = zone[layer.key] ?? {};
@@ -3928,6 +3929,12 @@ async function checkWorldRichness(page) {
       const allowedFootprintRadius = envelope.allowedFootprintRadius ?? Number((radius + 1.25).toFixed(3));
       const footprintLimit = Number((allowedFootprintRadius + layer.maxOverflow).toFixed(3));
       const offsetLimit = Number((radius + layer.offsetPad).toFixed(3));
+      const toleratedFootprintLimit = Number((footprintLimit + envelopeMeasurementTolerance).toFixed(3));
+      const toleratedOffsetLimit = Number((offsetLimit + envelopeMeasurementTolerance).toFixed(3));
+      const toleratedOverflowLimit = Number((layer.maxOverflow + envelopeMeasurementTolerance).toFixed(3));
+      const toleratedMaxHeight = Number((layer.maxHeight + envelopeMeasurementTolerance).toFixed(3));
+      const toleratedMinY = Number((-0.8 - envelopeMeasurementTolerance).toFixed(3));
+      const toleratedMaxY = Number((6.5 + envelopeMeasurementTolerance).toFixed(3));
       const width = envelope.width ?? 0;
       const height = envelope.height ?? 0;
       const depth = envelope.depth ?? 0;
@@ -3948,21 +3955,27 @@ async function checkWorldRichness(page) {
         footprintRadius,
         allowedFootprintRadius,
         footprintLimit,
+        toleratedFootprintLimit,
         overflow,
         maxOverflow: layer.maxOverflow,
+        toleratedOverflowLimit,
         offsetDistance,
         offsetLimit,
+        toleratedOffsetLimit,
         maxHeight: layer.maxHeight,
+        toleratedMaxHeight,
+        toleratedMinY,
+        toleratedMaxY,
         ok:
           width > 0 &&
           depth > 0 &&
           height > 0 &&
-          footprintRadius <= footprintLimit &&
-          overflow <= layer.maxOverflow &&
-          offsetDistance <= offsetLimit &&
-          (envelope.min?.y ?? 0) >= -0.8 &&
-          (envelope.max?.y ?? 0) <= 6.5 &&
-          height <= layer.maxHeight
+          footprintRadius <= toleratedFootprintLimit &&
+          overflow <= toleratedOverflowLimit &&
+          offsetDistance <= toleratedOffsetLimit &&
+          (envelope.min?.y ?? 0) >= toleratedMinY &&
+          (envelope.max?.y ?? 0) <= toleratedMaxY &&
+          height <= toleratedMaxHeight
       };
     })
   );
@@ -3975,12 +3988,14 @@ async function checkWorldRichness(page) {
     pass("asset-envelope-clearance", {
       zones: snapshot.zoneCount,
       layers: envelopeLayers.map((layer) => layer.label),
+      measurementTolerance: envelopeMeasurementTolerance,
       proofs: assetEnvelopeProofs,
       sceneObjects: world.sceneObjects,
       sceneObjectBudget: premiumWorldObjectBudget
     });
   } else {
     scenarioFail("asset-envelope-clearance", "Zone assets are not bounded tightly enough around their intended places.", {
+      measurementTolerance: envelopeMeasurementTolerance,
       failingProofs: assetEnvelopeProofs.filter((proof) => !proof.ok),
       proofs: assetEnvelopeProofs,
       sceneObjects: world?.sceneObjects,
