@@ -70,6 +70,18 @@ const zoneCompositionProofs = new Map();
 const priorityPlaceCompositionProofs = new Map();
 const projectArtifactProofs = new Map();
 const priorityPlaceZoneIds = ["ai-lab", "observability-tower", "cloud-dock", "design-atelier", "three-d-foundry", "fashion-room", "contact-portal"];
+const staticProofZoneIds = [
+  "studio-gate",
+  "ai-lab",
+  "observability-tower",
+  "architecture-bridge",
+  "cloud-dock",
+  "design-atelier",
+  "three-d-foundry",
+  "fashion-room",
+  "values-plaza",
+  "contact-portal"
+];
 const expectedPrioritySetDressingRoles = {
   "ai-lab": ["agent-workbench", "evaluation-conveyor", "prompt-token", "agent-core", "agent-feedback-loop"],
   "observability-tower": ["telemetry-lighthouse", "radar-beam", "metric-stack", "log-waterfall", "trace-sample-grid"],
@@ -8250,6 +8262,271 @@ async function checkMiniMapJumps(page) {
   }
 }
 
+async function jumpMiniMapForProof(page, targetId, labelPrefix) {
+  const pinSelector = `.world-map [data-zone-jump="${targetId}"]`;
+  const beforeActivation = await getQaSnapshot(page);
+  const actionability = await clickActionable(page, pinSelector, `${labelPrefix}:mini-map:${targetId}`, {
+    minWidth: 30,
+    minHeight: 30
+  });
+  if (!actionability) {
+    const snapshot = await getQaSnapshot(page);
+    scenarioFail(`${labelPrefix}:mini-map:${targetId}`, "Proof reel mini-map pin is not actionable.", { snapshot });
+    return { targetId, ok: false, actionability: null, snapshot };
+  }
+
+  try {
+    await page.waitForFunction(
+      (zoneId) => {
+        const qa = window.__IT_ART_STUDIO_QA__;
+        const pin = document.querySelector(`.world-map [data-zone-jump="${zoneId}"]`);
+        const marker = document.querySelector(".world-map__player");
+        if (!qa || qa.activeZoneId !== zoneId || !(pin instanceof HTMLElement) || !(marker instanceof HTMLElement)) {
+          return false;
+        }
+        const pinRect = pin.getBoundingClientRect();
+        const markerRect = marker.getBoundingClientRect();
+        const distance = Math.hypot(
+          pinRect.left + pinRect.width / 2 - (markerRect.left + markerRect.width / 2),
+          pinRect.top + pinRect.height / 2 - (markerRect.top + markerRect.height / 2)
+        );
+        return distance <= 26;
+      },
+      targetId,
+      { timeout: 12_000 }
+    );
+  } catch (error) {
+    const snapshot = await getQaSnapshot(page);
+    const pressed = await inspectMiniMapState(page, targetId);
+    if (!isMiniMapStateSettled(snapshot, pressed, targetId)) {
+      scenarioFail(`${labelPrefix}:mini-map:${targetId}`, "Proof reel mini-map jump did not settle near the requested pin.", {
+        snapshot,
+        pressed,
+        message: error instanceof Error ? error.message : String(error)
+      });
+      return { targetId, ok: false, actionability, snapshot, pressed };
+    }
+  }
+
+  const snapshot = await getQaSnapshot(page);
+  const pressed = await inspectMiniMapState(page, targetId);
+  const settled = isMiniMapStateSettled(snapshot, pressed, targetId);
+  if (settled) {
+    pass(`${labelPrefix}:mini-map:${targetId}`, {
+      activeZoneId: snapshot.activeZoneId,
+      player: snapshot.player,
+      pressed,
+      lastInputMode: snapshot.lastInputMode,
+      actionability
+    });
+    if (beforeActivation?.activeZoneId === targetId) {
+      pass(`${labelPrefix}:activation-already-active:${targetId}`, {
+        activeZoneId: snapshot.activeZoneId,
+        sequence: snapshot.activeFeedback?.sequence ?? null
+      });
+    } else {
+      await checkActivationFeedback(page, targetId, beforeActivation?.activeFeedback?.sequence ?? 0);
+    }
+    await checkLightingLayer(page, `${labelPrefix}:mini-map:${targetId}`);
+    await page.waitForTimeout(260);
+    await inspectSignatureArtifactVisibility(page, `${labelPrefix}:mini-map:${targetId}`);
+    await inspectProjectArtifactVisibility(page, `${labelPrefix}:mini-map:${targetId}`);
+    await inspectPlaceCompositionVisibility(page, `${labelPrefix}:mini-map:${targetId}`);
+    if (priorityPlaceZoneIds.includes(targetId)) {
+      inspectPriorityPlaceCompositionVisibility(targetId, `${labelPrefix}:mini-map:${targetId}`);
+    }
+    await inspectZonePerceptualProof(page, `${labelPrefix}:mini-map:${targetId}`);
+  } else {
+    scenarioFail(`${labelPrefix}:mini-map:${targetId}`, "Proof reel mini-map jump did not synchronize active zone and aria state.", {
+      snapshot,
+      pressed
+    });
+  }
+  return { targetId, ok: settled, actionability, snapshot, pressed };
+}
+
+async function captureStaticRouteEncounterProof(browser, target) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+  attachPageDiagnostics(page, `static-proof-encounter:${target.routeId}`);
+
+  try {
+    await assertReady(page, realDriveUrl);
+    await assertCanvasGeometry(page);
+    const drive = await driveRouteWithRealKeyboard(page, {
+      id: `static-proof-encounter:${target.routeId}`,
+      position: target.position,
+      radius: target.radius,
+      timeoutMs: target.timeoutMs,
+      route: target.route
+    });
+    const expectedEncounterId = `encounter:${target.routeId}`;
+    const matchingProofCount = (drive.momentProofs ?? []).filter((proof) => {
+      const rect = proof?.encounter?.rect;
+      return rect?.id === expectedEncounterId || rect?.routeId === target.routeId;
+    }).length;
+    await inspectGameplayMomentVisibility(page, `static-proof:${target.routeId}`, drive, target.routeId);
+    const captureEntry = await capture(page, `static-proof-encounter-${target.routeId}`);
+    const proof = {
+      routeId: target.routeId,
+      family: target.family,
+      reached: drive.reached,
+      elapsedMs: drive.elapsedMs,
+      sampleCount: drive.samples?.length ?? 0,
+      momentProofCount: drive.momentProofs?.length ?? 0,
+      matchingProofCount,
+      capture: captureEntry.relativePath,
+      maxSampleStepDistance: Number((drive.maxSampleStepDistance ?? 0).toFixed(3))
+    };
+    if (drive.reached || matchingProofCount > 0) {
+      pass(`static-proof-route-encounter:${target.routeId}`, proof);
+    } else {
+      scenarioFail(
+        `static-proof-route-encounter:${target.routeId}`,
+        "Static proof reel real-keyboard drive did not reach or visually prove the route encounter.",
+        proof
+      );
+    }
+    return proof;
+  } finally {
+    await releaseDriveKeys(page).catch(() => {});
+    await page.close();
+  }
+}
+
+async function checkStaticPlayableProofReel(browser, page, homeCapture) {
+  const labelPrefix = "static-proof";
+  const desktopViewport = { width: 1280, height: 900 };
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize(desktopViewport);
+  await page.waitForTimeout(450);
+  const viewportReady = await waitForViewportReady(page, desktopViewport, "static-proof-desktop");
+  if (!viewportReady) {
+    return;
+  }
+
+  const zoneProofs = [];
+  const zoneCaptures = [];
+  for (const targetId of staticProofZoneIds) {
+    const proof = await jumpMiniMapForProof(page, targetId, labelPrefix);
+    zoneProofs.push(proof);
+    const captureEntry = await capture(page, `static-proof-zone-${targetId}`);
+    zoneCaptures.push({ zoneId: targetId, path: captureEntry.relativePath, canvas: captureEntry.canvas });
+  }
+
+  const encounterTargets = [
+    {
+      routeId: "spine-contact-gate",
+      family: "studio",
+      position: { x: 0, z: -6.6 },
+      radius: 1.55,
+      timeoutMs: 14_000,
+      route: [
+        { id: "static-spine-align", position: { x: 0.28, z: -5.15 }, radius: 1.25, timeoutMs: 10_000, overshootBrake: true },
+        { id: "static-spine-contact-gate", position: { x: 0, z: -6.6 }, radius: 1.55, timeoutMs: 14_000, overshootBrake: true }
+      ]
+    },
+    {
+      routeId: "tech-gate-cloud",
+      family: "tech",
+      position: { x: -2.706, z: -6.136 },
+      radius: 1.2,
+      timeoutMs: 12_000,
+      route: [
+        { id: "static-tech-via-gate-cloud", position: { x: -2.4, z: -5.2 }, radius: 1.45, timeoutMs: 10_000, overshootBrake: true },
+        {
+          id: "static-tech-gate-cloud",
+          position: { x: -2.706, z: -6.136 },
+          radius: 0.9,
+          timeoutMs: 14_000,
+          overshootBrake: true,
+          skipPostReachSamples: true
+        }
+      ]
+    },
+    {
+      routeId: "art-gate-design",
+      family: "art",
+      position: { x: 4.9, z: -3.7 },
+      radius: 1.1,
+      timeoutMs: 12_000,
+      route: [
+        { id: "static-art-via-design", zoneId: "design-atelier", position: { x: 10.8, z: -5.2 }, radius: 3.4, timeoutMs: 16_000, overshootBrake: true },
+        { id: "static-art-gate-design", position: { x: 4.9, z: -3.7 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true }
+      ]
+    }
+  ];
+  const encounterProofs = [];
+  for (const target of encounterTargets) {
+    encounterProofs.push(await captureStaticRouteEncounterProof(browser, target));
+  }
+
+  const mobilePage = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+  attachPageDiagnostics(mobilePage, "static-proof-mobile");
+  let mobileCapture = null;
+  try {
+    await assertReady(mobilePage, baseUrl);
+    await assertCanvasGeometry(mobilePage);
+    await mobilePage.setViewportSize({ width: 390, height: 844 });
+    await mobilePage.waitForTimeout(450);
+    await waitForViewportReady(mobilePage, { width: 390, height: 844 }, "static-proof-mobile-prep");
+    const mobileNavActionability = await clickActionable(
+      mobilePage,
+      '.mobile-zone-nav [data-zone-jump="ai-lab"]',
+      "static-proof-mobile-prep:ai-lab",
+      { minWidth: 44, minHeight: 44 }
+    );
+    if (mobileNavActionability) {
+      await mobilePage.waitForFunction(() => window.__IT_ART_STUDIO_QA__?.activeZoneId === "ai-lab", { timeout: 8_000 });
+    }
+    await checkViewport(mobilePage, { width: 390, height: 844 }, "static-proof-mobile-layout");
+    await checkMobileControls(mobilePage);
+    mobileCapture = await capture(mobilePage, "static-proof-mobile-touch");
+  } finally {
+    await releaseDriveKeys(mobilePage).catch(() => {});
+    await mobilePage.close();
+  }
+
+  const zoneCoverageOk =
+    zoneProofs.length === staticProofZoneIds.length &&
+    zoneProofs.every((proof) => proof.ok === true) &&
+    zoneCaptures.length === staticProofZoneIds.length &&
+    zoneCaptures.every((entry) => entry.canvas?.ok === true);
+  const encounterFamilies = new Set(encounterProofs.filter((proof) => proof.reached || proof.matchingProofCount > 0).map((proof) => proof.family));
+  const encounterCoverageOk =
+    encounterProofs.length === 3 &&
+    encounterProofs.every((proof) => proof.reached || proof.matchingProofCount > 0) &&
+    encounterFamilies.has("studio") &&
+    encounterFamilies.has("tech") &&
+    encounterFamilies.has("art");
+  const mobileOk = mobileCapture?.canvas?.ok === true;
+  const proofReelOk = homeCapture?.canvas?.ok === true && zoneCoverageOk && encounterCoverageOk && mobileOk;
+
+  if (proofReelOk) {
+    pass("bruno-simon-playable-proof-reel", {
+      baseUrl,
+      homeCapture: homeCapture.relativePath,
+      zoneCaptureCount: zoneCaptures.length,
+      zoneCaptures,
+      encounterProofs,
+      mobileCapture: mobileCapture.relativePath,
+      encounterFamilies: [...encounterFamilies].sort()
+    });
+  } else {
+    scenarioFail("bruno-simon-playable-proof-reel", "Static production build did not produce a complete playable proof reel.", {
+      baseUrl,
+      homeCapture: homeCapture?.relativePath ?? null,
+      zoneCoverageOk,
+      encounterCoverageOk,
+      mobileOk,
+      zoneProofs,
+      zoneCaptures,
+      encounterProofs,
+      mobileCapture: mobileCapture?.relativePath ?? null,
+      encounterFamilies: [...encounterFamilies].sort()
+    });
+  }
+}
+
 function isMiniMapStateSettled(snapshot, pressed, targetId) {
   return (
     snapshot?.activeZoneId === targetId &&
@@ -8489,6 +8766,7 @@ async function writeReport() {
   const terrainFeatureMarkersScenario = scenarios.find((scenario) => scenario.name === "terrain-feature-markers");
   const propClusterInstancingScenario = scenarios.find((scenario) => scenario.name === "prop-cluster-instancing");
   const productionRuntimeScenario = scenarios.find((scenario) => scenario.name === "production-runtime-lightweight");
+  const staticProofReelScenario = scenarios.find((scenario) => scenario.name === "bruno-simon-playable-proof-reel");
   const cameraSafeScenarios = scenarios.filter((scenario) => scenario.name.startsWith("camera-safe-area:"));
   const signatureVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("signature-artifact-visible:"));
   const projectVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("project-artifact-visible:"));
@@ -8642,6 +8920,11 @@ async function writeReport() {
       trail?.maxOpacity ?? "n/a"
     }`,
     `- Activation feedback checks: ${activationScenarios.length}`,
+    `- Bruno Simon proof reel: ${
+      staticProofReelScenario?.details
+        ? `${staticProofReelScenario.status}, zones ${staticProofReelScenario.details.zoneCaptureCount}, encounters ${staticProofReelScenario.details.encounterProofs?.length ?? 0}, mobile ${staticProofReelScenario.details.mobileCapture ? "yes" : "no"}`
+        : (staticProofReelScenario?.status ?? "n/a")
+    }`,
     `- Last activation feedback: ${
       lastActivation
         ? `${lastActivation.zoneId}, sequence ${lastActivation.sequence}, visible ${lastActivation.visibleObjects}, opacity ${lastActivation.maxOpacity}, scale ${lastActivation.maxScale}`
@@ -8925,6 +9208,8 @@ async function main() {
       } else {
         scenarioFail("static-dist-canvas-nonblank", "Static dist canvas did not render enough non-dark sampled pixels.", home.canvas);
       }
+      await checkWorldRichness(page);
+      await checkStaticPlayableProofReel(browser, page, home);
       await page.close();
     } else {
     await assertBrandIdentity(page);

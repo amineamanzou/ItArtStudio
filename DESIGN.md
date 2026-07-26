@@ -900,9 +900,9 @@ Gates V7.4:
 - l'ajout reste dans `surface-detail` pour augmenter la silhouette du monde
   sans ouvrir une nouvelle famille d'objets couteuse.
 
-Backlog V7.5:
+Gates V7.5:
 
-- transformer la QA `static dist` en `bruno-simon-playable-proof-reel`: un
+- la QA `static dist` gagne `bruno-simon-playable-proof-reel`: un
   contact sheet ou une courte sequence de preuves produite depuis le build
   production, couvrant home, les dix lieux via mini-map, trois route encounters
   au clavier reel et un passage mobile/touch;
