@@ -1,15 +1,52 @@
-# Objectif Fige - Asset-First Map
+# Objectif Fige - Asset Library First
 
-## Nouvel Objectif De Boucle Agentic
+## Objectif Canonique
 
-Atteindre un niveau de qualite proche d'une vitrine interactive type Bruno Simon
-en inversant la priorite du projet: ne plus agrandir la carte avec du bruit
-procedural, mais construire d'abord une bibliotheque d'assets GLB/glTF et de
-textures web-ready, puis utiliser ce vocabulaire visuel pour agrandir le monde,
-composer trois hero locations premium et valider chaque iteration par QA
-visuelle jouee au clavier.
+Construire une carte jouable premium pour IT Art Studio en partant d'abord d'une
+bibliotheque d'assets GLB/glTF et de textures web-ready, puis agrandir le monde
+a partir de ce vocabulaire visuel, composer trois hero locations memorables et
+valider chaque iteration par une QA visuelle jouee au clavier.
 
-La prochaine boucle agentic doit donc livrer une progression mesurable sur:
+La reference de qualite reste l'esprit Bruno Simon: un monde web jouable,
+lisible, curieux, ou le contenu devient un lieu a explorer. L'objectif n'est pas
+de copier son univers, son vehicule ou ses assets, mais d'atteindre le meme
+niveau d'exigence percue: assets propres, carte respirante, lieux
+reconnaissables, interactions fiables et captures QA capables de juger le
+livrable comme une vraie experience.
+
+## Plan Fige
+
+Le plan de production est maintenant verrouille dans cet ordre:
+
+1. Collecter et curer un maximum d'assets et textures accelerateurs.
+2. Stabiliser le pipeline GLB/glTF et textures.
+3. Agrandir une map volontairement peu dense, mais coherentement preparee.
+4. Construire trois hero locations premium avec la bibliotheque d'assets.
+5. Reduire le bruit procedural et les doublons visuels.
+6. Iterer en boucle QA jusqu'a obtenir des captures comparables a un livrable
+   vitrine premium.
+
+Ce plan remplace l'approche "agrandir d'abord puis habiller ensuite".
+L'ordre est volontaire: la bibliotheque cree le langage visuel, la map s'etend
+avec ce langage, puis les lieux deviennent memorables.
+
+## Priorite Figee
+
+- Bibliotheque assets et textures: 30%;
+- Pipeline GLB/glTF: 20%;
+- Agrandissement map et terrain: 25%;
+- Hero locations: 20%;
+- Gameplay vehicule: 5%.
+
+Le vehicule reste un moyen d'exploration. Il doit etre agreable et credible,
+mais il ne doit pas consommer l'effort principal tant que la carte, les assets,
+les textures, l'eau, le relief et les lieux signatures ne portent pas encore le
+waou visuel.
+
+## Contrat De Boucle Agentic
+
+Chaque boucle doit livrer une progression concrete sur au moins un des axes
+suivants:
 
 - la quantite et la qualite des assets utilisables en production;
 - la coherence du terrain, des routes, de la verdure, de l'eau et du relief;
@@ -18,38 +55,10 @@ La prochaine boucle agentic doit donc livrer une progression mesurable sur:
 - la capacite de la QA a prouver visuellement que le site devient un monde
   exploratoire premium.
 
-## Plan Fige
-
-1. Collecter et curer un maximum d'assets accelerateurs.
-2. Stabiliser le pipeline GLB/glTF et textures.
-3. Agrandir une map volontairement peu dense mais coherentement preparee.
-4. Construire les trois hero locations avec la bibliotheque d'assets.
-5. Reduire le bruit procedural et les doublons visuels.
-6. Iterer en boucle QA jusqu'a obtenir des captures comparables a un livrable
-   premium.
-
-Ce plan remplace l'approche "on agrandit d'abord puis on habille ensuite".
-L'ordre est volontaire: les assets et textures creent le langage visuel, la map
-s'agrandit ensuite avec ce langage, puis les lieux deviennent memorables.
-
-## Intention
-
-IT Art Studio doit devenir une experience web jouable de niveau vitrine premium:
-une carte 3D exploratoire qui assume la double identite tech et artistique du
-studio. La reference de qualite reste l'esprit Bruno Simon: un monde lisible,
-vivant, memorable, ou le contenu devient un lieu a explorer.
-
-Le vehicule est un moyen d'exploration. Le coeur de la prochaine phase est la
-qualite de la map, des assets, des textures, du relief, de l'eau et des lieux.
-
-## Objectif Canonique
-
-Construire une bibliotheque GLB/glTF et textures comme socle du monde IT Art
-Studio, puis agrandir la carte a partir de ce vocabulaire visuel avant de
-composer trois hero locations premium. La boucle doit privilegier la coherence
-du terrain, la lisibilite des assets, la qualite des textures et la reduction du
-bruit procedural, avec une QA visuelle qui prouve que les lieux sont
-reconnaissables sans lire le texte.
+Une boucle ne doit pas ajouter du volume pour donner l'impression d'avancer.
+Elle doit remplacer de l'abstrait par du concret: un asset accepte, une texture
+verifiee, une zone mieux lisible, une capture QA plus probante, ou du bruit
+supprime.
 
 ## Ordre Operationnel
 
@@ -60,7 +69,7 @@ reconnaissables sans lire le texte.
 5. Reduire le bruit procedural.
 6. Iterer avec une QA visuelle et performance.
 
-## Definition De Succes
+## Definition De Succes Du Prochain Jalon
 
 Le prochain jalon est considere reussi seulement si:
 
@@ -203,12 +212,9 @@ Le protocole doit prouver:
 - regression mobile et desktop couverte.
 
 ## Priorites De Production
-
-- Bibliotheque assets et textures: 30%;
-- Pipeline GLB/glTF: 20%;
-- Agrandissement map et terrain: 25%;
-- Hero locations: 20%;
-- Gameplay vehicule: 5%.
+Les priorites de production sont fixees dans la section `Priorite Figee`.
+Toute boucle qui propose de travailler sur le gameplay vehicule doit expliquer
+pourquoi cela debloque directement la qualite de la carte ou de la QA visuelle.
 
 ## Non-Objectifs De Cette Boucle
 

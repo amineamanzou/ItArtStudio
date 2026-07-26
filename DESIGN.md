@@ -39,12 +39,10 @@ des lieux.
 
 Objectif fige:
 
-> Construire une bibliotheque GLB/glTF et textures comme socle du monde IT Art
-> Studio, puis agrandir la carte a partir de ce vocabulaire visuel avant de
-> composer trois hero locations premium. La boucle doit privilegier la
-> coherence du terrain, la lisibilite des assets, la qualite des textures et la
-> reduction du bruit procedural, avec une QA visuelle qui prouve que les lieux
-> sont reconnaissables sans lire le texte.
+> Construire une carte jouable premium pour IT Art Studio en partant d'abord
+> d'une bibliotheque d'assets GLB/glTF et de textures web-ready, puis agrandir
+> le monde a partir de ce vocabulaire visuel, composer trois hero locations
+> memorables et valider chaque iteration par une QA visuelle jouee au clavier.
 
 Sequence de livraison:
 
