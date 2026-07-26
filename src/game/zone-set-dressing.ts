@@ -84,7 +84,9 @@ const recipes: Record<string, ZoneDressingRecipe> = {
       sphere("cloud-puff-a", "cloud-puff", "light", [0.72, 1.16, -0.88], [0.36, 0.24, 0.32]),
       sphere("cloud-puff-b", "cloud-puff", "accent", [1.08, 1.28, -0.76], [0.46, 0.3, 0.36]),
       beam("electric-arc", "electric-arc", "accent", [-1.08, 1.0, -1.18], [0.56, 1.34, -1.08], 0.022),
-      sign("cloud-sign", "wayfinding-sign", "accent", [1.25, 0.74, 1.2], "CLOUD")
+      block("k8s-control-plane", "control-plane-beacon", "light", [-0.18, 0.62, -1.02], [0.62, 0.08, 0.36], [0, 0.18, 0]),
+      cylinder("cluster-status-pin", "cluster-status-pin", "accent", [0.18, 0.88, -1.02], [0.055, 0.52, 0.055]),
+      beam("deploy-lane", "deployment-lane", "light", [-0.78, 0.78, -0.96], [0.72, 0.96, -0.96], 0.016)
     ]
   },
   "design-atelier": {

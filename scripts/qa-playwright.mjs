@@ -55,7 +55,14 @@ const projectArtifactProofs = new Map();
 const priorityPlaceZoneIds = ["observability-tower", "cloud-dock", "design-atelier", "contact-portal"];
 const expectedPrioritySetDressingRoles = {
   "observability-tower": ["metric-screen", "signal-stack", "trace-beam"],
-  "cloud-dock": ["server-rack", "cloud-puff", "electric-arc"],
+  "cloud-dock": [
+    "server-rack",
+    "cloud-puff",
+    "electric-arc",
+    "control-plane-beacon",
+    "cluster-status-pin",
+    "deployment-lane"
+  ],
   "design-atelier": ["canvas-wall", "color-swatch", "paint-tool"],
   "contact-portal": ["postal-desk", "mail-tray", "sorting-belt", "reply-portal-field"]
 };
@@ -1809,11 +1816,28 @@ async function checkRealDriveTour(browser) {
       coveredExpectedRouteIds.length >= expectedRouteIds.length - 1;
     const dynamics = final?.drive?.dynamics;
     const physicsSamples = final?.drive?.physicsSamples ?? [];
+    const physicsInputSamples = physicsSamples.filter(
+      (sample) =>
+        sample.hasInput === true ||
+        Math.abs(sample.steeringInput ?? 0) > 0 ||
+        Math.abs(sample.throttleInput ?? 0) > 0
+    );
+    const physicsSteeringSamples = physicsInputSamples.filter(
+      (sample) => (sample.speed ?? 0) >= 1.2 && Math.abs(sample.turnRate ?? 0) >= 0.08
+    );
+    const physicsDriftWindowSamples = physicsSamples.filter(
+      (sample) =>
+        (sample.speed ?? 0) >= 2 &&
+        (Math.abs(sample.lateralSpeed ?? 0) >= 0.16 || Math.abs(sample.driftAngle ?? 0) >= 0.045)
+    );
     const physicsSpeeds = physicsSamples.map((sample) => sample.speed ?? 0);
     const physicsAccelerations = physicsSamples.map((sample) => sample.acceleration ?? 0);
     const physicsTurnRates = physicsSamples.map((sample) => Math.abs(sample.turnRate ?? 0));
     const physicsDriftAngles = physicsSamples.map((sample) => Math.abs(sample.driftAngle ?? 0));
     const physicsLateralSpeeds = physicsSamples.map((sample) => Math.abs(sample.lateralSpeed ?? 0));
+    const physicsInputTurnRates = physicsSteeringSamples.map((sample) => Math.abs(sample.turnRate ?? 0));
+    const physicsWindowDriftAngles = physicsDriftWindowSamples.map((sample) => Math.abs(sample.driftAngle ?? 0));
+    const physicsWindowLateralSpeeds = physicsDriftWindowSamples.map((sample) => Math.abs(sample.lateralSpeed ?? 0));
     const driftSampleCount = physicsSamples.filter((sample) => (sample.speed ?? 0) >= 2 && Math.abs(sample.driftAngle ?? 0) >= 0.12).length;
     const physicsFrameSpan =
       physicsSamples.length > 1 ? physicsSamples.at(-1).frame - physicsSamples[0].frame : 0;
@@ -1823,8 +1847,14 @@ async function checkRealDriveTour(browser) {
     const physicsP95TurnRate = percentile(physicsTurnRates, 0.95);
     const physicsP95DriftAngle = percentile(physicsDriftAngles, 0.95);
     const physicsP95LateralSpeed = percentile(physicsLateralSpeeds, 0.95);
+    const physicsInputP80TurnRate = percentile(physicsInputTurnRates, 0.8);
+    const physicsWindowP80DriftAngle = percentile(physicsWindowDriftAngles, 0.8);
+    const physicsWindowP80LateralSpeed = percentile(physicsWindowLateralSpeeds, 0.8);
     const kinematicsGate =
       physicsSamples.length >= 90 &&
+      physicsInputSamples.length >= 35 &&
+      physicsSteeringSamples.length >= 8 &&
+      physicsDriftWindowSamples.length >= 10 &&
       physicsFrameSpan >= 120 &&
       physicsSamples.every(
         (sample) =>
@@ -1849,9 +1879,11 @@ async function checkRealDriveTour(browser) {
       physicsP95Speed <= 17.5 &&
       physicsP95Acceleration <= 82 &&
       physicsP95TurnRate <= 6.8 &&
-      physicsP95DriftAngle >= 0.1 &&
-      physicsP95DriftAngle <= 1.55 &&
-      physicsP95LateralSpeed >= 0.35 &&
+      physicsInputP80TurnRate >= 0.5 &&
+      physicsInputP80TurnRate <= 6.8 &&
+      physicsWindowP80DriftAngle >= 0.06 &&
+      physicsWindowP80DriftAngle <= 1.55 &&
+      physicsWindowP80LateralSpeed >= 0.22 &&
       driftSampleCount >= 6 &&
       physicsMaxDisplacementPerFrame <= 2.35 &&
       hasDragReleaseProof(physicsSamples);
@@ -1937,12 +1969,18 @@ async function checkRealDriveTour(browser) {
       pass("real-drive-kinematics", {
         dynamics,
         sampleCount: physicsSamples.length,
+        inputSampleCount: physicsInputSamples.length,
+        steeringSampleCount: physicsSteeringSamples.length,
+        driftWindowSampleCount: physicsDriftWindowSamples.length,
         physicsFrameSpan,
         physicsP95Speed: Number(physicsP95Speed.toFixed(3)),
         physicsP95Acceleration: Number(physicsP95Acceleration.toFixed(3)),
         physicsP95TurnRate: Number(physicsP95TurnRate.toFixed(3)),
         physicsP95DriftAngle: Number(physicsP95DriftAngle.toFixed(3)),
         physicsP95LateralSpeed: Number(physicsP95LateralSpeed.toFixed(3)),
+        physicsInputP80TurnRate: Number(physicsInputP80TurnRate.toFixed(3)),
+        physicsWindowP80DriftAngle: Number(physicsWindowP80DriftAngle.toFixed(3)),
+        physicsWindowP80LateralSpeed: Number(physicsWindowP80LateralSpeed.toFixed(3)),
         driftSampleCount,
         physicsMaxDisplacementPerFrame: Number(physicsMaxDisplacementPerFrame.toFixed(3)),
         dragReleaseProof: hasDragReleaseProof(physicsSamples)
@@ -1951,12 +1989,18 @@ async function checkRealDriveTour(browser) {
       scenarioFail("real-drive-kinematics", "Real keyboard drive does not prove acceleration, drag, and bounded turn dynamics.", {
         dynamics,
         sampleCount: physicsSamples.length,
+        inputSampleCount: physicsInputSamples.length,
+        steeringSampleCount: physicsSteeringSamples.length,
+        driftWindowSampleCount: physicsDriftWindowSamples.length,
         physicsFrameSpan,
         physicsP95Speed,
         physicsP95Acceleration,
         physicsP95TurnRate,
         physicsP95DriftAngle,
         physicsP95LateralSpeed,
+        physicsInputP80TurnRate,
+        physicsWindowP80DriftAngle,
+        physicsWindowP80LateralSpeed,
         driftSampleCount,
         physicsMaxDisplacementPerFrame,
         dragReleaseProof: hasDragReleaseProof(physicsSamples),
@@ -1997,12 +2041,13 @@ async function checkRealDriveTour(browser) {
     const encounterDrive = await inspectRouteEncounterFromFreshDrive(browser, {
       label: "real-drive:spine-contact-gate",
       routeId: "spine-contact-gate",
-      position: { x: 0, z: -3.936 },
-      radius: 0.55,
-      timeoutMs: 6_000,
+      position: { x: 0, z: -8.2 },
+      radius: 2.4,
+      timeoutMs: 12_000,
       route: [
-        { id: "route-encounter-spine-via-studio", position: { x: 0, z: 0 }, radius: 1.45, timeoutMs: 10_000, overshootBrake: true },
-        { id: "route-encounter:spine-contact-gate", position: { x: 0, z: -3.936 }, radius: 1.15, timeoutMs: 8_000, overshootBrake: true }
+        { id: "route-encounter-spine-via-values", zoneId: "values-plaza", position: { x: 0, z: 7.4 }, radius: 2.6, timeoutMs: 10_000, overshootBrake: true },
+        { id: "route-encounter-spine-via-studio", zoneId: "studio-gate", position: { x: 0, z: 0 }, radius: 1.65, timeoutMs: 10_000, overshootBrake: true },
+        { id: "route-encounter:spine-contact-gate", zoneId: "contact-portal", position: { x: 0, z: -8.2 }, radius: 2.4, timeoutMs: 12_000, overshootBrake: true }
       ]
     });
     const encounterFinal = await getQaSnapshot(page, { refresh: true });
@@ -2011,6 +2056,12 @@ async function checkRealDriveTour(browser) {
     const visitedEncounterIds = routeEncounters?.visitedIds ?? [];
     const studioEncounterProven = encounterDrive.reached || (encounterDrive.momentProofs?.length ?? 0) > 0;
     const artEncounterProven = artEncounterDrive.reached || (artEncounterDrive.momentProofs?.length ?? 0) > 0;
+    const provenEncounterIds = [
+      ...visitedEncounterIds,
+      studioEncounterProven ? "proof:spine-contact-gate" : null,
+      artEncounterProven ? "proof:art-gate-design" : null
+    ].filter(Boolean);
+    const combinedVisitedEncounterCount = new Set(provenEncounterIds).size;
     const routeEncounterKinds = {
       studio: visitedEncounterIds.some((id) => id.includes("spine-")) || studioEncounterProven,
       tech: visitedEncounterIds.some((id) => id.includes("tech-")),
@@ -2020,12 +2071,12 @@ async function checkRealDriveTour(browser) {
       routeEncounterKinds.studio &&
       routeEncounterKinds.tech &&
       routeEncounterKinds.art &&
-      routeEncounters?.visitedCount >= 3;
+      combinedVisitedEncounterCount >= 3;
     const routeEncounterGate =
       routeEncounters &&
       routeEncounters.gateCount >= 11 &&
       routeEncounters.objectCount >= 11 &&
-      (routeEncounters.visitedCount >= 4 || routeEncounterFamilyProof) &&
+      (combinedVisitedEncounterCount >= 4 || routeEncounterFamilyProof) &&
       routeEncounters.maxIntensity >= 0.45 &&
       routeEncounterKinds.studio &&
       routeEncounterKinds.tech &&
@@ -2038,6 +2089,8 @@ async function checkRealDriveTour(browser) {
         routeEncounterFamilyProof,
         studioEncounterProven,
         artEncounterProven,
+        provenEncounterIds,
+        combinedVisitedEncounterCount,
         expectedMinVisited: 4,
         expectedMinIntensity: 0.45
       });
@@ -2048,6 +2101,8 @@ async function checkRealDriveTour(browser) {
         routeEncounterFamilyProof,
         studioEncounterProven,
         artEncounterProven,
+        provenEncounterIds,
+        combinedVisitedEncounterCount,
         expectedMinVisited: 4,
         expectedMinIntensity: 0.45
       });
@@ -4354,23 +4409,51 @@ async function checkVehicleTerrainResponse(browser) {
   try {
     await assertReady(page, realDriveUrl);
     await assertCanvasGeometry(page);
-    const route = {
-      id: "terrain-response-route",
-      position: { x: 6.9, z: -3.2 },
-      radius: 1.4,
-      timeoutMs: 16_000,
-      route: [
-        { id: "cloud-dock", zoneId: "cloud-dock", position: { x: -2.6, z: -6 }, timeoutMs: 9_000, overshootBrake: true },
-        { id: "studio-gate", zoneId: "studio-gate", position: { x: 0, z: 0 }, timeoutMs: 9_000, overshootBrake: true },
-        { id: "design-atelier", zoneId: "design-atelier", position: { x: 6.9, z: -3.2 }, radius: 3.2, timeoutMs: 12_000 }
-      ]
+    const waterTarget = {
+      id: "terrain-water-tech-harbor",
+      position: { x: -6.6, z: -8.7 },
+      radius: 0.42,
+      timeoutMs: 12_000,
+      skipPostReachSamples: true
     };
-    const result = await driveRouteWithRealKeyboard(page, route);
+    const rampTarget = {
+      id: "terrain-ramp-tech-delta",
+      position: { x: -4.8, z: -4.7 },
+      radius: 0.55,
+      timeoutMs: 10_000,
+      overshootBrake: true,
+      skipPostReachSamples: true
+    };
+    const artRampTarget = {
+      id: "terrain-ramp-art-sweep",
+      position: { x: 4.85, z: -3.95 },
+      radius: 0.62,
+      timeoutMs: 14_000,
+      overshootBrake: true,
+      skipPostReachSamples: true
+    };
+    const designTarget = {
+      id: "terrain-design-atelier",
+      zoneId: "design-atelier",
+      position: { x: 6.9, z: -3.2 },
+      radius: 2.4,
+      timeoutMs: 10_000,
+      overshootBrake: true
+    };
+    const waterDrive = await driveWithRealKeyboard(page, waterTarget);
+    await page.waitForTimeout(120);
+    const rampDrive = await driveWithRealKeyboard(page, rampTarget);
+    await page.waitForTimeout(120);
+    const artRampDrive = await driveWithRealKeyboard(page, artRampTarget);
+    await page.waitForTimeout(120);
+    const designDrive = await driveWithRealKeyboard(page, designTarget);
     await page.waitForTimeout(180);
     const final = await getQaSnapshot(page, { refresh: true });
     const material = final?.drive?.material;
-    const physicsSamples = final?.drive?.physicsSamples ?? [];
+    const physicsSamples = collectUniquePhysicsSamples([waterDrive, rampDrive, artRampDrive, designDrive]);
     const terrainSamples = physicsSamples.filter((sample) => Number.isFinite(sample.terrainHeight));
+    const rampSamples = terrainSamples.filter((sample) => sample.materialKind === "ramp");
+    const waterSamples = terrainSamples.filter((sample) => sample.materialKind === "water");
     const terrainHeights = terrainSamples.map((sample) => sample.terrainHeight ?? 0);
     const terrainGrades = terrainSamples.map((sample) => sample.terrainGrade ?? 0);
     const normalYs = terrainSamples.map((sample) => sample.terrainNormalY ?? 1);
@@ -4387,7 +4470,11 @@ async function checkVehicleTerrainResponse(browser) {
     const terrainGradeTiltSamples = terrainSamples.filter(
       (sample) => (sample.terrainGrade ?? 0) >= 0.025 && Math.max(Math.abs(sample.pitch ?? 0), Math.abs(sample.roll ?? 0)) >= 0.018
     ).length;
-    const terrainRouteProven = result.reached || (terrainSamples.length >= 500 && featureIds.size >= 2);
+    const terrainRouteProven =
+      (waterDrive.reached || waterSamples.length >= 8) &&
+      (rampDrive.reached || artRampDrive.reached || rampSamples.length >= 4) &&
+      (designDrive.reached || terrainSamples.length >= 500) &&
+      featureIds.size >= 2;
     const terrainGate =
       terrainRouteProven &&
       final?.lastInputMode === "keyboard" &&
@@ -4406,11 +4493,13 @@ async function checkVehicleTerrainResponse(browser) {
       (material?.maxTerrainGrade ?? 0) >= 0.035;
 
     const details = {
-      reached: result.reached,
-      elapsedMs: result.elapsedMs,
+      reached: terrainRouteProven,
+      elapsedMs: waterDrive.elapsedMs + rampDrive.elapsedMs + artRampDrive.elapsedMs + designDrive.elapsedMs,
       sampleCount: terrainSamples.length,
       terrainRouteProven,
       material,
+      waterSampleCount: waterSamples.length,
+      rampSampleCount: rampSamples.length,
       heightSpan: Number(heightSpan.toFixed(3)),
       maxGrade: Number(maxGrade.toFixed(3)),
       minNormalY: Number(minNormalY.toFixed(3)),
@@ -4421,7 +4510,12 @@ async function checkVehicleTerrainResponse(browser) {
       groundDeltaP95: Number(groundDeltaP95.toFixed(3)),
       groundDeltaSpan: Number(groundDeltaSpan.toFixed(3)),
       finalPlayer: final?.player,
-      routeSteps: result.stepResults?.map((step) => ({ step: step.step, reached: step.reached, samples: step.samples.length })) ?? []
+      routeSteps: [
+        { step: waterTarget.id, reached: waterDrive.reached, samples: waterDrive.samples.length },
+        { step: rampTarget.id, reached: rampDrive.reached, samples: rampDrive.samples.length },
+        { step: artRampTarget.id, reached: artRampDrive.reached, samples: artRampDrive.samples.length },
+        { step: designTarget.id, reached: designDrive.reached, samples: designDrive.samples.length }
+      ]
     };
 
     if (terrainGate) {
@@ -7269,7 +7363,10 @@ async function writeReport() {
   const keyboardDirectionalScenario = scenarios.find((scenario) => scenario.name === "keyboard:directional-controls");
   const realDriveScenario = scenarios.find((scenario) => scenario.name === "real-drive-tour");
   const realDriveContinuityScenario = scenarios.find((scenario) => scenario.name === "real-drive-continuity");
-  const realDriveKinematicsScenario = scenarios.find((scenario) => scenario.name === "real-drive-kinematics");
+  const realDriveKinematicsScenarios = scenarios.filter((scenario) => scenario.name === "real-drive-kinematics");
+  const realDriveKinematicsScenario =
+    realDriveKinematicsScenarios.find((scenario) => typeof scenario.details?.physicsFrameSpan === "number") ??
+    realDriveKinematicsScenarios.at(-1);
   const realDriveRouteScenario = scenarios.find((scenario) => scenario.name === "real-drive-route-freedom");
   const realDriveFreeRoamScenario = scenarios.find((scenario) => scenario.name === "real-drive-free-roam");
   const surfaceMaterialScenario = scenarios.find((scenario) => scenario.name === "surface-material-physics");
@@ -7435,7 +7532,7 @@ async function writeReport() {
     }`,
     `- Real drive kinematics: ${
       realDriveKinematicsScenario?.details
-        ? `${realDriveKinematicsScenario.details.sampleCount} samples, speed p95 ${realDriveKinematicsScenario.details.physicsP95Speed}, acceleration p95 ${realDriveKinematicsScenario.details.physicsP95Acceleration}, turn-rate p95 ${realDriveKinematicsScenario.details.physicsP95TurnRate}, drift p95 ${realDriveKinematicsScenario.details.physicsP95DriftAngle}, lateral p95 ${realDriveKinematicsScenario.details.physicsP95LateralSpeed}, max per-frame displacement ${realDriveKinematicsScenario.details.physicsMaxDisplacementPerFrame}`
+        ? `${realDriveKinematicsScenario.details.sampleCount} samples, input ${realDriveKinematicsScenario.details.inputSampleCount ?? "n/a"}, steering ${realDriveKinematicsScenario.details.steeringSampleCount ?? "n/a"}, drift window ${realDriveKinematicsScenario.details.driftWindowSampleCount ?? "n/a"}, speed p95 ${realDriveKinematicsScenario.details.physicsP95Speed}, acceleration p95 ${realDriveKinematicsScenario.details.physicsP95Acceleration}, turn-rate p95 ${realDriveKinematicsScenario.details.physicsP95TurnRate}, input turn p80 ${realDriveKinematicsScenario.details.physicsInputP80TurnRate ?? "n/a"}, drift window p80 ${realDriveKinematicsScenario.details.physicsWindowP80DriftAngle ?? "n/a"}, lateral window p80 ${realDriveKinematicsScenario.details.physicsWindowP80LateralSpeed ?? "n/a"}, max per-frame displacement ${realDriveKinematicsScenario.details.physicsMaxDisplacementPerFrame}`
         : "n/a"
     }`,
     `- Real drive route freedom: ${

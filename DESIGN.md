@@ -625,6 +625,17 @@ Gates V5.0:
 - le heightfield reste un seul mesh colore par vertex pour conserver le budget
   strict `sceneObjects <= 940` et eviter une inflation d'objets decoratifs.
 
+Gates V5.1:
+
+- Cloud Dock gagne un vocabulaire infra plus explicite dans son set dressing:
+  control plane, pin de statut cluster et ligne de deploiement relient racks,
+  nuages et arc electrique;
+- `themed-set-dressing` refuse maintenant un Cloud Dock qui n'expose pas
+  `control-plane-beacon`, `cluster-status-pin` et `deployment-lane`;
+- cette vague reste volontairement frugale: le panneau canvas `CLOUD` est
+  remplace par trois primitives procedurales, sans ajout net d'objets de scene,
+  avec maintien obligatoire du budget `sceneObjects <= 940`.
+
 ## Components
 
 - `game-site`: surface principale.
