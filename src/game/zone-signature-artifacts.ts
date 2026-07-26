@@ -235,15 +235,15 @@ function createCloudArtifacts(group: THREE.Group, zone: StudioZone, mats: Artifa
 }
 
 function createDesignArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactMaterials) {
-  add(group, box([1.16, 0.74, 0.06], mats.light, [0, 1.18, -0.82]), zone, "composition-wall", "canvas-plane", "light-plane", "tilt");
+  add(group, box([1.16, 0.74, 0.06], mats.light, [0.24, 1.18, -0.82]), zone, "composition-wall", "canvas-plane", "light-plane", "tilt");
   const curve = tube([
-    new THREE.Vector3(-0.48, 1.1, -0.76),
-    new THREE.Vector3(-0.12, 1.44, -0.75),
-    new THREE.Vector3(0.34, 1.08, -0.74)
+    new THREE.Vector3(-0.24, 1.1, -0.76),
+    new THREE.Vector3(0.12, 1.44, -0.75),
+    new THREE.Vector3(0.58, 1.08, -0.74)
   ], 0.018, mats.accent);
   add(group, curve, zone, "composition-wall", "gesture-line", "accent-gesture", "pulse");
   for (let index = 0; index < 5; index += 1) {
-    add(group, box([0.16, 0.08, 0.16], index % 2 ? mats.secondary : mats.accent, [-0.48 + index * 0.24, 0.58, 0.92]), zone, "composition-wall", `swatch-specimen-${index}`, index % 2 ? "secondary-swatch" : "accent-swatch", "pulse");
+    add(group, box([0.16, 0.08, 0.16], index % 2 ? mats.secondary : mats.accent, [-0.18 + index * 0.24, 0.58, 0.92]), zone, "composition-wall", `swatch-specimen-${index}`, index % 2 ? "secondary-swatch" : "accent-swatch", "pulse");
   }
 }
 

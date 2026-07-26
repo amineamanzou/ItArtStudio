@@ -581,6 +581,22 @@ Gates V4.7:
   details de surface, 75 signatures de scenographie et 55 objets animes
   semantiques.
 
+Gates V4.8:
+
+- `real-drive-whole-map-freedom` prouve que le rover peut explorer les quatre
+  quadrants et les bandes interieures nord/sud/est/ouest, loin du clamp de
+  bord; en profil complet, la gate utilise les waypoints comme balises de
+  conduite, mais valide surtout la couverture physique reelle de la carte;
+- `real-drive-visible-boundary` prouve separement que les contacts avec les
+  bords nord/sud/est/ouest sont intentionnels et lisibles;
+- la physique expose `drive.boundary`: contacts par axe, vitesse de contact,
+  distance au bord, distance minimale au bord et compteur de hard stop loin de
+  la limite;
+- Playwright utilise uniquement les vraies touches en `?qa=1&realKeys=1`;
+- rejet QA si un trajet touche un stop loin du bord, si un bord n'est pas
+  atteint, si le joueur quitte l'ecran, si le parcours manque d'off-road, ou si
+  les sauts d'echantillons indiquent un teleport.
+
 ## Components
 
 - `game-site`: surface principale.

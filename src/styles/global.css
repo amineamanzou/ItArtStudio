@@ -435,10 +435,10 @@ button {
   .zone-panel {
     top: 76px;
     bottom: auto;
-    width: min(210px, calc(100vw - var(--pad) * 2));
-    max-height: min(320px, calc(100svh - 112px));
+    width: min(190px, calc(100vw - var(--pad) * 2));
+    max-height: min(292px, calc(100svh - 112px));
     overflow: auto;
-    padding: 14px;
+    padding: 12px;
   }
 
   .zone-panel h2 {
@@ -457,14 +457,14 @@ button {
   }
 
   .zone-panel__signals {
-    gap: 6px;
-    margin-top: 12px;
+    gap: 5px;
+    margin-top: 10px;
   }
 
   .zone-panel__signals li {
-    min-height: 28px;
-    padding-inline: 8px;
-    font-size: 0.75rem;
+    min-height: 25px;
+    padding-inline: 7px;
+    font-size: 0.71rem;
   }
 
   .zone-panel__cta {

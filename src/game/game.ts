@@ -166,6 +166,7 @@ type DrivePhysicsSampleQa = {
   throttleInput: number;
   onRoute: boolean;
   routeDistance: number;
+  boundaryDistance: number;
   materialKind: WorldMaterialKind;
   materialId: string;
   materialIntensity: number;
@@ -192,6 +193,16 @@ type SurfaceMaterialQa = {
   emittedFxMarks: number;
   waterRegionCount: number;
   rampRegionCount: number;
+};
+type BoundaryQa = {
+  worldHalfExtent: number;
+  contactCount: number;
+  contactAxes: Record<string, number>;
+  lastContactAxis: string | null;
+  lastContactSpeed: number;
+  distanceToEdge: number;
+  minDistanceToEdge: number;
+  hardStopAwayFromEdgeCount: number;
 };
 type ScreenRectQa = {
   x: number;
@@ -441,6 +452,7 @@ type QaSnapshot = {
     };
     dynamics: DriveDynamicsQa;
     material: SurfaceMaterialQa;
+    boundary: BoundaryQa;
     physicsSamples: DrivePhysicsSampleQa[];
   };
   camera: {
@@ -630,6 +642,14 @@ class StudioGame {
   private maxRampRideHeight = 0;
   private lastMaterialKind: WorldMaterialKind = "road";
   private surfaceFxDistance = 0;
+  private boundaryContactCount = 0;
+  private readonly boundaryContactAxes: Record<string, number> = {};
+  private lastBoundaryContactAxis: string | null = null;
+  private lastBoundaryContactSpeed = 0;
+  private boundaryDistanceToEdge = worldHalfExtent;
+  private minBoundaryDistanceToEdge = worldHalfExtent;
+  private hardStopAwayFromEdgeCount = 0;
+  private hardStopAwayFromEdgeStreak = 0;
   private audioContext: AudioContext | null = null;
   private audioMasterGain: GainNode | null = null;
   private engineOscillator: OscillatorNode | null = null;
@@ -773,6 +793,16 @@ class StudioGame {
         emittedFxMarks: 0,
         waterRegionCount: worldMaterialRegions.water.length,
         rampRegionCount: worldMaterialRegions.ramps.length
+      },
+      boundary: {
+        worldHalfExtent,
+        contactCount: 0,
+        contactAxes: {},
+        lastContactAxis: null,
+        lastContactSpeed: 0,
+        distanceToEdge: worldHalfExtent,
+        minDistanceToEdge: worldHalfExtent,
+        hardStopAwayFromEdgeCount: 0
       },
       physicsSamples: []
     },
@@ -2237,6 +2267,9 @@ class StudioGame {
     }
 
     const travel = this.playerPosition.clone().sub(previousPosition);
+    if (!guidedMove) {
+      this.recordHardStopAwayFromEdge(travel, hasManualInput, throttle, turn);
+    }
     const routeSurfaceAfter = sampleDriveSurface(this.playerPosition);
     const materialAfter = sampleWorldMaterial(this.playerPosition, routeSurfaceAfter.onRoute);
     this.currentWorldMaterial = materialAfter;
@@ -2284,14 +2317,62 @@ class StudioGame {
   private applyWorldBoundary(_delta: number) {
     const beforeX = this.playerPosition.x;
     const beforeZ = this.playerPosition.z;
+    const impactSpeed = this.playerVelocity.length();
     this.playerPosition.x = clamp(this.playerPosition.x, -worldHalfExtent, worldHalfExtent);
     this.playerPosition.z = clamp(this.playerPosition.z, -worldHalfExtent, worldHalfExtent);
+    const xClamped = this.playerPosition.x !== beforeX;
+    const zClamped = this.playerPosition.z !== beforeZ;
+    this.boundaryDistanceToEdge = worldHalfExtent - Math.max(Math.abs(this.playerPosition.x), Math.abs(this.playerPosition.z));
+    this.minBoundaryDistanceToEdge = Math.min(this.minBoundaryDistanceToEdge, this.boundaryDistanceToEdge);
+
+    if (xClamped || zClamped) {
+      this.boundaryContactCount += 1;
+      const axes: string[] = [];
+      if (xClamped) {
+        axes.push(this.playerPosition.x < 0 ? "x-min" : "x-max");
+      }
+      if (zClamped) {
+        axes.push(this.playerPosition.z < 0 ? "z-min" : "z-max");
+      }
+      this.lastBoundaryContactAxis = axes.join("+");
+      this.lastBoundaryContactSpeed = impactSpeed;
+      for (const axis of axes) {
+        this.boundaryContactAxes[axis] = (this.boundaryContactAxes[axis] ?? 0) + 1;
+      }
+    }
 
     if (this.playerPosition.x !== beforeX && Math.sign(this.playerVelocity.x) === Math.sign(beforeX - this.playerPosition.x)) {
       this.playerVelocity.x *= -0.18;
     }
     if (this.playerPosition.z !== beforeZ && Math.sign(this.playerVelocity.z) === Math.sign(beforeZ - this.playerPosition.z)) {
       this.playerVelocity.z *= -0.18;
+    }
+  }
+
+  private recordHardStopAwayFromEdge(
+    travel: THREE.Vector3,
+    hasManualInput: boolean,
+    throttleInput: number,
+    steeringInput: number
+  ) {
+    const hardStopCandidate =
+      hasManualInput &&
+      Math.abs(throttleInput) > 0 &&
+      Math.abs(steeringInput) < 0.35 &&
+      this.driveMovingSamples > 8 &&
+      this.peakDriveSpeed > 1.5 &&
+      travel.length() < 0.006 &&
+      this.playerVelocity.length() < 0.08 &&
+      this.boundaryDistanceToEdge > 1.2;
+
+    if (hardStopCandidate) {
+      this.hardStopAwayFromEdgeStreak += 1;
+    } else {
+      this.hardStopAwayFromEdgeStreak = 0;
+    }
+
+    if (this.hardStopAwayFromEdgeStreak === 8) {
+      this.hardStopAwayFromEdgeCount += 1;
     }
   }
 
@@ -2373,6 +2454,7 @@ class StudioGame {
       throttleInput,
       onRoute: surface.onRoute,
       routeDistance: surface.distance,
+      boundaryDistance: Number(this.boundaryDistanceToEdge.toFixed(3)),
       materialKind: material.kind,
       materialId: material.id,
       materialIntensity: material.intensity,
@@ -3060,6 +3142,16 @@ class StudioGame {
         emittedFxMarks: this.emittedSurfaceFxMarks,
         waterRegionCount: worldMaterialRegions.water.length,
         rampRegionCount: worldMaterialRegions.ramps.length
+      },
+      boundary: {
+        worldHalfExtent,
+        contactCount: this.boundaryContactCount,
+        contactAxes: { ...this.boundaryContactAxes },
+        lastContactAxis: this.lastBoundaryContactAxis,
+        lastContactSpeed: Number(this.lastBoundaryContactSpeed.toFixed(3)),
+        distanceToEdge: Number(this.boundaryDistanceToEdge.toFixed(3)),
+        minDistanceToEdge: Number(this.minBoundaryDistanceToEdge.toFixed(3)),
+        hardStopAwayFromEdgeCount: this.hardStopAwayFromEdgeCount
       },
       physicsSamples: [...this.drivePhysicsSamples]
     };

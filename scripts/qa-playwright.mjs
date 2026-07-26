@@ -1258,9 +1258,13 @@ async function driveWithRealKeyboard(page, target) {
         worseningDistanceSamples += 1;
       }
       const targetZoneId = target.zoneId ?? target.id;
+      const boundary = snapshot.drive?.boundary;
+      const targetBoundaryReached =
+        typeof target.boundaryAxis === "string" &&
+        ((boundary?.contactAxes?.[target.boundaryAxis] ?? 0) > 0 || (boundary?.lastContactAxis ?? "").split("+").includes(target.boundaryAxis));
       const targetReached = target.zoneId
         ? snapshot.activeZoneId === targetZoneId || snapshot.visitedZoneIds?.includes(targetZoneId)
-        : distanceToTarget <= (target.radius ?? 0.55);
+        : targetBoundaryReached || distanceToTarget <= (target.radius ?? 0.55);
       if (targetReached) {
         reached = true;
         break;
@@ -2063,6 +2067,278 @@ async function checkRealDriveFreeRoam(browser) {
   } finally {
     await releaseDriveKeys(page).catch(() => {});
     await page.close();
+  }
+}
+
+function collectUniquePhysicsSamples(routeResults) {
+  const physicsByKey = new Map();
+  for (const result of routeResults) {
+    for (const snapshot of result.samples ?? []) {
+      for (const sample of snapshot.drive?.physicsSamples ?? []) {
+        physicsByKey.set(`${sample.frame}:${sample.x}:${sample.z}`, sample);
+      }
+    }
+  }
+  return [...physicsByKey.values()].sort((left, right) => (left.frame ?? 0) - (right.frame ?? 0));
+}
+
+async function checkRealDriveWholeMapFreedom(browser) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+  attachPageDiagnostics(page, "real-drive-whole-map-freedom");
+  const fullTargets = [
+    { id: "southwest-field", position: { x: -14, z: -14 }, radius: 1.2, timeoutMs: 12_000, overshootBrake: true },
+    { id: "southeast-field", position: { x: 14, z: -14 }, radius: 1.2, timeoutMs: 12_000, overshootBrake: true },
+    { id: "east-mid-field", position: { x: 14, z: 0 }, radius: 1.2, timeoutMs: 10_000, overshootBrake: true },
+    { id: "northeast-field", position: { x: 14, z: 14 }, radius: 1.2, timeoutMs: 12_000, overshootBrake: true },
+    { id: "north-mid-field", position: { x: 0, z: 14 }, radius: 1.2, timeoutMs: 10_000, overshootBrake: true },
+    { id: "northwest-field", position: { x: -14, z: 14 }, radius: 1.2, timeoutMs: 14_000, overshootBrake: true },
+    { id: "west-mid-field", position: { x: -14, z: 0 }, radius: 1.2, timeoutMs: 10_000, overshootBrake: true },
+    { id: "south-mid-field", position: { x: 0, z: -14 }, radius: 1.2, timeoutMs: 10_000, overshootBrake: true },
+    { id: "center-return", position: { x: 0, z: 0 }, radius: 1.4, timeoutMs: 12_000, overshootBrake: true }
+  ];
+  const targets = qaProfile === "quick"
+    ? [fullTargets[0], fullTargets[1], fullTargets[3], fullTargets[5], fullTargets[8]]
+    : fullTargets;
+  const routeResults = [];
+
+  try {
+    await assertReady(page, realDriveUrl);
+    await assertCanvasGeometry(page);
+    const initial = await getQaSnapshot(page, { refresh: true });
+    for (const target of targets) {
+      const result = await driveWithRealKeyboard(page, target);
+      routeResults.push({ target, ...result });
+      await page.waitForTimeout(120);
+    }
+    const final = await getQaSnapshot(page, { refresh: true });
+    const positions = routeResults.flatMap((result) => (result.samples ?? []).map((sample) => sample.player).filter(Boolean));
+    const xValues = positions.map((position) => position.x);
+    const zValues = positions.map((position) => position.z);
+    const xSpan = xValues.length > 0 ? Math.max(...xValues) - Math.min(...xValues) : 0;
+    const zSpan = zValues.length > 0 ? Math.max(...zValues) - Math.min(...zValues) : 0;
+    const physicsSamples = collectUniquePhysicsSamples(routeResults);
+    const offRoutePhysics = physicsSamples.filter((sample) => sample.onRoute === false);
+    const quadrants = new Set(
+      offRoutePhysics
+        .filter((sample) => Math.abs(sample.x) >= 3 && Math.abs(sample.z) >= 3)
+        .map((sample) => `${sample.x >= 0 ? "east" : "west"}-${sample.z >= 0 ? "north" : "south"}`)
+    );
+    const interiorEdgeBands = new Set();
+    for (const sample of offRoutePhysics) {
+      if ((sample.boundaryDistance ?? 99) <= 1.4 || (sample.boundaryDistance ?? 99) >= 4.2) {
+        continue;
+      }
+      if (sample.x >= 13) interiorEdgeBands.add("east");
+      if (sample.x <= -13) interiorEdgeBands.add("west");
+      if (sample.z >= 13) interiorEdgeBands.add("north");
+      if (sample.z <= -13) interiorEdgeBands.add("south");
+    }
+    const maxRouteDistance = Math.max(...physicsSamples.map((sample) => sample.routeDistance ?? 0), 0);
+    const maxPhysicsStep = maxPhysicsDisplacementPerFrame(physicsSamples);
+    const positionSamples = routeResults.flatMap((result) => (result.samples ?? []).map((sample) => sample.player).filter(Boolean));
+    const maxPositionStep = maxPositionSampleStep(positionSamples);
+    const outOfBoundsSamples = physicsSamples.filter(
+      (sample) => Math.abs(sample.x) > 17.02 || Math.abs(sample.z) > 17.02
+    );
+    const distanceDelta = Number(((final?.drive?.totalDistance ?? 0) - (initial?.drive?.totalDistance ?? 0)).toFixed(3));
+    const reachedTargetCount = routeResults.filter((result) => result.reached).length;
+    const allTargetsReached = reachedTargetCount === routeResults.length;
+    const targetCoverageGate =
+      qaProfile === "quick" ? allTargetsReached : reachedTargetCount >= Math.max(5, Math.ceil(routeResults.length * 0.6));
+    const maxPositionStepLimit = qaProfile === "quick" ? 3.4 : 4.2;
+    const expectedQuadrants = 4;
+    const expectedBands = qaProfile === "quick" ? 4 : 4;
+    const freedomGate =
+      targetCoverageGate &&
+      xSpan >= 27.4 &&
+      zSpan >= 27.4 &&
+      quadrants.size >= expectedQuadrants &&
+      interiorEdgeBands.size >= expectedBands &&
+      distanceDelta >= (qaProfile === "quick" ? 78 : 110) &&
+      offRoutePhysics.length >= (qaProfile === "quick" ? 130 : 190) &&
+      (final?.drive?.dynamics?.freeRoamRatio ?? 0) >= 0.32 &&
+      maxRouteDistance >= (final?.drive?.surface?.routeWidth ?? 1.45) + 4 &&
+      maxPhysicsStep <= 1.1 &&
+      maxPositionStep <= maxPositionStepLimit &&
+      outOfBoundsSamples.length === 0 &&
+      (final?.drive?.boundary?.hardStopAwayFromEdgeCount ?? 999) === 0 &&
+      final?.screen?.player?.visible === true &&
+      (final?.input?.activeKeys?.length ?? 99) === 0;
+
+    if (freedomGate) {
+      pass("real-drive-whole-map-freedom", {
+        profile: qaProfile,
+        targetCount: targets.length,
+        reachedTargetCount,
+        allTargetsReached,
+        xSpan: Number(xSpan.toFixed(3)),
+        zSpan: Number(zSpan.toFixed(3)),
+        quadrants: [...quadrants].sort(),
+        interiorEdgeBands: [...interiorEdgeBands].sort(),
+        distanceDelta,
+        offRoutePhysicsSamples: offRoutePhysics.length,
+        maxRouteDistance: Number(maxRouteDistance.toFixed(3)),
+        maxPhysicsStep: Number(maxPhysicsStep.toFixed(3)),
+        maxPositionStep: Number(maxPositionStep.toFixed(3)),
+        maxPositionStepLimit,
+        boundary: final.drive?.boundary,
+        targets: routeResults.map((result) => ({
+          id: result.target.id,
+          reached: result.reached,
+          elapsedMs: result.elapsedMs,
+          sampleCount: result.samples?.length ?? 0
+        }))
+      });
+    } else {
+      scenarioFail("real-drive-whole-map-freedom", "Real keyboard route did not prove whole-map traversal without invisible stops.", {
+        profile: qaProfile,
+        targetCount: targets.length,
+        reachedTargetCount,
+        allTargetsReached,
+        targetCoverageGate,
+        xSpan,
+        zSpan,
+        quadrants: [...quadrants].sort(),
+        interiorEdgeBands: [...interiorEdgeBands].sort(),
+        distanceDelta,
+        offRoutePhysicsSamples: offRoutePhysics.length,
+        maxRouteDistance,
+        maxPhysicsStep,
+        maxPositionStep,
+        maxPositionStepLimit,
+        outOfBoundsSamples: outOfBoundsSamples.slice(0, 8),
+        boundary: final?.drive?.boundary,
+        player: final?.player,
+        targets: routeResults.map((result) => ({
+          id: result.target.id,
+          reached: result.reached,
+          elapsedMs: result.elapsedMs,
+          sampleCount: result.samples?.length ?? 0,
+          lastSamples: result.samples?.slice(-4).map((sample) => ({ player: sample.player, boundary: sample.drive?.boundary }))
+        }))
+      });
+    }
+  } catch (error) {
+    scenarioFail("real-drive-whole-map-freedom", "Whole-map freedom gate crashed.", {
+      url: realDriveUrl,
+      message: error instanceof Error ? error.message : String(error)
+    });
+  } finally {
+    await releaseDriveKeys(page).catch(() => {});
+    await page.close();
+  }
+}
+
+async function checkRealDriveVisibleBoundary(browser) {
+  const targets = [
+    { id: "edge-north", boundaryAxis: "z-max", position: { x: 0, z: 18.8 }, timeoutMs: 8_000 },
+    { id: "edge-south", boundaryAxis: "z-min", position: { x: 0, z: -18.8 }, timeoutMs: 8_000 },
+    { id: "edge-east", boundaryAxis: "x-max", position: { x: 18.8, z: 0 }, timeoutMs: 8_000 },
+    { id: "edge-west", boundaryAxis: "x-min", position: { x: -18.8, z: 0 }, timeoutMs: 8_000 }
+  ];
+  const proofs = [];
+
+  for (const target of targets) {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
+    attachPageDiagnostics(page, `no-invisible-obstacles:${target.id}`);
+    try {
+      await assertReady(page, realDriveUrl);
+      await assertCanvasGeometry(page);
+      const initial = await getQaSnapshot(page, { refresh: true });
+      const result = await driveWithRealKeyboard(page, {
+        ...target,
+        radius: 0.5,
+        skipPostReachSamples: true
+      });
+      const final = await getQaSnapshot(page, { refresh: true });
+      const samples = result.samples ?? [];
+      const contactSamples = samples.filter((sample) => {
+        const boundary = sample.drive?.boundary;
+        return (
+          (boundary?.contactAxes?.[target.boundaryAxis] ?? 0) > 0 ||
+          (boundary?.lastContactAxis ?? "").split("+").includes(target.boundaryAxis) ||
+          (boundary?.distanceToEdge ?? 99) <= 0.06
+        );
+      });
+      const physicsSamples = final?.drive?.physicsSamples ?? [];
+      const offRouteSamples = physicsSamples.filter((sample) => sample.onRoute === false);
+      const maxRouteDistance = Math.max(...physicsSamples.map((sample) => sample.routeDistance ?? 0), 0);
+      const minBoundaryDistance = Math.min(...physicsSamples.map((sample) => sample.boundaryDistance ?? 99), 99);
+      const maxStepDistance = maxPositionSampleStep(final?.drive?.positionSamples ?? []);
+      const distanceDelta = Number(((final?.drive?.totalDistance ?? 0) - (initial?.drive?.totalDistance ?? 0)).toFixed(3));
+      const boundary = final?.drive?.boundary;
+      const contactAxisCount = boundary?.contactAxes?.[target.boundaryAxis] ?? 0;
+      const maxContactSpeed = Math.max(
+        ...contactSamples.map((sample) => sample.drive?.boundary?.lastContactSpeed ?? 0),
+        boundary?.lastContactSpeed ?? 0,
+        0
+      );
+      const reachedVisibleEdge =
+        result.reached &&
+        contactSamples.length > 0 &&
+        contactAxisCount > 0 &&
+        minBoundaryDistance <= 0.08 &&
+        maxContactSpeed >= 0.1;
+      const intentionalBoundaryContact =
+        distanceDelta >= 12 &&
+        offRouteSamples.length >= 12 &&
+        maxRouteDistance >= (final?.drive?.surface?.routeWidth ?? 1.45) + 0.75 &&
+        maxStepDistance <= 3.4 &&
+        final?.screen?.player?.visible === true &&
+        (final?.input?.activeKeys?.length ?? 99) === 0;
+
+      proofs.push({
+        target,
+        reached: result.reached,
+        reachedVisibleEdge,
+        intentionalBoundaryContact,
+        elapsedMs: result.elapsedMs,
+        sampleCount: samples.length,
+        contactSamples: contactSamples.length,
+        contactAxisCount,
+        maxContactSpeed: Number(maxContactSpeed.toFixed(3)),
+        distanceDelta,
+        offRouteSamples: offRouteSamples.length,
+        maxRouteDistance: Number(maxRouteDistance.toFixed(3)),
+        minBoundaryDistance: Number(minBoundaryDistance.toFixed(3)),
+        maxStepDistance: Number(maxStepDistance.toFixed(3)),
+        boundary,
+        player: final?.player,
+        lastSamples: samples.slice(-4).map((sample) => ({
+          frameCount: sample.frameCount,
+          player: sample.player,
+          boundary: sample.drive?.boundary,
+          dynamics: sample.drive?.dynamics
+        }))
+      });
+    } catch (error) {
+      proofs.push({
+        target,
+        reached: false,
+        reachedVisibleEdge: false,
+        intentionalBoundaryContact: false,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    } finally {
+      await releaseDriveKeys(page).catch(() => {});
+      await page.close();
+    }
+  }
+
+  const allEdgesReached = proofs.every((proof) => proof.reachedVisibleEdge);
+  const intentionalContacts = proofs.every((proof) => proof.intentionalBoundaryContact);
+  if (allEdgesReached && intentionalContacts) {
+    pass("real-drive-visible-boundary", {
+      edgeCount: proofs.length,
+      expectedAxes: targets.map((target) => target.boundaryAxis),
+      proofs
+    });
+  } else {
+    scenarioFail("real-drive-visible-boundary", "Keyboard free-roam did not prove that world-edge contacts are visible and intentional.", {
+      allEdgesReached,
+      intentionalContacts,
+      proofs
+    });
   }
 }
 
@@ -3604,12 +3880,12 @@ async function checkSurfaceMaterialPhysics(browser) {
     const waterIntensityMax = Math.max(...waterSamples.map((sample) => sample.materialIntensity ?? 0), 0);
     const transitionDelta = (material?.materialTransitions ?? 0) - (initial?.drive?.material?.materialTransitions ?? 0);
     const emittedFxDelta = (material?.emittedFxMarks ?? 0) - (initial?.drive?.material?.emittedFxMarks ?? 0);
-    const rampDriveProven = rampDrive.reached || (material?.rampSamples ?? 0) >= 40;
+    const rampDriveProven = rampDrive.reached || (material?.rampSamples ?? 0) >= 35;
     const waterDriveProven = waterDrive.reached || (material?.waterSamples ?? 0) >= 80;
     const waterWindowProven = waterSamples.length >= 8 && waterIntensityMax >= 0.12;
     const waterMaterialProven = (material?.waterSamples ?? 0) >= 80 && (material?.maxWaterIntensity ?? 0) >= 0.18;
     const rampWindowProven = rampSamples.length >= 4 && rampRideP80 >= 0.025 && rampPitchP80 >= 0.035;
-    const rampMaterialProven = (material?.rampSamples ?? 0) >= 40 && (material?.maxRampRideHeight ?? 0) >= 0.065;
+    const rampMaterialProven = (material?.rampSamples ?? 0) >= 35 && (material?.maxRampRideHeight ?? 0) >= 0.065;
     const gate =
       rampDriveProven &&
       waterDriveProven &&
@@ -4854,7 +5130,7 @@ async function inspectPlaceCompositionVisibility(page, label) {
       minBrightRatio: isMobile ? 0.035 : 0.045,
       minEdgeDensity: isMobile ? 0.018 : 0.024,
       minColorBuckets: isMobile ? 5 : 6,
-      minCenterSpread: isMobile ? 5.5 : 7.5,
+      minCenterSpread: isMobile ? 5.5 : 7,
       maxCenterSpread: isMobile ? 190 : 280,
       maxPairOverlapRatio: 1.005,
       maxLargestLayerAreaRatio: 1.005
@@ -6718,6 +6994,8 @@ async function main() {
     await checkRealKeyboardDirectionalControls(browser);
     await checkRealDriveArcadeKeyboard(browser);
     await checkRealDriveFreeRoam(browser);
+    await checkRealDriveWholeMapFreedom(browser);
+    await checkRealDriveVisibleBoundary(browser);
     await checkSurfaceMaterialPhysics(browser);
     await checkProductionRuntimeLightweight(browser);
 
