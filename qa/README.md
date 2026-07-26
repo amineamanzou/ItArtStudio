@@ -285,9 +285,14 @@ The runner:
   enough distinct surface roles, and stays under the strict premium scene
   budget.
 - Static production QA must produce a Bruno-Simon-style playable proof reel, not
-  only a runtime smoke test. The gate keeps auditable captures for home, all ten
-  mini-map zones, three real-keyboard route encounters, and a mobile/touch pass
-  on the built artifact.
+  only a runtime smoke test. Local full scope keeps auditable captures for home,
+  all ten mini-map zones, three real-keyboard route encounters, and a
+  mobile/touch pass on the built artifact; GitHub Actions uses the same gate in
+  compact scope over three representative zones to keep Pages deploys bounded.
+- `bruno-simon-grade-objective` is the next blocking product bar: QA evidence
+  must protect modeled place assets, clean textures, water, relief, free-roam
+  traversal without invisible blockers, arcade acceleration/braking/drift,
+  responsive engine/audio layers, and capture-ready level readability.
 - Playable stage dominance must prove more than low aggregate UI coverage. The
   runner measures unioned UI occlusion, a clear center-stage rectangle, rover
   projection, and active place-composition occlusion. Desktop/tablet views must

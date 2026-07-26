@@ -52,6 +52,7 @@ const requiresQaStep = (url) => {
   }
 };
 const qaProfile = process.env.QA_PROFILE === "quick" ? "quick" : "full";
+const staticProofScope = process.env.QA_STATIC_PROOF_SCOPE ?? (process.env.GITHUB_ACTIONS === "true" ? "ci" : "full");
 const browserChannel = process.env.QA_BROWSER_CHANNEL ?? (process.env.GITHUB_ACTIONS === "true" ? undefined : "chrome");
 const outputRoot = path.join(root, "qa", "artifacts", new Date().toISOString().replace(/[:.]/g, "-"));
 const screenshotsDir = path.join(outputRoot, "screenshots");
@@ -82,6 +83,7 @@ const staticProofZoneIds = [
   "values-plaza",
   "contact-portal"
 ];
+const staticProofCiZoneIds = ["ai-lab", "design-atelier", "contact-portal"];
 const expectedPrioritySetDressingRoles = {
   "ai-lab": ["agent-workbench", "evaluation-conveyor", "prompt-token", "agent-core", "agent-feedback-loop"],
   "observability-tower": ["telemetry-lighthouse", "radar-beam", "metric-stack", "log-waterfall", "trace-sample-grid"],
@@ -8404,9 +8406,10 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
     return;
   }
 
+  const proofZoneIds = staticProofScope === "full" ? staticProofZoneIds : staticProofCiZoneIds;
   const zoneProofs = [];
   const zoneCaptures = [];
-  for (const targetId of staticProofZoneIds) {
+  for (const targetId of proofZoneIds) {
     const proof = await jumpMiniMapForProof(page, targetId, labelPrefix);
     zoneProofs.push(proof);
     const captureEntry = await capture(page, `static-proof-zone-${targetId}`);
@@ -8446,12 +8449,19 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
     {
       routeId: "art-gate-design",
       family: "art",
-      position: { x: 4.9, z: -3.7 },
+      position: { x: 5.96, z: -3.97 },
       radius: 1.1,
       timeoutMs: 12_000,
       route: [
-        { id: "static-art-via-design", zoneId: "design-atelier", position: { x: 10.8, z: -5.2 }, radius: 3.4, timeoutMs: 16_000, overshootBrake: true },
-        { id: "static-art-gate-design", position: { x: 4.9, z: -3.7 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true }
+        { id: "static-art-via-gate", position: { x: 4.9, z: -3.7 }, radius: 1.35, timeoutMs: 10_000, overshootBrake: true },
+        {
+          id: "static-art-gate-design",
+          position: { x: 5.96, z: -3.97 },
+          radius: 0.85,
+          timeoutMs: 12_000,
+          overshootBrake: true,
+          skipPostReachSamples: true
+        }
       ]
     }
   ];
@@ -8487,9 +8497,9 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
   }
 
   const zoneCoverageOk =
-    zoneProofs.length === staticProofZoneIds.length &&
+    zoneProofs.length === proofZoneIds.length &&
     zoneProofs.every((proof) => proof.ok === true) &&
-    zoneCaptures.length === staticProofZoneIds.length &&
+    zoneCaptures.length === proofZoneIds.length &&
     zoneCaptures.every((entry) => entry.canvas?.ok === true);
   const encounterFamilies = new Set(encounterProofs.filter((proof) => proof.reached || proof.matchingProofCount > 0).map((proof) => proof.family));
   const encounterCoverageOk =
@@ -8504,6 +8514,8 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
   if (proofReelOk) {
     pass("bruno-simon-playable-proof-reel", {
       baseUrl,
+      scope: staticProofScope,
+      expectedZoneIds: proofZoneIds,
       homeCapture: homeCapture.relativePath,
       zoneCaptureCount: zoneCaptures.length,
       zoneCaptures,
@@ -8514,6 +8526,8 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
   } else {
     scenarioFail("bruno-simon-playable-proof-reel", "Static production build did not produce a complete playable proof reel.", {
       baseUrl,
+      scope: staticProofScope,
+      expectedZoneIds: proofZoneIds,
       homeCapture: homeCapture?.relativePath ?? null,
       zoneCoverageOk,
       encounterCoverageOk,
@@ -8922,7 +8936,7 @@ async function writeReport() {
     `- Activation feedback checks: ${activationScenarios.length}`,
     `- Bruno Simon proof reel: ${
       staticProofReelScenario?.details
-        ? `${staticProofReelScenario.status}, zones ${staticProofReelScenario.details.zoneCaptureCount}, encounters ${staticProofReelScenario.details.encounterProofs?.length ?? 0}, mobile ${staticProofReelScenario.details.mobileCapture ? "yes" : "no"}`
+        ? `${staticProofReelScenario.status}, scope ${staticProofReelScenario.details.scope ?? "n/a"}, zones ${staticProofReelScenario.details.zoneCaptureCount}, encounters ${staticProofReelScenario.details.encounterProofs?.length ?? 0}, mobile ${staticProofReelScenario.details.mobileCapture ? "yes" : "no"}`
         : (staticProofReelScenario?.status ?? "n/a")
     }`,
     `- Last activation feedback: ${

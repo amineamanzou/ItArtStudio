@@ -11,6 +11,25 @@ La reference assumee est `https://bruno-simon.com/`, mais l'intention n'est pas
 de copier son vehicule, sa physique ou son univers. On reprend la logique
 "contenu = lieu", la carte, les zones interactives et la memoire du geste.
 
+## Target Quality
+
+L'objectif produit est un mini-monde jouable de niveau vitrine premium:
+
+- une carte plus vaste qui donne envie d'explorer, avec relief, rampes, eau et
+  surfaces roulables partout;
+- une conduite arcade lisible: acceleration, freinage, inertie, drift, braquage
+  en mouvement et son moteur reactif;
+- aucun mur invisible bloquant l'exploration libre; les decors peuvent guider,
+  mais le vehicule doit rester libre sur la carte;
+- des assets 3D modeles par lieu, moins nombreux mais plus caracteristiques:
+  silhouettes fortes, textures propres, pas de scintillement par superposition;
+- chaque activite devient un niveau identifiable: cloud avec serveurs et
+  nuages, observabilite avec tour et signaux, design avec atelier vetement,
+  contact avec decor postal;
+- la QA Playwright doit produire des captures et preuves de gameplay assez
+  lisibles pour juger le niveau comme un vrai livrable, pas seulement comme une
+  scene Three.js chargee.
+
 ## Color
 
 La palette devient plus lisible et plus jouable:
@@ -905,9 +924,25 @@ Gates V7.5:
 - la QA `static dist` gagne `bruno-simon-playable-proof-reel`: un
   contact sheet ou une courte sequence de preuves produite depuis le build
   production, couvrant home, les dix lieux via mini-map, trois route encounters
-  au clavier reel et un passage mobile/touch;
+  au clavier reel et un passage mobile/touch en scope local complet;
+- le scope CI garde la meme gate mais limite les captures de lieux a trois zones
+  representatives pour que Pages reste deployable a chaque push;
 - cette gate doit rendre le livrable auditable humainement, pas seulement
   verifier que le canvas charge.
+
+Gates V8.0:
+
+- `bruno-simon-grade-objective` devient la definition bloquante de qualite:
+  assets 3D par lieu, textures propres, niveau plus vaste, eau, relief, routes
+  et surfaces libres doivent etre lisibles dans le rendu;
+- la physique vehicule doit etre jugee sur conduite reelle: acceleration,
+  freinage, drift, inertie, braquage en mouvement, son moteur et absence de
+  rotation statique comme comportement principal;
+- `real-drive-free-roam` doit rester la preuve d'absence de murs invisibles: le
+  vehicule peut quitter les routes, traverser les districts et revenir vers les
+  lieux sans blocage;
+- les futurs assets GLB/glTF doivent etre introduits seulement avec manifest,
+  licence, budget, fallback procedural et preuve visuelle dans le rapport QA.
 
 ## Components
 
