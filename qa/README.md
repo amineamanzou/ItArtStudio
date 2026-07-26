@@ -95,15 +95,14 @@ The runner:
 - uses the `?qa=1` keyboard-step hook to keep navigation deterministic in
   headless Chromium while preserving `lastInputMode: keyboard`;
 - opens a separate `?qa=1&realKeys=1` page where the deterministic keyboard
-  hook is absent, then drives a waypoint tour with real `keyboard.down/up`
-  events through the road graph;
-- records short stabilization samples after reached waypoints so continuity
-  checks prove both traversal and settled arrival states;
-- verifies road-surface telemetry for that real keyboard tour: route adherence,
-  off-route samples, max lateral escape, and visited route ids;
-- verifies kinematic drive telemetry for that real keyboard tour: physical
-  samples, speed curve, acceleration, drag after release, turn rate, and
-  normalized per-frame displacement;
+  hook is absent, then plays a fixed open-loop keyboard tape with no waypoint
+  decisions derived from player position;
+- verifies arcade driving telemetry for that tape: acceleration, braking,
+  left/right steering while moving, lateral drift, coast/drag recovery,
+  route/off-route samples, route encounter intensity, camera stability, trail
+  feedback, and normalized per-frame displacement;
+- keeps waypoint-style driving as an assisted diagnostic only; it is not the
+  primary proof of real keyboard driving;
 - opens the production URL without `?qa=1` and verifies that the game reaches
   `game-ready` without exposing the heavy QA snapshot, deterministic step hook,
   or explicit QA refresh hook;
@@ -196,6 +195,16 @@ The runner:
   ArrowDown moves backward in that same axis, ArrowLeft and ArrowRight rotate
   the rover without direct lateral strafing, and every proof must increment
   keyboard down/up counters over live frames.
+- `real-drive-arcade-keyboard` must use an open-loop keyboard tape in
+  `?qa=1&realKeys=1`: no deterministic QA step hook, no waypoint-based steering
+  decision, released keys between segments, at least 300 physics samples, strong
+  distance and map span, bounded per-frame displacement, acceleration, braking,
+  left/right turn evidence, drift samples, drag release proof, visible rover,
+  camera stability, route/off-route telemetry, and route encounter intensity.
+- `surface-material-physics` must prove authored playable materials separately
+  from the drive tape: at least 3 water regions, 5 ramp regions, water and ramp
+  samples, material transitions, water intensity, ramp ride height, and emitted
+  surface FX.
 - The central identity ribbon must remain a 3D world object: at least 60
   semantic pieces, one `identity-ribbon` role, visible screen-space bounds,
   sampled ROI detail, measurable multi-frame motion, and no scene-object budget

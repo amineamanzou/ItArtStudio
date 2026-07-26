@@ -75,6 +75,8 @@ La motion vient du gameplay, pas du scroll:
 
 - Deplacement clavier vehicule sur desktop: gauche/droite orientent le rover,
   haut/bas avancent ou reculent dans l'axe du vehicule.
+- Conduite arcade: acceleration, freinage, inertie, drift lateral, recuperation
+  et braquage seulement quand le vehicule avance ou recule.
 - Deplacement via boutons/mini-map sur mobile.
 - Camera isometrique qui suit le joueur.
 - Mise en lumiere de la zone active.
@@ -127,6 +129,17 @@ Le moteur V1 reste volontairement simple:
 - Landmarks proceduraux dans `src/game/procedural-assets.ts`.
 - UI HTML synchronisee depuis le moteur.
 - Pas d'asset 3D lourd avant validation par QA.
+
+La V4.6 ajoute une couche de contact au sol partagee par le decor et la
+physique:
+
+- `src/game/world-materials.ts` declare les surfaces `road`, `field`, `water`
+  et `ramp`;
+- les bassins et rampes visibles sont derives des memes regions que les
+  coefficients de conduite;
+- l'eau ralentit et reduit le grip, les rampes changent le ride height, le
+  pitch et le roll du rover;
+- les FX de surface sont instancies pour garder le budget `sceneObjects <= 940`.
 
 ## QA
 
@@ -217,6 +230,18 @@ Gates V1.9:
   au changement de lieu, pas seulement le panneau HTML;
 - hors rayon de zone, conservation de la derniere zone active pour eviter le
   flicker narratif vers `studio-gate` pendant les traversees.
+
+Gates V4.6:
+
+- `real-drive-arcade-keyboard`: bande d'inputs clavier fixe en `realKeys=1`,
+  sans autopilote waypoint, pour prouver acceleration, freinage, virage en
+  mouvement, drift, coast/drag, camera stable et absence de jump;
+- `real-drive-free-roam`: exploration libre hors route avec distance, span,
+  ratio off-route et absence de blocage invisible;
+- `surface-material-physics`: preuve separee pour eau et rampes avec samples,
+  transitions de materiaux, intensite eau, lift rampe et FX de surface;
+- les routes assistees restent utiles pour diagnostiquer la cartographie, mais
+  ne sont plus la preuve principale de conduite arcade.
 
 Gates V2.0:
 

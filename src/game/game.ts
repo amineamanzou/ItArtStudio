@@ -13,6 +13,7 @@ import { createZoneSignatureArtifacts } from "./zone-signature-artifacts";
 import { createZoneProjectArtifacts } from "./zone-project-artifacts";
 import { createZonePlaceArchitecture } from "./zone-place-architecture";
 import { createWorldScenery } from "./world-scenery";
+import { sampleWorldMaterial, worldMaterialRegions, type WorldMaterialKind, type WorldMaterialSample } from "./world-materials";
 import { createZoneSetDressing } from "./zone-set-dressing";
 import { zoneVisualSpecs, type ZoneVisualSpec } from "./visual-specs";
 import { renderZoneVisuals } from "./zone-visual-renderer";
@@ -30,8 +31,8 @@ const playerMaxReverseSpeed = qaMode ? 6.4 : 4.2;
 const playerAcceleration = qaMode ? 38 : 20;
 const playerBrakeAcceleration = qaMode ? 58 : 28;
 const playerRollingDrag = qaMode ? 1.9 : 1.35;
-const playerLateralGrip = qaMode ? 4.6 : 4.2;
-const playerDriftGrip = qaMode ? 1.45 : 1.75;
+const playerLateralGrip = qaMode ? 6.2 : 5.4;
+const playerDriftGrip = qaMode ? 1.24 : 1.5;
 const playerTurnSpeed = qaMode ? 4.15 : 2.65;
 const playerSteerReferenceSpeed = qaMode ? 6.4 : 6.2;
 const worldHalfExtent = mapRange / 2;
@@ -165,7 +166,32 @@ type DrivePhysicsSampleQa = {
   throttleInput: number;
   onRoute: boolean;
   routeDistance: number;
+  materialKind: WorldMaterialKind;
+  materialId: string;
+  materialIntensity: number;
+  rideHeight: number;
+  pitch: number;
+  roll: number;
   hasInput: boolean;
+};
+type SurfaceMaterialQa = {
+  currentKind: WorldMaterialKind;
+  currentId: string;
+  currentIntensity: number;
+  rideHeight: number;
+  pitch: number;
+  roll: number;
+  waterSamples: number;
+  rampSamples: number;
+  fieldSamples: number;
+  roadSamples: number;
+  materialTransitions: number;
+  maxWaterIntensity: number;
+  maxRampRideHeight: number;
+  activeFxMarks: number;
+  emittedFxMarks: number;
+  waterRegionCount: number;
+  rampRegionCount: number;
 };
 type ScreenRectQa = {
   x: number;
@@ -201,6 +227,15 @@ type ZoneCompositionQa = {
   largestLayerAreaRatio: number;
 };
 type TrailMark = { mesh: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>; age: number; maxAge: number };
+type SurfaceFxMark = {
+  age: number;
+  maxAge: number;
+  kind: WorldMaterialKind;
+  position: THREE.Vector3;
+  rotationZ: number;
+  scale: number;
+  opacity: number;
+};
 type ActivationFeedback = {
   group: THREE.Group;
   halo: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
@@ -404,6 +439,7 @@ type QaSnapshot = {
       guidanceMarkerCount: number;
     };
     dynamics: DriveDynamicsQa;
+    material: SurfaceMaterialQa;
     physicsSamples: DrivePhysicsSampleQa[];
   };
   camera: {
@@ -477,6 +513,7 @@ class StudioGame {
   private readonly player = new THREE.Group();
   private readonly playerVelocity = new THREE.Vector3();
   private readonly trailGroup = new THREE.Group();
+  private readonly surfaceFxGroup = new THREE.Group();
   private readonly errors: string[] = [];
   private readonly playerPosition = new THREE.Vector3(0, 0.28, 0);
   private readonly targetPosition = new THREE.Vector3(0, 0.28, 0);
@@ -537,6 +574,8 @@ class StudioGame {
   private readonly visitedRouteEncounterIds = new Set<string>();
   private activeLightPool!: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
   private routeLightPool!: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
+  private waterSurfaceFxMesh: THREE.InstancedMesh<THREE.TorusGeometry, THREE.MeshBasicMaterial> | null = null;
+  private rampSurfaceFxMesh: THREE.InstancedMesh<THREE.TorusGeometry, THREE.MeshBasicMaterial> | null = null;
   private lightPoolObjectCount = 0;
   private currentNearestRouteId: string | null = null;
   private currentRouteEncounterId: string | null = null;
@@ -548,6 +587,7 @@ class StudioGame {
   private maxRouteEncounterIntensity = 0;
   private readonly wheelMeshes: THREE.Mesh[] = [];
   private readonly trailMarks: TrailMark[] = [];
+  private readonly surfaceFxMarks: SurfaceFxMark[] = [];
   private readonly frameDeltas: number[] = [];
   private readonly visitedZoneIds = new Set<string>([defaultZone.id]);
   private trailCursor = 0;
@@ -575,6 +615,20 @@ class StudioGame {
   private currentDriftAngle = 0;
   private currentSteeringInput = 0;
   private currentThrottleInput = 0;
+  private currentWorldMaterial: WorldMaterialSample = sampleWorldMaterial(this.playerPosition, true);
+  private currentRideHeight = 0;
+  private currentRidePitch = 0;
+  private currentRideRoll = 0;
+  private waterMaterialSamples = 0;
+  private rampMaterialSamples = 0;
+  private fieldMaterialSamples = 0;
+  private roadMaterialSamples = 0;
+  private materialTransitionCount = 0;
+  private emittedSurfaceFxMarks = 0;
+  private maxWaterIntensity = 0;
+  private maxRampRideHeight = 0;
+  private lastMaterialKind: WorldMaterialKind = "road";
+  private surfaceFxDistance = 0;
   private audioContext: AudioContext | null = null;
   private audioMasterGain: GainNode | null = null;
   private engineOscillator: OscillatorNode | null = null;
@@ -698,6 +752,25 @@ class StudioGame {
         turnRate: 0,
         peakTurnRate: 0,
         averageTurnRate: 0
+      },
+      material: {
+        currentKind: "road",
+        currentId: "route-ribbon",
+        currentIntensity: 0,
+        rideHeight: 0,
+        pitch: 0,
+        roll: 0,
+        waterSamples: 0,
+        rampSamples: 0,
+        fieldSamples: 0,
+        roadSamples: 0,
+        materialTransitions: 0,
+        maxWaterIntensity: 0,
+        maxRampRideHeight: 0,
+        activeFxMarks: 0,
+        emittedFxMarks: 0,
+        waterRegionCount: worldMaterialRegions.water.length,
+        rampRegionCount: worldMaterialRegions.ramps.length
       },
       physicsSamples: []
     },
@@ -944,6 +1017,7 @@ class StudioGame {
     this.setWorld();
     this.setPlayer();
     this.setPlayerTrail();
+    this.setSurfaceFx();
     this.setEvents();
     this.resize();
     this.updatePanel(defaultZone);
@@ -1665,6 +1739,86 @@ class StudioGame {
     this.scene.add(this.trailGroup);
   }
 
+  private setSurfaceFx() {
+    this.surfaceFxGroup.name = "studio-rover-surface-fx";
+    const geometry = new THREE.TorusGeometry(0.22, 0.012, 6, 32);
+    const waterMaterial = new THREE.MeshBasicMaterial({
+      color: colors.tech,
+      transparent: true,
+      opacity: 0.42,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    const rampMaterial = new THREE.MeshBasicMaterial({
+      color: colors.studio,
+      transparent: true,
+      opacity: 0.32,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    this.waterSurfaceFxMesh = new THREE.InstancedMesh(geometry, waterMaterial, 14);
+    this.rampSurfaceFxMesh = new THREE.InstancedMesh(geometry, rampMaterial, 14);
+    this.waterSurfaceFxMesh.userData.surfaceFxPart = "water-ripple";
+    this.rampSurfaceFxMesh.userData.surfaceFxPart = "ramp-skid";
+
+    for (let index = 0; index < 14; index += 1) {
+      this.surfaceFxMarks.push({
+        age: 4,
+        maxAge: 4,
+        kind: "field",
+        position: new THREE.Vector3(0, -20, 0),
+        rotationZ: 0,
+        scale: 0.001,
+        opacity: 0
+      });
+    }
+    this.writeSurfaceFxInstances();
+
+    this.surfaceFxGroup.add(this.waterSurfaceFxMesh, this.rampSurfaceFxMesh);
+    this.decorativeObjectCount += 2;
+    this.scene.add(this.surfaceFxGroup);
+  }
+
+  private writeSurfaceFxInstances() {
+    if (!this.waterSurfaceFxMesh || !this.rampSurfaceFxMesh) {
+      return;
+    }
+    const matrix = new THREE.Matrix4();
+    const quaternion = new THREE.Quaternion();
+    const scale = new THREE.Vector3();
+    let waterIndex = 0;
+    let rampIndex = 0;
+    const hide = (mesh: THREE.InstancedMesh, index: number) => {
+      matrix.compose(new THREE.Vector3(0, -20, 0), quaternion, new THREE.Vector3(0.001, 0.001, 0.001));
+      mesh.setMatrixAt(index, matrix);
+    };
+
+    this.surfaceFxMarks.forEach((mark) => {
+      if (mark.opacity <= 0.02 || (mark.kind !== "water" && mark.kind !== "ramp")) {
+        return;
+      }
+      quaternion.setFromEuler(new THREE.Euler(-Math.PI * 0.5, 0, mark.rotationZ));
+      scale.set(mark.scale, mark.scale, mark.scale);
+      matrix.compose(mark.position, quaternion, scale);
+      if (mark.kind === "water" && waterIndex < this.waterSurfaceFxMesh!.count) {
+        this.waterSurfaceFxMesh!.setMatrixAt(waterIndex, matrix);
+        waterIndex += 1;
+      } else if (mark.kind === "ramp" && rampIndex < this.rampSurfaceFxMesh!.count) {
+        this.rampSurfaceFxMesh!.setMatrixAt(rampIndex, matrix);
+        rampIndex += 1;
+      }
+    });
+
+    for (let index = waterIndex; index < this.waterSurfaceFxMesh.count; index += 1) {
+      hide(this.waterSurfaceFxMesh, index);
+    }
+    for (let index = rampIndex; index < this.rampSurfaceFxMesh.count; index += 1) {
+      hide(this.rampSurfaceFxMesh, index);
+    }
+    this.waterSurfaceFxMesh.instanceMatrix.needsUpdate = true;
+    this.rampSurfaceFxMesh.instanceMatrix.needsUpdate = true;
+  }
+
   private setEvents() {
     window.addEventListener("resize", () => this.resize());
 
@@ -2005,6 +2159,8 @@ class StudioGame {
     const previousRotationY = this.player.rotation.y;
     let guidedMove = false;
     const hasManualInput = throttle !== 0 || turn !== 0;
+    const routeSurfaceBefore = sampleDriveSurface(this.playerPosition);
+    const materialBefore = sampleWorldMaterial(this.playerPosition, routeSurfaceBefore.onRoute);
 
     if (hasManualInput || this.playerVelocity.lengthSq() > 0.0001) {
       const forward = this.forwardVector();
@@ -2013,13 +2169,20 @@ class StudioGame {
       let lateralSpeed = this.playerVelocity.dot(right);
 
       if (throttle > 0) {
-        forwardSpeed += playerAcceleration * delta;
+        forwardSpeed += playerAcceleration * materialBefore.accelerationMultiplier * delta;
       } else if (throttle < 0) {
-        const braking = forwardSpeed > 0.25 ? playerBrakeAcceleration : playerAcceleration * 0.72;
+        const braking =
+          forwardSpeed > 0.25
+            ? playerBrakeAcceleration * materialBefore.accelerationMultiplier
+            : playerAcceleration * materialBefore.accelerationMultiplier * 0.72;
         forwardSpeed -= braking * delta;
       }
 
-      forwardSpeed = clamp(forwardSpeed, -playerMaxReverseSpeed, playerMaxForwardSpeed);
+      forwardSpeed = clamp(
+        forwardSpeed,
+        -playerMaxReverseSpeed * materialBefore.speedMultiplier,
+        playerMaxForwardSpeed * materialBefore.speedMultiplier
+      );
 
       const speedForSteering = Math.abs(forwardSpeed) + Math.abs(lateralSpeed) * 0.35;
       const steerAuthority = clamp(speedForSteering / playerSteerReferenceSpeed, 0, 1);
@@ -2030,13 +2193,20 @@ class StudioGame {
         this.normalizePlayerRotation();
       }
 
-      const grip = turn !== 0 && Math.abs(forwardSpeed) > 1.1 ? playerDriftGrip : playerLateralGrip;
+      const grip =
+        turn !== 0 && Math.abs(forwardSpeed) > 1.1
+          ? playerDriftGrip * materialBefore.driftGripMultiplier
+          : playerLateralGrip * materialBefore.lateralGripMultiplier;
       lateralSpeed *= Math.exp(-grip * delta);
       if (turn !== 0 && Math.abs(forwardSpeed) > 2.2) {
-        lateralSpeed += turn * Math.abs(forwardSpeed) * 0.72 * delta;
+        const surfaceSlip = materialBefore.kind === "water" ? 1.08 : materialBefore.kind === "field" ? 0.94 : 0.88;
+        lateralSpeed += turn * Math.abs(forwardSpeed) * surfaceSlip * delta;
       }
+      const lateralLimit =
+        materialBefore.kind === "water" ? 1.18 : materialBefore.kind === "field" ? 1.08 : 1;
+      lateralSpeed = clamp(lateralSpeed, -lateralLimit, lateralLimit);
 
-      const rollingDrag = Math.exp(-playerRollingDrag * delta);
+      const rollingDrag = Math.exp(-playerRollingDrag * materialBefore.dragMultiplier * delta);
       if (throttle === 0) {
         forwardSpeed *= rollingDrag;
       }
@@ -2065,7 +2235,17 @@ class StudioGame {
     }
 
     const travel = this.playerPosition.clone().sub(previousPosition);
-    this.player.position.copy(this.playerPosition);
+    const routeSurfaceAfter = sampleDriveSurface(this.playerPosition);
+    const materialAfter = sampleWorldMaterial(this.playerPosition, routeSurfaceAfter.onRoute);
+    this.currentWorldMaterial = materialAfter;
+    const poseForward = this.forwardVector();
+    const poseRight = new THREE.Vector3(poseForward.z, 0, -poseForward.x).normalize();
+    this.currentForwardSpeed = this.playerVelocity.dot(poseForward);
+    this.currentLateralSpeed = this.playerVelocity.dot(poseRight);
+    this.updateRidePose(materialAfter, delta);
+    this.player.position.set(this.playerPosition.x, this.playerPosition.y + this.currentRideHeight, this.playerPosition.z);
+    this.player.rotation.x = this.currentRidePitch;
+    this.player.rotation.z = this.currentRideRoll;
     if (!guidedMove) {
       this.emitTrail(previousPosition, travel);
     }
@@ -2076,13 +2256,23 @@ class StudioGame {
       }
     }
     if (!guidedMove) {
-      this.recordDriveTelemetry(travel, delta, previousRotationY, hasManualInput, throttle, turn);
+      this.recordDriveTelemetry(travel, delta, previousRotationY, hasManualInput, throttle, turn, materialAfter);
     }
     this.updateTrail(delta);
+    this.updateSurfaceFx(delta);
   }
 
   private forwardVector() {
     return new THREE.Vector3(Math.sin(this.player.rotation.y), 0, Math.cos(this.player.rotation.y)).normalize();
+  }
+
+  private updateRidePose(material: WorldMaterialSample, delta: number) {
+    const smoothing = 1 - Math.pow(0.0008, delta);
+    const speedLean = clamp(this.currentLateralSpeed / 6, -0.22, 0.22);
+    const throttleLean = clamp(this.currentForwardSpeed / playerMaxForwardSpeed, -0.18, 0.18);
+    this.currentRideHeight += (material.rideHeight - this.currentRideHeight) * smoothing;
+    this.currentRidePitch += (material.pitch - throttleLean * 0.08 - this.currentRidePitch) * smoothing;
+    this.currentRideRoll += (material.roll - speedLean * 0.16 - this.currentRideRoll) * smoothing;
   }
 
   private normalizePlayerRotation() {
@@ -2109,7 +2299,8 @@ class StudioGame {
     previousRotationY: number,
     hasInput = false,
     throttleInput = 0,
-    steeringInput = 0
+    steeringInput = 0,
+    material: WorldMaterialSample = this.currentWorldMaterial
   ) {
     const distance = travel.length();
     if (distance <= 0.001) {
@@ -2143,6 +2334,21 @@ class StudioGame {
     this.driveInputSamples += hasInput ? 1 : 0;
     this.driveCoastingSamples += !hasInput && speed > 0.2 ? 1 : 0;
     this.driveOffRouteSamples += surface.onRoute ? 0 : 1;
+    if (material.kind !== this.lastMaterialKind) {
+      this.materialTransitionCount += 1;
+      this.lastMaterialKind = material.kind;
+    }
+    if (material.kind === "water") {
+      this.waterMaterialSamples += 1;
+      this.maxWaterIntensity = Math.max(this.maxWaterIntensity, material.intensity);
+    } else if (material.kind === "ramp") {
+      this.rampMaterialSamples += 1;
+      this.maxRampRideHeight = Math.max(this.maxRampRideHeight, material.rideHeight);
+    } else if (material.kind === "field") {
+      this.fieldMaterialSamples += 1;
+    } else {
+      this.roadMaterialSamples += 1;
+    }
     this.lastDriveTurnRate = delta > 0 ? turnDelta / delta : 0;
     this.peakDriveTurnRate = Math.max(this.peakDriveTurnRate, this.lastDriveTurnRate);
     this.totalDriveTurnRate += this.lastDriveTurnRate;
@@ -2165,6 +2371,12 @@ class StudioGame {
       throttleInput,
       onRoute: surface.onRoute,
       routeDistance: surface.distance,
+      materialKind: material.kind,
+      materialId: material.id,
+      materialIntensity: material.intensity,
+      rideHeight: Number(this.currentRideHeight.toFixed(3)),
+      pitch: Number(this.currentRidePitch.toFixed(3)),
+      roll: Number(this.currentRideRoll.toFixed(3)),
       hasInput
     });
     if (this.drivePhysicsSamples.length > 720) {
@@ -2178,6 +2390,11 @@ class StudioGame {
     });
     if (this.drivePositionSamples.length > 80) {
       this.drivePositionSamples.shift();
+    }
+    this.surfaceFxDistance += distance;
+    if ((material.kind === "water" || material.kind === "ramp") && this.surfaceFxDistance >= 0.36) {
+      this.surfaceFxDistance = 0;
+      this.emitSurfaceFx(this.playerPosition, material, speed);
     }
   }
 
@@ -2206,6 +2423,21 @@ class StudioGame {
     mark.mesh.material.opacity = 0.38;
   }
 
+  private emitSurfaceFx(position: THREE.Vector3, material: WorldMaterialSample, speed: number) {
+    if (material.kind !== "water" && material.kind !== "ramp") {
+      return;
+    }
+    const mark = this.surfaceFxMarks[this.emittedSurfaceFxMarks % this.surfaceFxMarks.length];
+    this.emittedSurfaceFxMarks += 1;
+    mark.age = 0;
+    mark.maxAge = material.kind === "water" ? 1.15 : 0.72;
+    mark.kind = material.kind;
+    mark.position.set(position.x, material.kind === "water" ? 0.082 : 0.14 + material.rideHeight, position.z);
+    mark.rotationZ = this.player.rotation.y;
+    mark.scale = material.kind === "water" ? 0.72 + material.intensity * 0.5 : 0.42 + speed * 0.035;
+    mark.opacity = material.kind === "water" ? 0.34 + material.intensity * 0.18 : 0.28;
+  }
+
   private updateTrail(delta: number) {
     for (const mark of this.trailMarks) {
       if (!mark.mesh.visible) {
@@ -2218,6 +2450,28 @@ class StudioGame {
       if (life <= 0.02) {
         mark.mesh.visible = false;
       }
+    }
+  }
+
+  private updateSurfaceFx(delta: number) {
+    let dirty = false;
+    for (const mark of this.surfaceFxMarks) {
+      if (mark.opacity <= 0.02) {
+        continue;
+      }
+      dirty = true;
+      mark.age += delta;
+      const life = clamp(1 - mark.age / mark.maxAge, 0, 1);
+      mark.opacity = life * (mark.kind === "water" ? 0.42 : 0.32);
+      mark.scale *= 1 + delta * (mark.kind === "water" ? 0.95 : 0.58);
+      mark.position.y += delta * (mark.kind === "water" ? 0.004 : 0.028);
+      if (life <= 0.02) {
+        mark.kind = "field";
+        mark.opacity = 0;
+      }
+    }
+    if (dirty) {
+      this.writeSurfaceFxInstances();
     }
   }
 
@@ -2778,6 +3032,25 @@ class StudioGame {
         averageTurnRate: Number(
           (this.driveTurnSamples > 0 ? this.totalDriveTurnRate / this.driveTurnSamples : 0).toFixed(3)
         )
+      },
+      material: {
+        currentKind: this.currentWorldMaterial.kind,
+        currentId: this.currentWorldMaterial.id,
+        currentIntensity: Number(this.currentWorldMaterial.intensity.toFixed(3)),
+        rideHeight: Number(this.currentRideHeight.toFixed(3)),
+        pitch: Number(this.currentRidePitch.toFixed(3)),
+        roll: Number(this.currentRideRoll.toFixed(3)),
+        waterSamples: this.waterMaterialSamples,
+        rampSamples: this.rampMaterialSamples,
+        fieldSamples: this.fieldMaterialSamples,
+        roadSamples: this.roadMaterialSamples,
+        materialTransitions: this.materialTransitionCount,
+        maxWaterIntensity: Number(this.maxWaterIntensity.toFixed(3)),
+        maxRampRideHeight: Number(this.maxRampRideHeight.toFixed(3)),
+        activeFxMarks: this.surfaceFxMarks.filter((mark) => mark.opacity > 0.02).length,
+        emittedFxMarks: this.emittedSurfaceFxMarks,
+        waterRegionCount: worldMaterialRegions.water.length,
+        rampRegionCount: worldMaterialRegions.ramps.length
       },
       physicsSamples: [...this.drivePhysicsSamples]
     };

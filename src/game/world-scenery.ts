@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { WorldRoute, ZoneKind } from "./zones";
 import { worldRoutes, zones } from "./zones";
+import { worldMaterialRegions } from "./world-materials";
 
 export type WorldSceneryPalette = Record<ZoneKind | "ground" | "road" | "ink", number>;
 
@@ -188,11 +189,14 @@ function addWaterBodies(
   waterMat: THREE.Material,
   studioMat: THREE.Material
 ) {
-  const basins = [
-    ["tech-harbor", -6.6, -8.7, 2.7, 0.82, -0.18],
-    ["art-lagoon", 7.3, -7.5, 2.4, 0.72, 0.24],
-    ["studio-canal", 0, 9.15, 3.5, 0.36, 0.02]
-  ] as const;
+  const basins = worldMaterialRegions.water.map((region) => [
+    region.id,
+    region.center[0],
+    region.center[1],
+    region.radiusX,
+    region.radiusZ / region.radiusX,
+    region.rotation
+  ] as const);
   const water = new THREE.Group();
   water.name = "water-body-instances";
   const surfaces = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 42), waterMat, basins.length);
@@ -241,13 +245,10 @@ function addReliefRamps(
   inkMat: THREE.Material
 ) {
   const rampGeometry = new THREE.BoxGeometry(1, 1, 1);
-  const ramps = [
-    ["tech-delta", -4.8, -4.7, 2.7, 0.22, 1.05, -0.52, techMat],
-    ["obs-rise", -7.6, 1.15, 2.9, 0.26, 0.92, 0.08, techMat],
-    ["art-sweep", 4.85, -3.95, 2.8, 0.22, 0.9, 0.72, artMat],
-    ["studio-crossing", 0.15, 2.9, 3.15, 0.2, 0.78, -0.18, studioMat],
-    ["mail-bank", -0.85, -6.35, 2.55, 0.2, 0.82, 0.04, roadMat]
-  ] as const;
+  const ramps = worldMaterialRegions.ramps.map((region) => {
+    const mat = region.id.startsWith("art") ? artMat : region.id.startsWith("studio") ? studioMat : region.id.startsWith("mail") ? roadMat : techMat;
+    return [region.id, region.center[0], region.center[1], region.width, region.height, region.depth, region.rotation, mat] as const;
+  });
   const relief = new THREE.Group();
   relief.name = "relief-ramp-instances";
   const shadows = new THREE.InstancedMesh(rampGeometry, inkMat, ramps.length);
