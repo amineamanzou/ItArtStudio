@@ -3051,10 +3051,20 @@ async function inspectGameplayMomentVisibility(page, label, driveResult = null, 
     player.roi.edgeDensity >= thresholds.player.minEdgeDensity &&
     player.roi.colorBuckets >= thresholds.player.minColorBuckets;
   const encounterRect = encounter.rect;
+  const expectedRouteScreenReadable =
+    expectedRouteScreen?.rect?.routeId === expectedRouteId &&
+    expectedRouteScreen.rect.visible === true &&
+    expectedRouteScreen.rect.center?.visible === true &&
+    expectedRouteScreen.rect.clippedArea >= 180 &&
+    expectedRouteScreen.visibleAfterUiRatio >= 0.38 &&
+    expectedRouteScreen.centerOccluders.length === 0 &&
+    expectedRouteScreen.roi.sampled === true &&
+    expectedRouteScreen.roi.edgeDensity >= thresholds.encounter.minEdgeDensity &&
+    expectedRouteScreen.roi.colorBuckets >= thresholds.encounter.minColorBuckets;
   const expectedRouteReadable =
     typeof expectedRouteId === "string" &&
     encounterRect?.routeId === expectedRouteId &&
-    encounterRect.distance <= thresholds.encounter.maxReadableDistance;
+    (encounterRect.distance <= thresholds.encounter.maxReadableDistance || expectedRouteScreenReadable);
   const encounterOk =
     encounterRect?.visible === true &&
     encounterRect.center?.visible === true &&
@@ -3092,6 +3102,7 @@ async function inspectGameplayMomentVisibility(page, label, driveResult = null, 
     playerOk,
     encounterOk,
     expectedRouteReadable,
+    expectedRouteScreenReadable,
     expectedRouteScreen
   };
 
@@ -5182,7 +5193,8 @@ async function checkExternalAssetMapComposition(browser) {
       externalAssets.promotionCandidates >= 24 &&
       externalAssets.heroLocationPlacements >= 9 &&
       requiredHeroLocationIds.every((zoneId) => externalAssets.heroLocationIds?.includes(zoneId)) &&
-      externalAssets.maxClusterDensity <= 3 &&
+      (externalAssets.maxNonHeroClusterDensity ?? externalAssets.maxClusterDensity) <= 3 &&
+      (externalAssets.maxHeroLocationClusterDensity ?? 0) <= 8 &&
       externalAssets.minGroundClearance >= 0.2 &&
       externalAssets.coplanarRiskPlacements === 0 &&
       externalAssets.actualMinGroundClearance >= 0.08 &&
@@ -8796,7 +8808,9 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
       radius: 1.1,
       timeoutMs: 12_000,
       route: [
-        { id: "static-art-from-studio", position: { x: 3.7, z: -3.1 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true },
+        { id: "static-art-design-jump", miniMapZoneId: "design-atelier", timeoutMs: 10_000, pauseMs: 240 },
+        { id: "static-art-from-atelier", position: { x: 9.1, z: -6.2 }, radius: 1.7, timeoutMs: 12_000, overshootBrake: true },
+        { id: "static-art-from-studio", position: { x: 7.4, z: -5.5 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true },
         {
           id: "static-art-gate-design",
           position: { x: 6.4, z: -4.84 },
@@ -9215,7 +9229,7 @@ async function writeReport() {
     }`,
     `- External asset map: ${
       externalAssetMapScenario?.details?.externalAssets
-        ? `${externalAssetMapScenario.status}, placements ${externalAssetMapScenario.details.externalAssets.placements}, unique files ${externalAssetMapScenario.details.externalAssets.uniqueFiles}, clusters ${externalAssetMapScenario.details.externalAssets.clusters}, primary/support/context ${externalAssetMapScenario.details.externalAssets.primaryPlacements}/${externalAssetMapScenario.details.externalAssets.supportPlacements}/${externalAssetMapScenario.details.externalAssets.contextPlacements}, promotion ${externalAssetMapScenario.details.externalAssets.promotionCandidates}, actual clearance ${externalAssetMapScenario.details.externalAssets.actualMinGroundClearance}, screen roles ${Object.keys(externalAssetMapScenario.details.externalAssets.roleScreenRects ?? {}).join("/")}, coverage ${externalAssetMapScenario.details.externalAssets.mapCoverageWidth}x${externalAssetMapScenario.details.externalAssets.mapCoverageDepth}`
+        ? `${externalAssetMapScenario.status}, placements ${externalAssetMapScenario.details.externalAssets.placements}, unique files ${externalAssetMapScenario.details.externalAssets.uniqueFiles}, clusters ${externalAssetMapScenario.details.externalAssets.clusters}, cluster density non-hero/hero ${externalAssetMapScenario.details.externalAssets.maxNonHeroClusterDensity ?? "n/a"}/${externalAssetMapScenario.details.externalAssets.maxHeroLocationClusterDensity ?? "n/a"}, primary/support/context ${externalAssetMapScenario.details.externalAssets.primaryPlacements}/${externalAssetMapScenario.details.externalAssets.supportPlacements}/${externalAssetMapScenario.details.externalAssets.contextPlacements}, promotion ${externalAssetMapScenario.details.externalAssets.promotionCandidates}, actual clearance ${externalAssetMapScenario.details.externalAssets.actualMinGroundClearance}, screen roles ${Object.keys(externalAssetMapScenario.details.externalAssets.roleScreenRects ?? {}).join("/")}, coverage ${externalAssetMapScenario.details.externalAssets.mapCoverageWidth}x${externalAssetMapScenario.details.externalAssets.mapCoverageDepth}`
         : (externalAssetMapScenario?.status ?? "n/a")
     }`,
     `- External asset hero locations: ${

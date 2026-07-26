@@ -479,6 +479,13 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
   - `terrainRoles`
   - `publicPaths`
   - `bounds`
+  - `heroLocationIds`
+  - `heroLocationPlacements`
+  - `heroLocationPlacementCounts`
+  - `heroLocationRoles`
+  - `heroLocationScreenRects`
+  - `maxNonHeroClusterDensity`
+  - `maxHeroLocationClusterDensity`
 - `lighting`
 - `canvas`
 - `frameCount`
@@ -507,6 +514,14 @@ variance and terrain contact span.
 into the same cyan signal language. AI Lab must read as a horizontal agent
 workshop, Observability Tower as a vertical telemetry lighthouse, with role,
 silhouette and perceptual-distance evidence.
+
+`external-asset-map-composition` protects the asset-first direction. In
+`?assets=map`, every hero location must expose dedicated placements, multiple
+visual roles, screen rectangles, and focused screenshots before any GLB cluster
+is promoted to the public runtime.
+Non-hero clusters stay capped for noise control; hero-location clusters have a
+separate density cap because recognisable places need more authored parts than
+generic terrain samples.
 
 ## Next Gates
 

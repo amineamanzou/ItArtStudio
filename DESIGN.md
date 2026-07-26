@@ -1135,6 +1135,25 @@ Gates V8.8:
   publique normale, afin de continuer a reduire le bruit procedural lieu par
   lieu.
 
+Gates V8.9:
+
+- la bibliotheque runtime accepte maintenant une selection courte du Kenney
+  Factory Kit: 23 GLB industriels, ecrans, tuyaux, plateformes, machines et
+  surfaces de travail pour un total de 502.8 KB et 5 240 triangles;
+- les placements hero-location peuvent cibler un `assetId` precis, ce qui
+  permet de charger une collection narrative sans maquiller un ecran ou une
+  machine en role terrain generique;
+- `Cloud Dock`, `Design Atelier` et `Observability Tower` ont chacun un contrat
+  `heroLocationCuration` dans le manifest: signature visuelle, assets acceptes,
+  six roles minimum, seuil de placements runtime et prochaine piece custom a
+  sourcer ou modeliser;
+- la couche `?assets=map` ajoute des racks, cables, ecrans, catwalks, tables de
+  coupe, caisses et panneaux de trace aux trois lieux, tout en gardant ces
+  ajouts opt-in jusqu'a validation visuelle;
+- `assets:validate` refuse maintenant une hero location sans contrat de
+  curation, sans roles visuels suffisants ou avec des assets requis non
+  acceptes.
+
 ## Components
 
 - `game-site`: surface principale.

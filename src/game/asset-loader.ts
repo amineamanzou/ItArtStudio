@@ -55,6 +55,8 @@ export type ExternalAssetPreviewTelemetry = {
   contextPlacements: number;
   promotionCandidates: number;
   maxClusterDensity: number;
+  maxNonHeroClusterDensity: number;
+  maxHeroLocationClusterDensity: number;
   minGroundClearance: number;
   coplanarRiskPlacements: number;
   actualMinGroundClearance: number;
@@ -79,6 +81,7 @@ type PreviewSpec = {
 
 type MapPlacementSpec = PreviewSpec & {
   id: string;
+  assetId?: string;
   clusterId: string;
   linkedKind: "route" | "water" | "relief" | "vegetation";
   curation: "primary" | "support" | "context";
@@ -167,6 +170,8 @@ export function createExternalAssetTelemetry(enabled: boolean, mode: ExternalAss
     contextPlacements: 0,
     promotionCandidates: 0,
     maxClusterDensity: 0,
+    maxNonHeroClusterDensity: 0,
+    maxHeroLocationClusterDensity: 0,
     minGroundClearance: 0,
     coplanarRiskPlacements: 0,
     actualMinGroundClearance: 0,
@@ -254,8 +259,10 @@ export async function createExternalAssetMapLayer() {
 
   const jobs = placements
     .map((spec) => {
-      const asset = acceptedAssets.find(
-        (item) => item.terrainRole === spec.terrainRole && item.selectedFiles?.includes(spec.preferredFile)
+      const asset = acceptedAssets.find((item) =>
+        spec.assetId
+          ? item.id === spec.assetId && item.selectedFiles?.includes(spec.preferredFile)
+          : item.terrainRole === spec.terrainRole && item.selectedFiles?.includes(spec.preferredFile)
       );
       return asset ? { asset, spec } : null;
     })
@@ -275,6 +282,12 @@ export async function createExternalAssetMapLayer() {
   telemetry.contextPlacements = jobs.filter((job) => job.spec.curation === "context").length;
   telemetry.promotionCandidates = jobs.filter((job) => job.spec.promotionCandidate).length;
   telemetry.maxClusterDensity = getMaxClusterDensity(jobs.map((job) => job.spec.clusterId));
+  telemetry.maxNonHeroClusterDensity = getMaxClusterDensity(
+    jobs.filter((job) => !job.spec.heroLocation).map((job) => job.spec.clusterId)
+  );
+  telemetry.maxHeroLocationClusterDensity = getMaxClusterDensity(
+    jobs.filter((job) => Boolean(job.spec.heroLocation)).map((job) => job.spec.clusterId)
+  );
   telemetry.minGroundClearance = Number(Math.min(...jobs.map((job) => job.spec.groundClearance)).toFixed(3));
   telemetry.coplanarRiskPlacements = jobs.filter((job) => job.spec.groundClearance < 0.12).length;
   for (const { spec } of jobs) {
@@ -568,9 +581,35 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
       heroLocation: "cloud-dock",
       heroRole: "platform-span"
     }),
-    createPlacement("hero:design-atelier:cutting-table", "hero:design-atelier", "route", "primary", true, "bridge", "bridge_wood.glb", [15.6, -7.8], 1.5, Math.PI * 0.5, {
+    createPlacement("hero:cloud-dock:rack-core", "hero:cloud-dock", "route", "primary", true, "hero-location", "machine-fortified.glb", [-9.4, -16.2], 1.72, -0.08, {
+      assetId: "accepted-factory-industrial-core",
+      heroLocation: "cloud-dock",
+      heroRole: "rack-core"
+    }),
+    createPlacement("hero:cloud-dock:cable-trunk", "hero:cloud-dock", "route", "support", true, "hero-location", "pipe-large-junction.glb", [-10.6, -17.35], 1.38, Math.PI * 0.25, {
+      assetId: "accepted-factory-industrial-core",
+      heroLocation: "cloud-dock",
+      heroRole: "cable-trunk"
+    }),
+    createPlacement("hero:cloud-dock:service-deck", "hero:cloud-dock", "route", "support", true, "hero-location", "catwalk-straight.glb", [-7.1, -18.85], 1.86, Math.PI * 0.42, {
+      assetId: "accepted-factory-industrial-core",
+      heroLocation: "cloud-dock",
+      heroRole: "service-deck"
+    }),
+    createPlacement("hero:cloud-dock:ops-screen", "hero:cloud-dock", "route", "support", true, "hero-location", "screen-panel-wide.glb", [-6.45, -17.18], 1.28, -0.62, {
+      assetId: "accepted-factory-industrial-core",
+      heroLocation: "cloud-dock",
+      heroRole: "ops-screen"
+    }),
+    createPlacement("hero:design-atelier:cutting-table", "hero:design-atelier", "route", "primary", true, "hero-location", "top-large-checkerboard.glb", [15.6, -7.8], 1.85, Math.PI * 0.5, {
+      assetId: "accepted-factory-industrial-core",
       heroLocation: "design-atelier",
       heroRole: "cutting-table"
+    }),
+    createPlacement("hero:design-atelier:worktop", "hero:design-atelier", "route", "support", true, "hero-location", "top-large.glb", [14.15, -7.15], 1.5, Math.PI * 0.5, {
+      assetId: "accepted-factory-industrial-core",
+      heroLocation: "design-atelier",
+      heroRole: "worktop"
     }),
     createPlacement("hero:design-atelier:pattern-corner", "hero:design-atelier", "route", "support", true, "bridge", "path_woodCorner.glb", [16.9, -6.8], 1.3, -0.14, {
       heroLocation: "design-atelier",
@@ -579,6 +618,16 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
     createPlacement("hero:design-atelier:swatch-marker", "hero:design-atelier", "vegetation", "support", true, "vegetation", "flower_yellowA.glb", [17.5, -8.4], 1.2, 0.28, {
       heroLocation: "design-atelier",
       heroRole: "swatch-marker"
+    }),
+    createPlacement("hero:design-atelier:swatch-crate", "hero:design-atelier", "route", "support", true, "hero-location", "box-wide.glb", [17.95, -7.35], 1.16, 0.12, {
+      assetId: "accepted-factory-industrial-core",
+      heroLocation: "design-atelier",
+      heroRole: "swatch-crate"
+    }),
+    createPlacement("hero:design-atelier:reference-screen", "hero:design-atelier", "route", "support", true, "hero-location", "screen-flat.glb", [14.65, -8.95], 1.08, -0.7, {
+      assetId: "accepted-factory-industrial-core",
+      heroLocation: "design-atelier",
+      heroRole: "reference-screen"
     }),
     createPlacement("hero:observability-tower:signal-pylon", "hero:observability-tower", "route", "primary", true, "route-edge", "bridge-pillar.glb", [-17.4, 7.8], 2.2, 0, {
       heroLocation: "observability-tower",
@@ -591,6 +640,26 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
     createPlacement("hero:observability-tower:radar-ring", "hero:observability-tower", "route", "support", true, "road", "road-roundabout.glb", [-18.5, 6.9], 1.7, 0.2, {
       heroLocation: "observability-tower",
       heroRole: "radar-ring"
+    }),
+    createPlacement("hero:observability-tower:screen-wall", "hero:observability-tower", "route", "primary", true, "hero-location", "screen-wide.glb", [-16.05, 7.25], 1.38, 0.44, {
+      assetId: "accepted-factory-industrial-core",
+      heroLocation: "observability-tower",
+      heroRole: "screen-wall"
+    }),
+    createPlacement("hero:observability-tower:trace-panel", "hero:observability-tower", "route", "support", true, "hero-location", "screen-hanging-wide.glb", [-18.95, 8.15], 1.18, -0.18, {
+      assetId: "accepted-factory-industrial-core",
+      heroLocation: "observability-tower",
+      heroRole: "trace-panel"
+    }),
+    createPlacement("hero:observability-tower:data-pipe", "hero:observability-tower", "route", "support", true, "hero-location", "pipe-glass-large-long.glb", [-17.85, 5.75], 1.42, Math.PI * 0.5, {
+      assetId: "accepted-factory-industrial-core",
+      heroLocation: "observability-tower",
+      heroRole: "data-pipe"
+    }),
+    createPlacement("hero:observability-tower:service-platform", "hero:observability-tower", "route", "support", true, "hero-location", "catwalk-corner.glb", [-19.35, 6.35], 1.5, 0.2, {
+      assetId: "accepted-factory-industrial-core",
+      heroLocation: "observability-tower",
+      heroRole: "service-platform"
     })
   ];
 }
@@ -606,7 +675,7 @@ function createPlacement(
   center: readonly [number, number],
   targetSize: number,
   rotationY = 0,
-  options: Pick<MapPlacementSpec, "heroLocation" | "heroRole"> = {}
+  options: Pick<MapPlacementSpec, "assetId" | "heroLocation" | "heroRole"> = {}
 ): MapPlacementSpec {
   const terrain = sampleTerrain(new THREE.Vector3(center[0], 0, center[1]));
   const groundClearance = getRoleGroundClearance(terrainRole, curation);

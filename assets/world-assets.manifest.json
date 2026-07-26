@@ -13,6 +13,29 @@
     "acceptedModelTriangleTarget": 8000
   },
   "heroLocations": ["cloud-dock", "design-atelier", "observability-tower"],
+  "heroLocationCuration": {
+    "cloud-dock": {
+      "visualSignature": "Infra dock: server-like machine blocks, service deck, cable trunks, screen panels and electric masts around the harbor edge.",
+      "requiredAssetIds": ["accepted-factory-industrial-core", "accepted-city-route-edge-core", "accepted-city-road-core"],
+      "requiredVisualRoles": ["rack-core", "cable-trunk", "service-deck", "ops-screen", "electric-mast", "platform-span"],
+      "minRuntimePlacements": 7,
+      "nextCustomAsset": "Model or kitbash a clear server rack/cloud node silhouette so the location stops depending on factory metaphors."
+    },
+    "design-atelier": {
+      "visualSignature": "Fashion atelier: cutting table, worktop, pattern corner, swatch crates, reference screen and softer art markers.",
+      "requiredAssetIds": ["accepted-factory-industrial-core", "accepted-nature-bridge-core", "accepted-nature-vegetation-core"],
+      "requiredVisualRoles": ["cutting-table", "worktop", "pattern-corner", "swatch-crate", "reference-screen", "swatch-marker"],
+      "minRuntimePlacements": 6,
+      "nextCustomAsset": "Create or source a dedicated mannequin/fabric rack GLB before calling the atelier premium."
+    },
+    "observability-tower": {
+      "visualSignature": "Telemetry tower: high pylon, radar ring, screen wall, trace panel, data pipe and service platform.",
+      "requiredAssetIds": ["accepted-factory-industrial-core", "accepted-city-route-edge-core", "accepted-city-road-core"],
+      "requiredVisualRoles": ["signal-pylon", "radar-ring", "screen-wall", "trace-panel", "data-pipe", "service-platform"],
+      "minRuntimePlacements": 7,
+      "nextCustomAsset": "Model or source a stronger antenna/radar mast GLB with trace-beam anchors."
+    }
+  },
   "terrainRoles": ["road", "water", "relief", "vegetation", "route-edge", "bridge"],
   "sources": [
     {
@@ -518,6 +541,49 @@
       "budget": { "maxKb": 1600, "targetTriangles": 7000 },
       "styleFit": "medium",
       "nextAction": "Kitbash factory shelving/machine blocks into stylized racks, then create custom electric arcs procedurally."
+    },
+    {
+      "id": "accepted-factory-industrial-core",
+      "status": "accepted",
+      "sourceId": "kenney-factory-kit",
+      "kind": "model-collection",
+      "target": "map",
+      "terrainRole": "hero-location",
+      "narrativeRole": "Accepted industrial, screen, pipe and platform vocabulary for making Cloud Dock, Observability Tower and atelier fixtures more legible before custom Blender assets exist.",
+      "preferredFormat": "GLB",
+      "localPath": "public/assets/models/vendor/kenney/factory-kit/industrial",
+      "publicPath": "assets/models/vendor/kenney/factory-kit/industrial",
+      "fileKb": 502.8,
+      "triangles": 5240,
+      "selectedFiles": [
+        "box-long.glb",
+        "box-wide.glb",
+        "catwalk-corner.glb",
+        "catwalk-straight.glb",
+        "conveyor-long-sides.glb",
+        "conveyor-long.glb",
+        "crane.glb",
+        "floor-large.glb",
+        "machine-connection-pipe.glb",
+        "machine-fortified.glb",
+        "machine-window.glb",
+        "machine.glb",
+        "pipe-glass-large-long.glb",
+        "pipe-large-junction.glb",
+        "pipe-large-long.glb",
+        "screen-flat.glb",
+        "screen-hanging-wide.glb",
+        "screen-panel-wide.glb",
+        "screen-wide.glb",
+        "structure-tall.glb",
+        "structure-window-wide.glb",
+        "top-large-checkerboard.glb",
+        "top-large.glb"
+      ],
+      "budget": { "maxKb": 700, "targetTriangles": 6500 },
+      "styleFit": "high",
+      "proceduralFallback": "src/game/world-scenery.ts keeps procedural hero-location silhouettes until the factory GLB cluster is QA-visible.",
+      "nextAction": "Promote only a few hero-location placements at a time and reject pieces that read as generic factory noise."
     },
     {
       "id": "cloud-dock-skybridge-spaceport",

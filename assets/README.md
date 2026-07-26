@@ -43,6 +43,21 @@ Accepted runtime packs:
   pieces for authored water transitions.
 - `public/assets/models/vendor/kenney/nature-kit/vegetation`: 10 GLB trees,
   bushes and ground details for sparse, instanced vegetation.
+- `public/assets/models/vendor/kenney/factory-kit/industrial`: 23 GLB
+  industrial, screen, pipe, platform and work-surface pieces for Cloud Dock,
+  Design Atelier and Observability Tower proofs.
 
 The validator derives local file weight and triangle counts from the GLB files
 and refuses accepted entries when the manifest drifts from the runtime folders.
+
+Hero-location curation:
+
+- Each hero location must keep a `heroLocationCuration` contract in the
+  manifest.
+- The contract names a visual signature, accepted asset collections, at least
+  six visual roles, a minimum runtime placement count, and the next custom asset
+  gap.
+- The current Factory Kit integration is an accelerator, not the final premium
+  library: Design Atelier still needs a dedicated mannequin/fabric rack, Cloud
+  Dock needs a clearer server/cloud silhouette, and Observability Tower needs a
+  stronger antenna/radar mast.

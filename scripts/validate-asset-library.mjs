@@ -172,6 +172,7 @@ for (const source of sources) {
 const assets = asArray(manifest.assets);
 const assetIds = new Set();
 const heroLocations = new Set(asArray(manifest.heroLocations));
+const heroLocationCuration = manifest.heroLocationCuration ?? {};
 const terrainRoles = new Set(asArray(manifest.terrainRoles));
 const productionLicenseAssets = [];
 const declaredRuntimeGlbs = new Set();
@@ -416,6 +417,43 @@ for (const zoneId of heroLocations) {
   if (zoneAssets.length < 2) {
     fail("Hero location needs at least two curated candidate assets.", { zoneId, count: zoneAssets.length });
   }
+
+  const curation = heroLocationCuration[zoneId];
+  if (!curation) {
+    fail("Hero location must declare a curation contract.", { zoneId });
+    continue;
+  }
+  if (!curation.visualSignature || curation.visualSignature.length < 72) {
+    fail("Hero location curation needs a concrete visualSignature.", { zoneId, visualSignature: curation.visualSignature });
+  }
+  if (!Number.isInteger(curation.minRuntimePlacements) || curation.minRuntimePlacements < 6) {
+    fail("Hero location curation must require enough runtime placements to be visually legible.", {
+      zoneId,
+      minRuntimePlacements: curation.minRuntimePlacements
+    });
+  }
+  if (asArray(curation.requiredVisualRoles).length < 6) {
+    fail("Hero location curation must define at least six visual roles.", {
+      zoneId,
+      requiredVisualRoles: curation.requiredVisualRoles
+    });
+  }
+  if (!curation.nextCustomAsset || curation.nextCustomAsset.length < 48) {
+    fail("Hero location curation must name the next custom or sourced asset gap.", {
+      zoneId,
+      nextCustomAsset: curation.nextCustomAsset
+    });
+  }
+  for (const assetId of asArray(curation.requiredAssetIds)) {
+    const asset = assets.find((item) => item.id === assetId);
+    if (!asset || (asset.status !== "accepted" && asset.status !== "integrated")) {
+      fail("Hero location curation requiredAssetIds must point to accepted or integrated assets.", {
+        zoneId,
+        assetId,
+        status: asset?.status
+      });
+    }
+  }
 }
 
 const textureCandidates = assets.filter((asset) => asset.kind === "texture-set" && asset.status !== "rejected");
@@ -451,6 +489,16 @@ const summary = {
   candidates: candidateAssets.length,
   textureCandidates: textureCandidates.length,
   acceptedMapTextureRoles: [...acceptedMapTextureRoles].sort(),
+  heroLocationCuration: Object.fromEntries(
+    [...heroLocations].map((zoneId) => [
+      zoneId,
+      {
+        minRuntimePlacements: heroLocationCuration[zoneId]?.minRuntimePlacements ?? 0,
+        requiredVisualRoles: asArray(heroLocationCuration[zoneId]?.requiredVisualRoles).length,
+        requiredAssetIds: asArray(heroLocationCuration[zoneId]?.requiredAssetIds).length
+      }
+    ])
+  ),
   heroLocations: [...heroLocations],
   terrainRoles: [...terrainRoles],
   warnings,

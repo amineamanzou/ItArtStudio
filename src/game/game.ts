@@ -93,6 +93,8 @@ function createDefaultExternalAssetTelemetry(enabled: boolean): ExternalAssetPre
     contextPlacements: 0,
     promotionCandidates: 0,
     maxClusterDensity: 0,
+    maxNonHeroClusterDensity: 0,
+    maxHeroLocationClusterDensity: 0,
     minGroundClearance: 0,
     coplanarRiskPlacements: 0,
     actualMinGroundClearance: 0,
