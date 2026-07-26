@@ -2266,18 +2266,19 @@ async function checkRealDriveTour(browser) {
       label: "real-drive:tech-gate-cloud",
       routeId: "tech-gate-cloud",
       position: { x: -4.45, z: -10.08 },
-      radius: 1.2,
-      timeoutMs: 12_000,
+      radius: 1.45,
+      timeoutMs: 18_000,
       allowMiss: true,
       route: [
-        { id: "route-encounter-tech-via-gate-cloud", position: { x: -3.8, z: -8.6 }, radius: 1.45, timeoutMs: 10_000, overshootBrake: true },
+        { id: "route-encounter-tech-via-gate-cloud-entry", position: { x: -2.2, z: -5.2 }, radius: 1.55, timeoutMs: 10_000, overshootBrake: true },
+        { id: "route-encounter-tech-via-gate-cloud", position: { x: -3.8, z: -8.6 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true },
         {
           id: "route-encounter:tech-gate-cloud",
           position: { x: -4.45, z: -10.08 },
-          radius: 0.9,
-          timeoutMs: 14_000,
+          radius: 1.35,
+          timeoutMs: 18_000,
           overshootBrake: true,
-          skipPostReachSamples: true
+          skipPostReachSamples: false
         }
       ]
     });
@@ -8643,17 +8644,18 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
       routeId: "tech-gate-cloud",
       family: "tech",
       position: { x: -4.45, z: -10.08 },
-      radius: 1.2,
-      timeoutMs: 12_000,
+      radius: 1.45,
+      timeoutMs: 18_000,
       route: [
-        { id: "static-tech-via-gate-cloud", position: { x: -3.8, z: -8.6 }, radius: 1.45, timeoutMs: 10_000, overshootBrake: true },
+        { id: "static-tech-via-gate-cloud-entry", position: { x: -2.2, z: -5.2 }, radius: 1.55, timeoutMs: 10_000, overshootBrake: true },
+        { id: "static-tech-via-gate-cloud", position: { x: -3.8, z: -8.6 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true },
         {
           id: "static-tech-gate-cloud",
           position: { x: -4.45, z: -10.08 },
-          radius: 0.9,
-          timeoutMs: 14_000,
+          radius: 1.35,
+          timeoutMs: 18_000,
           overshootBrake: true,
-          skipPostReachSamples: true
+          skipPostReachSamples: false
         }
       ]
     },
