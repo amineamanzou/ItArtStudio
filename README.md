@@ -69,9 +69,9 @@ l'onglet **Actions**.
 - `src/game/procedural-assets.ts` : landmarks 3D proceduraux par zone
 - `src/game/zones.ts` : contenu editorial de la cartographie
 - `src/styles/global.css` : design system, HUD, carte, mobile et fallback
-- `assets/world-assets.manifest.json` : bibliotheque candidate GLB/glTF,
-  textures, licences, budgets et roles narratifs
-- `public/assets/models` : futurs modeles runtime acceptes par le manifest
+- `assets/world-assets.manifest.json` : bibliotheque GLB/glTF candidate et
+  acceptee, textures, licences, budgets et roles narratifs
+- `public/assets/models` : modeles runtime acceptes par le manifest
 - `public/assets/textures` : futures textures runtime optimisees
 - `scripts/validate-asset-library.mjs` : validation de la bibliotheque
   asset-first

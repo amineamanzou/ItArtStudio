@@ -1028,6 +1028,21 @@ Gates V8.1:
 - les assets restent au statut `candidate` tant qu'ils ne sont pas telecharges,
   optimises et prouves visuellement; `integrated` exige une preuve QA.
 
+Gates V8.2:
+
+- la premiere bibliotheque runtime acceptee contient 47 GLB CC0 Kenney, separes
+  par role de level design: routes, route-edge, ponts, relief, eau et
+  vegetation;
+- les licences des packs acceptes sont copiees avec les modeles sous
+  `public/assets/models/vendor/kenney`, et le manifest garde source, role
+  narratif, poids, triangles, budget et prochaine action;
+- `npm run assets:validate` lit directement les GLB acceptes pour verifier le
+  poids local, le nombre de fichiers, les triangles et les budgets avant toute
+  integration Three.js;
+- la prochaine boucle doit construire l'adapter/loader de preview asset-first,
+  puis composer une map plus grande a partir de ces pieces au lieu d'ajouter du
+  bruit procedural.
+
 ## Components
 
 - `game-site`: surface principale.

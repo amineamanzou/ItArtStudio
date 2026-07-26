@@ -28,3 +28,21 @@ Run:
 ```bash
 npm run assets:validate
 ```
+
+Accepted runtime packs:
+
+- `public/assets/models/vendor/kenney/city-kit-roads/roads`: 9 GLB road
+  pieces for the future enlarged road grammar.
+- `public/assets/models/vendor/kenney/city-kit-roads/route-edge`: 6 GLB route
+  edge props plus the pack colormap texture.
+- `public/assets/models/vendor/kenney/nature-kit/bridges`: 6 GLB bridge/plank
+  pieces for water crossings.
+- `public/assets/models/vendor/kenney/nature-kit/relief`: 8 GLB cliff and rock
+  pieces for heightfield accents.
+- `public/assets/models/vendor/kenney/nature-kit/water`: 8 GLB river/water-edge
+  pieces for authored water transitions.
+- `public/assets/models/vendor/kenney/nature-kit/vegetation`: 10 GLB trees,
+  bushes and ground details for sparse, instanced vegetation.
+
+The validator derives local file weight and triangle counts from the GLB files
+and refuses accepted entries when the manifest drifts from the runtime folders.

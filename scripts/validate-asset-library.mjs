@@ -12,6 +12,81 @@ const warn = (message, details = {}) => warnings.push({ message, details });
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const isHttpUrl = (value) => typeof value === "string" && /^https?:\/\//.test(value);
 const isPositiveNumber = (value) => typeof value === "number" && Number.isFinite(value) && value > 0;
+const roundTenth = (value) => Math.round(value * 10) / 10;
+
+const listFiles = (entryPath) => {
+  const stat = fs.statSync(entryPath);
+  if (stat.isFile()) {
+    return [entryPath];
+  }
+
+  return fs.readdirSync(entryPath, { withFileTypes: true }).flatMap((entry) => {
+    const childPath = path.join(entryPath, entry.name);
+    return entry.isDirectory() ? listFiles(childPath) : [childPath];
+  });
+};
+
+const readGlbJsonChunk = (filePath) => {
+  const buffer = fs.readFileSync(filePath);
+  if (buffer.toString("utf8", 0, 4) !== "glTF") {
+    fail("GLB file has an invalid magic header.", { filePath });
+    return null;
+  }
+
+  const jsonLength = buffer.readUInt32LE(12);
+  const chunkType = buffer.toString("utf8", 16, 20);
+  if (chunkType !== "JSON") {
+    fail("GLB file is missing its JSON chunk.", { filePath, chunkType });
+    return null;
+  }
+
+  return JSON.parse(buffer.toString("utf8", 20, 20 + jsonLength).replace(/[\0\s]+$/u, ""));
+};
+
+const countGlbTriangles = (filePath) => {
+  const gltf = readGlbJsonChunk(filePath);
+  if (!gltf) {
+    return 0;
+  }
+
+  let triangles = 0;
+  for (const mesh of asArray(gltf.meshes)) {
+    for (const primitive of asArray(mesh.primitives)) {
+      if ((primitive.mode ?? 4) !== 4) {
+        continue;
+      }
+
+      if (primitive.indices !== undefined) {
+        triangles += (gltf.accessors?.[primitive.indices]?.count ?? 0) / 3;
+      } else if (primitive.attributes?.POSITION !== undefined) {
+        triangles += (gltf.accessors?.[primitive.attributes.POSITION]?.count ?? 0) / 3;
+      }
+    }
+  }
+
+  return Math.round(triangles);
+};
+
+const analyzeLocalAsset = (assetId, localPath) => {
+  const absolutePath = path.join(root, localPath);
+  const files = listFiles(absolutePath);
+  const glbFiles = files.filter((file) => file.endsWith(".glb"));
+  const textureFiles = files.filter((file) => /\.(avif|jpe?g|png|webp)$/iu.test(file));
+  const fileKb = roundTenth(files.reduce((total, file) => total + fs.statSync(file).size / 1024, 0));
+  const triangles = glbFiles.reduce((total, file) => total + countGlbTriangles(file), 0);
+
+  return {
+    assetId,
+    fileKb,
+    triangles,
+    modelFiles: glbFiles.length,
+    textureFiles: textureFiles.length,
+    files: files.length
+  };
+};
+
+const roughlyEqual = (actual, declared) => Math.abs(actual - declared) <= Math.max(0.2, actual * 0.01);
+const toPublicPath = (localPath) => (localPath.startsWith("public/") ? localPath.slice("public/".length) : localPath);
 
 if (!Number.isInteger(manifest.version) || manifest.version < 1) {
   fail("Manifest version must be a positive integer.", { version: manifest.version });
@@ -67,6 +142,7 @@ const assetIds = new Set();
 const heroLocations = new Set(asArray(manifest.heroLocations));
 const terrainRoles = new Set(asArray(manifest.terrainRoles));
 const productionLicenseAssets = [];
+const declaredRuntimeGlbs = new Set();
 
 for (const asset of assets) {
   if (!asset.id || assetIds.has(asset.id)) {
@@ -108,12 +184,15 @@ for (const asset of assets) {
   }
 
   if (asset.status === "accepted" || asset.status === "integrated") {
+    let localAnalysis = null;
     if (!asset.localPath) {
       fail("Accepted or integrated assets must declare localPath.", { assetId: asset.id, status: asset.status });
     } else {
       const localPath = path.join(root, asset.localPath);
       if (!fs.existsSync(localPath)) {
         fail("Accepted or integrated asset localPath does not exist.", { assetId: asset.id, localPath: asset.localPath });
+      } else {
+        localAnalysis = analyzeLocalAsset(asset.id, asset.localPath);
       }
     }
     if (!isPositiveNumber(asset.fileKb)) {
@@ -122,9 +201,96 @@ for (const asset of assets) {
     if (asset.kind.includes("model") && !isPositiveNumber(asset.triangles)) {
       fail("Accepted or integrated model assets must declare triangle count.", { assetId: asset.id, triangles: asset.triangles });
     }
+    if (!asset.proceduralFallback || asset.proceduralFallback.length < 24) {
+      fail("Accepted or integrated assets must declare a proceduralFallback.", {
+        assetId: asset.id,
+        proceduralFallback: asset.proceduralFallback
+      });
+    }
+    if (!asset.publicPath || asset.publicPath.startsWith("/") || asset.publicPath.startsWith("public/")) {
+      fail("Accepted or integrated assets must declare a GitHub Pages-safe publicPath.", {
+        assetId: asset.id,
+        publicPath: asset.publicPath
+      });
+    }
+    if (asset.localPath && asset.publicPath && asset.publicPath !== toPublicPath(asset.localPath)) {
+      fail("Accepted or integrated publicPath must match localPath without the public prefix.", {
+        assetId: asset.id,
+        localPath: asset.localPath,
+        publicPath: asset.publicPath,
+        expectedPublicPath: toPublicPath(asset.localPath)
+      });
+    }
+    if (localAnalysis) {
+      if (!roughlyEqual(localAnalysis.fileKb, asset.fileKb)) {
+        fail("Accepted or integrated asset fileKb must match local files.", {
+          assetId: asset.id,
+          declared: asset.fileKb,
+          actual: localAnalysis.fileKb
+        });
+      }
+      if (asset.kind.includes("model")) {
+        if (localAnalysis.modelFiles === 0) {
+          fail("Accepted or integrated model assets must include at least one GLB file.", {
+            assetId: asset.id,
+            localPath: asset.localPath
+          });
+        }
+        if (localAnalysis.triangles !== asset.triangles) {
+          fail("Accepted or integrated model triangle count must match GLB contents.", {
+            assetId: asset.id,
+            declared: asset.triangles,
+            actual: localAnalysis.triangles
+          });
+        }
+        if (localAnalysis.fileKb > Math.min(asset.budget.maxKb, budgets.acceptedModelMaxKb)) {
+          fail("Accepted model asset is over its file size budget.", {
+            assetId: asset.id,
+            actualKb: localAnalysis.fileKb,
+            budgetKb: Math.min(asset.budget.maxKb, budgets.acceptedModelMaxKb)
+          });
+        }
+        if (isPositiveNumber(asset.budget.targetTriangles) && localAnalysis.triangles > asset.budget.targetTriangles) {
+          fail("Accepted model asset is over its triangle budget.", {
+            assetId: asset.id,
+            actualTriangles: localAnalysis.triangles,
+            targetTriangles: asset.budget.targetTriangles
+          });
+        }
+      }
+      if (asset.kind === "texture-set" && localAnalysis.fileKb > Math.min(asset.budget.maxKb, budgets.acceptedTextureMaxKb)) {
+        fail("Accepted texture asset is over its file size budget.", {
+          assetId: asset.id,
+          actualKb: localAnalysis.fileKb,
+          budgetKb: Math.min(asset.budget.maxKb, budgets.acceptedTextureMaxKb)
+        });
+      }
+      if (Array.isArray(asset.selectedFiles) && asset.selectedFiles.length !== localAnalysis.modelFiles) {
+        fail("Accepted model selectedFiles must match the local GLB count.", {
+          assetId: asset.id,
+          selectedFiles: asset.selectedFiles.length,
+          modelFiles: localAnalysis.modelFiles
+        });
+      }
+      for (const glbFile of listFiles(path.join(root, asset.localPath)).filter((file) => file.endsWith(".glb"))) {
+        declaredRuntimeGlbs.add(path.relative(root, glbFile));
+      }
+    }
     if (asset.status === "integrated" && !asset.qaProof) {
       fail("Integrated assets must declare a qaProof reference.", { assetId: asset.id });
     }
+  }
+}
+
+const vendorModelsPath = path.join(root, "public", "assets", "models", "vendor");
+if (fs.existsSync(vendorModelsPath)) {
+  const orphanGlbs = listFiles(vendorModelsPath)
+    .filter((file) => file.endsWith(".glb"))
+    .map((file) => path.relative(root, file))
+    .filter((file) => !declaredRuntimeGlbs.has(file));
+
+  if (orphanGlbs.length > 0) {
+    fail("Runtime vendor GLB files must be declared by accepted or integrated manifest entries.", { orphanGlbs });
   }
 }
 

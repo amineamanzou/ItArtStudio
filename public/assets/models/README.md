@@ -13,3 +13,8 @@ Do not drop random downloads in this folder. Every model needs:
 - fallback;
 - target zone or terrain role.
 
+Current accepted vendor roots:
+
+- `vendor/kenney/city-kit-roads`: CC0 road, bridge support, light and slope
+  pieces.
+- `vendor/kenney/nature-kit`: CC0 bridge, water, relief and vegetation pieces.
