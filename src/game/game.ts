@@ -467,6 +467,7 @@ type QaSnapshot = {
     playerRect: ScreenRectQa;
     activeZone: ScreenPointQa & { zoneId: string };
     activeLandmark: ScreenRectQa & { zoneId: string };
+    activeSetDressing: ScreenRectQa & { zoneId: string };
     activePlaceArchitecture: ScreenRectQa & { zoneId: string; family: string | null };
     activeSignatureArtifact: ScreenRectQa & { zoneId: string };
     activeProjectArtifact: ScreenRectQa & { zoneId: string };
@@ -577,6 +578,7 @@ class StudioGame {
   private readonly zoneMotionObjects = new Map<string, THREE.Object3D[]>();
   private readonly activationFeedbackByZone = new Map<string, ActivationFeedback>();
   private readonly landmarkMeshes = new Map<string, THREE.Object3D>();
+  private readonly setDressingGroups = new Map<string, THREE.Object3D>();
   private readonly placeArchitectureGroups = new Map<string, THREE.Object3D>();
   private readonly signatureArtifactGroups = new Map<string, THREE.Object3D>();
   private readonly projectArtifactGroups = new Map<string, THREE.Object3D>();
@@ -833,6 +835,23 @@ class StudioGame {
       },
       activeZone: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false, zoneId: defaultZone.id },
       activeLandmark: {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        area: 0,
+        clippedX: 0,
+        clippedY: 0,
+        clippedWidth: 0,
+        clippedHeight: 0,
+        clippedArea: 0,
+        visibleRatio: 0,
+        cornerDepthCount: 0,
+        visible: false,
+        center: { x: 0, y: 0, ndcX: 0, ndcY: 0, visible: false },
+        zoneId: defaultZone.id
+      },
+      activeSetDressing: {
         x: 0,
         y: 0,
         width: 0,
@@ -1546,6 +1565,7 @@ class StudioGame {
   private addZoneSetDressing(group: THREE.Group, zone: StudioZone) {
     const rendered = createZoneSetDressing(zone, colors);
     group.add(rendered.group);
+    this.setDressingGroups.set(zone.id, rendered.group);
     this.setDressingObjectCount += rendered.objectCount;
     this.decorativeObjectCount += rendered.objectCount;
     this.motionRoleCount += rendered.motionObjects.length;
@@ -3157,6 +3177,7 @@ class StudioGame {
     };
     const activeZonePoint = new THREE.Vector3(activeZone.position[0], 0.28, activeZone.position[1]);
     const activeLandmark = this.landmarkMeshes.get(activeZone.id);
+    const activeSetDressing = this.setDressingGroups.get(activeZone.id);
     const activePlaceArchitecture = this.placeArchitectureGroups.get(activeZone.id);
     const activeSignatureArtifact = this.signatureArtifactGroups.get(activeZone.id);
     const activeProjectArtifact = this.projectArtifactGroups.get(activeZone.id);
@@ -3166,6 +3187,11 @@ class StudioGame {
       ? this.projectObjectToScreenRect(activeLandmark)
       : previousScreen.activeLandmark.zoneId === activeZone.id
         ? previousScreen.activeLandmark
+        : this.emptyScreenRect();
+    const activeSetDressingScreen = full && qaMode && activeSetDressing
+      ? this.projectObjectToScreenRect(activeSetDressing)
+      : previousScreen.activeSetDressing.zoneId === activeZone.id
+        ? previousScreen.activeSetDressing
         : this.emptyScreenRect();
     const activePlaceArchitectureScreen = full && qaMode && activePlaceArchitecture
       ? this.projectObjectToScreenRect(activePlaceArchitecture)
@@ -3219,6 +3245,10 @@ class StudioGame {
       },
       activeLandmark: {
         ...activeLandmarkScreen,
+        zoneId: activeZone.id
+      },
+      activeSetDressing: {
+        ...activeSetDressingScreen,
         zoneId: activeZone.id
       },
       activePlaceArchitecture: {

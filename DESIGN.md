@@ -602,8 +602,13 @@ Gates V4.9:
 - `themed-set-dressing` verifie que les lieux prioritaires ne redeviennent pas
   generiques: Cloud Dock doit exposer des racks serveur, des nuages et un arc
   electrique; Observability Tower doit exposer un ecran metrique, une pile de
-  signaux et une trace; Contact Portal doit lire comme un bureau postal avec
-  desk, bac courrier, convoyeur et champ de reponse;
+  signaux et une trace; Design Atelier doit conserver mur canvas, swatches et
+  outil peinture; Contact Portal doit lire comme un bureau postal avec desk,
+  bac courrier, convoyeur et champ de reponse;
+- `priority-place-composition-visible` prouve visuellement les quatre lieux
+  prioritaires en combinant landmark, set dressing, architecture et signature
+  artifact: les roles sont un prerequis, la preuve finale vient des rectangles
+  projetes, de l'absence d'occlusion UI et du ROI canvas non plat;
 - cette vague reste a budget scene constant: les primitives existantes sont
   remplacees par des formes plus narratives au lieu d'ajouter une couche de
   decoration.

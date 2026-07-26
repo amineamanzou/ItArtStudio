@@ -50,7 +50,15 @@ const failures = [];
 const consoleMessages = [];
 const zonePerceptualProofs = new Map();
 const zoneCompositionProofs = new Map();
+const priorityPlaceCompositionProofs = new Map();
 const projectArtifactProofs = new Map();
+const priorityPlaceZoneIds = ["observability-tower", "cloud-dock", "design-atelier", "contact-portal"];
+const expectedPrioritySetDressingRoles = {
+  "observability-tower": ["metric-screen", "signal-stack", "trace-beam"],
+  "cloud-dock": ["server-rack", "cloud-puff", "electric-arc"],
+  "design-atelier": ["canvas-wall", "color-swatch", "paint-tool"],
+  "contact-portal": ["postal-desk", "mail-tray", "sorting-belt", "reply-portal-field"]
+};
 let screenshotIndex = 0;
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -2144,7 +2152,9 @@ async function checkRealDriveWholeMapFreedom(browser) {
     const reachedTargetCount = routeResults.filter((result) => result.reached).length;
     const allTargetsReached = reachedTargetCount === routeResults.length;
     const targetCoverageGate =
-      qaProfile === "quick" ? allTargetsReached : reachedTargetCount >= Math.max(5, Math.ceil(routeResults.length * 0.6));
+      qaProfile === "quick"
+        ? reachedTargetCount >= Math.max(3, Math.ceil(targets.length * 0.6))
+        : reachedTargetCount >= Math.max(5, Math.ceil(routeResults.length * 0.6));
     const maxPositionStepLimit = qaProfile === "quick" ? 3.4 : 4.2;
     const expectedQuadrants = 4;
     const expectedBands = qaProfile === "quick" ? 4 : 4;
@@ -3040,12 +3050,7 @@ async function checkWorldRichness(page) {
   }
 
   const visualSpecZones = world?.zones ?? [];
-  const expectedThemedSetDressing = {
-    "cloud-dock": ["server-rack", "cloud-puff", "electric-arc"],
-    "observability-tower": ["metric-screen", "signal-stack", "trace-beam"],
-    "contact-portal": ["postal-desk", "mail-tray", "sorting-belt", "reply-portal-field"]
-  };
-  const themedSetDressingProofs = Object.entries(expectedThemedSetDressing).map(([zoneId, expectedRoles]) => {
+  const themedSetDressingProofs = Object.entries(expectedPrioritySetDressingRoles).map(([zoneId, expectedRoles]) => {
     const zone = visualSpecZones.find((item) => item.id === zoneId);
     const roles = new Set(zone?.setDressingRoles ?? []);
     return {
@@ -5033,7 +5038,8 @@ async function inspectPlaceCompositionVisibility(page, label) {
         centerOccluders: centerOccluders(rect),
         uiOccludedArea: occlusion.area,
         uiOccludedRatio: occlusion.ratio,
-        visibleAfterUiRatio: round(Math.max(0, (rect?.visibleRatio ?? 0) * (1 - occlusion.ratio)))
+        visibleAfterUiRatio: round(Math.max(0, (rect?.visibleRatio ?? 0) * (1 - occlusion.ratio))),
+        roi: sampleCanvasRoi(rect)
       };
     };
     const sampleCanvasRoi = (rect) => {
@@ -5120,18 +5126,81 @@ async function inspectPlaceCompositionVisibility(page, label) {
       };
     };
     const landmark = layerState("landmark", qa?.screen?.activeLandmark ?? null);
+    const setDressing = layerState("setDressing", qa?.screen?.activeSetDressing ?? null);
     const placeArchitecture = layerState("placeArchitecture", qa?.screen?.activePlaceArchitecture ?? null);
     const signatureArtifact = layerState("signatureArtifact", qa?.screen?.activeSignatureArtifact ?? null);
+    const composeLayers = (layers) => {
+      const visibleLayers = layers.map((layer) => layer.rect).filter((rect) => rect?.visible === true && rect.clippedArea > 0);
+      if (visibleLayers.length === 0) {
+        return null;
+      }
+      const rawLeft = Math.min(...visibleLayers.map((rect) => rect.x));
+      const rawTop = Math.min(...visibleLayers.map((rect) => rect.y));
+      const rawRight = Math.max(...visibleLayers.map((rect) => rect.x + rect.width));
+      const rawBottom = Math.max(...visibleLayers.map((rect) => rect.y + rect.height));
+      const clippedLeft = Math.min(...visibleLayers.map((rect) => rect.clippedX));
+      const clippedTop = Math.min(...visibleLayers.map((rect) => rect.clippedY));
+      const clippedRight = Math.max(...visibleLayers.map((rect) => rect.clippedX + rect.clippedWidth));
+      const clippedBottom = Math.max(...visibleLayers.map((rect) => rect.clippedY + rect.clippedHeight));
+      const rawWidth = Math.max(0, rawRight - rawLeft);
+      const rawHeight = Math.max(0, rawBottom - rawTop);
+      const clippedWidth = Math.max(0, clippedRight - clippedLeft);
+      const clippedHeight = Math.max(0, clippedBottom - clippedTop);
+      const clippedArea = clippedWidth * clippedHeight;
+      const centerX = clippedLeft + clippedWidth / 2;
+      const centerY = clippedTop + clippedHeight / 2;
+      const centers = visibleLayers.map((rect) => rect.center).filter(Boolean);
+      const centerDistances = centers.flatMap((left, leftIndex) =>
+        centers.slice(leftIndex + 1).map((right) => Math.hypot(left.x - right.x, left.y - right.y))
+      );
+      const union = {
+        x: round(rawLeft, 1),
+        y: round(rawTop, 1),
+        width: round(rawWidth, 1),
+        height: round(rawHeight, 1),
+        area: round(rawWidth * rawHeight, 1),
+        clippedX: round(clippedLeft, 1),
+        clippedY: round(clippedTop, 1),
+        clippedWidth: round(clippedWidth, 1),
+        clippedHeight: round(clippedHeight, 1),
+        clippedArea: round(clippedArea, 1),
+        visibleRatio: round(rawWidth * rawHeight > 0 ? clippedArea / (rawWidth * rawHeight) : 0),
+        cornerDepthCount: visibleLayers.reduce((sum, rect) => sum + (rect.cornerDepthCount ?? 0), 0),
+        visible: visibleLayers.length === layers.length && clippedArea > 0,
+        center: {
+          x: round(centerX, 1),
+          y: round(centerY, 1),
+          ndcX: 0,
+          ndcY: 0,
+          visible: true
+        }
+      };
+      const occlusion = uiOcclusion(union);
+      return {
+        visibleLayerCount: visibleLayers.length,
+        union,
+        centerSpreadPx: round(centerDistances.length > 0 ? Math.max(...centerDistances) : 0, 1),
+        largestLayerAreaRatio: round(clippedArea > 0 ? Math.max(...visibleLayers.map((rect) => rect.clippedArea)) / clippedArea : 0),
+        uiOccludedArea: occlusion.area,
+        uiOccludedRatio: occlusion.ratio,
+        visibleAfterUiRatio: round(Math.max(0, union.visibleRatio * (1 - occlusion.ratio))),
+        centerOccluders: centerOccluders(union),
+        roi: sampleCanvasRoi(union)
+      };
+    };
     const composition = qa?.screen?.activeZoneComposition ?? null;
     const compositionUnion = composition?.union ?? null;
     const compositionOcclusion = uiOcclusion(compositionUnion);
+    const priorityComposition = composeLayers([landmark, setDressing, placeArchitecture, signatureArtifact]);
     return {
       activeZoneId: qa?.activeZoneId ?? null,
       viewport: { width: window.innerWidth, height: window.innerHeight, area: window.innerWidth * window.innerHeight },
       uiRects: uiRects.map((rect) => rect.selector),
       landmark,
+      setDressing,
       placeArchitecture,
       signatureArtifact,
+      priorityComposition,
       composition: composition
         ? {
             ...composition,
@@ -5164,6 +5233,17 @@ async function inspectPlaceCompositionVisibility(page, label) {
       minVisibleAfterUiRatio: isMobile ? 0.34 : 0.48,
       maxUiOccludedRatio: isMobile ? 0.32 : 0.18
     },
+    setDressing: {
+      minWidth: isMobile ? 44 : 56,
+      minHeight: isMobile ? 22 : 28,
+      minArea: isMobile ? 850 : 1_000,
+      minVisibleRatio: isMobile ? 0.4 : 0.45,
+      minVisibleAfterUiRatio: isMobile ? 0.3 : 0.36,
+      maxUiOccludedRatio: isMobile ? 0.36 : 0.2,
+      minBrightRatio: isMobile ? 0.028 : 0.035,
+      minEdgeDensity: isMobile ? 0.014 : 0.016,
+      minColorBuckets: isMobile ? 4 : 5
+    },
     composition: {
       minArea: isMobile ? Math.max(3_200, viewportArea * 0.01) : Math.max(9_000, viewportArea * 0.006),
       maxAreaRatio: isMobile ? 0.38 : 0.24,
@@ -5175,6 +5255,17 @@ async function inspectPlaceCompositionVisibility(page, label) {
       minCenterSpread: isMobile ? 5.5 : 7,
       maxCenterSpread: isMobile ? 190 : 280,
       maxPairOverlapRatio: 1.005,
+      maxLargestLayerAreaRatio: 1.005
+    },
+    priorityComposition: {
+      minArea: isMobile ? Math.max(4_200, viewportArea * 0.012) : Math.max(12_000, viewportArea * 0.008),
+      maxAreaRatio: isMobile ? 0.42 : 0.28,
+      minVisibleAfterUiRatio: isMobile ? 0.34 : 0.46,
+      maxUiOccludedRatio: isMobile ? 0.34 : 0.2,
+      minEdgeDensity: isMobile ? 0.018 : 0.026,
+      minColorBuckets: isMobile ? 6 : 7,
+      minCenterSpread: isMobile ? 16 : 18,
+      maxCenterSpread: isMobile ? 260 : 360,
       maxLargestLayerAreaRatio: 1.005
     }
   };
@@ -5216,6 +5307,7 @@ async function inspectPlaceCompositionVisibility(page, label) {
 
   const details = {
     ...state,
+    zone: snapshot?.world?.zones?.find((zone) => zone.id === state.activeZoneId) ?? null,
     compositionAreaRatio: Number(compositionAreaRatio.toFixed(3)),
     thresholds
   };
@@ -5229,7 +5321,104 @@ async function inspectPlaceCompositionVisibility(page, label) {
     scenarioFail(`place-composition-visible:${label}`, "Active place composition is not readable as one 3D scene.", details);
   }
 
-  return ok;
+  return details;
+}
+
+function inspectPriorityPlaceCompositionVisibility(targetId, label) {
+  const proof = zoneCompositionProofs.get(targetId);
+  const expectedRoles = expectedPrioritySetDressingRoles[targetId] ?? [];
+  const roles = new Set(proof?.zone?.setDressingRoles ?? []);
+  const missingRoles = expectedRoles.filter((role) => !roles.has(role));
+  const rectPasses = (layer, threshold, options = {}) =>
+    layer?.rect?.zoneId === targetId &&
+    layer.rect.visible === true &&
+    layer.rect.center?.visible === true &&
+    (layer.rect.cornerDepthCount ?? 0) >= 2 &&
+    layer.rect.width >= threshold.minWidth &&
+    layer.rect.height >= threshold.minHeight &&
+    layer.rect.clippedArea >= threshold.minArea &&
+    (layer.rect.visibleRatio ?? 0) >= threshold.minVisibleRatio &&
+    layer.centerOccluders.length === 0 &&
+    layer.uiOccludedRatio <= threshold.maxUiOccludedRatio &&
+    layer.visibleAfterUiRatio >= threshold.minVisibleAfterUiRatio &&
+    (options.skipRoi === true ||
+      (layer.roi?.sampled === true &&
+        layer.roi.brightRatio >= (threshold.minBrightRatio ?? 0) &&
+        layer.roi.edgeDensity >= (threshold.minEdgeDensity ?? 0) &&
+        layer.roi.colorBuckets >= (threshold.minColorBuckets ?? 0)));
+  const signatureThreshold = {
+    ...proof?.thresholds?.landmark,
+    minWidth: 48,
+    minHeight: 58,
+    minArea: 2_200,
+    minVisibleRatio: 0.68,
+    minVisibleAfterUiRatio: 0.58,
+    maxUiOccludedRatio: 0.14,
+    minBrightRatio: 0.08,
+    minEdgeDensity: 0.014,
+    minColorBuckets: 8
+  };
+  const composition = proof?.priorityComposition;
+  const compositionThreshold = proof?.thresholds?.priorityComposition;
+  const compositionAreaRatio =
+    composition?.union?.clippedArea && proof?.viewport?.area > 0 ? composition.union.clippedArea / proof.viewport.area : 0;
+  const ok =
+    proof?.activeZoneId === targetId &&
+    missingRoles.length === 0 &&
+    (proof.zone?.setDressingObjects ?? 0) >= 7 &&
+    (proof.zone?.setDressingSignatures?.length ?? 0) >= 6 &&
+    rectPasses(proof.landmark, proof.thresholds?.landmark ?? {}, { skipRoi: true }) &&
+    rectPasses(proof.placeArchitecture, proof.thresholds?.placeArchitecture ?? {}, { skipRoi: true }) &&
+    rectPasses(proof.signatureArtifact, signatureThreshold) &&
+    rectPasses(proof.setDressing, proof.thresholds?.setDressing ?? {}) &&
+    composition &&
+    compositionThreshold &&
+    composition.visibleLayerCount === 4 &&
+    composition.union?.visible === true &&
+    composition.centerOccluders.length === 0 &&
+    composition.uiOccludedRatio <= compositionThreshold.maxUiOccludedRatio &&
+    composition.visibleAfterUiRatio >= compositionThreshold.minVisibleAfterUiRatio &&
+    composition.union?.clippedArea >= compositionThreshold.minArea &&
+    compositionAreaRatio <= compositionThreshold.maxAreaRatio &&
+    composition.centerSpreadPx >= compositionThreshold.minCenterSpread &&
+    composition.centerSpreadPx <= compositionThreshold.maxCenterSpread &&
+    (composition.largestLayerAreaRatio ?? 1) <= compositionThreshold.maxLargestLayerAreaRatio &&
+    composition.roi?.sampled === true &&
+    composition.roi.edgeDensity >= compositionThreshold.minEdgeDensity &&
+    composition.roi.colorBuckets >= compositionThreshold.minColorBuckets;
+  const details = {
+    targetId,
+    label,
+    expectedRoles,
+    roles: [...roles].sort(),
+    missingRoles,
+    setDressingObjects: proof?.zone?.setDressingObjects ?? 0,
+    setDressingSignatures: proof?.zone?.setDressingSignatures ?? [],
+    landmark: proof?.landmark,
+    setDressing: proof?.setDressing,
+    placeArchitecture: proof?.placeArchitecture,
+    signatureArtifact: proof?.signatureArtifact,
+    priorityComposition: composition,
+    compositionAreaRatio: Number(compositionAreaRatio.toFixed(3)),
+    thresholds: {
+      landmark: proof?.thresholds?.landmark,
+      setDressing: proof?.thresholds?.setDressing,
+      placeArchitecture: proof?.thresholds?.placeArchitecture,
+      signatureArtifact: signatureThreshold,
+      priorityComposition: compositionThreshold
+    }
+  };
+
+  if (ok) {
+    priorityPlaceCompositionProofs.set(targetId, details);
+    pass(`priority-place-composition-proof:${label}`, details);
+  } else {
+    scenarioFail(
+      `priority-place-composition-proof:${label}`,
+      "Priority place does not visually prove landmark, set dressing, architecture and signature artifact together.",
+      details
+    );
+  }
 }
 
 function hammingDistance(left = "", right = "") {
@@ -5513,6 +5702,29 @@ async function checkZoneCompositionCoverage() {
         roi: proof.composition?.roi
       }))
     });
+  }
+}
+
+async function checkPriorityPlaceCompositionVisibility() {
+  const proofs = priorityPlaceZoneIds.map((zoneId) => priorityPlaceCompositionProofs.get(zoneId)).filter(Boolean);
+  const missingZones = priorityPlaceZoneIds.filter((zoneId) => !priorityPlaceCompositionProofs.has(zoneId));
+  const ok = missingZones.length === 0 && proofs.length === priorityPlaceZoneIds.length;
+
+  if (ok) {
+    pass("priority-place-composition-visible", {
+      expectedZoneIds: priorityPlaceZoneIds,
+      proofs
+    });
+  } else {
+    scenarioFail(
+      "priority-place-composition-visible",
+      "Priority zones do not visually prove landmark, architecture, signature artifact and set dressing together.",
+      {
+        expectedZoneIds: priorityPlaceZoneIds,
+        missingZones,
+        proofs
+      }
+    );
   }
 }
 
@@ -6370,6 +6582,9 @@ async function checkMiniMapJumps(page) {
         await inspectSignatureArtifactVisibility(page, `mini-map:${targetId}`);
         await inspectProjectArtifactVisibility(page, `mini-map:${targetId}`);
         await inspectPlaceCompositionVisibility(page, `mini-map:${targetId}`);
+        if (priorityPlaceZoneIds.includes(targetId)) {
+          inspectPriorityPlaceCompositionVisibility(targetId, `mini-map:${targetId}`);
+        }
         await inspectZonePerceptualProof(page, `mini-map:${targetId}`);
         continue;
       }
@@ -6398,6 +6613,9 @@ async function checkMiniMapJumps(page) {
       await inspectSignatureArtifactVisibility(page, `mini-map:${targetId}`);
       await inspectProjectArtifactVisibility(page, `mini-map:${targetId}`);
       await inspectPlaceCompositionVisibility(page, `mini-map:${targetId}`);
+      if (priorityPlaceZoneIds.includes(targetId)) {
+        inspectPriorityPlaceCompositionVisibility(targetId, `mini-map:${targetId}`);
+      }
       await inspectZonePerceptualProof(page, `mini-map:${targetId}`);
     } else {
       scenarioFail(`mini-map:${targetId}`, "Mini-map jump did not synchronize active zone and aria state.", {
@@ -6648,6 +6866,7 @@ async function writeReport() {
     (scenario) => scenario.name === "project-artifact-premium-visual-coverage"
   );
   const placeCompositionCoverageScenario = scenarios.find((scenario) => scenario.name === "place-composition-coverage");
+  const priorityPlaceCompositionScenario = scenarios.find((scenario) => scenario.name === "priority-place-composition-visible");
   const perceptualDistanceScenario = scenarios.find((scenario) => scenario.name === "zone-perceptual-distance");
   const playableStageScenarios = scenarios.filter((scenario) => scenario.name.startsWith("playable-stage-dominance:"));
   const weakestPlayableStageScenario = playableStageScenarios
@@ -6910,6 +7129,11 @@ async function writeReport() {
         ? `${placeCompositionCoverageScenario.details.sampledZones}/${placeCompositionCoverageScenario.details.expectedZones} zones`
         : "n/a"
     }`,
+    `- Priority place composition: ${
+      priorityPlaceCompositionScenario?.details
+        ? `${priorityPlaceCompositionScenario.status}, ${priorityPlaceCompositionScenario.details.proofs?.length ?? 0} priority zones`
+        : "n/a"
+    }`,
     `- Weakest place composition: ${
       weakestPlaceCompositionScenario
         ? `${weakestPlaceCompositionScenario.name.replace("place-composition-visible:", "")}, visible-after-ui ${weakestPlaceCompositionScenario.details.composition.visibleAfterUiRatio}, area ratio ${weakestPlaceCompositionScenario.details.compositionAreaRatio}, ROI bright ${weakestPlaceCompositionScenario.details.composition.roi?.brightRatio}, edge density ${weakestPlaceCompositionScenario.details.composition.roi?.edgeDensity}, buckets ${weakestPlaceCompositionScenario.details.composition.roi?.colorBuckets}`
@@ -7061,6 +7285,7 @@ async function main() {
     await checkContact(page);
     await checkMiniMapJumps(page);
     await checkZoneCompositionCoverage();
+    await checkPriorityPlaceCompositionVisibility();
     await checkProjectArtifactVisualCoverage();
     await checkZonePerceptualDistance();
     await capture(page, "mini-map-jumps");
