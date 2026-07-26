@@ -565,6 +565,7 @@ function addSurfaceDetails(
 
   const waterFoamCount = worldMaterialRegions.water.length * 2;
   const shorePinCount = worldMaterialRegions.water.length * 4;
+  const waterCrossingCount = worldMaterialRegions.water.length * 4;
   const rampChevronCount = worldMaterialRegions.ramps.length * 3;
   const contourCount = 9;
   const signatures: string[] = [];
@@ -588,6 +589,7 @@ function addSurfaceDetails(
 
   const waterFoam = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.012, 6, 72), instancedColorMaterial(roadMat), waterFoamCount);
   const shorePins = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.026, 0.038, 0.34, 7), instancedColorMaterial(studioMat), shorePinCount);
+  const waterCrossings = new THREE.InstancedMesh(new THREE.BoxGeometry(0.58, 0.045, 0.14), instancedColorMaterial(roadMat), waterCrossingCount);
   const rampChevrons = new THREE.InstancedMesh(new THREE.BoxGeometry(0.42, 0.036, 0.085), instancedColorMaterial(roadMat), rampChevronCount);
   const terrainContours = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.009, 5, 84), instancedColorMaterial(inkMat), contourCount);
   const matrix = new THREE.Matrix4();
@@ -636,6 +638,28 @@ function addSurfaceDetails(
       colorVariants.add(pinColor);
       signatures.push(`surface-detail:water:${region.id}:${profile.id}:shore-pin-${pinIndex}`);
     }
+
+    for (let plankIndex = 0; plankIndex < 4; plankIndex += 1) {
+      const index = regionIndex * 4 + plankIndex;
+      const localX = (plankIndex - 1.5) * region.radiusX * 0.28;
+      const localOffset = new THREE.Vector3(localX, 0, region.radiusZ * (plankIndex % 2 === 0 ? 0.05 : -0.05)).applyAxisAngle(
+        up,
+        region.rotation
+      );
+      const crossingRotation = region.rotation + Math.PI * 0.5 + (plankIndex - 1.5) * 0.045;
+      quaternion.setFromEuler(new THREE.Euler(0, crossingRotation, 0));
+      scale.set(1.08 + plankIndex * 0.04, 1, 1 + depthRatio * 1.8);
+      matrix.compose(
+        new THREE.Vector3(region.center[0] + localOffset.x, 0.185 + plankIndex * 0.006, region.center[1] + localOffset.z),
+        quaternion,
+        scale
+      );
+      waterCrossings.setMatrixAt(index, matrix);
+      const crossingColor = plankIndex % 2 === 0 ? profile.pinColor : profile.foamColor;
+      waterCrossings.setColorAt(index, color.setHex(crossingColor));
+      colorVariants.add(crossingColor);
+      signatures.push(`surface-detail:water:${region.id}:${profile.id}:crossing-plank-${plankIndex}`);
+    }
   });
 
   worldMaterialRegions.ramps.forEach((region, regionIndex) => {
@@ -674,7 +698,7 @@ function addSurfaceDetails(
     signatures.push(`surface-detail:terrain:contour-${index}`);
   }
 
-  [waterFoam, shorePins, rampChevrons, terrainContours].forEach((mesh) => {
+  [waterFoam, shorePins, waterCrossings, rampChevrons, terrainContours].forEach((mesh) => {
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) {
       mesh.instanceColor.needsUpdate = true;
@@ -683,9 +707,11 @@ function addSurfaceDetails(
       ? "water-foam"
       : mesh === shorePins
         ? "shore-pin"
-        : mesh === rampChevrons
-          ? "ramp-chevron"
-          : "terrain-contour";
+        : mesh === waterCrossings
+          ? "water-crossing"
+          : mesh === rampChevrons
+            ? "ramp-chevron"
+            : "terrain-contour";
     mesh.userData.surfaceDetailProfileIds = [...profileIds];
     mesh.userData.surfaceDetailColorVariantCount = colorVariants.size;
     detail.add(mesh);
@@ -696,9 +722,9 @@ function addSurfaceDetails(
 
   add(detail, "surface-detail", "surface-detail:instanced-topography", "instance-pulse", {
     signatures,
-    objectCount: waterFoamCount + shorePinCount + rampChevronCount + contourCount,
-    roleCount: worldMaterialRegions.water.length + worldMaterialRegions.ramps.length + contourCount,
-    motionCount: waterFoamCount + rampChevronCount + contourCount
+    objectCount: waterFoamCount + shorePinCount + waterCrossingCount + rampChevronCount + contourCount,
+    roleCount: worldMaterialRegions.water.length * 2 + worldMaterialRegions.ramps.length + contourCount,
+    motionCount: waterFoamCount + waterCrossingCount + rampChevronCount + contourCount
   });
 }
 

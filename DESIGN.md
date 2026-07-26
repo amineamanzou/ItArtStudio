@@ -891,6 +891,24 @@ Gates V7.3:
   mini-map/ROI, et `renderer-budget` surveille draw calls, triangles,
   geometries et textures pour eviter une qualite non maitrisable.
 
+Gates V7.4:
+
+- les bassins d'eau gagnent des traversees/pontons instancies afin de lire
+  l'eau comme une piece de level design jouable, pas seulement une surface;
+- `water-level-design` exige quatre bassins, seize planches de traversee
+  signees, des profils distincts par bassin et le cap strict `sceneObjects <= 916`;
+- l'ajout reste dans `surface-detail` pour augmenter la silhouette du monde
+  sans ouvrir une nouvelle famille d'objets couteuse.
+
+Backlog V7.5:
+
+- transformer la QA `static dist` en `bruno-simon-playable-proof-reel`: un
+  contact sheet ou une courte sequence de preuves produite depuis le build
+  production, couvrant home, les dix lieux via mini-map, trois route encounters
+  au clavier reel et un passage mobile/touch;
+- cette gate doit rendre le livrable auditable humainement, pas seulement
+  verifier que le canvas charge.
+
 ## Components
 
 - `game-site`: surface principale.

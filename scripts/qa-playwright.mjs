@@ -4219,11 +4219,15 @@ async function checkWorldRichness(page) {
     ...expectedSurfaceDetailWaterProfiles,
     ...expectedSurfaceDetailRampProfiles
   ].filter((signaturePrefix) => !surfaceDetailSignatures.some((signature) => signature.startsWith(signaturePrefix)));
+  const missingWaterCrossingProfiles = expectedSurfaceDetailWaterProfiles.filter(
+    (signaturePrefix) => !surfaceDetailSignatures.some((signature) => signature.startsWith(`${signaturePrefix}crossing-plank-`))
+  );
   const duplicateSurfaceDetailSignatures = world?.duplicateSurfaceDetailSignatures ?? [];
   const premiumSurfaceDetails =
     world &&
     world.surfaceDetailPartCounts?.["water-foam"] === 8 &&
     world.surfaceDetailPartCounts?.["shore-pin"] === 16 &&
+    world.surfaceDetailPartCounts?.["water-crossing"] === 16 &&
     world.surfaceDetailPartCounts?.["ramp-chevron"] === 18 &&
     world.surfaceDetailPartCounts?.["terrain-contour"] >= 9 &&
     world.surfaceDetailProfiles >= 10 &&
@@ -4253,6 +4257,7 @@ async function checkWorldRichness(page) {
       surfaceDetailSignatures: world.surfaceDetailSignatures,
       missingSurfaceDetailProfiles: world.missingSurfaceDetailProfiles,
       missingSurfaceDetailRegionProfiles,
+      missingWaterCrossingProfiles,
       duplicateSurfaceDetailSignatures,
       sceneryObjects: world.sceneryObjects,
       scenerySignatures: world.scenerySignatures,
@@ -4273,6 +4278,7 @@ async function checkWorldRichness(page) {
       surfaceDetailSignatures: world?.surfaceDetailSignatures,
       missingSurfaceDetailProfiles: world?.missingSurfaceDetailProfiles,
       missingSurfaceDetailRegionProfiles,
+      missingWaterCrossingProfiles,
       duplicateSurfaceDetailSignatures,
       sceneryObjects: world?.sceneryObjects,
       scenerySignatures: world?.scenerySignatures,
@@ -4280,6 +4286,39 @@ async function checkWorldRichness(page) {
       sceneObjects: world?.sceneObjects,
       sceneObjectBudget: premiumWorldObjectBudget,
       sceneryRoleCounts: world?.sceneryRoleCounts
+    });
+  }
+
+  const waterLevelDesign =
+    world &&
+    world.surfaceDetailPartCounts?.["water-crossing"] === 16 &&
+    missingWaterCrossingProfiles.length === 0 &&
+    world.surfaceDetailSignatures.filter((signature) => signature.includes(":crossing-plank-")).length >= 16 &&
+    world.sceneryRoleCounts?.["water-body"] >= 4 &&
+    world.sceneryRoleCounts?.["surface-detail"] >= 23 &&
+    world.surfaceDetailColorVariants >= 12 &&
+    world.sceneObjects <= premiumWorldObjectBudget;
+  if (waterLevelDesign) {
+    pass("water-level-design", {
+      waterBodies: world.sceneryRoleCounts["water-body"],
+      waterCrossings: world.surfaceDetailPartCounts["water-crossing"],
+      crossingSignatures: world.surfaceDetailSignatures.filter((signature) => signature.includes(":crossing-plank-")),
+      missingWaterCrossingProfiles,
+      surfaceDetailRoles: world.sceneryRoleCounts["surface-detail"],
+      surfaceDetailColorVariants: world.surfaceDetailColorVariants,
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget
+    });
+  } else {
+    scenarioFail("water-level-design", "Water reads as a flat material instead of a designed playable crossing space.", {
+      waterBodies: world?.sceneryRoleCounts?.["water-body"],
+      waterCrossings: world?.surfaceDetailPartCounts?.["water-crossing"],
+      crossingSignatures: world?.surfaceDetailSignatures?.filter((signature) => signature.includes(":crossing-plank-")) ?? [],
+      missingWaterCrossingProfiles,
+      surfaceDetailRoles: world?.sceneryRoleCounts?.["surface-detail"],
+      surfaceDetailColorVariants: world?.surfaceDetailColorVariants,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget
     });
   }
 
@@ -8437,6 +8476,7 @@ async function writeReport() {
   const realDriveFreeRoamScenario = scenarios.find((scenario) => scenario.name === "real-drive-free-roam");
   const audioScenario = scenarios.find((scenario) => scenario.name === "audio-layer");
   const surfaceMaterialScenario = scenarios.find((scenario) => scenario.name === "surface-material-physics");
+  const waterLevelDesignScenario = scenarios.find((scenario) => scenario.name === "water-level-design");
   const vehicleSuspensionScenario = scenarios.find((scenario) => scenario.name === "vehicle-suspension-response");
   const routeEncountersRenderedScenario = scenarios.find((scenario) => scenario.name === "route-encounters-rendered");
   const routeEncounterSetpiecesScenario = scenarios.find((scenario) => scenario.name === "route-encounter-setpieces");
@@ -8582,6 +8622,11 @@ async function writeReport() {
       world?.sceneryRoleCounts ? Object.entries(world.sceneryRoleCounts).map(([role, count]) => `${role}:${count}`).join(", ") : "n/a"
     }`,
     `- Surface detail profiles: ${world?.surfaceDetailProfiles ?? "n/a"} total, water ${world?.surfaceDetailWaterProfiles ?? "n/a"}/4, ramp ${world?.surfaceDetailRampProfiles ?? "n/a"}/6, colors ${world?.surfaceDetailColorVariants ?? "n/a"}`,
+    `- Water level design: ${
+      waterLevelDesignScenario?.details
+        ? `${waterLevelDesignScenario.status}, crossings ${waterLevelDesignScenario.details.waterCrossings}, water bodies ${waterLevelDesignScenario.details.waterBodies}, surface roles ${waterLevelDesignScenario.details.surfaceDetailRoles}`
+        : (waterLevelDesignScenario?.status ?? "n/a")
+    }`,
     `- Identity ribbon: ${
       identityRibbonScenario?.details
         ? `${identityRibbonScenario.details.identityRibbonObjects} objects, signatures ${identityRibbonScenario.details.identityRibbonSignatures}, visibility ${identityRibbonVisibleScenarios.filter((scenario) => scenario.status === "pass").length}/${identityRibbonVisibleScenarios.length}`
