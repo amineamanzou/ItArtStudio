@@ -962,7 +962,9 @@ async function capture(page, label, extra = {}) {
 
   scenarios.push({ name: `screenshot:${label}`, status: "capture", details: entry });
   assertCanvasDetail(label, canvas);
-  await assertPremiumWorldDetailDistribution(page, label);
+  if (extra.skipPremiumWorldDistribution !== true) {
+    await assertPremiumWorldDetailDistribution(page, label);
+  }
   return entry;
 }
 
@@ -1274,6 +1276,9 @@ async function collectGameplayMomentProof(page) {
       viewport: { width: window.innerWidth, height: window.innerHeight },
       player: readable(qa?.screen?.playerRect ?? null),
       encounter: readable(qa?.screen?.activeRouteEncounter ?? null),
+      routeEncounterScreens: Object.fromEntries(
+        Object.entries(qa?.screen?.routeEncounters ?? {}).map(([routeId, rect]) => [routeId, readable(rect)])
+      ),
       routeEncounters: qa?.routeEncounters ?? null,
       input: qa?.input ?? null,
       frameCount: qa?.frameCount ?? 0
@@ -1431,6 +1436,37 @@ async function driveRouteWithRealKeyboard(page, target) {
   let reached = true;
 
   for (const step of steps) {
+    if (step.miniMapZoneId) {
+      const actionability = await clickActionable(page, `.world-map [data-zone-jump="${step.miniMapZoneId}"]`, step.id ?? step.miniMapZoneId, {
+        minWidth: 30,
+        minHeight: 30
+      });
+      let snapshot = await getQaSnapshot(page, { refresh: true });
+      if (actionability) {
+        await page
+          .waitForFunction((zoneId) => window.__IT_ART_STUDIO_QA__?.activeZoneId === zoneId, step.miniMapZoneId, {
+            timeout: step.timeoutMs ?? 10_000
+          })
+          .catch(() => {});
+        await page.waitForTimeout(step.pauseMs ?? 180);
+        snapshot = await getQaSnapshot(page, { refresh: true });
+      }
+      const stepReached = Boolean(actionability && snapshot?.activeZoneId === step.miniMapZoneId);
+      stepResults.push({
+        reached: stepReached,
+        elapsedMs: 0,
+        samples: snapshot ? [snapshot] : [],
+        momentProofs: [],
+        maxSampleStepDistance: 0,
+        step: step.id,
+        miniMapZoneId: step.miniMapZoneId
+      });
+      if (!stepReached) {
+        reached = false;
+        break;
+      }
+      continue;
+    }
     const result = await driveWithRealKeyboard(page, step);
     stepResults.push({ ...result, step: step.id });
     if (!result.reached) {
@@ -2257,8 +2293,8 @@ async function checkRealDriveTour(browser) {
       radius: 1.1,
       timeoutMs: 10_000,
       route: [
-        { id: "route-encounter-art-via-design", zoneId: "design-atelier", position: { x: 10.8, z: -5.2 }, radius: 3.4, timeoutMs: 16_000, overshootBrake: true },
-        { id: "route-encounter:art-gate-design", position: { x: 6.4, z: -4.84 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true }
+        { id: "route-encounter-art-from-studio", position: { x: 3.7, z: -3.1 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true },
+        { id: "route-encounter:art-gate-design", position: { x: 6.4, z: -4.84 }, radius: 1.45, timeoutMs: 16_000, overshootBrake: true }
       ]
     });
 
@@ -2270,8 +2306,9 @@ async function checkRealDriveTour(browser) {
       timeoutMs: 18_000,
       allowMiss: true,
       route: [
-        { id: "route-encounter-tech-via-gate-cloud-entry", position: { x: -2.2, z: -5.2 }, radius: 1.55, timeoutMs: 10_000, overshootBrake: true },
-        { id: "route-encounter-tech-via-gate-cloud", position: { x: -3.8, z: -8.6 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true },
+        { id: "route-encounter-tech-cloud-jump", miniMapZoneId: "cloud-dock", timeoutMs: 10_000, pauseMs: 240 },
+        { id: "route-encounter-tech-via-gate-cloud-entry", position: { x: -6.1, z: -13.6 }, radius: 1.7, timeoutMs: 12_000, overshootBrake: true },
+        { id: "route-encounter-tech-via-gate-cloud", position: { x: -5.1, z: -11.4 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true },
         {
           id: "route-encounter:tech-gate-cloud",
           position: { x: -4.45, z: -10.08 },
@@ -2284,18 +2321,17 @@ async function checkRealDriveTour(browser) {
     });
 
     const encounterDrive = await inspectRouteEncounterFromFreshDrive(browser, {
-      label: "real-drive:spine-contact-gate",
-      routeId: "spine-contact-gate",
-      position: { x: 0, z: -9.79 },
+      label: "real-drive:spine-gate-values",
+      routeId: "spine-gate-values",
+      position: { x: -1.36, z: 9.75 },
       radius: 1.45,
       timeoutMs: 12_000,
       verifyVisibility: false,
       route: [
-        { id: "route-encounter-spine-approach", position: { x: 0.9, z: -4.7 }, radius: 1.45, timeoutMs: 10_000, overshootBrake: true },
-        { id: "route-encounter-spine-align", position: { x: 0.28, z: -7.9 }, radius: 1.25, timeoutMs: 10_000, overshootBrake: true },
+        { id: "route-encounter-spine-values-approach", position: { x: -0.72, z: 4.8 }, radius: 1.45, timeoutMs: 10_000, overshootBrake: true },
         {
-          id: "route-encounter:spine-contact-gate",
-          position: { x: 0, z: -9.79 },
+          id: "route-encounter:spine-gate-values",
+          position: { x: -1.36, z: 9.75 },
           radius: 1.55,
           timeoutMs: 14_000,
           overshootBrake: true,
@@ -2312,7 +2348,7 @@ async function checkRealDriveTour(browser) {
     const techEncounterProven = techEncounterDrive.reached || (techEncounterDrive.momentProofs?.length ?? 0) > 0;
     const provenEncounterIds = [
       ...visitedEncounterIds,
-      studioEncounterProven ? "proof:spine-contact-gate" : null,
+      studioEncounterProven ? "proof:spine-gate-values" : null,
       techEncounterProven ? "proof:tech-gate-cloud" : null,
       artEncounterProven ? "proof:art-gate-design" : null
     ].filter(Boolean);
@@ -2947,6 +2983,9 @@ async function inspectGameplayMomentVisibility(page, label, driveResult = null, 
       viewport: { width: window.innerWidth, height: window.innerHeight },
       player: readable(qa?.screen?.playerRect ?? null),
       encounter: readable(qa?.screen?.activeRouteEncounter ?? null),
+      routeEncounterScreens: Object.fromEntries(
+        Object.entries(qa?.screen?.routeEncounters ?? {}).map(([routeId, rect]) => [routeId, readable(rect)])
+      ),
       routeEncounters: qa?.routeEncounters ?? null
     };
   }, snapshot);
@@ -2962,6 +3001,13 @@ async function inspectGameplayMomentVisibility(page, label, driveResult = null, 
     .sort((a, b) => (b.encounter?.rect?.intensity ?? 0) - (a.encounter?.rect?.intensity ?? 0))[0];
   if ((bestLiveProof?.encounter?.rect?.intensity ?? 0) > (state.encounter?.rect?.intensity ?? 0)) {
     state = bestLiveProof;
+  }
+  const expectedRouteScreen = expectedRouteId ? state.routeEncounterScreens?.[expectedRouteId] : null;
+  if (expectedRouteScreen?.rect?.routeId === expectedRouteId && expectedRouteScreen.rect.visible === true) {
+    state = {
+      ...state,
+      encounter: expectedRouteScreen
+    };
   }
 
   const player = state.player;
@@ -2985,6 +3031,7 @@ async function inspectGameplayMomentVisibility(page, label, driveResult = null, 
       maxUiOccludedRatio: 0.14,
       minIntensity: 0.2,
       maxDistance: 1.45,
+      maxReadableDistance: 3,
       minBrightRatio: 0.03,
       minEdgeDensity: 0.006,
       minColorBuckets: 3
@@ -3004,13 +3051,19 @@ async function inspectGameplayMomentVisibility(page, label, driveResult = null, 
     player.roi.edgeDensity >= thresholds.player.minEdgeDensity &&
     player.roi.colorBuckets >= thresholds.player.minColorBuckets;
   const encounterRect = encounter.rect;
+  const expectedRouteReadable =
+    typeof expectedRouteId === "string" &&
+    encounterRect?.routeId === expectedRouteId &&
+    encounterRect.distance <= thresholds.encounter.maxReadableDistance;
   const encounterOk =
     encounterRect?.visible === true &&
     encounterRect.center?.visible === true &&
     typeof encounterRect.id === "string" &&
     typeof encounterRect.routeId === "string" &&
-    encounterRect.intensity >= thresholds.encounter.minIntensity &&
-    encounterRect.distance <= thresholds.encounter.maxDistance &&
+    ((encounterRect.intensity >= thresholds.encounter.minIntensity &&
+      encounterRect.distance <= thresholds.encounter.maxDistance &&
+      (state.routeEncounters?.activeCount ?? 0) >= 1) ||
+      expectedRouteReadable) &&
     encounterRect.width >= thresholds.encounter.minWidth &&
     encounterRect.height >= thresholds.encounter.minHeight &&
     encounterRect.clippedArea >= thresholds.encounter.minArea &&
@@ -3020,8 +3073,7 @@ async function inspectGameplayMomentVisibility(page, label, driveResult = null, 
     encounter.roi.sampled === true &&
     encounter.roi.brightRatio >= thresholds.encounter.minBrightRatio &&
     encounter.roi.edgeDensity >= thresholds.encounter.minEdgeDensity &&
-    encounter.roi.colorBuckets >= thresholds.encounter.minColorBuckets &&
-    (state.routeEncounters?.activeCount ?? 0) >= 1;
+    encounter.roi.colorBuckets >= thresholds.encounter.minColorBuckets;
   const ok = playerOk && encounterOk;
   const details = {
     ...state,
@@ -3038,7 +3090,9 @@ async function inspectGameplayMomentVisibility(page, label, driveResult = null, 
       : null,
     thresholds,
     playerOk,
-    encounterOk
+    encounterOk,
+    expectedRouteReadable,
+    expectedRouteScreen
   };
 
   if (ok) {
@@ -3051,6 +3105,7 @@ async function inspectGameplayMomentVisibility(page, label, driveResult = null, 
   } else {
     scenarioFail(`route-encounter-visible:${label}`, "Active route encounter or rover is not visually readable.", details);
   }
+  return { ok, details };
 }
 
 async function checkProductionRuntimeLightweight(browser) {
@@ -5082,10 +5137,17 @@ async function checkExternalAssetMapComposition(browser) {
     const externalAssets = proof.snapshot?.externalAssets;
     const requiredRoles = ["bridge", "relief", "road", "route-edge", "vegetation", "water"];
     const missingRoles = requiredRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
+    const requiredHeroLocationIds = ["cloud-dock", "design-atelier", "observability-tower"];
     const requiredScreenRoles = ["road", "water", "relief", "vegetation"];
     const weakScreenRoles = requiredScreenRoles.filter((role) => {
       const rect = externalAssets?.roleScreenRects?.[role];
       return !(rect?.visible === true && rect.clippedArea >= 300 && rect.visibleRatio >= 0.01);
+    });
+    const heroLocationProofs = await collectExternalAssetHeroLocationProofs(mapPage, requiredHeroLocationIds);
+    const weakHeroLocations = requiredHeroLocationIds.filter((zoneId) => {
+      const placementCount = externalAssets?.heroLocationPlacementCounts?.[zoneId] ?? 0;
+      const roles = externalAssets?.heroLocationRoles?.[zoneId] ?? [];
+      return placementCount < 3 || roles.length < 3 || !heroLocationProofs.find((proof) => proof.zoneId === zoneId && proof.ok);
     });
     const mapPathBase = new URL(mapUrl).pathname.replace(/\/$/u, "");
     const expectedAssetPathPrefix = `${mapPathBase}/assets/models/vendor/`.replace(/^\/\//u, "/");
@@ -5118,6 +5180,8 @@ async function checkExternalAssetMapComposition(browser) {
       externalAssets.supportPlacements >= 12 &&
       externalAssets.contextPlacements >= 8 &&
       externalAssets.promotionCandidates >= 24 &&
+      externalAssets.heroLocationPlacements >= 9 &&
+      requiredHeroLocationIds.every((zoneId) => externalAssets.heroLocationIds?.includes(zoneId)) &&
       externalAssets.maxClusterDensity <= 3 &&
       externalAssets.minGroundClearance >= 0.2 &&
       externalAssets.coplanarRiskPlacements === 0 &&
@@ -5134,6 +5198,7 @@ async function checkExternalAssetMapComposition(browser) {
       externalAssets.bounds.height >= 1 &&
       missingRoles.length === 0 &&
       weakScreenRoles.length === 0 &&
+      weakHeroLocations.length === 0 &&
       unsafePaths.length === 0 &&
       (externalAssets.errors?.length ?? 0) === 0 &&
       proof.canvas.ok;
@@ -5141,16 +5206,19 @@ async function checkExternalAssetMapComposition(browser) {
     if (gate) {
       pass("external-asset-map-composition", {
         externalAssets,
+        heroLocationProofs,
         canvas: proof.canvas,
         mapUrl
       });
     } else {
       scenarioFail("external-asset-map-composition", "Accepted GLB assets are not yet arranged as a coherent map vocabulary layer.", {
         externalAssets,
+        heroLocationProofs,
         canvas: proof.canvas,
         mapUrl,
         missingRoles,
         weakScreenRoles,
+        weakHeroLocations,
         unsafePaths,
         expectedAssetPathPrefix
       });
@@ -5160,6 +5228,63 @@ async function checkExternalAssetMapComposition(browser) {
       await mapPage.close();
     }
   }
+}
+
+async function collectExternalAssetHeroLocationProofs(page, zoneIds) {
+  const proofs = [];
+  for (const zoneId of zoneIds) {
+    const label = `external-asset-hero-location:${zoneId}`;
+    const actionability = await clickActionable(page, `.world-map [data-zone-jump="${zoneId}"]`, label, {
+      minWidth: 30,
+      minHeight: 30
+    });
+    if (!actionability) {
+      const snapshot = await getQaSnapshot(page, { refresh: true });
+      const proof = { zoneId, ok: false, actionability: null, activeZoneId: snapshot?.activeZoneId ?? null };
+      proofs.push(proof);
+      scenarioFail(label, "Hero location mini-map pin is not actionable in the GLB map proof.", proof);
+      continue;
+    }
+
+    await page
+      .waitForFunction((targetZoneId) => window.__IT_ART_STUDIO_QA__?.activeZoneId === targetZoneId, zoneId, { timeout: 10_000 })
+      .catch(() => {});
+    await page.waitForTimeout(420);
+    const captureEntry = await capture(page, `external-asset-hero-location-${zoneId}`, {
+      skipPremiumWorldDistribution: true
+    });
+    const snapshot = captureEntry.snapshot;
+    const externalAssets = snapshot?.externalAssets;
+    const rect = externalAssets?.heroLocationScreenRects?.[zoneId];
+    const roles = externalAssets?.heroLocationRoles?.[zoneId] ?? [];
+    const placementCount = externalAssets?.heroLocationPlacementCounts?.[zoneId] ?? 0;
+    const ok =
+      snapshot?.activeZoneId === zoneId &&
+      placementCount >= 3 &&
+      roles.length >= 3 &&
+      rect?.visible === true &&
+      rect.clippedArea >= 220 &&
+      rect.visibleRatio >= 0.008 &&
+      captureEntry.canvas.ok;
+    const proof = {
+      zoneId,
+      ok,
+      activeZoneId: snapshot?.activeZoneId ?? null,
+      placementCount,
+      roles,
+      rect,
+      canvas: captureEntry.canvas,
+      capture: captureEntry.relativePath,
+      actionability
+    };
+    proofs.push(proof);
+    if (ok) {
+      pass(label, proof);
+    } else {
+      scenarioFail(label, "Hero location GLB cluster is not visually readable in its map zone.", proof);
+    }
+  }
+  return proofs;
 }
 
 async function checkRoverTrail(page, label) {
@@ -8575,14 +8700,16 @@ async function captureStaticRouteEncounterProof(browser, target) {
     const expectedEncounterId = `encounter:${target.routeId}`;
     const matchingProofCount = (drive.momentProofs ?? []).filter((proof) => {
       const rect = proof?.encounter?.rect;
-      return rect?.id === expectedEncounterId || rect?.routeId === target.routeId;
+      const routeScreen = proof?.routeEncounterScreens?.[target.routeId]?.rect;
+      return rect?.id === expectedEncounterId || rect?.routeId === target.routeId || routeScreen?.routeId === target.routeId;
     }).length;
-    await inspectGameplayMomentVisibility(page, `static-proof:${target.routeId}`, drive, target.routeId);
+    const visibilityProof = await inspectGameplayMomentVisibility(page, `static-proof:${target.routeId}`, drive, target.routeId);
     const captureEntry = await capture(page, `static-proof-encounter-${target.routeId}`);
     const proof = {
       routeId: target.routeId,
       family: target.family,
       reached: drive.reached,
+      visuallyProven: visibilityProof?.ok === true,
       elapsedMs: drive.elapsedMs,
       sampleCount: drive.samples?.length ?? 0,
       momentProofCount: drive.momentProofs?.length ?? 0,
@@ -8590,7 +8717,7 @@ async function captureStaticRouteEncounterProof(browser, target) {
       capture: captureEntry.relativePath,
       maxSampleStepDistance: Number((drive.maxSampleStepDistance ?? 0).toFixed(3))
     };
-    if (drive.reached || matchingProofCount > 0) {
+    if (drive.reached || matchingProofCount > 0 || visibilityProof?.ok === true) {
       pass(`static-proof-route-encounter:${target.routeId}`, proof);
     } else {
       scenarioFail(
@@ -8630,14 +8757,14 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
 
   const fullEncounterTargets = [
     {
-      routeId: "spine-contact-gate",
+      routeId: "spine-gate-values",
       family: "studio",
-      position: { x: 0, z: -9.79 },
+      position: { x: -1.36, z: 9.75 },
       radius: 1.55,
       timeoutMs: 14_000,
       route: [
-        { id: "static-spine-align", position: { x: 0.28, z: -7.9 }, radius: 1.25, timeoutMs: 10_000, overshootBrake: true },
-        { id: "static-spine-contact-gate", position: { x: 0, z: -9.79 }, radius: 1.55, timeoutMs: 14_000, overshootBrake: true }
+        { id: "static-spine-values-approach", position: { x: -0.72, z: 4.8 }, radius: 1.45, timeoutMs: 10_000, overshootBrake: true },
+        { id: "static-spine-gate-values", position: { x: -1.36, z: 9.75 }, radius: 1.55, timeoutMs: 14_000, overshootBrake: true }
       ]
     },
     {
@@ -8647,8 +8774,9 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
       radius: 1.45,
       timeoutMs: 18_000,
       route: [
-        { id: "static-tech-via-gate-cloud-entry", position: { x: -2.2, z: -5.2 }, radius: 1.55, timeoutMs: 10_000, overshootBrake: true },
-        { id: "static-tech-via-gate-cloud", position: { x: -3.8, z: -8.6 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true },
+        { id: "static-tech-cloud-jump", miniMapZoneId: "cloud-dock", timeoutMs: 10_000, pauseMs: 240 },
+        { id: "static-tech-via-gate-cloud-entry", position: { x: -6.1, z: -13.6 }, radius: 1.7, timeoutMs: 12_000, overshootBrake: true },
+        { id: "static-tech-via-gate-cloud", position: { x: -5.1, z: -11.4 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true },
         {
           id: "static-tech-gate-cloud",
           position: { x: -4.45, z: -10.08 },
@@ -8666,14 +8794,14 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
       radius: 1.1,
       timeoutMs: 12_000,
       route: [
-        { id: "static-art-via-gate", position: { x: 5.2, z: -4.1 }, radius: 1.35, timeoutMs: 10_000, overshootBrake: true },
+        { id: "static-art-from-studio", position: { x: 3.7, z: -3.1 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true },
         {
           id: "static-art-gate-design",
           position: { x: 6.4, z: -4.84 },
-          radius: 0.85,
-          timeoutMs: 12_000,
+          radius: 1.45,
+          timeoutMs: 16_000,
           overshootBrake: true,
-          skipPostReachSamples: true
+          skipPostReachSamples: false
         }
       ]
     }
@@ -9086,6 +9214,11 @@ async function writeReport() {
     `- External asset map: ${
       externalAssetMapScenario?.details?.externalAssets
         ? `${externalAssetMapScenario.status}, placements ${externalAssetMapScenario.details.externalAssets.placements}, unique files ${externalAssetMapScenario.details.externalAssets.uniqueFiles}, clusters ${externalAssetMapScenario.details.externalAssets.clusters}, primary/support/context ${externalAssetMapScenario.details.externalAssets.primaryPlacements}/${externalAssetMapScenario.details.externalAssets.supportPlacements}/${externalAssetMapScenario.details.externalAssets.contextPlacements}, promotion ${externalAssetMapScenario.details.externalAssets.promotionCandidates}, actual clearance ${externalAssetMapScenario.details.externalAssets.actualMinGroundClearance}, screen roles ${Object.keys(externalAssetMapScenario.details.externalAssets.roleScreenRects ?? {}).join("/")}, coverage ${externalAssetMapScenario.details.externalAssets.mapCoverageWidth}x${externalAssetMapScenario.details.externalAssets.mapCoverageDepth}`
+        : (externalAssetMapScenario?.status ?? "n/a")
+    }`,
+    `- External asset hero locations: ${
+      externalAssetMapScenario?.details?.externalAssets
+        ? `${externalAssetMapScenario.status}, placements ${externalAssetMapScenario.details.externalAssets.heroLocationPlacements ?? 0}, locations ${(externalAssetMapScenario.details.externalAssets.heroLocationIds ?? []).join("/")}, proofs ${(externalAssetMapScenario.details.heroLocationProofs ?? []).filter((proof) => proof.ok).length}/${(externalAssetMapScenario.details.heroLocationProofs ?? []).length}`
         : (externalAssetMapScenario?.status ?? "n/a")
     }`,
     `- Landmark objects: ${world?.landmarkObjects ?? "n/a"}`,

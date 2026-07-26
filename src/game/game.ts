@@ -76,6 +76,11 @@ function createDefaultExternalAssetTelemetry(enabled: boolean): ExternalAssetPre
     terrainRoles: [],
     publicPaths: [],
     errors: [],
+    heroLocationPlacements: 0,
+    heroLocationIds: [],
+    heroLocationPlacementCounts: {},
+    heroLocationRoles: {},
+    heroLocationScreenRects: {},
     placements: 0,
     clusters: 0,
     placementGroups: 0,
@@ -858,6 +863,17 @@ type QaSnapshot = {
       intensity: number;
       distance: number;
     };
+    routeEncounters: Record<
+      string,
+      ScreenRectQa & {
+        id: string;
+        routeId: string;
+        profile: string;
+        partCount: number;
+        intensity: number;
+        distance: number;
+      }
+    >;
   };
   input: {
     activeKeys: DriveKey[];
@@ -1514,7 +1530,8 @@ class StudioGame {
         partCount: 0,
         intensity: 0,
         distance: 0
-      }
+      },
+      routeEncounters: {}
     },
     input: { activeKeys: [], keyboardDownCount: 0, keyboardUpCount: 0, lastKeyboardCode: null, qaStepHookCalls: 0 },
     activeFeedback: {
@@ -4387,6 +4404,29 @@ class StudioGame {
         : previousScreen.activeRouteEncounter.id === this.currentRouteEncounterId
           ? previousScreen.activeRouteEncounter
           : this.emptyScreenRect();
+    const routeEncounterScreens =
+      full && qaMode
+        ? Object.fromEntries(
+            this.routeEncounterGates.map((gate) => [
+              gate.routeId,
+              {
+                ...this.projectObjectToScreenRect(gate.object),
+                id: gate.id,
+                routeId: gate.routeId,
+                profile: gate.profile,
+                partCount: gate.partCount,
+                intensity:
+                  typeof gate.object.userData.routeEncounterIntensity === "number"
+                    ? gate.object.userData.routeEncounterIntensity
+                    : 0,
+                distance:
+                  typeof gate.object.userData.routeEncounterDistance === "number"
+                    ? gate.object.userData.routeEncounterDistance
+                    : 0
+              }
+            ])
+          )
+        : previousScreen.routeEncounters;
     this.qaSnapshot.camera = {
       position: this.toVec3Qa(this.camera.position),
       target: this.toVec3Qa(this.cameraTarget),
@@ -4444,7 +4484,8 @@ class StudioGame {
         partCount: this.currentRouteEncounterPartCount,
         intensity: this.currentRouteEncounterIntensity,
         distance: this.currentRouteEncounterDistance
-      }
+      },
+      routeEncounters: routeEncounterScreens
     };
     this.qaSnapshot.input = {
       activeKeys: [...this.keys],
@@ -4560,7 +4601,8 @@ class StudioGame {
     this.qaSnapshot.externalAssets = {
       ...this.externalAssetsTelemetry,
       bounds: this.externalAssetPreviewGroup ? this.measureObject(this.externalAssetPreviewGroup) : { width: 0, height: 0, depth: 0 },
-      roleScreenRects: this.externalAssetPreviewGroup ? this.createExternalAssetRoleScreenRects() : {}
+      roleScreenRects: this.externalAssetPreviewGroup ? this.createExternalAssetRoleScreenRects() : {},
+      heroLocationScreenRects: this.externalAssetPreviewGroup ? this.createExternalAssetHeroLocationScreenRects() : {}
     };
     this.qaSnapshot.frameCount = this.frameCount;
     this.qaSnapshot.averageFrameMs = Number(averageFrameMs.toFixed(2));
@@ -5149,6 +5191,30 @@ class StudioGame {
     }
 
     return Object.fromEntries(roleRects.entries());
+  }
+
+  private createExternalAssetHeroLocationScreenRects() {
+    if (!this.externalAssetPreviewGroup) {
+      return {};
+    }
+
+    const locationRects = new Map<string, ScreenRectQa>();
+    for (const child of this.externalAssetPreviewGroup.children) {
+      const heroLocation = child.userData.externalAssetHeroLocation;
+      if (typeof heroLocation !== "string") {
+        continue;
+      }
+      const rect = this.projectObjectToScreenRect(child);
+      if (!rect.visible || rect.clippedArea <= 0) {
+        continue;
+      }
+      const existing = locationRects.get(heroLocation);
+      if (!existing || rect.clippedArea > existing.clippedArea) {
+        locationRects.set(heroLocation, rect);
+      }
+    }
+
+    return Object.fromEntries(locationRects.entries());
   }
 
   private emptyAssetEnvelope(zone: StudioZone): AssetEnvelopeQa {

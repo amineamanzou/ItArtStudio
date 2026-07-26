@@ -38,6 +38,11 @@ export type ExternalAssetPreviewTelemetry = {
   terrainRoles: string[];
   publicPaths: string[];
   errors: string[];
+  heroLocationPlacements: number;
+  heroLocationIds: string[];
+  heroLocationPlacementCounts: Record<string, number>;
+  heroLocationRoles: Record<string, string[]>;
+  heroLocationScreenRects: Record<string, { visible: boolean; visibleRatio: number; clippedArea: number; width: number; height: number }>;
   placements: number;
   clusters: number;
   placementGroups: number;
@@ -79,6 +84,8 @@ type MapPlacementSpec = PreviewSpec & {
   curation: "primary" | "support" | "context";
   promotionCandidate: boolean;
   groundClearance: number;
+  heroLocation?: string;
+  heroRole?: string;
 };
 
 const manifest = worldAssetManifest as WorldAssetManifest;
@@ -143,6 +150,11 @@ export function createExternalAssetTelemetry(enabled: boolean, mode: ExternalAss
     terrainRoles: [],
     publicPaths: [],
     errors: [],
+    heroLocationPlacements: 0,
+    heroLocationIds: [],
+    heroLocationPlacementCounts: {},
+    heroLocationRoles: {},
+    heroLocationScreenRects: {},
     placements: 0,
     clusters: 0,
     placementGroups: 0,
@@ -265,6 +277,20 @@ export async function createExternalAssetMapLayer() {
   telemetry.maxClusterDensity = getMaxClusterDensity(jobs.map((job) => job.spec.clusterId));
   telemetry.minGroundClearance = Number(Math.min(...jobs.map((job) => job.spec.groundClearance)).toFixed(3));
   telemetry.coplanarRiskPlacements = jobs.filter((job) => job.spec.groundClearance < 0.12).length;
+  for (const { spec } of jobs) {
+    if (!spec.heroLocation) {
+      continue;
+    }
+    telemetry.heroLocationPlacements += 1;
+    telemetry.heroLocationPlacementCounts[spec.heroLocation] = (telemetry.heroLocationPlacementCounts[spec.heroLocation] ?? 0) + 1;
+    if (spec.heroRole) {
+      telemetry.heroLocationRoles[spec.heroLocation] = [...(telemetry.heroLocationRoles[spec.heroLocation] ?? []), spec.heroRole];
+    }
+  }
+  telemetry.heroLocationIds = Object.keys(telemetry.heroLocationPlacementCounts).sort();
+  telemetry.heroLocationRoles = Object.fromEntries(
+    Object.entries(telemetry.heroLocationRoles).map(([zoneId, roles]) => [zoneId, [...new Set(roles)].sort()])
+  );
   const actualGroundClearances: number[] = [];
 
   const results = await Promise.allSettled(
@@ -283,6 +309,8 @@ export async function createExternalAssetMapLayer() {
       wrapper.userData.externalAssetCuration = spec.curation;
       wrapper.userData.externalAssetPromotionCandidate = spec.promotionCandidate;
       wrapper.userData.externalAssetGroundClearance = spec.groundClearance;
+      wrapper.userData.externalAssetHeroLocation = spec.heroLocation ?? null;
+      wrapper.userData.externalAssetHeroRole = spec.heroRole ?? null;
       wrapper.userData.externalAssetId = asset.id;
       wrapper.userData.externalAssetSourceId = asset.sourceId;
       wrapper.userData.externalAssetTerrainRole = asset.terrainRole;
@@ -292,6 +320,8 @@ export async function createExternalAssetMapLayer() {
         object.userData.externalAssetId = object.userData.externalAssetId ?? asset.id;
         object.userData.externalAssetMapPlacement = true;
         object.userData.externalAssetCuration = object.userData.externalAssetCuration ?? spec.curation;
+        object.userData.externalAssetHeroLocation = object.userData.externalAssetHeroLocation ?? spec.heroLocation ?? null;
+        object.userData.externalAssetHeroRole = object.userData.externalAssetHeroRole ?? spec.heroRole ?? null;
         if (object instanceof THREE.Mesh) {
           object.castShadow = false;
           object.receiveShadow = true;
@@ -423,7 +453,8 @@ function createMapPlacementSpecs(): MapPlacementSpec[] {
     ...createRoutePlacementSpecs(),
     ...createWaterPlacementSpecs(),
     ...createReliefPlacementSpecs(),
-    ...createVegetationPlacementSpecs()
+    ...createVegetationPlacementSpecs(),
+    ...createHeroLocationPlacementSpecs()
   ];
 }
 
@@ -523,6 +554,47 @@ function createVegetationPlacementSpecs(): MapPlacementSpec[] {
   ];
 }
 
+function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
+  return [
+    createPlacement("hero:cloud-dock:server-pylon", "hero:cloud-dock", "route", "primary", true, "route-edge", "bridge-pillar.glb", [-7.9, -16.9], 1.8, 0.08, {
+      heroLocation: "cloud-dock",
+      heroRole: "server-pylon"
+    }),
+    createPlacement("hero:cloud-dock:electric-mast", "hero:cloud-dock", "route", "support", true, "route-edge", "light-curved.glb", [-6.6, -15.9], 1.25, -0.42, {
+      heroLocation: "cloud-dock",
+      heroRole: "electric-mast"
+    }),
+    createPlacement("hero:cloud-dock:platform-span", "hero:cloud-dock", "route", "support", true, "road", "road-bridge.glb", [-8.6, -18.0], 1.8, Math.PI * 0.42, {
+      heroLocation: "cloud-dock",
+      heroRole: "platform-span"
+    }),
+    createPlacement("hero:design-atelier:cutting-table", "hero:design-atelier", "route", "primary", true, "bridge", "bridge_wood.glb", [15.6, -7.8], 1.5, Math.PI * 0.5, {
+      heroLocation: "design-atelier",
+      heroRole: "cutting-table"
+    }),
+    createPlacement("hero:design-atelier:pattern-corner", "hero:design-atelier", "route", "support", true, "bridge", "path_woodCorner.glb", [16.9, -6.8], 1.3, -0.14, {
+      heroLocation: "design-atelier",
+      heroRole: "pattern-corner"
+    }),
+    createPlacement("hero:design-atelier:swatch-marker", "hero:design-atelier", "vegetation", "support", true, "vegetation", "flower_yellowA.glb", [17.5, -8.4], 1.2, 0.28, {
+      heroLocation: "design-atelier",
+      heroRole: "swatch-marker"
+    }),
+    createPlacement("hero:observability-tower:signal-pylon", "hero:observability-tower", "route", "primary", true, "route-edge", "bridge-pillar.glb", [-17.4, 7.8], 2.2, 0, {
+      heroLocation: "observability-tower",
+      heroRole: "signal-pylon"
+    }),
+    createPlacement("hero:observability-tower:beacon-light", "hero:observability-tower", "route", "support", true, "route-edge", "light-square.glb", [-16.2, 8.8], 1.0, 0.24, {
+      heroLocation: "observability-tower",
+      heroRole: "beacon-light"
+    }),
+    createPlacement("hero:observability-tower:radar-ring", "hero:observability-tower", "route", "support", true, "road", "road-roundabout.glb", [-18.5, 6.9], 1.7, 0.2, {
+      heroLocation: "observability-tower",
+      heroRole: "radar-ring"
+    })
+  ];
+}
+
 function createPlacement(
   id: string,
   clusterId: string,
@@ -533,7 +605,8 @@ function createPlacement(
   preferredFile: string,
   center: readonly [number, number],
   targetSize: number,
-  rotationY = 0
+  rotationY = 0,
+  options: Pick<MapPlacementSpec, "heroLocation" | "heroRole"> = {}
 ): MapPlacementSpec {
   const terrain = sampleTerrain(new THREE.Vector3(center[0], 0, center[1]));
   const groundClearance = getRoleGroundClearance(terrainRole, curation);
@@ -548,7 +621,8 @@ function createPlacement(
     preferredFile,
     position: [center[0], terrain.height + groundClearance, center[1]],
     targetSize,
-    rotationY
+    rotationY,
+    ...options
   };
 }
 

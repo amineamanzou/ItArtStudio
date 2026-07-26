@@ -1121,6 +1121,20 @@ Gates V8.7:
 - cette tranche prepare les trois hero locations premium en augmentant l'espace
   disponible avant d'ajouter des assets plus narratifs.
 
+Gates V8.8:
+
+- la couche opt-in `?assets=map` compose maintenant trois clusters GLB
+  narratifs pour les hero locations `Cloud Dock`, `Design Atelier` et
+  `Observability Tower`, a partir des assets CC0 deja acceptes;
+- chaque cluster expose une telemetrie `heroLocation`: trois placements, trois
+  roles narratifs et un rectangle ecran mesure en QA apres saut mini-map;
+- `external-asset-map-composition` ne prouve plus seulement la couverture
+  terrain: il doit aussi charger neuf placements hero-location et capturer les
+  trois lieux en contexte;
+- cette etape reste une preuve de composition avant promotion dans l'URL
+  publique normale, afin de continuer a reduire le bruit procedural lieu par
+  lieu.
+
 ## Components
 
 - `game-site`: surface principale.
