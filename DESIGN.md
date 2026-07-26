@@ -790,6 +790,21 @@ Gates V6.5:
   les roles de decor deviennent printer bed, resin vat, scan gantry, runway
   arch, fabric roll, mirror panel et pattern cutting table.
 
+Gates V6.6:
+
+- les balises globales de carte passent de poteaux individuels a deux
+  `InstancedMesh` colores: meme lecture de micro-reperes, beaucoup moins de
+  noeuds dans le scene graph;
+- `premium-scene-headroom` exige au moins 24 slots d'objets libres sous le
+  budget strict `sceneObjects <= 940`, tout en conservant 24 pieces semantiques
+  de balises exposees par deux objets physiques maximum;
+- `real-drive-tour` doit maintenant prouver explicitement les quatre
+  destinations critiques `ai-lab`, `observability-tower`, `design-atelier` et
+  `contact-portal` en vraies touches, sans hook deterministe;
+- cette vague prepare l'ajout d'assets 3D plus ambitieux: chaque nouvelle
+  silhouette doit entrer avec une marge mesurable et une preuve de conduite
+  fiable au lieu de remplir le budget a l'aveugle.
+
 ## Components
 
 - `game-site`: surface principale.

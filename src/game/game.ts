@@ -608,6 +608,8 @@ type QaSnapshot = {
     missingSurfaceDetailProfiles: string[];
     duplicateSurfaceDetailSignatures: string[];
     visibleBoundaryObjects: number;
+    worldBeaconObjects: number;
+    worldBeaconSceneObjects: number;
     identityRibbonObjects: number;
     identityRibbonSignatures: number;
     terrainLayers: number;
@@ -993,6 +995,8 @@ class StudioGame {
       missingSurfaceDetailProfiles: [],
       duplicateSurfaceDetailSignatures: [],
       visibleBoundaryObjects: 0,
+      worldBeaconObjects: 0,
+      worldBeaconSceneObjects: 0,
       identityRibbonObjects: 0,
       identityRibbonSignatures: 0,
       terrainLayers: 0,
@@ -1753,60 +1757,66 @@ class StudioGame {
   }
 
   private addWorldProps() {
-    const beaconMaterial = new THREE.MeshStandardMaterial({
-      color: colors.studio,
-      roughness: 0.36,
-      metalness: 0.22,
-      emissive: colors.studio,
-      emissiveIntensity: 0.24
-    });
-    const techMaterial = new THREE.MeshStandardMaterial({
-      color: colors.tech,
-      roughness: 0.48,
-      metalness: 0.24,
-      emissive: colors.tech,
-      emissiveIntensity: 0.16
-    });
-    const artMaterial = new THREE.MeshStandardMaterial({
-      color: colors.art,
-      roughness: 0.48,
-      metalness: 0.16,
-      emissive: colors.art,
-      emissiveIntensity: 0.16
-    });
-
     const props = [
-      [-8.4, -1.7, techMaterial],
-      [-10.4, 2.1, techMaterial],
-      [-5.9, 5.2, techMaterial],
-      [-2.2, -7.1, techMaterial],
-      [8.2, -1.8, artMaterial],
-      [10.8, 1.2, artMaterial],
-      [7.2, 5.5, artMaterial],
-      [3.8, 7.8, artMaterial],
-      [-1.8, 2.4, beaconMaterial],
-      [1.7, 2.1, beaconMaterial],
-      [-1.4, -3.1, beaconMaterial],
-      [2.2, -3.5, beaconMaterial]
+      [-8.4, -1.7, colors.tech],
+      [-10.4, 2.1, colors.tech],
+      [-5.9, 5.2, colors.tech],
+      [-2.2, -7.1, colors.tech],
+      [8.2, -1.8, colors.art],
+      [10.8, 1.2, colors.art],
+      [7.2, 5.5, colors.art],
+      [3.8, 7.8, colors.art],
+      [-1.8, 2.4, colors.studio],
+      [1.7, 2.1, colors.studio],
+      [-1.4, -3.1, colors.studio],
+      [2.2, -3.5, colors.studio]
     ] as const;
 
-    for (const [x, z, mat] of props) {
-      const post = new THREE.Group();
-      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.7, 8), mat);
-      stem.position.y = 0.48;
-      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 8), mat);
-      cap.position.y = 0.9;
-      post.add(stem, cap);
-      post.position.set(x, 0, z);
-      post.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-        }
-      });
-      this.scene.add(post);
-      this.decorativeObjectCount += 2;
-    }
+    const propMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.44,
+      metalness: 0.22,
+      emissive: 0xffffff,
+      emissiveIntensity: 0.08,
+      vertexColors: true
+    });
+    const propGroup = new THREE.Group();
+    propGroup.name = "instanced-world-beacon-posts";
+    const stems = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.035, 0.05, 0.7, 8), propMaterial, props.length);
+    const caps = new THREE.InstancedMesh(new THREE.SphereGeometry(0.13, 12, 8), propMaterial, props.length);
+    const dummy = new THREE.Object3D();
+    const color = new THREE.Color();
+
+    props.forEach(([x, z, hex], index) => {
+      dummy.position.set(x, 0.48, z);
+      dummy.rotation.set(0, index * 0.17, 0);
+      dummy.scale.setScalar(1);
+      dummy.updateMatrix();
+      stems.setMatrixAt(index, dummy.matrix);
+      stems.setColorAt(index, color.setHex(hex));
+
+      dummy.position.set(x, 0.9, z);
+      dummy.rotation.set(0, index * 0.17, 0);
+      dummy.scale.setScalar(1);
+      dummy.updateMatrix();
+      caps.setMatrixAt(index, dummy.matrix);
+      caps.setColorAt(index, color.setHex(hex));
+    });
+
+    [stems, caps].forEach((mesh) => {
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) {
+        mesh.instanceColor.needsUpdate = true;
+      }
+      mesh.castShadow = false;
+      mesh.receiveShadow = true;
+      mesh.userData.worldBeaconPart = mesh === stems ? "beacon-stem" : "beacon-cap";
+      mesh.userData.worldBeaconObjectCount = props.length;
+      propGroup.add(mesh);
+    });
+
+    this.scene.add(propGroup);
+    this.decorativeObjectCount += props.length * 2;
   }
 
   private addZone(zone: StudioZone) {
@@ -2500,6 +2510,7 @@ class StudioGame {
       this.currentAccelerationGain = 0;
       this.currentWaterGain = 0;
       this.currentRampGain = 0;
+      this.currentBrakeGain = 0;
     }
     this.syncAudioToggle();
   }
@@ -3639,6 +3650,8 @@ class StudioGame {
       let surfaceDetailColorVariants = 0;
       let visibleBoundaryObjects = 0;
       let identityRibbonObjects = 0;
+      let worldBeaconObjects = 0;
+      let worldBeaconSceneObjects = 0;
       const identityRibbonSignatures = new Set<string>();
       this.scene.traverse((object) => {
         const role = object.userData.worldSceneryRole;
@@ -3698,6 +3711,15 @@ class StudioGame {
           visibleBoundaryObjects +=
             typeof object.userData.visibleBoundaryObjectCount === "number"
               ? object.userData.visibleBoundaryObjectCount
+              : object instanceof THREE.InstancedMesh
+                ? object.count
+                : 1;
+        }
+        if (typeof object.userData.worldBeaconPart === "string") {
+          worldBeaconSceneObjects += 1;
+          worldBeaconObjects +=
+            typeof object.userData.worldBeaconObjectCount === "number"
+              ? object.userData.worldBeaconObjectCount
               : object instanceof THREE.InstancedMesh
                 ? object.count
                 : 1;
@@ -3773,6 +3795,8 @@ class StudioGame {
           .filter((signature, index, signatures) => signatures.indexOf(signature) !== index)
           .sort(),
         visibleBoundaryObjects,
+        worldBeaconObjects,
+        worldBeaconSceneObjects,
         identityRibbonObjects,
         identityRibbonSignatures: identityRibbonSignatures.size,
         terrainLayers: this.terrainLayerCount,

@@ -277,6 +277,9 @@ The runner:
   objects. Route guidance may optimize implementation details, but it must still
   expose one chevron and one stud per visualized segment, one encounter gate per
   route, matching signatures, motion roles, and all gameplay visibility gates.
+- Premium scene headroom must keep at least 24 scene-object slots free under
+  the strict 940-object world budget. Global beacon posts must remain visible as
+  24 semantic pieces while being rendered through two physical scene objects.
 - Prop cluster instancing must keep the full rendered world below 955 scene
   objects while preserving all declared props semantically: every declared prop
   cluster must be instanced, the global instanced prop count must match the

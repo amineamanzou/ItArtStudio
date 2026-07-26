@@ -1796,7 +1796,6 @@ async function checkRealDriveTour(browser) {
       {
         id: "ai-lab",
         position: { x: -10.8, z: -4.8 },
-        disabled: true,
         route: [
           { id: "cloud-dock", zoneId: "cloud-dock", position: { x: -4.1, z: -10.4 }, timeoutMs: 10_000 },
           { id: "ai-lab", zoneId: "ai-lab", position: { x: -10.8, z: -4.8 }, timeoutMs: 10_000 }
@@ -1805,11 +1804,8 @@ async function checkRealDriveTour(browser) {
       {
         id: "observability-tower",
         position: { x: -12.4, z: 4.8 },
-        disabled: true,
         route: [
-          { id: "tech-ai-obs-east-approach", position: { x: -4.9, z: -1.05 }, radius: 1.45, timeoutMs: 12_000, overshootBrake: true },
-          { id: "tech-ai-obs-east-entry", position: { x: -5.55, z: 1.55 }, radius: 1.45, timeoutMs: 12_000, overshootBrake: true },
-          { id: "observability-tower", zoneId: "observability-tower", position: { x: -12.4, z: 4.8 }, radius: 3, timeoutMs: 16_000, overshootBrake: true }
+          { id: "observability-tower", zoneId: "observability-tower", position: { x: -12.4, z: 4.8 }, radius: 2.2, timeoutMs: 18_000, overshootBrake: true }
         ]
       },
       {
@@ -1841,6 +1837,7 @@ async function checkRealDriveTour(browser) {
       }
     ];
     const realDriveTargets = targets.filter((target) => target.disabled !== true);
+    const requiredRealDriveTargetIds = ["ai-lab", "observability-tower", "design-atelier", "contact-portal"];
     const routeResults = [];
 
     for (const target of realDriveTargets) {
@@ -1891,9 +1888,12 @@ async function checkRealDriveTour(browser) {
     const invisibleActiveZoneSamples = cameraSamples.filter((sample) => sample.screen?.activeZone?.visible !== true);
     const activeZoneTransitionTolerance = Math.max(12, Math.ceil(cameraSamples.length * 0.08), Math.ceil(distanceDelta * 0.5));
     const visitedTargets = realDriveTargets.filter((target) => final?.visitedZoneIds?.includes(target.id)).map((target) => target.id);
+    const visitedRequiredTargets = requiredRealDriveTargetIds.filter((targetId) => final?.visitedZoneIds?.includes(targetId));
     const surface = final?.drive?.surface;
     const expectedRouteIds = [
       "tech-gate-cloud",
+      "tech-cloud-ai",
+      "tech-ai-obs",
       "art-gate-design",
       "spine-contact-gate"
     ];
@@ -1910,6 +1910,7 @@ async function checkRealDriveTour(browser) {
       frameDelta >= 40 &&
       routeResults.every((result) => result.reached && result.samples.length >= 3) &&
       visitedTargets.length === realDriveTargets.length &&
+      visitedRequiredTargets.length === requiredRealDriveTargetIds.length &&
       distanceDelta >= 26 &&
       xSpan >= 8 &&
       zSpan >= 8 &&
@@ -2043,6 +2044,8 @@ async function checkRealDriveTour(browser) {
         invisibleActiveZoneSamples: invisibleActiveZoneSamples.length,
         activeZoneTransitionTolerance,
         visitedTargets,
+        requiredRealDriveTargetIds,
+        visitedRequiredTargets,
         input: final.input,
         drive: final.drive,
         camera: final.camera,
@@ -2064,6 +2067,8 @@ async function checkRealDriveTour(browser) {
         invisibleActiveZoneSamples,
         activeZoneTransitionTolerance,
         visitedTargets,
+        requiredRealDriveTargetIds,
+        visitedRequiredTargets,
         input: final?.input,
         final,
         routeResults
@@ -2186,12 +2191,10 @@ async function checkRealDriveTour(browser) {
     const encounterDrive = await inspectRouteEncounterFromFreshDrive(browser, {
       label: "real-drive:spine-contact-gate",
       routeId: "spine-contact-gate",
-      position: { x: 0, z: -13.2 },
-      radius: 2.4,
+      position: { x: 0, z: -6.6 },
+      radius: 1.45,
       timeoutMs: 12_000,
       route: [
-        { id: "route-encounter-spine-via-values", zoneId: "values-plaza", position: { x: 0, z: 12.1 }, radius: 2.9, timeoutMs: 12_000, overshootBrake: true },
-        { id: "route-encounter-spine-via-studio", zoneId: "studio-gate", position: { x: 0, z: 0 }, radius: 1.65, timeoutMs: 10_000, overshootBrake: true },
         { id: "route-encounter:spine-contact-gate", position: { x: 0, z: -6.6 }, radius: 1.45, timeoutMs: 12_000, overshootBrake: true }
       ]
     });
@@ -2391,7 +2394,7 @@ async function checkRealDriveWholeMapFreedom(browser) {
     { id: "center-return", position: { x: 0, z: 0 }, radius: 1.4, timeoutMs: 12_000, overshootBrake: true }
   ];
   const targets = qaProfile === "quick"
-    ? [fullTargets[0], fullTargets[1], fullTargets[3], fullTargets[5], fullTargets[8]]
+    ? [fullTargets[0], fullTargets[1], fullTargets[2], fullTargets[3], fullTargets[5], fullTargets[8]]
     : fullTargets;
   const routeResults = [];
 
@@ -4415,6 +4418,31 @@ async function checkWorldRichness(page) {
       qualityPreserved: false,
       routeGuidanceRoleCounts: world?.routeGuidanceRoleCounts,
       surface
+    });
+  }
+
+  const premiumSceneHeadroom =
+    world &&
+    world.sceneObjects <= premiumWorldObjectBudget - 24 &&
+    (world.worldBeaconObjects ?? 0) >= 24 &&
+    (world.worldBeaconSceneObjects ?? 99) <= 2;
+  if (premiumSceneHeadroom) {
+    pass("premium-scene-headroom", {
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget,
+      reservedHeadroom: premiumWorldObjectBudget - world.sceneObjects,
+      requiredReservedHeadroom: 24,
+      worldBeaconObjects: world.worldBeaconObjects,
+      worldBeaconSceneObjects: world.worldBeaconSceneObjects
+    });
+  } else {
+    scenarioFail("premium-scene-headroom", "Scene graph is too close to the premium world budget for the next modeled asset wave.", {
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget,
+      reservedHeadroom: typeof world?.sceneObjects === "number" ? premiumWorldObjectBudget - world.sceneObjects : null,
+      requiredReservedHeadroom: 24,
+      worldBeaconObjects: world?.worldBeaconObjects,
+      worldBeaconSceneObjects: world?.worldBeaconSceneObjects
     });
   }
 
@@ -7890,6 +7918,7 @@ async function writeReport() {
   const routeEncounterVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("route-encounter-visible:"));
   const roverReadableScenarios = scenarios.filter((scenario) => scenario.name.startsWith("rover-readable:"));
   const sceneGraphHeadroomScenario = scenarios.find((scenario) => scenario.name === "scene-graph-headroom");
+  const premiumSceneHeadroomScenario = scenarios.find((scenario) => scenario.name === "premium-scene-headroom");
   const propClusterInstancingScenario = scenarios.find((scenario) => scenario.name === "prop-cluster-instancing");
   const productionRuntimeScenario = scenarios.find((scenario) => scenario.name === "production-runtime-lightweight");
   const cameraSafeScenarios = scenarios.filter((scenario) => scenario.name.startsWith("camera-safe-area:"));
@@ -8038,7 +8067,7 @@ async function writeReport() {
     }`,
     `- Real drive tour: ${
       realDriveScenario?.details
-        ? `${realDriveScenario.details.distanceDelta} units over ${realDriveScenario.details.frameDelta} frames, polling max step ${realDriveScenario.details.maxStepDistance}, telemetry max step ${realDriveScenario.details.driveTelemetryMaxStep}, camera lag max ${realDriveScenario.details.maxCameraLag}, camera distance ${realDriveScenario.details.minCameraDistance}-${realDriveScenario.details.maxCameraDistance}, sticky active-zone offscreen samples ${realDriveScenario.details.invisibleActiveZoneSamples}`
+        ? `${realDriveScenario.details.visitedRequiredTargets?.length ?? "n/a"}/${realDriveScenario.details.requiredRealDriveTargetIds?.length ?? "n/a"} required targets, ${realDriveScenario.details.distanceDelta} units over ${realDriveScenario.details.frameDelta} frames, polling max step ${realDriveScenario.details.maxStepDistance}, telemetry max step ${realDriveScenario.details.driveTelemetryMaxStep}, camera lag max ${realDriveScenario.details.maxCameraLag}, camera distance ${realDriveScenario.details.minCameraDistance}-${realDriveScenario.details.maxCameraDistance}, sticky active-zone offscreen samples ${realDriveScenario.details.invisibleActiveZoneSamples}`
         : "n/a"
     }`,
     `- Real drive continuity: ${
@@ -8079,6 +8108,11 @@ async function writeReport() {
     `- Scene graph headroom: ${
       sceneGraphHeadroomScenario?.details
         ? `${sceneGraphHeadroomScenario.details.sceneObjects}/${sceneGraphHeadroomScenario.details.sceneObjectBudget}, freed ${sceneGraphHeadroomScenario.details.freedFromPreviousBaseline}/${sceneGraphHeadroomScenario.details.minFreedSceneObjects}, route guidance ${sceneGraphHeadroomScenario.details.routeGuidanceObjects}/${sceneGraphHeadroomScenario.details.expectedGuidanceObjects}, route roles chevron:${sceneGraphHeadroomScenario.details.routeGuidanceRoleCounts?.["route-chevron"] ?? "n/a"} stud:${sceneGraphHeadroomScenario.details.routeGuidanceRoleCounts?.["route-stud"] ?? "n/a"} gate:${sceneGraphHeadroomScenario.details.routeGuidanceRoleCounts?.["route-encounter-gate"] ?? "n/a"}, quality preserved ${sceneGraphHeadroomScenario.details.qualityPreserved ? "yes" : "no"}`
+        : "n/a"
+    }`,
+    `- Premium scene headroom: ${
+      premiumSceneHeadroomScenario?.details
+        ? `${premiumSceneHeadroomScenario.details.reservedHeadroom}/${premiumSceneHeadroomScenario.details.requiredReservedHeadroom} reserved, scene ${premiumSceneHeadroomScenario.details.sceneObjects}/${premiumSceneHeadroomScenario.details.sceneObjectBudget}, beacons ${premiumSceneHeadroomScenario.details.worldBeaconObjects} semantic/${premiumSceneHeadroomScenario.details.worldBeaconSceneObjects} scene`
         : "n/a"
     }`,
     `- Prop cluster instancing: ${
