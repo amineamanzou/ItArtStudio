@@ -175,7 +175,7 @@
       "preferredFormat": "GLB",
       "localPath": "public/assets/models/vendor/kenney/city-kit-roads/roads",
       "publicPath": "assets/models/vendor/kenney/city-kit-roads/roads",
-      "fileKb": 243.3,
+      "fileKb": 251.7,
       "triangles": 3384,
       "selectedFiles": [
         "road-bridge.glb",
@@ -204,7 +204,7 @@
       "preferredFormat": "GLB",
       "localPath": "public/assets/models/vendor/kenney/city-kit-roads/route-edge",
       "publicPath": "assets/models/vendor/kenney/city-kit-roads/route-edge",
-      "fileKb": 46.2,
+      "fileKb": 54.6,
       "triangles": 330,
       "selectedFiles": [
         "bridge-pillar.glb",

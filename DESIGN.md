@@ -1043,6 +1043,21 @@ Gates V8.2:
   puis composer une map plus grande a partir de ces pieces au lieu d'ajouter du
   bruit procedural.
 
+Gates V8.3:
+
+- `src/game/asset-loader.ts` lit le manifest asset-first et construit les URLs
+  runtime avec `import.meta.env.BASE_URL`, afin que les GLB fonctionnent en
+  local comme sur GitHub Pages;
+- `?assets=preview` active une planche runtime separee qui charge six specimens
+  GLB acceptes, un par role terrain: road, route-edge, bridge, relief, water et
+  vegetation;
+- la preview reste opt-in: l'URL publique normale conserve les fallbacks
+  proceduraux et le budget existant tant que la grande map n'a pas ete
+  recomposee;
+- `external-asset-preview-runtime` devient la preuve QA minimale du pipeline:
+  fichiers GLB visibles, chemins publics sans `public/`, six roles couverts,
+  aucune erreur de chargement et capture canvas non plate.
+
 ## Components
 
 - `game-site`: surface principale.

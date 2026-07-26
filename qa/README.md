@@ -298,6 +298,10 @@ The runner:
   expansion: every accepted asset needs source, license, file weight, texture
   list, triangle budget, narrative role, fallback, and at least one visible
   capture proof once integrated.
+- `external-asset-preview-runtime` opens `?assets=preview`, loads one accepted
+  GLB specimen for each terrain role, verifies GitHub Pages-safe public paths,
+  waits for all files to resolve, and captures a non-flat preview before any
+  full map replacement work begins.
 - Asset envelope checks use a bounded measurement tolerance for headless browser
   and animation-phase differences, while still requiring non-empty geometry,
   local placement, vertical clearance, and premium scene-object budgets.
@@ -449,6 +453,12 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
   - `triangles`
   - `geometries`
   - `textures`
+- `externalAssets`
+  - `loaded`
+  - `failed`
+  - `terrainRoles`
+  - `publicPaths`
+  - `bounds`
 - `lighting`
 - `canvas`
 - `frameCount`

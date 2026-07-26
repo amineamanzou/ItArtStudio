@@ -66,6 +66,8 @@ l'onglet **Actions**.
 - `src/pages/index.astro` : shell HTML de l'experience jouable
 - `src/layouts/BaseLayout.astro` : layout HTML, SEO de base, runtime client
 - `src/game/game.ts` : moteur Three.js leger, deplacement et interactions
+- `src/game/asset-loader.ts` : loader GLB asset-first, URLs compatibles Pages
+  et preview runtime opt-in
 - `src/game/procedural-assets.ts` : landmarks 3D proceduraux par zone
 - `src/game/zones.ts` : contenu editorial de la cartographie
 - `src/styles/global.css` : design system, HUD, carte, mobile et fallback

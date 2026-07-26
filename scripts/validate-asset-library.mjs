@@ -67,6 +67,34 @@ const countGlbTriangles = (filePath) => {
   return Math.round(triangles);
 };
 
+const validateGlbImageReferences = (filePath) => {
+  const gltf = readGlbJsonChunk(filePath);
+  if (!gltf) {
+    return;
+  }
+
+  for (const image of asArray(gltf.images)) {
+    const uri = image?.uri;
+    if (typeof uri !== "string" || uri.startsWith("data:")) {
+      continue;
+    }
+
+    if (uri.startsWith("/") || uri.startsWith("public/") || uri.split(/[\\/]/u).includes("..")) {
+      fail("GLB image URI must stay relative to the model folder.", { filePath, uri });
+      continue;
+    }
+
+    const imagePath = path.join(path.dirname(filePath), uri);
+    if (!fs.existsSync(imagePath)) {
+      fail("GLB image URI does not resolve to a local texture.", {
+        filePath,
+        uri,
+        expectedPath: path.relative(root, imagePath)
+      });
+    }
+  }
+};
+
 const analyzeLocalAsset = (assetId, localPath) => {
   const absolutePath = path.join(root, localPath);
   const files = listFiles(absolutePath);
@@ -74,6 +102,7 @@ const analyzeLocalAsset = (assetId, localPath) => {
   const textureFiles = files.filter((file) => /\.(avif|jpe?g|png|webp)$/iu.test(file));
   const fileKb = roundTenth(files.reduce((total, file) => total + fs.statSync(file).size / 1024, 0));
   const triangles = glbFiles.reduce((total, file) => total + countGlbTriangles(file), 0);
+  glbFiles.forEach(validateGlbImageReferences);
 
   return {
     assetId,
@@ -272,7 +301,23 @@ for (const asset of assets) {
           modelFiles: localAnalysis.modelFiles
         });
       }
-      for (const glbFile of listFiles(path.join(root, asset.localPath)).filter((file) => file.endsWith(".glb"))) {
+      const localGlbFiles = listFiles(path.join(root, asset.localPath)).filter((file) => file.endsWith(".glb"));
+      const localGlbNames = new Set(localGlbFiles.map((file) => path.basename(file)));
+      for (const selectedFile of asArray(asset.selectedFiles)) {
+        if (typeof selectedFile !== "string" || !localGlbNames.has(selectedFile)) {
+          fail("Accepted model selectedFiles must name an existing local GLB.", {
+            assetId: asset.id,
+            selectedFile
+          });
+        }
+      }
+      for (const glbFile of localGlbFiles) {
+        if (Array.isArray(asset.selectedFiles) && !asset.selectedFiles.includes(path.basename(glbFile))) {
+          fail("Accepted local GLB must be listed in selectedFiles.", {
+            assetId: asset.id,
+            glbFile: path.relative(root, glbFile)
+          });
+        }
         declaredRuntimeGlbs.add(path.relative(root, glbFile));
       }
     }

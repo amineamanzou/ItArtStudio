@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import type { ExternalAssetPreviewTelemetry } from "./asset-loader";
 import { createZoneLandmark } from "./procedural-assets";
 import {
   createDriveSurfaceTelemetry,
@@ -35,6 +36,7 @@ const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 const searchParams = new URLSearchParams(window.location.search);
 const qaMode = searchParams.has("qa");
 const realKeyboardQaMode = searchParams.has("realKeys");
+const externalAssetPreviewMode = searchParams.get("assets") === "preview";
 const playerMaxForwardSpeed = qaMode ? 12.8 : 10.5;
 const playerMaxReverseSpeed = qaMode ? 6.4 : 4.2;
 const playerAcceleration = qaMode ? 38 : 24;
@@ -53,6 +55,25 @@ const colors: Record<ZoneKind | "ground" | "road" | "ink", number> = {
   road: 0xf8f0d4,
   ink: 0x101015
 };
+
+function createDefaultExternalAssetTelemetry(enabled: boolean): ExternalAssetPreviewTelemetry {
+  return {
+    enabled,
+    requested: 0,
+    loaded: 0,
+    failed: 0,
+    visible: 0,
+    collections: 0,
+    files: 0,
+    sceneObjects: 0,
+    collectionFileKb: 0,
+    collectionTriangles: 0,
+    assetIds: [],
+    terrainRoles: [],
+    publicPaths: [],
+    errors: []
+  };
+}
 
 type ZoneAudioSignature = {
   id: string;
@@ -834,6 +855,7 @@ type QaSnapshot = {
   audio: AudioQa;
   canvas: { width: number; height: number; dpr: number };
   renderer: { calls: number; triangles: number; geometries: number; textures: number };
+  externalAssets: ExternalAssetPreviewTelemetry & { bounds: BoundsQa };
   frameCount: number;
   averageFrameMs: number;
   visitedZoneIds: string[];
@@ -929,6 +951,8 @@ class StudioGame {
   private readonly signatureArtifactGroups = new Map<string, THREE.Object3D>();
   private readonly projectArtifactGroups = new Map<string, THREE.Object3D>();
   private identityRibbonGroup: THREE.Object3D | null = null;
+  private externalAssetPreviewGroup: THREE.Object3D | null = null;
+  private externalAssetsTelemetry: ExternalAssetPreviewTelemetry = createDefaultExternalAssetTelemetry(externalAssetPreviewMode);
   private readonly worldSceneryMotionObjects: THREE.Object3D[] = [];
   private readonly routeGuidanceMotionObjects: THREE.Object3D[] = [];
   private readonly routeEncounterGates: RouteEncounterGate[] = [];
@@ -1536,6 +1560,10 @@ class StudioGame {
     },
     canvas: { width: 0, height: 0, dpr: 1 },
     renderer: { calls: 0, triangles: 0, geometries: 0, textures: 0 },
+    externalAssets: {
+      ...createDefaultExternalAssetTelemetry(externalAssetPreviewMode),
+      bounds: { width: 0, height: 0, depth: 0 }
+    },
     frameCount: 0,
     averageFrameMs: 0,
     visitedZoneIds: [defaultZone.id],
@@ -1615,10 +1643,38 @@ class StudioGame {
     this.addRouteGuidance();
     this.addLightingPools();
     this.addWorldProps();
+    this.addExternalAssetPreview();
 
     for (const zone of zones) {
       this.addZone(zone);
     }
+  }
+
+  private addExternalAssetPreview() {
+    if (!externalAssetPreviewMode) {
+      return;
+    }
+
+    void import("./asset-loader")
+      .then(({ createExternalAssetPreview }) => createExternalAssetPreview())
+      .then(({ group, telemetry }) => {
+        this.externalAssetPreviewGroup = group;
+        this.externalAssetsTelemetry = telemetry;
+        this.scene.add(group);
+        if (qaMode) {
+          this.syncQaSnapshot({ full: true });
+        }
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        this.externalAssetsTelemetry = {
+          ...this.externalAssetsTelemetry,
+          enabled: true,
+          failed: this.externalAssetsTelemetry.failed + 1,
+          errors: [...this.externalAssetsTelemetry.errors, message]
+        };
+        this.errors.push(`external-asset-preview:${message}`);
+      });
   }
 
   private addVisibleWorldBoundary() {
@@ -4471,6 +4527,10 @@ class StudioGame {
       triangles: this.renderer.info.render.triangles,
       geometries: this.renderer.info.memory.geometries,
       textures: this.renderer.info.memory.textures
+    };
+    this.qaSnapshot.externalAssets = {
+      ...this.externalAssetsTelemetry,
+      bounds: this.externalAssetPreviewGroup ? this.measureObject(this.externalAssetPreviewGroup) : { width: 0, height: 0, depth: 0 }
     };
     this.qaSnapshot.frameCount = this.frameCount;
     this.qaSnapshot.averageFrameMs = Number(averageFrameMs.toFixed(2));

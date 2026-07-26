@@ -4966,6 +4966,80 @@ async function checkWorldRichness(page) {
   }
 }
 
+async function checkExternalAssetPreview(browser) {
+  const previewUrl = withSearchParam(baseUrl, "assets", "preview");
+  const previewPage = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+  attachPageDiagnostics(previewPage, "external-assets");
+
+  try {
+    await assertReady(previewPage, previewUrl);
+    await previewPage.waitForFunction(
+      () => {
+        const assets = window.__IT_ART_STUDIO_QA__?.externalAssets;
+        return Boolean(
+          assets?.enabled &&
+            assets.requested >= 6 &&
+            assets.loaded + assets.failed >= assets.requested &&
+            window.__IT_ART_STUDIO_QA__?.frameCount > 6
+        );
+      },
+      { timeout: 20_000 }
+    );
+
+    const preview = await capture(previewPage, "external-asset-preview");
+    const externalAssets = preview.snapshot?.externalAssets;
+    const requiredRoles = ["bridge", "relief", "road", "route-edge", "vegetation", "water"];
+    const missingRoles = requiredRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
+    const previewPathBase = new URL(previewUrl).pathname.replace(/\/$/u, "");
+    const expectedAssetPathPrefix = `${previewPathBase}/assets/models/vendor/`.replace(/^\/\//u, "/");
+    const unsafePaths = (externalAssets?.publicPaths ?? []).filter((publicPath) => {
+      try {
+        const parsed = new URL(publicPath, previewUrl);
+        return parsed.pathname.includes("/public/") || !parsed.pathname.startsWith(expectedAssetPathPrefix);
+      } catch {
+        return true;
+      }
+    });
+    const gate =
+      externalAssets?.enabled === true &&
+      externalAssets.requested >= 6 &&
+      externalAssets.loaded >= 6 &&
+      externalAssets.failed === 0 &&
+      externalAssets.visible >= 6 &&
+      externalAssets.files >= 6 &&
+      externalAssets.collections >= 6 &&
+      externalAssets.sceneObjects >= 12 &&
+      externalAssets.bounds.width >= 10 &&
+      externalAssets.bounds.height >= 0.5 &&
+      externalAssets.bounds.depth >= 0.5 &&
+      missingRoles.length === 0 &&
+      unsafePaths.length === 0 &&
+      (externalAssets.errors?.length ?? 0) === 0 &&
+      preview.canvas.ok;
+
+    if (gate) {
+      pass("external-asset-preview-runtime", {
+        externalAssets,
+        canvas: preview.canvas,
+        previewUrl
+      });
+    } else {
+      scenarioFail("external-asset-preview-runtime", "Accepted GLB assets are not loading as a visible runtime preview.", {
+        externalAssets,
+        canvas: preview.canvas,
+        previewUrl,
+        missingRoles,
+        unsafePaths,
+        expectedAssetPathPrefix
+      });
+    }
+  } finally {
+    if (!previewPage.isClosed()) {
+      await previewPage.close();
+    }
+  }
+}
+
 async function checkRoverTrail(page, label) {
   const snapshot = await getQaSnapshot(page);
   const trail = snapshot?.trail;
@@ -8767,6 +8841,7 @@ async function writeReport() {
   });
   const worldScenario = scenarios.find((scenario) => scenario.name === "world-richness");
   const rendererBudgetScenario = scenarios.find((scenario) => scenario.name === "renderer-budget");
+  const externalAssetPreviewScenario = scenarios.find((scenario) => scenario.name === "external-asset-preview-runtime");
   const visualScenario = scenarios.find((scenario) => scenario.name === "visual-specs-rendered");
   const placeArchitectureScenario = scenarios.find((scenario) => scenario.name === "place-architecture-rendered");
   const projectArtifactsScenario = scenarios.find((scenario) => scenario.name === "project-artifacts-rendered");
@@ -8878,6 +8953,11 @@ async function writeReport() {
       rendererBudgetScenario?.details?.renderer
         ? `${rendererBudgetScenario.status}, calls ${rendererBudgetScenario.details.renderer.calls}/${rendererBudgetScenario.details.caps.calls}, triangles ${rendererBudgetScenario.details.renderer.triangles}/${rendererBudgetScenario.details.caps.triangles}, geometries ${rendererBudgetScenario.details.renderer.geometries}/${rendererBudgetScenario.details.caps.geometries}, textures ${rendererBudgetScenario.details.renderer.textures}/${rendererBudgetScenario.details.caps.textures}`
         : (rendererBudgetScenario?.status ?? "n/a")
+    }`,
+    `- External asset preview: ${
+      externalAssetPreviewScenario?.details?.externalAssets
+        ? `${externalAssetPreviewScenario.status}, files ${externalAssetPreviewScenario.details.externalAssets.loaded}/${externalAssetPreviewScenario.details.externalAssets.requested}, roles ${externalAssetPreviewScenario.details.externalAssets.terrainRoles.join("/")}`
+        : (externalAssetPreviewScenario?.status ?? "n/a")
     }`,
     `- Landmark objects: ${world?.landmarkObjects ?? "n/a"}`,
     `- Road segments: ${world?.roadSegments ?? "n/a"}`,
@@ -9244,6 +9324,7 @@ async function main() {
         scenarioFail("static-dist-canvas-nonblank", "Static dist canvas did not render enough non-dark sampled pixels.", home.canvas);
       }
       await checkWorldRichness(page);
+      await checkExternalAssetPreview(browser);
       await checkStaticPlayableProofReel(browser, page, home);
       if (!page.isClosed()) {
         await page.close();
@@ -9283,6 +9364,7 @@ async function main() {
       scenarioFail("canvas-color-families", "Canvas did not expose the tech/art/studio color families.", home.canvas);
     }
     await checkWorldRichness(page);
+    await checkExternalAssetPreview(browser);
     await checkAudioLayer(browser);
     await checkFrameBudget(page);
     await checkRealKeyboardInput(page);
