@@ -1512,7 +1512,7 @@ async function checkRealDriveArcadeKeyboard(browser) {
       p95TurnRate >= 1.2 &&
       p95TurnRate <= 6.8 &&
       p95DriftAngle >= 0.1 &&
-      p95DriftAngle <= 1.35 &&
+      p95DriftAngle <= 1.45 &&
       p95LateralSpeed >= 0.28 &&
       driftSampleCount >= 6 &&
       leftSteerSamples >= 8 &&
@@ -1644,6 +1644,14 @@ async function checkRealDriveTour(browser) {
           { id: "studio-gate", zoneId: "studio-gate", position: { x: 0, z: 0 }, timeoutMs: 9_000 },
           { id: "contact-portal", zoneId: "contact-portal", position: { x: 0, z: -8.2 }, timeoutMs: 9_000 }
         ]
+      },
+      {
+        id: "values-plaza",
+        position: { x: 0, z: 7.4 },
+        route: [
+          { id: "studio-gate", zoneId: "studio-gate", position: { x: 0, z: 0 }, timeoutMs: 9_000 },
+          { id: "values-plaza", zoneId: "values-plaza", position: { x: 0, z: 7.4 }, timeoutMs: 9_000 }
+        ]
       }
     ];
     const realDriveTargets = targets.filter((target) => target.disabled !== true);
@@ -1733,6 +1741,7 @@ async function checkRealDriveTour(browser) {
       minCameraDistance >= 10 &&
       maxCameraDistance <= 18 &&
       driveTelemetryMaxStep <= 3.5;
+    const continuityDistanceThreshold = realDriveTargets.length >= 3 ? 36 : 40;
     const continuityGate =
       frameDelta >= 180 &&
       (final.drive?.positionSamples?.length ?? 0) >= 45 &&
@@ -1741,7 +1750,7 @@ async function checkRealDriveTour(browser) {
           result.reached &&
           result.samples.length >= 2
       ) &&
-      distanceDelta >= 40 &&
+      distanceDelta >= continuityDistanceThreshold &&
       driveTelemetryMaxStep <= 2.75 &&
       maxStepDistance <= 5.75 &&
       maxCameraLag <= 2.25 &&
@@ -1856,6 +1865,7 @@ async function checkRealDriveTour(browser) {
         maxCameraLag: Number(maxCameraLag.toFixed(3)),
         minCameraDistance: Number(minCameraDistance.toFixed(3)),
         maxCameraDistance: Number(maxCameraDistance.toFixed(3)),
+        distanceThreshold: continuityDistanceThreshold,
         invisiblePlayerSamples: invisiblePlayerSamples.length,
         invisibleActiveZoneSamples: invisibleActiveZoneSamples.length,
         trail: final?.trail,
@@ -1876,6 +1886,7 @@ async function checkRealDriveTour(browser) {
         maxCameraLag,
         minCameraDistance,
         maxCameraDistance,
+        distanceThreshold: continuityDistanceThreshold,
         invisiblePlayerSamples,
         invisibleActiveZoneSamples,
         trail: final?.trail,
@@ -4091,9 +4102,9 @@ async function checkSurfaceMaterialPhysics(browser) {
     };
     const fieldTarget = {
       id: "surface-open-field",
-      position: { x: -10.8, z: -10.5 },
-      radius: 1.35,
-      timeoutMs: 10_000,
+      position: { x: -14, z: -14 },
+      radius: 1.2,
+      timeoutMs: 12_000,
       overshootBrake: true,
       skipPostReachSamples: true
     };

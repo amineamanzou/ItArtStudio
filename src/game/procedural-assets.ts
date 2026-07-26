@@ -215,16 +215,16 @@ const createCloudDock = (accent: number) => {
   addPedestal(group, mat, 1.72);
   group.add(box([1.56, 0.18, 0.86], darkMaterial, [0, 0.42, 0]));
   for (const x of [-0.58, -0.18, 0.22, 0.58]) {
-    group.add(box([0.08, 0.56, 0.08], mat, [x, 0.78, 0.34]));
+    group.add(box([0.14, 0.62, 0.16], mat, [x, 0.8, 0.34]));
   }
   group.add(box([0.12, 0.86, 0.12], mat, [-0.68, 0.92, -0.3]));
   group.add(box([0.72, 0.1, 0.1], mat, [-0.28, 1.34, -0.3]));
   group.add(beam([-0.62, 1.26, -0.28], [-0.04, 0.98, -0.28], 0.016, wireMaterial));
-  group.add(box([0.34, 0.2, 0.34], lightMaterial, [0.2, 0.58, -0.26]));
-  group.add(box([0.3, 0.18, 0.3], mat, [0.58, 0.56, -0.22]));
-  group.add(sphere(0.28, mat, [-0.34, 1.2, -0.04], 16, 8));
-  group.add(sphere(0.38, mat, [0.02, 1.28, -0.02], 16, 8));
-  group.add(sphere(0.25, mat, [0.38, 1.16, -0.02], 16, 8));
+  group.add(box([0.52, 0.2, 0.34], lightMaterial, [0.2, 0.58, -0.26]));
+  group.add(box([0.42, 0.18, 0.3], mat, [0.58, 0.56, -0.22]));
+  group.add(sphere(0.32, mat, [-0.34, 1.2, -0.04], 16, 8));
+  group.add(sphere(0.44, mat, [0.02, 1.3, -0.02], 16, 8));
+  group.add(sphere(0.3, mat, [0.4, 1.17, -0.02], 16, 8));
   addRing(group, 0.6, 0.018, wireMaterial, 1.16, 0.12);
   return group;
 };
@@ -232,6 +232,9 @@ const createCloudDock = (accent: number) => {
 const createDesignAtelier = (accent: number) => {
   const group = new THREE.Group();
   const mat = material(accent, 0.2, 0.1);
+  const blueMat = material(0x17d2ff, 0.12, 0.1);
+  const goldMat = material(0xffe38a, 0.12, 0.08);
+
   addPedestal(group, mat, 1.52);
   const canvas = box([0.92, 0.68, 0.08], lightMaterial, [0, 1.08, 0]);
   canvas.rotation.y = -0.18;
@@ -241,11 +244,14 @@ const createDesignAtelier = (accent: number) => {
   group.add(box([1.2, 0.08, 0.08], mat, [0, 0.42, 0.08]));
   group.add(beam([-0.4, 0.42, 0.08], [-0.66, 0.16, 0.48], 0.016, wireMaterial));
   group.add(beam([0.4, 0.42, 0.08], [0.66, 0.16, 0.48], 0.016, wireMaterial));
-  group.add(sphere(0.13, mat, [-0.2, 1.16, 0.08], 12, 8));
-  group.add(sphere(0.13, material(0xffe38a, 0.12, 0.08), [0.18, 1.04, 0.08], 12, 8));
-  group.add(box([0.18, 0.06, 0.18], material(0x17d2ff, 0.12, 0.1), [-0.44, 0.54, 0.52]));
+  group.add(sphere(0.13, lightMaterial, [-0.46, 1.46, -0.12], 12, 8));
+  const torso = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.56, 5), mat);
+  torso.position.set(-0.46, 1.1, -0.12);
+  torso.rotation.y = Math.PI * 0.2;
+  group.add(torso);
+  group.add(box([0.18, 0.06, 0.18], blueMat, [-0.44, 0.54, 0.52]));
   group.add(box([0.18, 0.06, 0.18], mat, [-0.18, 0.54, 0.52]));
-  group.add(box([0.18, 0.06, 0.18], material(0xffe38a, 0.12, 0.08), [0.08, 0.54, 0.52]));
+  group.add(box([0.18, 0.06, 0.18], goldMat, [0.08, 0.54, 0.52]));
   group.add(box([0.18, 0.06, 0.18], lightMaterial, [0.34, 0.54, 0.52]));
   return group;
 };
