@@ -597,6 +597,17 @@ Gates V4.8:
   atteint, si le joueur quitte l'ecran, si le parcours manque d'off-road, ou si
   les sauts d'echantillons indiquent un teleport.
 
+Gates V4.9:
+
+- `themed-set-dressing` verifie que les lieux prioritaires ne redeviennent pas
+  generiques: Cloud Dock doit exposer des racks serveur, des nuages et un arc
+  electrique; Observability Tower doit exposer un ecran metrique, une pile de
+  signaux et une trace; Contact Portal doit lire comme un bureau postal avec
+  desk, bac courrier, convoyeur et champ de reponse;
+- cette vague reste a budget scene constant: les primitives existantes sont
+  remplacees par des formes plus narratives au lieu d'ajouter une couche de
+  decoration.
+
 ## Components
 
 - `game-site`: surface principale.

@@ -218,6 +218,11 @@ The runner:
   props: Observability, Cloud, Design and Contact must expose a themed manifest,
   exact semantic roles, and role-to-relief signatures that prove each role is
   carried by actual geometry.
+- `themed-set-dressing` protects the environmental layer from becoming generic:
+  Cloud Dock must expose server racks, cloud puffs and an electric arc;
+  Observability Tower must expose a metric screen, signal stack and trace beam;
+  Contact Portal must expose a postal desk, mail tray, sorting belt and reply
+  field, all without increasing the `sceneObjects <= 940` budget.
 - `project-artifact-premium-visual-coverage` must prove the sampled mini-map
   specimens are large, unobstructed, bright enough, edge-rich and color-rich
   enough to read as premium 3D assets.

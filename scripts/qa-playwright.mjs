@@ -3040,6 +3040,48 @@ async function checkWorldRichness(page) {
   }
 
   const visualSpecZones = world?.zones ?? [];
+  const expectedThemedSetDressing = {
+    "cloud-dock": ["server-rack", "cloud-puff", "electric-arc"],
+    "observability-tower": ["metric-screen", "signal-stack", "trace-beam"],
+    "contact-portal": ["postal-desk", "mail-tray", "sorting-belt", "reply-portal-field"]
+  };
+  const themedSetDressingProofs = Object.entries(expectedThemedSetDressing).map(([zoneId, expectedRoles]) => {
+    const zone = visualSpecZones.find((item) => item.id === zoneId);
+    const roles = new Set(zone?.setDressingRoles ?? []);
+    return {
+      zoneId,
+      expectedRoles,
+      roles: [...roles].sort(),
+      missingRoles: expectedRoles.filter((role) => !roles.has(role)),
+      signatures: zone?.setDressingSignatures ?? [],
+      fingerprint: zone?.setDressingFingerprint ?? null,
+      objectCount: zone?.setDressingObjects ?? 0
+    };
+  });
+  const themedSetDressingRendered =
+    world &&
+    themedSetDressingProofs.every(
+      (proof) =>
+        proof.missingRoles.length === 0 &&
+        proof.signatures.length >= 6 &&
+        proof.objectCount >= 7 &&
+        Boolean(proof.fingerprint)
+    ) &&
+    world.sceneObjects <= premiumWorldObjectBudget;
+  if (themedSetDressingRendered) {
+    pass("themed-set-dressing", {
+      proofs: themedSetDressingProofs,
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget
+    });
+  } else {
+    scenarioFail("themed-set-dressing", "Priority zones do not expose enough specific environmental set dressing.", {
+      proofs: themedSetDressingProofs,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget
+    });
+  }
+
   const duplicateFingerprints = visualSpecZones
     .map((zone) => zone.visualFingerprint)
     .filter((fingerprint, index, fingerprints) => fingerprint && fingerprints.indexOf(fingerprint) !== index);

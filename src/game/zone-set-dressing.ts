@@ -59,9 +59,9 @@ const recipes: Record<string, ZoneDressingRecipe> = {
     primitives: [
       ring("trace-orbit-low", "trace-ring", "accent", [0, 0.62, 0], [1.28, 0.025, 1.28], [Math.PI * 0.5, 0, 0.2]),
       ring("trace-orbit-high", "trace-ring", "light", [0, 1.18, 0], [1.02, 0.02, 1.02], [Math.PI * 0.5, 0, -0.35]),
-      block("log-stack-a", "signal-stack", "dark", [-1.28, 0.28, -0.82], [0.32, 0.46, 0.28]),
-      block("log-stack-b", "signal-stack", "accent", [-0.9, 0.44, -0.82], [0.26, 0.78, 0.24]),
-      beam("trace-line", "trace-beam", "light", [-1.34, 0.82, 0.9], [1.24, 1.22, -0.74], 0.018),
+      block("metric-screen-a", "metric-screen", "dark", [-1.3, 0.46, -0.82], [0.46, 0.82, 0.06], [0, 0.18, 0]),
+      block("log-stack-b", "signal-stack", "accent", [-0.78, 0.4, -0.82], [0.22, 0.72, 0.22]),
+      beam("sampled-trace-line", "trace-beam", "light", [-1.34, 0.82, 0.9], [1.24, 1.22, -0.74], 0.018),
       sign("obs-sign", "wayfinding-sign", "accent", [1.16, 0.72, 1.28], "TRACE")
     ]
   },
@@ -79,11 +79,11 @@ const recipes: Record<string, ZoneDressingRecipe> = {
   "cloud-dock": {
     signature: "harbor-cloud-infrastructure",
     primitives: [
-      block("cargo-server-a", "server-cargo", "dark", [-1.14, 0.28, 0.94], [0.42, 0.58, 0.42]),
-      block("cargo-server-b", "server-cargo", "accent", [-0.66, 0.38, 0.94], [0.36, 0.78, 0.36]),
-      sphere("cloud-puff-a", "cloud-puff", "light", [0.72, 1.12, -0.88], [0.34, 0.22, 0.3]),
-      sphere("cloud-puff-b", "cloud-puff", "accent", [1.06, 1.2, -0.78], [0.42, 0.28, 0.34]),
-      beam("dock-crane", "dock-arm", "accent", [-1.22, 0.92, -1.18], [0.48, 1.26, -1.18], 0.026),
+      block("server-rack-a", "server-rack", "dark", [-1.16, 0.36, 0.92], [0.34, 0.74, 0.32]),
+      block("server-rack-b", "server-rack", "accent", [-0.76, 0.46, 0.92], [0.28, 0.94, 0.28]),
+      sphere("cloud-puff-a", "cloud-puff", "light", [0.72, 1.16, -0.88], [0.36, 0.24, 0.32]),
+      sphere("cloud-puff-b", "cloud-puff", "accent", [1.08, 1.28, -0.76], [0.46, 0.3, 0.36]),
+      beam("electric-arc", "electric-arc", "accent", [-1.08, 1.0, -1.18], [0.56, 1.34, -1.08], 0.022),
       sign("cloud-sign", "wayfinding-sign", "accent", [1.25, 0.74, 1.2], "CLOUD")
     ]
   },
@@ -136,11 +136,11 @@ const recipes: Record<string, ZoneDressingRecipe> = {
   "contact-portal": {
     signature: "mail-portal-threshold",
     primitives: [
-      block("contact-slab-tech", "contact-threshold", "secondary", [-1.18, 0.3, -0.82], [0.24, 0.5, 0.74]),
-      block("contact-slab-art", "contact-threshold", "accent", [1.18, 0.3, -0.82], [0.24, 0.5, 0.74]),
-      beam("inbox-beam-a", "inbox-beam", "light", [-1.08, 0.82, 0.96], [0, 1.18, 1.36], 0.024),
-      beam("inbox-beam-b", "inbox-beam", "accent", [1.08, 0.82, 0.96], [0, 1.18, 1.36], 0.024),
-      ring("portal-field", "portal-field", "light", [0, 0.9, 0.18], [1.12, 0.028, 1.12], [Math.PI * 0.5, 0.16, 0]),
+      block("postal-desk", "postal-desk", "secondary", [-0.72, 0.28, -0.82], [0.94, 0.34, 0.62]),
+      block("mail-tray", "mail-tray", "accent", [0.76, 0.42, -0.82], [0.66, 0.22, 0.5], [0, -0.16, 0]),
+      beam("sorting-belt-a", "sorting-belt", "light", [-1.08, 0.82, 0.96], [0, 1.18, 1.36], 0.024),
+      beam("sorting-belt-b", "sorting-belt", "accent", [1.08, 0.82, 0.96], [0, 1.18, 1.36], 0.024),
+      ring("reply-portal-field", "reply-portal-field", "light", [0, 0.9, 0.18], [1.12, 0.028, 1.12], [Math.PI * 0.5, 0.16, 0]),
       sign("contact-sign", "wayfinding-sign", "light", [0, 0.82, -1.38], "MAIL")
     ]
   }
