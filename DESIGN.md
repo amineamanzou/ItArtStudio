@@ -661,6 +661,18 @@ Gates V5.3:
   `trace-helix` et `metric-array` sur Observability, avec enveloppe lisible et
   maintien du budget `sceneObjects <= 940`.
 
+Gates V5.4:
+
+- `cloud-dock` remplace son vaisseau conteneur par une plateforme infra-cloud:
+  dock flottant, runway de deploiement, racks edge, mat uplink, nuage et arc
+  electrique;
+- `priority-signature-assets` exige maintenant aussi les familles
+  `cloud-platform`, `server-array` et `electric-cloud` sur Cloud Dock, avec une
+  enveloppe lisible et sans desserrer le budget `sceneObjects <= 940`;
+- cette vague ajoute de la silhouette dans la signature Cloud sans empiler du
+  bruit de set dressing: le lieu doit lire comme une infrastructure connectee,
+  pas comme une collection de petits blocs.
+
 ## Components
 
 - `game-site`: surface principale.

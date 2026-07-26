@@ -74,7 +74,8 @@ const expectedPrioritySetDressingRoles = {
   "contact-portal": ["postal-desk", "mail-tray", "sorting-belt", "reply-portal-field"]
 };
 const expectedPrioritySignatureFamilies = {
-  "observability-tower": ["telemetry-tower", "trace-helix", "metric-array"]
+  "observability-tower": ["telemetry-tower", "trace-helix", "metric-array"],
+  "cloud-dock": ["cloud-platform", "server-array", "electric-cloud"]
 };
 let screenshotIndex = 0;
 

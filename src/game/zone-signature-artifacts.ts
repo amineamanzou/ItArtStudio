@@ -10,7 +10,9 @@ type ArtifactRole =
   | "telemetry-tower"
   | "metric-array"
   | "load-lattice"
-  | "cloud-vessel"
+  | "cloud-platform"
+  | "server-array"
+  | "electric-cloud"
   | "composition-wall"
   | "wireframe-knot"
   | "garment-fold"
@@ -241,12 +243,28 @@ function createArchitectureArtifacts(group: THREE.Group, zone: StudioZone, mats:
 }
 
 function createCloudArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactMaterials) {
-  add(group, box([1.08, 0.28, 0.46], mats.dark, [0, 0.5, -0.88]), zone, "cloud-vessel", "deployment-hull", "dark-hull", "pulse");
-  for (let index = 0; index < 4; index += 1) {
-    add(group, box([0.2, 0.24 + index * 0.04, 0.18], index % 2 ? mats.light : mats.accent, [-0.42 + index * 0.28, 0.76 + index * 0.02, -0.9]), zone, "cloud-vessel", `container-${index}`, index % 2 ? "light-container" : "accent-container", "blink");
-  }
-  add(group, sphere(0.28, mats.light, [0.12, 1.3, -0.52]), zone, "cloud-vessel", "cloud-node-a", "light-cloud", "float");
-  add(group, sphere(0.2, mats.secondary, [0.48, 1.22, -0.52]), zone, "cloud-vessel", "cloud-node-b", "secondary-cloud", "float");
+  add(group, box([1.28, 0.18, 0.68], mats.dark, [0, 0.42, -0.88]), zone, "cloud-platform", "floating-dock-deck", "dark-dock", "pulse");
+  add(group, box([0.86, 0.08, 0.16], mats.light, [0, 0.6, -1.18]), zone, "cloud-platform", "deployment-runway", "light-runway", "pulse");
+  add(group, cylinder(0.05, 0.08, 1.02, mats.secondary, [-0.62, 0.98, -0.86], 12), zone, "server-array", "uplink-mast", "secondary-mast", "tilt");
+  add(group, box([0.18, 0.78, 0.22], mats.accent, [-0.36, 0.88, -0.92]), zone, "server-array", "edge-rack-a", "accent-rack", "blink");
+  add(group, box([0.18, 0.96, 0.22], mats.light, [-0.08, 0.98, -0.92]), zone, "server-array", "edge-rack-b", "light-rack", "blink");
+  add(group, box([0.18, 0.68, 0.22], mats.secondary, [0.2, 0.84, -0.92]), zone, "server-array", "edge-rack-c", "secondary-rack", "blink");
+  add(group, sphere(0.39, mats.light, [0.52, 1.5, -0.58]), zone, "electric-cloud", "cloud-core", "light-cloud", "float");
+  add(group, sphere(0.27, mats.secondary, [0.88, 1.36, -0.58]), zone, "electric-cloud", "cloud-lobe", "secondary-cloud", "float");
+  add(
+    group,
+    tube([
+      new THREE.Vector3(-0.56, 1.36, -0.86),
+      new THREE.Vector3(-0.18, 1.66, -0.72),
+      new THREE.Vector3(0.26, 1.32, -0.68),
+      new THREE.Vector3(0.62, 1.5, -0.58)
+    ], 0.018, mats.accent),
+    zone,
+    "electric-cloud",
+    "rack-to-cloud-arc",
+    "accent-arc",
+    "sweep"
+  );
 }
 
 function createDesignArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactMaterials) {
