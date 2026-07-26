@@ -2,6 +2,7 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import http from "node:http";
+import net from "node:net";
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import Module from "node:module";
@@ -9,26 +10,39 @@ import Module from "node:module";
 const require = createRequire(import.meta.url);
 const root = process.cwd();
 const startedAt = Date.now();
-const port = Number(process.env.QA_PORT ?? 4331);
+const requestedPort = Number(process.env.QA_PORT ?? 4331);
+let port = requestedPort;
 const staticDistMode = process.env.QA_STATIC_DIST === "true";
 const staticBasePath = process.env.QA_STATIC_BASE_PATH ?? "/ItArtStudio";
 const normalizedStaticBasePath = staticBasePath === "/" ? "" : staticBasePath.replace(/\/$/, "");
-const defaultBaseUrl = staticDistMode
-  ? `http://127.0.0.1:${port}${normalizedStaticBasePath}/?qa=1`
-  : `http://127.0.0.1:${port}/?qa=1`;
-const baseUrl = process.env.QA_BASE_URL ?? defaultBaseUrl;
+const makeDefaultBaseUrl = (targetPort) =>
+  staticDistMode
+    ? `http://127.0.0.1:${targetPort}${normalizedStaticBasePath}/?qa=1`
+    : `http://127.0.0.1:${targetPort}/?qa=1`;
+let baseUrl = process.env.QA_BASE_URL ?? makeDefaultBaseUrl(port);
 const withSearchParam = (url, key, value) => {
   const target = new URL(url);
   target.searchParams.set(key, value);
   return target.toString();
 };
-const realDriveUrl = withSearchParam(baseUrl, "realKeys", "1");
-const productionUrl = (() => {
+let realDriveUrl = withSearchParam(baseUrl, "realKeys", "1");
+let productionUrl = (() => {
   const target = new URL(baseUrl);
   target.searchParams.delete("qa");
   target.searchParams.delete("realKeys");
   return target.toString();
 })();
+const setRuntimePort = (targetPort) => {
+  port = targetPort;
+  if (!process.env.QA_BASE_URL) {
+    baseUrl = makeDefaultBaseUrl(port);
+  }
+  realDriveUrl = withSearchParam(baseUrl, "realKeys", "1");
+  const target = new URL(baseUrl);
+  target.searchParams.delete("qa");
+  target.searchParams.delete("realKeys");
+  productionUrl = target.toString();
+};
 const requiresQaStep = (url) => {
   try {
     const params = new URL(url).searchParams;
@@ -75,11 +89,11 @@ const expectedPrioritySetDressingRoles = {
 const expectedPrioritySignatureFamilies = {
   "ai-lab": ["agent-workbench", "evaluation-conveyor", "prompt-token", "agent-core"],
   "observability-tower": ["telemetry-lighthouse", "radar-beam", "metric-stack", "log-waterfall"],
-  "cloud-dock": ["cloud-platform", "server-array", "electric-cloud"],
-  "design-atelier": ["composition-wall", "pattern-table", "material-palette", "atelier-light-rig"],
+  "cloud-dock": ["cloud-platform", "server-array", "electric-cloud", "cloud-skybridge"],
+  "design-atelier": ["composition-wall", "pattern-table", "material-palette", "atelier-light-rig", "atelier-mannequin"],
   "three-d-foundry": ["wireframe-knot", "scan-rig", "volume-slice", "toolpath-arm"],
   "fashion-room": ["garment-fold", "runway-form", "pattern-rail", "fabric-swatch"],
-  "contact-portal": ["postal-counter", "reply-portal", "mail-packet", "delivery-signal"]
+  "contact-portal": ["postal-counter", "reply-portal", "mail-packet", "postal-wall", "delivery-signal"]
 };
 let screenshotIndex = 0;
 
@@ -171,6 +185,23 @@ function startServer() {
   child.stderr.on("data", record);
 
   return { child, logs };
+}
+
+async function findAvailablePort(startPort, attempts = 20) {
+  for (let candidate = startPort; candidate < startPort + attempts; candidate += 1) {
+    const available = await new Promise((resolve) => {
+      const probe = net.createServer();
+      probe.once("error", () => resolve(false));
+      probe.once("listening", () => {
+        probe.close(() => resolve(true));
+      });
+      probe.listen(candidate, "127.0.0.1");
+    });
+    if (available) {
+      return candidate;
+    }
+  }
+  throw new Error(`No available QA port found from ${startPort} to ${startPort + attempts - 1}.`);
 }
 
 function startStaticDistServer() {
@@ -1302,13 +1333,14 @@ async function driveWithRealKeyboard(page, target) {
         worseningDistanceSamples += 1;
       }
       const targetZoneId = target.zoneId ?? target.id;
+      const targetRadius = target.radius ?? (target.zoneId ? 2.2 : 0.55);
       const boundary = snapshot.drive?.boundary;
       const targetBoundaryReached =
         typeof target.boundaryAxis === "string" &&
         ((boundary?.contactAxes?.[target.boundaryAxis] ?? 0) > 0 || (boundary?.lastContactAxis ?? "").split("+").includes(target.boundaryAxis));
       const targetReached = target.zoneId
-        ? snapshot.activeZoneId === targetZoneId || snapshot.visitedZoneIds?.includes(targetZoneId)
-        : targetBoundaryReached || distanceToTarget <= (target.radius ?? 0.55);
+        ? (snapshot.activeZoneId === targetZoneId || snapshot.visitedZoneIds?.includes(targetZoneId)) && distanceToTarget <= targetRadius
+        : targetBoundaryReached || distanceToTarget <= targetRadius;
       if (targetReached) {
         reached = true;
         break;
@@ -1973,7 +2005,7 @@ async function checkRealDriveTour(browser) {
       surface.maxOffRouteDistance >= 0.35 &&
       coveredExpectedRouteIds.length >= expectedRouteIds.length - 1;
     const dynamics = final?.drive?.dynamics;
-    const physicsSamples = final?.drive?.physicsSamples ?? [];
+    const physicsSamples = collectUniquePhysicsSamples(routeResults);
     const physicsInputSamples = physicsSamples.filter(
       (sample) =>
         sample.hasInput === true ||
@@ -2457,7 +2489,7 @@ async function checkRealDriveWholeMapFreedom(browser) {
     { id: "center-return", position: { x: 0, z: 0 }, radius: 1.4, timeoutMs: 12_000, overshootBrake: true }
   ];
   const targets = qaProfile === "quick"
-    ? [fullTargets[0], fullTargets[1], fullTargets[2], fullTargets[3], fullTargets[5], fullTargets[8]]
+    ? [fullTargets[0], fullTargets[1], fullTargets[2], fullTargets[3], fullTargets[5], fullTargets[6], fullTargets[8]]
     : fullTargets;
   const routeResults = [];
 
@@ -3536,6 +3568,90 @@ async function checkWorldRichness(page) {
     });
   }
 
+  const premiumLandmarkRequirements = {
+    "cloud-dock": {
+      requiredFamilies: ["cloud-platform", "server-array", "electric-cloud", "cloud-skybridge"],
+      requiredRolePrefixes: ["cloud-skybridge:server-cloud-skybridge"],
+      minObjects: 10,
+      minSceneObjects: 8,
+      maxSceneObjects: 8,
+      minHeight: 1.62,
+      minWidth: 1.4,
+      minDepth: 0.78
+    },
+    "design-atelier": {
+      requiredFamilies: ["composition-wall", "pattern-table", "material-palette", "atelier-light-rig", "atelier-mannequin"],
+      requiredRolePrefixes: ["atelier-mannequin:tailor-form-silhouette"],
+      minObjects: 14,
+      minSceneObjects: 7,
+      maxSceneObjects: 7,
+      minHeight: 1.55,
+      minWidth: 1.35,
+      minDepth: 0.95
+    },
+    "contact-portal": {
+      requiredFamilies: ["postal-counter", "reply-portal", "mail-packet", "postal-wall", "delivery-signal"],
+      requiredRolePrefixes: ["postal-wall:sorting-slot-"],
+      minObjects: 18,
+      minSceneObjects: 8,
+      maxSceneObjects: 8,
+      minHeight: 1.35,
+      minWidth: 1.18,
+      minDepth: 1.02
+    }
+  };
+  const premiumLandmarkProofs = Object.entries(premiumLandmarkRequirements).map(([zoneId, requirement]) => {
+    const zone = visualSpecZones.find((item) => item.id === zoneId);
+    const families = new Set(zone?.signatureArtifactFamilies ?? []);
+    const roles = zone?.signatureArtifactRoles ?? [];
+    return {
+      zoneId,
+      requirement,
+      families: [...families].sort(),
+      missingFamilies: requirement.requiredFamilies.filter((family) => !families.has(family)),
+      requiredRolePrefixes: requirement.requiredRolePrefixes,
+      missingRolePrefixes: requirement.requiredRolePrefixes.filter((prefix) => !roles.some((role) => role.startsWith(prefix))),
+      roleCount: roles.length,
+      signatureCount: zone?.signatureArtifactSignatures?.length ?? 0,
+      objectCount: zone?.signatureArtifactObjects ?? 0,
+      sceneObjectCount: zone?.signatureArtifactSceneObjects ?? 0,
+      bounds: zone?.signatureArtifactBounds ?? null,
+      fingerprint: zone?.signatureArtifactFingerprint ?? null
+    };
+  });
+  const premiumLandmarkHierarchy =
+    world &&
+    premiumLandmarkProofs.every(
+      (proof) =>
+        proof.missingFamilies.length === 0 &&
+        proof.missingRolePrefixes.length === 0 &&
+        proof.objectCount >= proof.requirement.minObjects &&
+        proof.sceneObjectCount >= proof.requirement.minSceneObjects &&
+        proof.sceneObjectCount <= proof.requirement.maxSceneObjects &&
+        proof.signatureCount >= proof.requirement.minObjects &&
+        proof.roleCount >= proof.requirement.minObjects &&
+        (proof.bounds?.height ?? 0) >= proof.requirement.minHeight &&
+        (proof.bounds?.width ?? 0) >= proof.requirement.minWidth &&
+        (proof.bounds?.depth ?? 0) >= proof.requirement.minDepth &&
+        Boolean(proof.fingerprint)
+    ) &&
+    world.sceneObjects <= premiumWorldObjectBudget - 24;
+  if (premiumLandmarkHierarchy) {
+    pass("premium-landmark-hierarchy", {
+      proofs: premiumLandmarkProofs,
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget,
+      reservedHeadroom: premiumWorldObjectBudget - world.sceneObjects
+    });
+  } else {
+    scenarioFail("premium-landmark-hierarchy", "Priority places do not expose dominant themed silhouettes within budget.", {
+      proofs: premiumLandmarkProofs,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget,
+      reservedHeadroom: typeof world?.sceneObjects === "number" ? premiumWorldObjectBudget - world.sceneObjects : null
+    });
+  }
+
   const artPremiumZoneIds = ["three-d-foundry", "fashion-room"];
   const artPremiumProofs = artPremiumZoneIds.map((zoneId) => {
     const zone = visualSpecZones.find((item) => item.id === zoneId);
@@ -3598,13 +3714,13 @@ async function checkWorldRichness(page) {
   const cloudSignatureInstancingHeadroom =
     world &&
     cloudDockZone &&
-    world.sceneObjects <= premiumWorldObjectBudget &&
+    world.sceneObjects <= premiumWorldObjectBudget - 24 &&
     (cloudDockZone.signatureArtifactObjects ?? 0) >= 9 &&
-    (cloudDockZone.signatureArtifactSceneObjects ?? 0) <= 7 &&
+    (cloudDockZone.signatureArtifactSceneObjects ?? 0) <= 8 &&
     (cloudDockZone.signatureArtifactObjects ?? 0) > (cloudDockZone.signatureArtifactSceneObjects ?? 0) &&
     (cloudDockZone.signatureArtifactSignatures?.length ?? 0) >= 9 &&
     (cloudDockZone.signatureArtifactRoles?.length ?? 0) >= 9 &&
-    ["cloud-platform", "server-array", "electric-cloud"].every((family) => cloudSignatureFamilies.has(family));
+    ["cloud-platform", "server-array", "electric-cloud", "cloud-skybridge"].every((family) => cloudSignatureFamilies.has(family));
   if (cloudSignatureInstancingHeadroom) {
     pass("signature-instancing-headroom", {
       zoneId: cloudDockZone.id,
@@ -3635,12 +3751,12 @@ async function checkWorldRichness(page) {
   const designSignatureHeadroom =
     world &&
     designAtelierZone &&
-    world.sceneObjects <= premiumWorldObjectBudget &&
+    world.sceneObjects <= premiumWorldObjectBudget - 24 &&
     (designAtelierZone.signatureArtifactObjects ?? 0) >= 9 &&
-    (designAtelierZone.signatureArtifactSceneObjects ?? 0) <= 6 &&
+    (designAtelierZone.signatureArtifactSceneObjects ?? 0) <= 7 &&
     (designAtelierZone.signatureArtifactSignatures?.length ?? 0) >= 9 &&
     (designAtelierZone.signatureArtifactRoles?.length ?? 0) >= 9 &&
-    ["composition-wall", "pattern-table", "material-palette", "atelier-light-rig"].every((family) =>
+    ["composition-wall", "pattern-table", "material-palette", "atelier-light-rig", "atelier-mannequin"].every((family) =>
       designSignatureFamilies.has(family)
     );
   if (designSignatureHeadroom) {
@@ -3673,16 +3789,16 @@ async function checkWorldRichness(page) {
   const contactSignatureHeadroom =
     world &&
     contactPortalZone &&
-    world.sceneObjects <= premiumWorldObjectBudget &&
+    world.sceneObjects <= premiumWorldObjectBudget - 24 &&
     (contactPortalZone.signatureArtifactObjects ?? 0) >= 11 &&
-    (contactPortalZone.signatureArtifactSceneObjects ?? 0) <= 7 &&
+    (contactPortalZone.signatureArtifactSceneObjects ?? 0) <= 8 &&
     (contactPortalZone.signatureArtifactObjects ?? 0) > (contactPortalZone.signatureArtifactSceneObjects ?? 0) &&
     (contactPortalZone.signatureArtifactSignatures?.length ?? 0) >= 11 &&
     (contactPortalZone.signatureArtifactRoles?.length ?? 0) >= 11 &&
     (contactPortalZone.signatureArtifactBounds?.height ?? 0) >= 1.45 &&
     (contactPortalZone.signatureArtifactBounds?.width ?? 0) >= 1 &&
     (contactPortalZone.signatureArtifactBounds?.depth ?? 0) >= 0.6 &&
-    ["postal-counter", "reply-portal", "mail-packet", "delivery-signal"].every((family) =>
+    ["postal-counter", "reply-portal", "mail-packet", "postal-wall", "delivery-signal"].every((family) =>
       contactSignatureFamilies.has(family)
     );
   if (contactSignatureHeadroom) {
@@ -8242,6 +8358,7 @@ async function writeReport() {
   );
   const placeCompositionCoverageScenario = scenarios.find((scenario) => scenario.name === "place-composition-coverage");
   const priorityPlaceCompositionScenario = scenarios.find((scenario) => scenario.name === "priority-place-composition-visible");
+  const premiumLandmarkHierarchyScenario = scenarios.find((scenario) => scenario.name === "premium-landmark-hierarchy");
   const artPremiumRoomsScenario = scenarios.find((scenario) => scenario.name === "art-premium-rooms");
   const perceptualDistanceScenario = scenarios.find((scenario) => scenario.name === "zone-perceptual-distance");
   const techPlaceDistinctivenessScenario = scenarios.find((scenario) => scenario.name === "tech-place-distinctiveness");
@@ -8537,6 +8654,11 @@ async function writeReport() {
         ? `${priorityPlaceCompositionScenario.status}, ${priorityPlaceCompositionScenario.details.proofs?.length ?? 0} priority zones`
         : "n/a"
     }`,
+    `- Premium landmark hierarchy: ${
+      premiumLandmarkHierarchyScenario?.details
+        ? `${premiumLandmarkHierarchyScenario.status}, ${premiumLandmarkHierarchyScenario.details.proofs?.map((proof) => `${proof.zoneId}:${proof.objectCount}/${proof.sceneObjectCount}`).join(", ")}, headroom ${premiumLandmarkHierarchyScenario.details.reservedHeadroom}`
+        : (premiumLandmarkHierarchyScenario?.status ?? "n/a")
+    }`,
     `- ART premium rooms: ${
       artPremiumRoomsScenario?.details
         ? `${artPremiumRoomsScenario.status}, ${artPremiumRoomsScenario.details.proofs?.length ?? 0} rooms, scene ${artPremiumRoomsScenario.details.sceneObjects}/${artPremiumRoomsScenario.details.sceneObjectBudget}`
@@ -8584,6 +8706,13 @@ async function main() {
   await fsp.mkdir(screenshotsDir, { recursive: true });
 
   const { chromium } = loadPlaywright();
+  if (!process.env.QA_BASE_URL) {
+    const availablePort = await findAvailablePort(requestedPort);
+    setRuntimePort(availablePort);
+    if (availablePort !== requestedPort) {
+      console.log(`[qa] port ${requestedPort} is busy, using ${availablePort}`);
+    }
+  }
   const server = startServer();
   let browser;
 

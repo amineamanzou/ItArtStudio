@@ -20,10 +20,12 @@ type ArtifactRole =
   | "cloud-platform"
   | "server-array"
   | "electric-cloud"
+  | "cloud-skybridge"
   | "composition-wall"
   | "pattern-table"
   | "material-palette"
   | "atelier-light-rig"
+  | "atelier-mannequin"
   | "wireframe-knot"
   | "scan-rig"
   | "volume-slice"
@@ -36,6 +38,7 @@ type ArtifactRole =
   | "postal-counter"
   | "reply-portal"
   | "mail-packet"
+  | "postal-wall"
   | "delivery-signal";
 
 export type RenderedZoneSignatureArtifacts = {
@@ -331,16 +334,16 @@ function createAiArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactM
 }
 
 function createTraceArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactMaterials) {
-  add(group, cylinder(0.09, 0.18, 2.18, mats.dark, [0, 1.32, -0.78], 18), zone, "telemetry-lighthouse", "telemetry-lighthouse-mast", "dark-lighthouse", "pulse");
+  add(group, cylinder(0.08, 0.16, 2.72, mats.dark, [0, 1.58, -0.78], 18), zone, "telemetry-lighthouse", "telemetry-lighthouse-mast", "dark-lighthouse", "pulse");
   add(group, cylinder(0.44, 0.56, 0.14, mats.secondary, [0, 0.42, -0.78], 24), zone, "telemetry-lighthouse", "lighthouse-radar-base", "secondary-base", "tilt");
-  add(group, ring(0.72, 0.018, mats.accent, [0, 2.26, -0.78], [Math.PI * 0.5, 0.14, 0.26]), zone, "radar-beam", "radar-sweep-crown", "accent-crown", "sweep");
+  add(group, ring(0.7, 0.018, mats.accent, [0, 2.74, -0.78], [Math.PI * 0.5, 0.14, 0.26]), zone, "radar-beam", "radar-sweep-crown", "accent-crown", "sweep");
   add(
     group,
     tube([
-      new THREE.Vector3(-0.72, 2.12, -0.78),
-      new THREE.Vector3(-0.2, 2.38, -0.96),
-      new THREE.Vector3(0.44, 2.12, -0.56),
-      new THREE.Vector3(1.16, 1.92, -0.78)
+      new THREE.Vector3(-0.68, 2.6, -0.78),
+      new THREE.Vector3(-0.18, 2.9, -0.96),
+      new THREE.Vector3(0.42, 2.6, -0.56),
+      new THREE.Vector3(1.08, 2.26, -0.78)
     ], 0.018, mats.accent),
     zone,
     "radar-beam",
@@ -422,6 +425,20 @@ function createCloudArtifacts(group: THREE.Group, zone: StudioZone, mats: Artifa
     "accent-arc",
     "sweep"
   );
+  add(
+    group,
+    tube([
+      new THREE.Vector3(-1.08, 0.92, -0.92),
+      new THREE.Vector3(-0.46, 1.72, -0.96),
+      new THREE.Vector3(0.52, 1.92, -0.78),
+      new THREE.Vector3(1.14, 1.42, -0.58)
+    ], 0.032, mats.accent),
+    zone,
+    "cloud-skybridge",
+    "server-cloud-skybridge",
+    "accent-skybridge",
+    "sweep"
+  );
 }
 
 function createDesignArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactMaterials) {
@@ -451,6 +468,23 @@ function createDesignArtifacts(group: THREE.Group, zone: StudioZone, mats: Artif
   const draftingTable = box([1.12, 0.14, 0.54], mats.dark, [0.22, 0.48, 0.72]);
   draftingTable.rotation.y = -0.34;
   add(group, draftingTable, zone, "pattern-table", "diagonal-drafting-table", "dark-table", "tilt");
+
+  const mannequinShape = new THREE.LatheGeometry(
+    [
+      new THREE.Vector2(0.1, 0),
+      new THREE.Vector2(0.28, 0.24),
+      new THREE.Vector2(0.22, 0.58),
+      new THREE.Vector2(0.34, 0.9),
+      new THREE.Vector2(0.18, 1.2),
+      new THREE.Vector2(0.1, 1.34)
+    ],
+    18
+  );
+  const mannequin = new THREE.Mesh(mannequinShape, mats.secondary);
+  mannequin.position.set(-0.72, 0.46, 0.28);
+  mannequin.rotation.set(0, 0.24, 0);
+  mannequin.scale.set(0.76, 1.04, 0.76);
+  add(group, mannequin, zone, "atelier-mannequin", "tailor-form-silhouette", "secondary-mannequin", "tilt");
 
   add(group, tube([
     new THREE.Vector3(-0.7, 1.94, 0.52),
@@ -588,6 +622,23 @@ function createContactArtifacts(group: THREE.Group, zone: StudioZone, mats: Arti
     { role: "mail-packet", signature: "message-card-3", materialVariant: "accent-card" }
   ]);
   add(group, tube([new THREE.Vector3(-0.28, 1.08, -0.66), new THREE.Vector3(0.1, 0.84, -0.64), new THREE.Vector3(0.48, 1.08, -0.66)], 0.016, mats.light), zone, "mail-packet", "envelope-fold", "light-fold", "pulse");
+  const sortingWall = instancedBoxes([0.22, 0.16, 0.06], mats.light, [
+    { position: [-0.62, 1.28, 0.74], scale: [1, 1, 1], color: mats.light.color.getHex() },
+    { position: [-0.28, 1.34, 0.74], scale: [1.1, 0.82, 1], color: mats.secondary.color.getHex() },
+    { position: [0.08, 1.28, 0.74], scale: [0.86, 1, 1], color: mats.accent.color.getHex() },
+    { position: [0.44, 1.34, 0.74], scale: [1, 0.86, 1], color: mats.light.color.getHex() },
+    { position: [-0.44, 1.08, 0.78], scale: [0.86, 0.78, 1], color: mats.accent.color.getHex() },
+    { position: [0.28, 1.08, 0.78], scale: [1.08, 0.78, 1], color: mats.secondary.color.getHex() }
+  ]);
+  add(group, sortingWall, zone, "postal-wall", "sorting-wall-grid", "instanced-sorting-slots", "blink");
+  tagSemanticParts(sortingWall, zone, [
+    { role: "postal-wall", signature: "sorting-slot-0", materialVariant: "light-slot" },
+    { role: "postal-wall", signature: "sorting-slot-1", materialVariant: "secondary-slot" },
+    { role: "postal-wall", signature: "sorting-slot-2", materialVariant: "accent-slot" },
+    { role: "postal-wall", signature: "sorting-slot-3", materialVariant: "light-slot" },
+    { role: "postal-wall", signature: "sorting-slot-4", materialVariant: "accent-slot" },
+    { role: "postal-wall", signature: "sorting-slot-5", materialVariant: "secondary-slot" }
+  ]);
   add(group, tube([
     new THREE.Vector3(-0.72, 0.82, 0.18),
     new THREE.Vector3(-0.28, 1.2, -0.16),

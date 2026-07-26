@@ -267,6 +267,11 @@ The runner:
   replacing plain rings with typed procedural micro-levels. The QA snapshot must
   expose at least four profiles, seven internal parts per gate, rich semantic
   roles, unique signatures, and keep the strict `sceneObjects <= 940` budget.
+- Premium landmark hierarchy must prove that Cloud Dock, Design Atelier and
+  Contact Portal each expose a dominant themed signature family, not only small
+  props. The gate checks required families, role prefixes, semantic object
+  counts, physical scene-object caps, bounds and at least 24 free slots under
+  the strict 940-object world budget.
 - Playable stage dominance must prove more than low aggregate UI coverage. The
   runner measures unioned UI occlusion, a clear center-stage rectangle, rover
   projection, and active place-composition occlusion. Desktop/tablet views must

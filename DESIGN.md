@@ -866,6 +866,18 @@ Gates V7.1:
   roles semantiques, le minimum de pieces par gate et le budget strict
   `sceneObjects <= 940`.
 
+Gates V7.2:
+
+- trois lieux prioritaires gagnent une silhouette dominante au lieu d'empiler de
+  petits marqueurs: `Cloud Dock` ajoute une skybridge serveur-cloud, `Design
+  Atelier` ajoute un mannequin de coupe, `Contact Portal` ajoute un mur de tri
+  postal instancie;
+- ces assets restent proceduraux mais modeles comme des objets narratifs: un
+  visiteur doit reconnaitre cloud, atelier et poste avant de lire le panneau;
+- `premium-landmark-hierarchy` verifie familles, roles signatures, bounds,
+  nombre d'objets semantiques, objets physiques limites et headroom
+  `sceneObjects <= 916`.
+
 ## Components
 
 - `game-site`: surface principale.
