@@ -4733,6 +4733,13 @@ async function checkSurfaceMaterialPhysics(browser) {
     const waterMaterialProven = (material?.waterSamples ?? 0) >= 80 && (material?.maxWaterIntensity ?? 0) >= 0.18;
     const rampWindowProven = rampSamples.length >= 4 && rampRideP80 >= 0.025 && rampPitchP80 >= 0.035;
     const rampMaterialProven = (material?.rampSamples ?? 0) >= 18 && (material?.maxRampRideHeight ?? 0) >= 0.065;
+    const dynamicSurfaceFxProven =
+      (material?.surfaceFxWaterProfiles ?? 0) >= 2 &&
+      (material?.surfaceFxRampProfiles ?? 0) >= 2 &&
+      (material?.surfaceFxColorVariants ?? 0) >= 4 &&
+      (material?.surfaceFxSignatures ?? 0) >= 4 &&
+      (material?.surfaceFxObjectCapacity ?? 0) === 28 &&
+      (material?.maxSurfaceFxScaleVariance ?? 0) >= 0.42;
     const gate =
       rampDriveProven &&
       waterDriveProven &&
@@ -4750,6 +4757,7 @@ async function checkSurfaceMaterialPhysics(browser) {
       (waterWindowProven || waterMaterialProven) &&
       (rampWindowProven || rampMaterialProven) &&
       emittedFxDelta >= 6 &&
+      dynamicSurfaceFxProven &&
       waterSpeedP80 <= 10.5;
 
     if (gate) {
@@ -4786,6 +4794,7 @@ async function checkSurfaceMaterialPhysics(browser) {
         waterMaterialProven,
         rampWindowProven,
         rampMaterialProven,
+        dynamicSurfaceFxProven,
         waterIntensityMax: Number(waterIntensityMax.toFixed(3)),
         afterWaterMaterial: afterWater?.drive?.material ?? null
       });
@@ -4825,6 +4834,7 @@ async function checkSurfaceMaterialPhysics(browser) {
         waterMaterialProven,
         rampWindowProven,
         rampMaterialProven,
+        dynamicSurfaceFxProven,
         waterIntensityMax,
         afterWaterMaterial: afterWater?.drive?.material ?? null,
         final
@@ -7982,7 +7992,7 @@ async function writeReport() {
     }`,
     `- Surface material physics: ${
       surfaceMaterialScenario?.details?.material
-        ? `water ${surfaceMaterialScenario.details.material.waterSamples}, ramp ${surfaceMaterialScenario.details.material.rampSamples}, field ${surfaceMaterialScenario.details.material.fieldSamples}, transitions ${surfaceMaterialScenario.details.transitionDelta}, fx ${surfaceMaterialScenario.details.emittedFxDelta}, water max ${surfaceMaterialScenario.details.material.maxWaterIntensity}, ramp lift ${surfaceMaterialScenario.details.material.maxRampRideHeight}`
+        ? `water ${surfaceMaterialScenario.details.material.waterSamples}, ramp ${surfaceMaterialScenario.details.material.rampSamples}, field ${surfaceMaterialScenario.details.material.fieldSamples}, transitions ${surfaceMaterialScenario.details.transitionDelta}, fx ${surfaceMaterialScenario.details.emittedFxDelta}, profiles ${surfaceMaterialScenario.details.material.surfaceFxWaterProfiles}/${surfaceMaterialScenario.details.material.surfaceFxRampProfiles}, colors ${surfaceMaterialScenario.details.material.surfaceFxColorVariants}, variance ${surfaceMaterialScenario.details.material.maxSurfaceFxScaleVariance}, water max ${surfaceMaterialScenario.details.material.maxWaterIntensity}, ramp lift ${surfaceMaterialScenario.details.material.maxRampRideHeight}`
         : (surfaceMaterialScenario?.status ?? "n/a")
     }`,
     `- Route encounters rendered: ${

@@ -54,6 +54,81 @@ const colors: Record<ZoneKind | "ground" | "road" | "ink", number> = {
   ink: 0x101015
 };
 
+const surfaceFxProfiles: Record<
+  SurfaceFxProfile,
+  {
+    kind: "water" | "ramp";
+    color: number;
+    baseOpacity: number;
+    maxAge: number;
+    widthScale: number;
+    lengthScale: number;
+    liftSpeed: number;
+    spinSpeed: number;
+  }
+> = {
+  "water-ripple": {
+    kind: "water",
+    color: 0x54d8f2,
+    baseOpacity: 0.32,
+    maxAge: 1.12,
+    widthScale: 1.05,
+    lengthScale: 0.7,
+    liftSpeed: 0.004,
+    spinSpeed: 0.18
+  },
+  "water-foam": {
+    kind: "water",
+    color: 0xfff2b0,
+    baseOpacity: 0.38,
+    maxAge: 0.92,
+    widthScale: 1.32,
+    lengthScale: 0.48,
+    liftSpeed: 0.006,
+    spinSpeed: -0.24
+  },
+  "water-wake": {
+    kind: "water",
+    color: 0x83f4ff,
+    baseOpacity: 0.42,
+    maxAge: 0.82,
+    widthScale: 0.72,
+    lengthScale: 1.82,
+    liftSpeed: 0.008,
+    spinSpeed: 0.1
+  },
+  "ramp-skid": {
+    kind: "ramp",
+    color: 0xffe38a,
+    baseOpacity: 0.3,
+    maxAge: 0.72,
+    widthScale: 0.72,
+    lengthScale: 1.34,
+    liftSpeed: 0.026,
+    spinSpeed: -0.08
+  },
+  "ramp-chevron": {
+    kind: "ramp",
+    color: 0xffb35c,
+    baseOpacity: 0.34,
+    maxAge: 0.64,
+    widthScale: 1.42,
+    lengthScale: 0.58,
+    liftSpeed: 0.036,
+    spinSpeed: 0.28
+  },
+  "ramp-spark": {
+    kind: "ramp",
+    color: 0x17d2ff,
+    baseOpacity: 0.36,
+    maxAge: 0.52,
+    widthScale: 0.46,
+    lengthScale: 0.46,
+    liftSpeed: 0.064,
+    spinSpeed: 0.62
+  }
+};
+
 const worldTexture = createWorldTexture(colors.ground, 9);
 
 type DriveKey = "up" | "down" | "left" | "right";
@@ -237,6 +312,16 @@ type SurfaceMaterialQa = {
   maxRampRideHeight: number;
   activeFxMarks: number;
   emittedFxMarks: number;
+  surfaceFxProfiles: string[];
+  surfaceFxWaterProfiles: number;
+  surfaceFxRampProfiles: number;
+  surfaceFxProfileCounts: Record<string, number>;
+  surfaceFxSignatures: number;
+  surfaceFxColorVariants: number;
+  surfaceFxObjectCapacity: number;
+  surfaceFxActiveWaterMarks: number;
+  surfaceFxActiveRampMarks: number;
+  maxSurfaceFxScaleVariance: number;
   waterRegionCount: number;
   rampRegionCount: number;
   terrainFeatureCount: number;
@@ -292,6 +377,7 @@ type TrailMark = {
   kind: TrailMarkKind;
   baseOpacity: number;
 };
+type SurfaceFxProfile = "water-ripple" | "water-foam" | "water-wake" | "ramp-skid" | "ramp-chevron" | "ramp-spark";
 type WheelPart = {
   mesh: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshStandardMaterial>;
   front: boolean;
@@ -301,10 +387,18 @@ type SurfaceFxMark = {
   age: number;
   maxAge: number;
   kind: WorldMaterialKind;
+  profile: SurfaceFxProfile;
   position: THREE.Vector3;
   rotationZ: number;
   scale: number;
+  widthScale: number;
+  lengthScale: number;
+  color: number;
+  liftSpeed: number;
+  spinSpeed: number;
+  signature: string;
   opacity: number;
+  baseOpacity: number;
 };
 type ActivationFeedback = {
   group: THREE.Group;
@@ -774,6 +868,10 @@ class StudioGame {
   private roadMaterialSamples = 0;
   private materialTransitionCount = 0;
   private emittedSurfaceFxMarks = 0;
+  private readonly surfaceFxProfileCounts: Partial<Record<SurfaceFxProfile, number>> = {};
+  private readonly surfaceFxSignatures = new Set<string>();
+  private readonly surfaceFxColorVariants = new Set<number>();
+  private maxSurfaceFxScaleVariance = 0;
   private maxWaterIntensity = 0;
   private maxRampRideHeight = 0;
   private lastMaterialKind: WorldMaterialKind = "road";
@@ -1002,6 +1100,16 @@ class StudioGame {
         maxRampRideHeight: 0,
         activeFxMarks: 0,
         emittedFxMarks: 0,
+        surfaceFxProfiles: [],
+        surfaceFxWaterProfiles: 0,
+        surfaceFxRampProfiles: 0,
+        surfaceFxProfileCounts: {},
+        surfaceFxSignatures: 0,
+        surfaceFxColorVariants: 0,
+        surfaceFxObjectCapacity: 0,
+        surfaceFxActiveWaterMarks: 0,
+        surfaceFxActiveRampMarks: 0,
+        maxSurfaceFxScaleVariance: 0,
         waterRegionCount: worldMaterialRegions.water.length,
         rampRegionCount: worldMaterialRegions.ramps.length,
         terrainFeatureCount: terrainConfig.featureCount
@@ -2097,29 +2205,41 @@ class StudioGame {
       transparent: true,
       opacity: 0.42,
       depthWrite: false,
-      blending: THREE.AdditiveBlending
+      blending: THREE.AdditiveBlending,
+      vertexColors: true
     });
     const rampMaterial = new THREE.MeshBasicMaterial({
       color: colors.studio,
       transparent: true,
       opacity: 0.32,
       depthWrite: false,
-      blending: THREE.AdditiveBlending
+      blending: THREE.AdditiveBlending,
+      vertexColors: true
     });
     this.waterSurfaceFxMesh = new THREE.InstancedMesh(geometry, waterMaterial, 14);
     this.rampSurfaceFxMesh = new THREE.InstancedMesh(geometry, rampMaterial, 14);
     this.waterSurfaceFxMesh.userData.surfaceFxPart = "water-ripple";
     this.rampSurfaceFxMesh.userData.surfaceFxPart = "ramp-skid";
+    this.waterSurfaceFxMesh.userData.surfaceFxSupportsInstanceColor = true;
+    this.rampSurfaceFxMesh.userData.surfaceFxSupportsInstanceColor = true;
 
     for (let index = 0; index < 14; index += 1) {
       this.surfaceFxMarks.push({
         age: 4,
         maxAge: 4,
         kind: "field",
+        profile: "water-ripple",
         position: new THREE.Vector3(0, -20, 0),
         rotationZ: 0,
         scale: 0.001,
-        opacity: 0
+        widthScale: 1,
+        lengthScale: 1,
+        color: colors.tech,
+        liftSpeed: 0,
+        spinSpeed: 0,
+        signature: "surface-fx:hidden",
+        opacity: 0,
+        baseOpacity: 0
       });
     }
     this.writeSurfaceFxInstances();
@@ -2136,25 +2256,31 @@ class StudioGame {
     const matrix = new THREE.Matrix4();
     const quaternion = new THREE.Quaternion();
     const scale = new THREE.Vector3();
+    const hiddenPosition = new THREE.Vector3(0, -20, 0);
+    const hiddenScale = new THREE.Vector3(0.001, 0.001, 0.001);
+    const color = new THREE.Color();
     let waterIndex = 0;
     let rampIndex = 0;
     const hide = (mesh: THREE.InstancedMesh, index: number) => {
-      matrix.compose(new THREE.Vector3(0, -20, 0), quaternion, new THREE.Vector3(0.001, 0.001, 0.001));
+      matrix.compose(hiddenPosition, quaternion, hiddenScale);
       mesh.setMatrixAt(index, matrix);
+      mesh.setColorAt(index, color.setHex(colors.ink));
     };
 
     this.surfaceFxMarks.forEach((mark) => {
       if (mark.opacity <= 0.02 || (mark.kind !== "water" && mark.kind !== "ramp")) {
         return;
       }
-      quaternion.setFromEuler(new THREE.Euler(-Math.PI * 0.5, 0, mark.rotationZ));
-      scale.set(mark.scale, mark.scale, mark.scale);
+      quaternion.setFromEuler(new THREE.Euler(-Math.PI * 0.5, 0, mark.rotationZ + mark.spinSpeed * mark.age));
+      scale.set(mark.scale * mark.widthScale, mark.scale * mark.lengthScale, mark.scale);
       matrix.compose(mark.position, quaternion, scale);
       if (mark.kind === "water" && waterIndex < this.waterSurfaceFxMesh!.count) {
         this.waterSurfaceFxMesh!.setMatrixAt(waterIndex, matrix);
+        this.waterSurfaceFxMesh!.setColorAt(waterIndex, color.setHex(mark.color));
         waterIndex += 1;
       } else if (mark.kind === "ramp" && rampIndex < this.rampSurfaceFxMesh!.count) {
         this.rampSurfaceFxMesh!.setMatrixAt(rampIndex, matrix);
+        this.rampSurfaceFxMesh!.setColorAt(rampIndex, color.setHex(mark.color));
         rampIndex += 1;
       }
     });
@@ -2167,6 +2293,12 @@ class StudioGame {
     }
     this.waterSurfaceFxMesh.instanceMatrix.needsUpdate = true;
     this.rampSurfaceFxMesh.instanceMatrix.needsUpdate = true;
+    if (this.waterSurfaceFxMesh.instanceColor) {
+      this.waterSurfaceFxMesh.instanceColor.needsUpdate = true;
+    }
+    if (this.rampSurfaceFxMesh.instanceColor) {
+      this.rampSurfaceFxMesh.instanceColor.needsUpdate = true;
+    }
   }
 
   private setEvents() {
@@ -2998,15 +3130,43 @@ class StudioGame {
     if (material.kind !== "water" && material.kind !== "ramp") {
       return;
     }
-    const mark = this.surfaceFxMarks[this.emittedSurfaceFxMarks % this.surfaceFxMarks.length];
+    const sequenceIndex = this.emittedSurfaceFxMarks;
+    const mark = this.surfaceFxMarks[sequenceIndex % this.surfaceFxMarks.length];
     this.emittedSurfaceFxMarks += 1;
+    const profile = material.kind === "water"
+      ? ([
+          "water-ripple",
+          material.intensity >= 0.32 ? "water-foam" : "water-ripple",
+          speed >= 3.4 || material.id === "studio-canal" ? "water-wake" : "water-ripple"
+        ] as const)[sequenceIndex % 3]
+      : ([
+          "ramp-skid",
+          material.rideHeight >= 0.08 ? "ramp-chevron" : "ramp-skid",
+          speed >= 3.2 || Math.abs(this.currentLateralSpeed) >= 0.42 ? "ramp-spark" : "ramp-skid"
+        ] as const)[sequenceIndex % 3];
+    const profileSpec = surfaceFxProfiles[profile];
+    const lateralSign = this.currentLateralSpeed >= 0 ? 1 : -1;
+    const speedStretch = material.kind === "water" ? clamp(speed / 9, 0, 0.42) : clamp(speed / 11, 0, 0.34);
+    const intensityStretch = clamp(material.intensity * 0.22 + material.rideHeight * 0.6, 0, 0.32);
     mark.age = 0;
-    mark.maxAge = material.kind === "water" ? 1.15 : 0.72;
+    mark.maxAge = profileSpec.maxAge;
     mark.kind = material.kind;
+    mark.profile = profile;
     mark.position.set(position.x, material.kind === "water" ? 0.082 : 0.14 + material.rideHeight, position.z);
-    mark.rotationZ = this.player.rotation.y;
-    mark.scale = material.kind === "water" ? 0.72 + material.intensity * 0.5 : 0.42 + speed * 0.035;
-    mark.opacity = material.kind === "water" ? 0.34 + material.intensity * 0.18 : 0.28;
+    mark.rotationZ = this.player.rotation.y + (sequenceIndex % 2 === 0 ? 0.08 : -0.08) * lateralSign;
+    mark.scale = material.kind === "water" ? 0.68 + material.intensity * 0.42 : 0.38 + speed * 0.032;
+    mark.widthScale = profileSpec.widthScale + intensityStretch;
+    mark.lengthScale = profileSpec.lengthScale + speedStretch;
+    mark.color = profileSpec.color;
+    mark.liftSpeed = profileSpec.liftSpeed;
+    mark.spinSpeed = profileSpec.spinSpeed * lateralSign;
+    mark.signature = `surface-fx:${material.id}:${profile}`;
+    mark.baseOpacity = clamp(profileSpec.baseOpacity + material.intensity * 0.1 + speed * 0.006, 0.24, 0.5);
+    mark.opacity = mark.baseOpacity;
+    this.surfaceFxProfileCounts[profile] = (this.surfaceFxProfileCounts[profile] ?? 0) + 1;
+    this.surfaceFxSignatures.add(mark.signature);
+    this.surfaceFxColorVariants.add(mark.color);
+    this.maxSurfaceFxScaleVariance = Math.max(this.maxSurfaceFxScaleVariance, Math.abs(mark.widthScale - mark.lengthScale));
   }
 
   private updateTrail(delta: number) {
@@ -3034,9 +3194,9 @@ class StudioGame {
       dirty = true;
       mark.age += delta;
       const life = clamp(1 - mark.age / mark.maxAge, 0, 1);
-      mark.opacity = life * (mark.kind === "water" ? 0.42 : 0.32);
+      mark.opacity = life * mark.baseOpacity;
       mark.scale *= 1 + delta * (mark.kind === "water" ? 0.95 : 0.58);
-      mark.position.y += delta * (mark.kind === "water" ? 0.004 : 0.028);
+      mark.position.y += delta * mark.liftSpeed;
       if (life <= 0.02) {
         mark.kind = "field";
         mark.opacity = 0;
@@ -3655,6 +3815,8 @@ class StudioGame {
         activeTrailMarks.reduce((max, mark) => Math.max(max, mark.mesh.material.opacity), 0).toFixed(3)
       )
     };
+    const activeSurfaceFxMarks = this.surfaceFxMarks.filter((mark) => mark.opacity > 0.02);
+    const surfaceFxProfiles = Object.keys(this.surfaceFxProfileCounts).sort();
     this.qaSnapshot.drive = {
       totalDistance: Number(this.totalDriveDistance.toFixed(3)),
       positionSamples: [...this.drivePositionSamples],
@@ -3731,8 +3893,18 @@ class StudioGame {
         materialTransitions: this.materialTransitionCount,
         maxWaterIntensity: Number(this.maxWaterIntensity.toFixed(3)),
         maxRampRideHeight: Number(this.maxRampRideHeight.toFixed(3)),
-        activeFxMarks: this.surfaceFxMarks.filter((mark) => mark.opacity > 0.02).length,
+        activeFxMarks: activeSurfaceFxMarks.length,
         emittedFxMarks: this.emittedSurfaceFxMarks,
+        surfaceFxProfiles,
+        surfaceFxWaterProfiles: surfaceFxProfiles.filter((profile) => profile.startsWith("water-")).length,
+        surfaceFxRampProfiles: surfaceFxProfiles.filter((profile) => profile.startsWith("ramp-")).length,
+        surfaceFxProfileCounts: { ...this.surfaceFxProfileCounts },
+        surfaceFxSignatures: this.surfaceFxSignatures.size,
+        surfaceFxColorVariants: this.surfaceFxColorVariants.size,
+        surfaceFxObjectCapacity: (this.waterSurfaceFxMesh?.count ?? 0) + (this.rampSurfaceFxMesh?.count ?? 0),
+        surfaceFxActiveWaterMarks: activeSurfaceFxMarks.filter((mark) => mark.kind === "water").length,
+        surfaceFxActiveRampMarks: activeSurfaceFxMarks.filter((mark) => mark.kind === "ramp").length,
+        maxSurfaceFxScaleVariance: Number(this.maxSurfaceFxScaleVariance.toFixed(3)),
         waterRegionCount: worldMaterialRegions.water.length,
         rampRegionCount: worldMaterialRegions.ramps.length,
         terrainFeatureCount: terrainConfig.featureCount

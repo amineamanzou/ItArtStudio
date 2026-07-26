@@ -766,6 +766,18 @@ Gates V6.3:
   matrices, hauteurs, rotations, couleurs et signatures des `InstancedMesh`
   existants, pour garder le budget `sceneObjects <= 940`.
 
+Gates V6.4:
+
+- les FX dynamiques sous le rover ne sont plus des anneaux uniformes: l'eau
+  emet `ripple`, `foam` et `wake`, les rampes emettent `skid`, `chevron` et
+  `spark`, avec couleurs et formes d'instances distinctes;
+- `surface-material-physics` exige maintenant des profils FX eau et rampe, des
+  variantes de couleur, des signatures dynamiques et une variance de forme
+  minimale, en plus des preuves physiques eau/rampe/terrain;
+- la tranche conserve les deux `InstancedMesh` existants seulement: pas de
+  nouvel `Object3D`, pas de nouvelle geometrie par frame, seulement matrices,
+  couleurs d'instances et telemetry QA.
+
 ## Components
 
 - `game-site`: surface principale.
