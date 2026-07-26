@@ -30,6 +30,74 @@ L'objectif produit est un mini-monde jouable de niveau vitrine premium:
   lisibles pour juger le niveau comme un vrai livrable, pas seulement comme une
   scene Three.js chargee.
 
+## Asset-First Roadmap
+
+La suite du projet adopte une strategie asset-first. Le gameplay vehicule reste
+un support d'exploration, pas le centre du produit. Le saut de qualite doit
+venir de la carte, des assets, des textures, des silhouettes et de la coherence
+des lieux.
+
+Objectif fige:
+
+> Construire une bibliotheque GLB/glTF et textures comme socle du monde IT Art
+> Studio, puis agrandir la carte a partir de ce vocabulaire visuel avant de
+> composer trois hero locations premium. La boucle doit privilegier la
+> coherence du terrain, la lisibilite des assets, la qualite des textures et la
+> reduction du bruit procedural, avec une QA visuelle qui prouve que les lieux
+> sont reconnaissables sans lire le texte.
+
+Sequence de livraison:
+
+1. Collecter et curer une bibliotheque d'assets et textures.
+   - routes, chemins, bordures, ponts et plateformes;
+   - herbe, sols, rochers, falaises, reliefs et vegetation;
+   - eau, berges, pontons, traverses et materiaux humides;
+   - serveurs, racks, cables, antennes, ecrans et arcs electriques;
+   - mannequins, tables de coupe, tissus, portants et outils d'atelier;
+   - comptoir postal, boites, lettres, tapis de tri et signal contact.
+
+2. Installer le pipeline GLB/glTF.
+   - manifest versionne par asset: licence, source, poids, triangles, textures,
+     zone cible, role narratif et fallback procedural;
+   - loader centralise, normalisation scale / rotation / materials;
+   - budget perf par asset: taille, draw calls, textures, geometries;
+   - QA qui refuse un asset casse, trop lourd, sans licence ou non visible.
+
+3. Agrandir une map vide mais coherente.
+   - terrain plus vaste avant detail;
+   - routes et chemins deja coherents avec la bibliotheque;
+   - relief, eau, vegetation et transitions de districts poses comme langage de
+     level design;
+   - zones plus eloignees, respirations, points de repere et silhouettes
+     lointaines.
+
+4. Composer trois hero locations avec la bibliotheque.
+   - `Cloud Dock`: racks serveur, nuages, pontons, liaisons electriques;
+   - `Design Atelier`: mannequin, table de coupe, tissus, portants, matieres;
+   - `Observability Tower`: tour, antennes, ecrans, traces, faisceaux.
+
+5. Reduire le bruit procedural.
+   - remplacer les petits marqueurs generiques par des assets narratifs;
+   - supprimer tout objet qui n'aide pas la comprehension du lieu ou la
+     composition;
+   - conserver les proceduraux seulement comme fallback, FX ou detail utile.
+
+6. Iterer avec QA.
+   - captures avant/apres par zone;
+   - preuve que routes, eau, relief et vegetation restent lisibles;
+   - preuve que les trois hero locations se reconnaissent sans texte;
+   - preuve d'absence de scintillement, superposition de textures et assets
+     casses;
+   - budget renderer et scene graph preserves.
+
+Priorite produit:
+
+- Bibliotheque assets / textures: 30%;
+- Pipeline GLB/glTF: 20%;
+- Agrandissement map / terrain: 25%;
+- Hero locations: 20%;
+- Gameplay vehicule: 5%.
+
 ## Color
 
 La palette devient plus lisible et plus jouable:

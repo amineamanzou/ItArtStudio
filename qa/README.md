@@ -294,6 +294,10 @@ The runner:
   must protect modeled place assets, clean textures, water, relief, free-roam
   traversal without invisible blockers, arcade acceleration/braking/drift,
   responsive engine/audio layers, and capture-ready level readability.
+- The next asset-first loop must validate the GLB/glTF library before map
+  expansion: every accepted asset needs source, license, file weight, texture
+  list, triangle budget, narrative role, fallback, and at least one visible
+  capture proof once integrated.
 - Asset envelope checks use a bounded measurement tolerance for headless browser
   and animation-phase differences, while still requiring non-empty geometry,
   local placement, vertical clearance, and premium scene-object budgets.
