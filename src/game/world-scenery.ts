@@ -781,9 +781,18 @@ function addRouteLights(
 
   markers.forEach((marker, index) => {
     quaternion.setFromEuler(new THREE.Euler(0, marker.angle, 0));
-    matrix.compose(new THREE.Vector3(marker.x, 0.34, marker.z), quaternion, new THREE.Vector3(1, 1, 1));
+    const pulseScale = 0.82 + (marker.lane % 3) * 0.12;
+    matrix.compose(
+      new THREE.Vector3(marker.x, 0.31 + marker.lane * 0.035, marker.z),
+      quaternion,
+      new THREE.Vector3(0.82, pulseScale, 0.82)
+    );
     stems.setMatrixAt(index, matrix);
-    matrix.compose(new THREE.Vector3(marker.x, 0.64, marker.z), quaternion, new THREE.Vector3(1, 1, 1));
+    matrix.compose(
+      new THREE.Vector3(marker.x, 0.59 + marker.lane * 0.08, marker.z),
+      quaternion,
+      new THREE.Vector3(0.86 + marker.lane * 0.08, 0.86 + marker.lane * 0.08, 0.86 + marker.lane * 0.08)
+    );
     caps.setMatrixAt(index, matrix);
   });
   stems.instanceMatrix.needsUpdate = true;
@@ -809,17 +818,50 @@ function sampleRouteMarkers(routes: WorldRoute[]) {
       return [];
     }
     const points = [from.position, ...(route.via ?? []), to.position];
-    const middle = points[Math.floor(points.length / 2)];
-    const next = points[Math.min(points.length - 1, Math.floor(points.length / 2) + 1)];
-    return [
-      {
+    const samples = [0.27, 0.5, 0.73];
+    return samples.map((sample, lane) => {
+      const marker = samplePolyline(points, sample);
+      return {
         route,
-        x: middle[0],
-        z: middle[1],
-        angle: Math.atan2(next[0] - middle[0], next[1] - middle[1])
-      }
-    ];
+        x: marker.x,
+        z: marker.z,
+        angle: marker.angle,
+        lane
+      };
+    });
   });
+}
+
+function samplePolyline(points: Array<readonly [number, number]>, t: number) {
+  const segments: Array<{ from: readonly [number, number]; to: readonly [number, number]; length: number }> = [];
+  let totalLength = 0;
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const from = points[index];
+    const to = points[index + 1];
+    const length = Math.hypot(to[0] - from[0], to[1] - from[1]);
+    segments.push({ from, to, length });
+    totalLength += length;
+  }
+
+  let remaining = totalLength * clamp01(t);
+  for (const segment of segments) {
+    if (remaining <= segment.length || segment === segments[segments.length - 1]) {
+      const localT = segment.length > 0 ? remaining / segment.length : 0;
+      return {
+        x: segment.from[0] + (segment.to[0] - segment.from[0]) * localT,
+        z: segment.from[1] + (segment.to[1] - segment.from[1]) * localT,
+        angle: Math.atan2(segment.to[0] - segment.from[0], segment.to[1] - segment.from[1])
+      };
+    }
+    remaining -= segment.length;
+  }
+
+  const fallback = points[points.length - 1] ?? [0, 0];
+  return { x: fallback[0], z: fallback[1], angle: 0 };
+}
+
+function clamp01(value: number) {
+  return Math.min(1, Math.max(0, value));
 }
 
 function countMeshes(object: THREE.Object3D) {

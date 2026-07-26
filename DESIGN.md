@@ -743,6 +743,16 @@ Gates V6.1:
 - `audio-layer` exige maintenant une couche frein (`brakeGain`) en plus du
   moteur, de l'acceleration, du drift, de l'eau, des rampes et du mute strict.
 
+Gates V6.2:
+
+- les routes doivent se lire comme une piste d'exploration, pas seulement comme
+  des lignes au sol: chaque trajet porte trois balises lumineuses instanciees
+  avec hauteur et echelle alternees;
+- `route-light-runway` exige `route-light >= routeCount * 3`, des signatures et
+  roles de mouvement supplementaires, tout en gardant `sceneObjects <= 940`;
+- cette tranche n'ajoute aucun nouvel `Object3D`: elle augmente la densite et la
+  lisibilite du monde par instances dans les meshes existants.
+
 ## Components
 
 - `game-site`: surface principale.
