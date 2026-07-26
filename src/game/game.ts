@@ -134,6 +134,17 @@ function createWorldTexture(baseColor: number, repeat = 9) {
 }
 
 type BoundsQa = { width: number; height: number; depth: number };
+type AssetEnvelopeQa = BoundsQa & {
+  min: { x: number; y: number; z: number };
+  max: { x: number; y: number; z: number };
+  center: { x: number; y: number; z: number };
+  offset: { x: number; z: number };
+  offsetDistance: number;
+  footprintRadius: number;
+  zoneRadius: number;
+  allowedFootprintRadius: number;
+  overflow: number;
+};
 type Vec3Qa = { x: number; y: number; z: number };
 type ScreenPointQa = { x: number; y: number; ndcX: number; ndcY: number; visible: boolean };
 type DriveDynamicsQa = {
@@ -324,6 +335,8 @@ type AudioQa = {
 
 type ZoneAssetQa = {
   id: string;
+  zonePosition: { x: number; z: number };
+  zoneRadius: number;
   meshCount: number;
   landmarkObjects: number;
   visualSpecId: string | null;
@@ -341,12 +354,14 @@ type ZoneAssetQa = {
   placeArchitectureRoles: string[];
   placeArchitectureSignatures: string[];
   placeArchitectureBounds: BoundsQa;
+  placeArchitectureEnvelope: AssetEnvelopeQa;
   signatureArtifactObjects: number;
   signatureArtifactFamilies: string[];
   signatureArtifactRoles: string[];
   signatureArtifactSignatures: string[];
   signatureArtifactMaterials: string[];
   signatureArtifactBounds: BoundsQa;
+  signatureArtifactEnvelope: AssetEnvelopeQa;
   signatureArtifactScreen: ScreenRectQa;
   projectArtifactObjects: number;
   projectArtifactSceneObjects: number;
@@ -362,6 +377,7 @@ type ZoneAssetQa = {
   projectArtifactPartCount: number;
   projectArtifactVertexCount: number;
   projectArtifactBounds: BoundsQa;
+  projectArtifactEnvelope: AssetEnvelopeQa;
   materialVariants: number;
   surfaceProfileId: string | null;
   surfaceFinish: string | null;
@@ -389,11 +405,13 @@ type ZoneAssetQa = {
   localMotionBehaviors: Record<string, number>;
   visualFingerprint: string;
   setDressingFingerprint: string;
+  setDressingEnvelope: AssetEnvelopeQa;
   placeArchitectureFingerprint: string;
   signatureArtifactFingerprint: string;
   projectArtifactFingerprint: string;
   hasLabel: boolean;
   bounds: BoundsQa;
+  envelope: AssetEnvelopeQa;
 };
 
 type QaSnapshot = {
@@ -3626,8 +3644,11 @@ class StudioGame {
   private inspectZoneAsset(zone: StudioZone): ZoneAssetQa {
     const group = this.zoneMeshes.get(zone.id);
     if (!group) {
+      const emptyEnvelope = this.emptyAssetEnvelope(zone);
       return {
         id: zone.id,
+        zonePosition: { x: zone.position[0], z: zone.position[1] },
+        zoneRadius: zone.radius,
         meshCount: 0,
         landmarkObjects: 0,
         visualSpecId: null,
@@ -3645,12 +3666,14 @@ class StudioGame {
         placeArchitectureRoles: [],
         placeArchitectureSignatures: [],
         placeArchitectureBounds: { width: 0, height: 0, depth: 0 },
+        placeArchitectureEnvelope: emptyEnvelope,
         signatureArtifactObjects: 0,
         signatureArtifactFamilies: [],
         signatureArtifactRoles: [],
         signatureArtifactSignatures: [],
         signatureArtifactMaterials: [],
         signatureArtifactBounds: { width: 0, height: 0, depth: 0 },
+        signatureArtifactEnvelope: emptyEnvelope,
         signatureArtifactScreen: this.emptyScreenRect(),
         projectArtifactObjects: 0,
         projectArtifactSceneObjects: 0,
@@ -3666,6 +3689,7 @@ class StudioGame {
         projectArtifactPartCount: 0,
         projectArtifactVertexCount: 0,
         projectArtifactBounds: { width: 0, height: 0, depth: 0 },
+        projectArtifactEnvelope: emptyEnvelope,
         materialVariants: 0,
         surfaceProfileId: null,
         surfaceFinish: null,
@@ -3693,11 +3717,13 @@ class StudioGame {
         localMotionBehaviors: {},
         visualFingerprint: "",
         setDressingFingerprint: "",
+        setDressingEnvelope: emptyEnvelope,
         placeArchitectureFingerprint: "",
         signatureArtifactFingerprint: "",
         projectArtifactFingerprint: "",
         hasLabel: false,
-        bounds: { width: 0, height: 0, depth: 0 }
+        bounds: { width: 0, height: 0, depth: 0 },
+        envelope: emptyEnvelope
       };
     }
 
@@ -3979,12 +4005,27 @@ class StudioGame {
       Boolean(expectedAnimation && appliedAnimation) &&
       JSON.stringify(expectedAnimation) === JSON.stringify(appliedAnimation);
 
+    const setDressingGroup = this.setDressingGroups.get(zone.id);
     const signatureArtifactGroup = this.signatureArtifactGroups.get(zone.id);
     const placeArchitectureGroup = this.placeArchitectureGroups.get(zone.id);
     const projectArtifactGroup = this.projectArtifactGroups.get(zone.id);
+    const setDressingEnvelope = setDressingGroup
+      ? this.measureObjectEnvelope(setDressingGroup, zone)
+      : this.emptyAssetEnvelope(zone);
+    const placeArchitectureEnvelope = placeArchitectureGroup
+      ? this.measureObjectEnvelope(placeArchitectureGroup, zone)
+      : this.emptyAssetEnvelope(zone);
+    const signatureArtifactEnvelope = signatureArtifactGroup
+      ? this.measureObjectEnvelope(signatureArtifactGroup, zone)
+      : this.emptyAssetEnvelope(zone);
+    const projectArtifactEnvelope = projectArtifactGroup
+      ? this.measureObjectEnvelope(projectArtifactGroup, zone)
+      : this.emptyAssetEnvelope(zone);
 
     return {
       id: zone.id,
+      zonePosition: { x: zone.position[0], z: zone.position[1] },
+      zoneRadius: zone.radius,
       meshCount,
       landmarkObjects,
       visualSpecId: typeof group.userData.visualSpecId === "string" ? group.userData.visualSpecId : null,
@@ -4002,12 +4043,14 @@ class StudioGame {
       placeArchitectureRoles: [...placeArchitectureRoles].sort(),
       placeArchitectureSignatures: [...placeArchitectureSignatures].sort(),
       placeArchitectureBounds: placeArchitectureGroup ? this.measureObject(placeArchitectureGroup) : { width: 0, height: 0, depth: 0 },
+      placeArchitectureEnvelope,
       signatureArtifactObjects,
       signatureArtifactFamilies: [...signatureArtifactFamilies].sort(),
       signatureArtifactRoles: [...signatureArtifactRoles].sort(),
       signatureArtifactSignatures: [...signatureArtifactSignatures].sort(),
       signatureArtifactMaterials: [...signatureArtifactMaterials].sort(),
       signatureArtifactBounds: signatureArtifactGroup ? this.measureObject(signatureArtifactGroup) : { width: 0, height: 0, depth: 0 },
+      signatureArtifactEnvelope,
       signatureArtifactScreen:
         qaMode && signatureArtifactGroup ? this.projectObjectToScreenRect(signatureArtifactGroup) : this.emptyScreenRect(),
       projectArtifactObjects,
@@ -4026,6 +4069,7 @@ class StudioGame {
       projectArtifactPartCount,
       projectArtifactVertexCount,
       projectArtifactBounds: projectArtifactGroup ? this.measureObject(projectArtifactGroup) : { width: 0, height: 0, depth: 0 },
+      projectArtifactEnvelope,
       materialVariants: materialVariants.size,
       surfaceProfileId: typeof group.userData.surfaceProfileId === "string" ? group.userData.surfaceProfileId : null,
       surfaceFinish: typeof group.userData.surfaceFinish === "string" ? group.userData.surfaceFinish : null,
@@ -4065,11 +4109,13 @@ class StudioGame {
         [...materialVariants].sort().join("+")
       ].join("|"),
       setDressingFingerprint: [...setDressingSignatures].sort().join("|"),
+      setDressingEnvelope,
       placeArchitectureFingerprint: [...placeArchitectureSignatures].sort().join("|"),
       signatureArtifactFingerprint: [...signatureArtifactSignatures].sort().join("|"),
       projectArtifactFingerprint: [...projectArtifactSignatures].sort().join("|"),
       hasLabel,
-      bounds: this.measureObject(group)
+      bounds: this.measureObject(group),
+      envelope: this.measureObjectEnvelope(group, zone)
     };
   }
 
@@ -4081,6 +4127,76 @@ class StudioGame {
       width: Number(size.x.toFixed(3)),
       height: Number(size.y.toFixed(3)),
       depth: Number(size.z.toFixed(3))
+    };
+  }
+
+  private emptyAssetEnvelope(zone: StudioZone): AssetEnvelopeQa {
+    return {
+      width: 0,
+      height: 0,
+      depth: 0,
+      min: { x: zone.position[0], y: 0, z: zone.position[1] },
+      max: { x: zone.position[0], y: 0, z: zone.position[1] },
+      center: { x: zone.position[0], y: 0, z: zone.position[1] },
+      offset: { x: 0, z: 0 },
+      offsetDistance: 0,
+      footprintRadius: 0,
+      zoneRadius: zone.radius,
+      allowedFootprintRadius: Number((zone.radius + 1.25).toFixed(3)),
+      overflow: 0
+    };
+  }
+
+  private measureObjectEnvelope(object: THREE.Object3D, zone: StudioZone): AssetEnvelopeQa {
+    const box = this.computeObjectBounds(object);
+    if (box.isEmpty()) {
+      return this.emptyAssetEnvelope(zone);
+    }
+
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    box.getSize(size);
+    box.getCenter(center);
+
+    const zoneX = zone.position[0];
+    const zoneZ = zone.position[1];
+    const corners = [
+      [box.min.x, box.min.z],
+      [box.min.x, box.max.z],
+      [box.max.x, box.min.z],
+      [box.max.x, box.max.z]
+    ] as const;
+    const footprintRadius = Math.max(...corners.map(([x, z]) => Math.hypot(x - zoneX, z - zoneZ)));
+    const allowedFootprintRadius = zone.radius + 1.25;
+
+    return {
+      width: Number(size.x.toFixed(3)),
+      height: Number(size.y.toFixed(3)),
+      depth: Number(size.z.toFixed(3)),
+      min: {
+        x: Number(box.min.x.toFixed(3)),
+        y: Number(box.min.y.toFixed(3)),
+        z: Number(box.min.z.toFixed(3))
+      },
+      max: {
+        x: Number(box.max.x.toFixed(3)),
+        y: Number(box.max.y.toFixed(3)),
+        z: Number(box.max.z.toFixed(3))
+      },
+      center: {
+        x: Number(center.x.toFixed(3)),
+        y: Number(center.y.toFixed(3)),
+        z: Number(center.z.toFixed(3))
+      },
+      offset: {
+        x: Number((center.x - zoneX).toFixed(3)),
+        z: Number((center.z - zoneZ).toFixed(3))
+      },
+      offsetDistance: Number(Math.hypot(center.x - zoneX, center.z - zoneZ).toFixed(3)),
+      footprintRadius: Number(footprintRadius.toFixed(3)),
+      zoneRadius: zone.radius,
+      allowedFootprintRadius: Number(allowedFootprintRadius.toFixed(3)),
+      overflow: Number(Math.max(0, footprintRadius - allowedFootprintRadius).toFixed(3))
     };
   }
 

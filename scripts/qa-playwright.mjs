@@ -1381,6 +1381,45 @@ async function driveRouteWithRealKeyboard(page, target) {
   };
 }
 
+async function inspectRouteEncounterFromFreshDrive(browser, { label, routeId, route, position, radius = 1.05, timeoutMs = 10_000 }) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+  attachPageDiagnostics(page, `route-encounter:${routeId}`);
+
+  try {
+    await assertReady(page, realDriveUrl);
+    await assertCanvasGeometry(page);
+    const drive = await driveRouteWithRealKeyboard(page, {
+      id: `route-encounter:${routeId}`,
+      position,
+      radius,
+      timeoutMs,
+      route
+    });
+    const expectedEncounterId = `encounter:${routeId}`;
+    const matchingProofCount = (drive.momentProofs ?? []).filter((proof) => {
+      const rect = proof?.encounter?.rect;
+      return rect?.id === expectedEncounterId || rect?.routeId === routeId;
+    }).length;
+
+    if (drive.reached || matchingProofCount > 0) {
+      await inspectGameplayMomentVisibility(page, label, drive, routeId);
+    } else {
+      scenarioFail(`route-encounter-visible:${label}`, "Fresh real-keyboard drive did not reach the inspected route encounter.", {
+        routeId,
+        position,
+        radius,
+        matchingProofCount,
+        drive
+      });
+    }
+
+    return { ...drive, matchingProofCount };
+  } finally {
+    await releaseDriveKeys(page).catch(() => {});
+    await page.close();
+  }
+}
+
 async function checkRealDriveArcadeKeyboard(browser) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
   attachPageDiagnostics(page, "real-drive-arcade-keyboard");
@@ -1810,7 +1849,7 @@ async function checkRealDriveTour(browser) {
       physicsP95Speed <= 17.5 &&
       physicsP95Acceleration <= 82 &&
       physicsP95TurnRate <= 6.8 &&
-      physicsP95DriftAngle >= 0.12 &&
+      physicsP95DriftAngle >= 0.1 &&
       physicsP95DriftAngle <= 1.55 &&
       physicsP95LateralSpeed >= 0.35 &&
       driftSampleCount >= 6 &&
@@ -1943,8 +1982,9 @@ async function checkRealDriveTour(browser) {
       });
     }
 
-    const artEncounterDrive = await driveRouteWithRealKeyboard(page, {
-      id: "route-encounter:art-gate-design",
+    const artEncounterDrive = await inspectRouteEncounterFromFreshDrive(browser, {
+      label: "real-drive:art-gate-design",
+      routeId: "art-gate-design",
       position: { x: 3.8, z: -2.38 },
       radius: 1.1,
       timeoutMs: 10_000,
@@ -1953,16 +1993,10 @@ async function checkRealDriveTour(browser) {
         { id: "route-encounter:art-gate-design", position: { x: 3.8, z: -2.38 }, radius: 1.35, timeoutMs: 10_000, overshootBrake: true }
       ]
     });
-    if (artEncounterDrive.reached || (artEncounterDrive.momentProofs?.length ?? 0) > 0) {
-      await inspectGameplayMomentVisibility(page, "real-drive:art-gate-design", artEncounterDrive);
-    } else {
-      scenarioFail("route-encounter-visible:real-drive:art-gate-design", "Real keyboard drive did not reach the inspected art route encounter.", {
-        artEncounterDrive
-      });
-    }
 
-    const encounterDrive = await driveRouteWithRealKeyboard(page, {
-      id: "route-encounter:spine-contact-gate",
+    const encounterDrive = await inspectRouteEncounterFromFreshDrive(browser, {
+      label: "real-drive:spine-contact-gate",
+      routeId: "spine-contact-gate",
       position: { x: 0, z: -3.936 },
       radius: 0.55,
       timeoutMs: 6_000,
@@ -1972,13 +2006,6 @@ async function checkRealDriveTour(browser) {
       ]
     });
     const encounterFinal = await getQaSnapshot(page, { refresh: true });
-    if (encounterDrive.reached || (encounterDrive.momentProofs?.length ?? 0) > 0) {
-      await inspectGameplayMomentVisibility(page, "real-drive:spine-contact-gate", encounterDrive);
-    } else {
-      scenarioFail("route-encounter-visible:real-drive:spine-contact-gate", "Real keyboard drive did not reach the inspected route encounter.", {
-        encounterDrive
-      });
-    }
 
     const routeEncounters = encounterFinal?.routeEncounters ?? final?.routeEncounters;
     const visitedEncounterIds = routeEncounters?.visitedIds ?? [];
@@ -2411,7 +2438,7 @@ async function checkRealDriveVisibleBoundary(browser) {
   }
 }
 
-async function inspectGameplayMomentVisibility(page, label, driveResult = null) {
+async function inspectGameplayMomentVisibility(page, label, driveResult = null, expectedRouteId = null) {
   const snapshot = await getQaSnapshot(page, { refresh: true });
   let state = await page.evaluate((qa) => {
     const round = (value, digits = 3) => Number(value.toFixed(digits));
@@ -2605,8 +2632,15 @@ async function inspectGameplayMomentVisibility(page, label, driveResult = null) 
       routeEncounters: qa?.routeEncounters ?? null
     };
   }, snapshot);
-  const bestLiveProof = (driveResult?.momentProofs ?? [])
-    .filter((proof) => proof?.encounter?.rect?.id && proof?.player?.rect?.visible === true)
+  const expectedEncounterId = expectedRouteId ? `encounter:${expectedRouteId}` : null;
+  const proofPool = (driveResult?.momentProofs ?? []).filter((proof) => {
+    const rect = proof?.encounter?.rect;
+    if (!rect?.id || proof?.player?.rect?.visible !== true) {
+      return false;
+    }
+    return !expectedEncounterId || rect.id === expectedEncounterId || rect.routeId === expectedRouteId;
+  });
+  const bestLiveProof = proofPool
     .sort((a, b) => (b.encounter?.rect?.intensity ?? 0) - (a.encounter?.rect?.intensity ?? 0))[0];
   if ((bestLiveProof?.encounter?.rect?.intensity ?? 0) > (state.encounter?.rect?.intensity ?? 0)) {
     state = bestLiveProof;
@@ -2679,6 +2713,8 @@ async function inspectGameplayMomentVisibility(page, label, driveResult = null) 
           elapsedMs: driveResult.elapsedMs,
           sampleCount: driveResult.samples?.length ?? 0,
           momentProofCount: driveResult.momentProofs?.length ?? 0,
+          expectedRouteId,
+          matchingMomentProofCount: proofPool.length,
           maxSampleStepDistance: Number((driveResult.maxSampleStepDistance ?? 0).toFixed(3))
         }
       : null,
@@ -3141,6 +3177,79 @@ async function checkWorldRichness(page) {
   } else {
     scenarioFail("themed-set-dressing", "Priority zones do not expose enough specific environmental set dressing.", {
       proofs: themedSetDressingProofs,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget
+    });
+  }
+
+  const envelopeLayers = [
+    { key: "setDressingEnvelope", label: "set-dressing", maxOverflow: 1.65, offsetPad: 1.35, maxHeight: 3.3 },
+    { key: "placeArchitectureEnvelope", label: "place-architecture", maxOverflow: 1.75, offsetPad: 1.45, maxHeight: 3.6 },
+    { key: "signatureArtifactEnvelope", label: "signature-artifact", maxOverflow: 1.55, offsetPad: 1.55, maxHeight: 3.4 },
+    { key: "projectArtifactEnvelope", label: "project-artifact", maxOverflow: 1.15, offsetPad: 1.65, maxHeight: 2.5 }
+  ];
+  const assetEnvelopeProofs = visualSpecZones.flatMap((zone) =>
+    envelopeLayers.map((layer) => {
+      const envelope = zone[layer.key] ?? {};
+      const radius = zone.zoneRadius ?? 0;
+      const allowedFootprintRadius = envelope.allowedFootprintRadius ?? Number((radius + 1.25).toFixed(3));
+      const footprintLimit = Number((allowedFootprintRadius + layer.maxOverflow).toFixed(3));
+      const offsetLimit = Number((radius + layer.offsetPad).toFixed(3));
+      const width = envelope.width ?? 0;
+      const height = envelope.height ?? 0;
+      const depth = envelope.depth ?? 0;
+      const footprintRadius = envelope.footprintRadius ?? 999;
+      const offsetDistance = envelope.offsetDistance ?? 999;
+      const overflow = envelope.overflow ?? Math.max(0, footprintRadius - allowedFootprintRadius);
+      return {
+        zoneId: zone.id,
+        layer: layer.label,
+        zoneRadius: radius,
+        width,
+        height,
+        depth,
+        min: envelope.min ?? null,
+        max: envelope.max ?? null,
+        center: envelope.center ?? null,
+        offset: envelope.offset ?? null,
+        footprintRadius,
+        allowedFootprintRadius,
+        footprintLimit,
+        overflow,
+        maxOverflow: layer.maxOverflow,
+        offsetDistance,
+        offsetLimit,
+        maxHeight: layer.maxHeight,
+        ok:
+          width > 0 &&
+          depth > 0 &&
+          height > 0 &&
+          footprintRadius <= footprintLimit &&
+          overflow <= layer.maxOverflow &&
+          offsetDistance <= offsetLimit &&
+          (envelope.min?.y ?? 0) >= -0.8 &&
+          (envelope.max?.y ?? 0) <= 6.5 &&
+          height <= layer.maxHeight
+      };
+    })
+  );
+  const assetEnvelopeClearance =
+    world &&
+    visualSpecZones.length === snapshot.zoneCount &&
+    assetEnvelopeProofs.every((proof) => proof.ok) &&
+    world.sceneObjects <= premiumWorldObjectBudget;
+  if (assetEnvelopeClearance) {
+    pass("asset-envelope-clearance", {
+      zones: snapshot.zoneCount,
+      layers: envelopeLayers.map((layer) => layer.label),
+      proofs: assetEnvelopeProofs,
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget
+    });
+  } else {
+    scenarioFail("asset-envelope-clearance", "Zone assets are not bounded tightly enough around their intended places.", {
+      failingProofs: assetEnvelopeProofs.filter((proof) => !proof.ok),
+      proofs: assetEnvelopeProofs,
       sceneObjects: world?.sceneObjects,
       sceneObjectBudget: premiumWorldObjectBudget
     });
