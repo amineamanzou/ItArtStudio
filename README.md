@@ -22,6 +22,7 @@ container final sert les fichiers generes avec Nginx unprivileged sur le port
 ```bash
 npm ci
 npm run dev
+npm run assets:validate
 npm run check
 npm run build
 npm run qa:game
@@ -68,6 +69,12 @@ l'onglet **Actions**.
 - `src/game/procedural-assets.ts` : landmarks 3D proceduraux par zone
 - `src/game/zones.ts` : contenu editorial de la cartographie
 - `src/styles/global.css` : design system, HUD, carte, mobile et fallback
+- `assets/world-assets.manifest.json` : bibliotheque candidate GLB/glTF,
+  textures, licences, budgets et roles narratifs
+- `public/assets/models` : futurs modeles runtime acceptes par le manifest
+- `public/assets/textures` : futures textures runtime optimisees
+- `scripts/validate-asset-library.mjs` : validation de la bibliotheque
+  asset-first
 - `qa/README.md` : protocole QA Playwright avec screenshots et rapport
 - `PRODUCT.md` : contexte strategique pour agents et design
 - `DESIGN.md` : systeme visuel courant

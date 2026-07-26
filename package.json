@@ -9,7 +9,8 @@
     "build": "astro build && node scripts/assert-production-bundle.mjs",
     "build:pages": "GITHUB_PAGES=true SITE_URL=https://amineamanzou.github.io BASE_PATH=/ItArtStudio npm run build",
     "preview": "astro preview",
-    "check": "astro check",
+    "check": "astro check && npm run assets:validate",
+    "assets:validate": "node scripts/validate-asset-library.mjs",
     "qa:game": "node scripts/qa-playwright.mjs",
     "qa:game:quick": "QA_PROFILE=quick node scripts/qa-playwright.mjs",
     "qa:game:static": "QA_STATIC_DIST=true QA_STATIC_BASE_PATH=/ItArtStudio node scripts/qa-playwright.mjs"

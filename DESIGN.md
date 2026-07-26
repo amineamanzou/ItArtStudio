@@ -1013,6 +1013,21 @@ Gates V8.0:
 - les futurs assets GLB/glTF doivent etre introduits seulement avec manifest,
   licence, budget, fallback procedural et preuve visuelle dans le rapport QA.
 
+Gates V8.1:
+
+- `assets/world-assets.manifest.json` devient le point d'entree obligatoire de
+  la boucle asset-first: aucune extension de map ne part sans source, licence,
+  role narratif, budget et prochaine action par asset;
+- `npm run assets:validate` bloque les sources sans licence commerciale, les
+  assets acceptes sans fichier local, les modeles sans budget triangle/poids et
+  les hero locations sans couverture candidate;
+- la premiere curation couvre 10 sources, 16 assets candidats, les roles
+  terrain `road`, `water`, `relief`, `vegetation`, `route-edge`, `bridge`, et
+  les trois hero locations `Cloud Dock`, `Design Atelier`,
+  `Observability Tower`;
+- les assets restent au statut `candidate` tant qu'ils ne sont pas telecharges,
+  optimises et prouves visuellement; `integrated` exige une preuve QA.
+
 ## Components
 
 - `game-site`: surface principale.
