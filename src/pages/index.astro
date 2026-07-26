@@ -6,6 +6,7 @@ const mapRange = 34;
 const mapCoordinate = (value: number) => `${((value + mapRange / 2) / mapRange) * 100}%`;
 const mapPinOffsets: Record<string, [number, number]> = {
   "cloud-dock": [-10, -8],
+  "values-plaza": [0, 18],
   "contact-portal": [10, 8]
 };
 const homeHref = import.meta.env.BASE_URL;

@@ -568,6 +568,19 @@ Gates V4.5:
 - le budget monde premium est nomme dans la QA (`sceneObjects <= 940`) et le
   rapport courant doit rester proche de `930/940`.
 
+Gates V4.7:
+
+- `premium-surface-details` exige une topographie jouable plus lisible:
+  ecume autour des bassins, piquets de rive, chevrons de rampes et lignes de
+  relief;
+- ces details sont derives de `worldMaterialRegions` pour que le visuel de
+  l'eau et des rampes reste aligne avec la physique du rover;
+- toute la couche est instanciee dans un seul groupe afin d'ajouter du relief
+  sans transformer la scene en foret d'objets;
+- le budget reste strict: `sceneObjects <= 940`, avec au moins 17 roles de
+  details de surface, 75 signatures de scenographie et 55 objets animes
+  semantiques.
+
 ## Components
 
 - `game-site`: surface principale.

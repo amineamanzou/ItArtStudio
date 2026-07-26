@@ -19,6 +19,7 @@ type SceneRole =
   | "terrain-edge"
   | "relief-ramp"
   | "water-body"
+  | "surface-detail"
   | "tech-skyline"
   | "art-sculpture"
   | "studio-threshold"
@@ -169,6 +170,7 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
 
   addWaterBodies(add, waterMat, studioMat);
   addReliefRamps(add, techMat, artMat, studioMat, roadMat, inkMat);
+  addSurfaceDetails(add, studioMat, roadMat, inkMat);
   addTechSkyline(add, techMat, roadMat, inkMat);
   addArtSculptures(add, artMat, roadMat, inkMat);
   addStudioThreshold(add, studioMat, techMat, artMat, roadMat);
@@ -293,6 +295,106 @@ function addReliefRamps(
     objectCount: ramps.length * 3,
     roleCount: ramps.length,
     motionCount: ramps.length
+  });
+}
+
+function addSurfaceDetails(
+  add: (
+    object: THREE.Object3D,
+    role: SceneRole,
+    signature: string,
+    motionBehavior?: MotionBehavior,
+    options?: { signatures?: string[]; objectCount?: number; roleCount?: number; motionCount?: number }
+  ) => void,
+  studioMat: THREE.Material,
+  roadMat: THREE.Material,
+  inkMat: THREE.Material
+) {
+  const detail = new THREE.Group();
+  detail.name = "premium-surface-detail-instances";
+
+  const waterFoamCount = worldMaterialRegions.water.length * 2;
+  const shorePinCount = worldMaterialRegions.water.length * 4;
+  const rampChevronCount = worldMaterialRegions.ramps.length * 3;
+  const contourCount = 9;
+  const signatures: string[] = [];
+
+  const waterFoam = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.012, 6, 72), roadMat, waterFoamCount);
+  const shorePins = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.026, 0.038, 0.34, 7), studioMat, shorePinCount);
+  const rampChevrons = new THREE.InstancedMesh(new THREE.BoxGeometry(0.42, 0.036, 0.085), roadMat, rampChevronCount);
+  const terrainContours = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.009, 5, 84), inkMat, contourCount);
+  const matrix = new THREE.Matrix4();
+  const quaternion = new THREE.Quaternion();
+  const scale = new THREE.Vector3();
+  const up = new THREE.Vector3(0, 1, 0);
+
+  worldMaterialRegions.water.forEach((region, regionIndex) => {
+    const depthRatio = region.radiusZ / region.radiusX;
+    for (let ringIndex = 0; ringIndex < 2; ringIndex += 1) {
+      const index = regionIndex * 2 + ringIndex;
+      const ringScale = ringIndex === 0 ? 1.08 : 0.72;
+      quaternion.setFromEuler(new THREE.Euler(Math.PI * 0.5, region.rotation, 0));
+      scale.set(region.radiusX * ringScale, region.radiusX * depthRatio * ringScale, 1);
+      matrix.compose(new THREE.Vector3(region.center[0], 0.088 + ringIndex * 0.015, region.center[1]), quaternion, scale);
+      waterFoam.setMatrixAt(index, matrix);
+      signatures.push(`surface-detail:water:${region.id}:foam-${ringIndex}`);
+    }
+
+    for (let pinIndex = 0; pinIndex < 4; pinIndex += 1) {
+      const angle = region.rotation + pinIndex * Math.PI * 0.5 + 0.34;
+      const x = region.center[0] + Math.cos(angle) * region.radiusX * 1.04;
+      const z = region.center[1] + Math.sin(angle) * region.radiusZ * 1.04;
+      quaternion.setFromEuler(new THREE.Euler(0, angle * 0.18, 0));
+      matrix.compose(new THREE.Vector3(x, 0.205, z), quaternion, new THREE.Vector3(1, 1, 1));
+      shorePins.setMatrixAt(regionIndex * 4 + pinIndex, matrix);
+      signatures.push(`surface-detail:water:${region.id}:shore-pin-${pinIndex}`);
+    }
+  });
+
+  worldMaterialRegions.ramps.forEach((region, regionIndex) => {
+    const localOffsets = [-0.26, 0, 0.26];
+    localOffsets.forEach((localZ, chevronIndex) => {
+      const index = regionIndex * localOffsets.length + chevronIndex;
+      const forwardOffset = new THREE.Vector3(0, 0, localZ * region.depth).applyAxisAngle(up, region.rotation);
+      quaternion.setFromEuler(new THREE.Euler(0, region.rotation + Math.PI * 0.25 * region.direction, 0));
+      scale.set(1, 1, 1);
+      matrix.compose(
+        new THREE.Vector3(region.center[0] + forwardOffset.x, 0.245 + region.height * 0.8, region.center[1] + forwardOffset.z),
+        quaternion,
+        scale
+      );
+      rampChevrons.setMatrixAt(index, matrix);
+      signatures.push(`surface-detail:ramp:${region.id}:chevron-${chevronIndex}`);
+    });
+  });
+
+  for (let index = 0; index < contourCount; index += 1) {
+    const radius = 3.8 + index * 1.35;
+    const height = 0.092 + index * 0.006;
+    quaternion.setFromEuler(new THREE.Euler(Math.PI * 0.5, index * 0.09, 0));
+    scale.set(radius * (1.18 - index * 0.018), radius * (0.82 + index * 0.012), 1);
+    matrix.compose(new THREE.Vector3(0, height, 0.2 - index * 0.04), quaternion, scale);
+    terrainContours.setMatrixAt(index, matrix);
+    signatures.push(`surface-detail:terrain:contour-${index}`);
+  }
+
+  [waterFoam, shorePins, rampChevrons, terrainContours].forEach((mesh) => {
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.userData.surfaceDetailPart = mesh === waterFoam
+      ? "water-foam"
+      : mesh === shorePins
+        ? "shore-pin"
+        : mesh === rampChevrons
+          ? "ramp-chevron"
+          : "terrain-contour";
+    detail.add(mesh);
+  });
+
+  add(detail, "surface-detail", "surface-detail:instanced-topography", "instance-pulse", {
+    signatures,
+    objectCount: waterFoamCount + shorePinCount + rampChevronCount + contourCount,
+    roleCount: worldMaterialRegions.water.length + worldMaterialRegions.ramps.length + contourCount,
+    motionCount: waterFoamCount + rampChevronCount + contourCount
   });
 }
 

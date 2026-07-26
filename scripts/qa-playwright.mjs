@@ -2647,6 +2647,7 @@ async function checkWorldRichness(page) {
     "terrain-edge",
     "relief-ramp",
     "water-body",
+    "surface-detail",
     "tech-skyline",
     "art-sculpture",
     "studio-threshold",
@@ -2657,9 +2658,9 @@ async function checkWorldRichness(page) {
   const hasWorldComposition =
     world &&
     world.terrainLayers >= 5 &&
-    world.sceneryObjects >= 120 &&
-    world.scenerySignatures >= 29 &&
-    world.sceneryMotionObjects >= 20 &&
+    world.sceneryObjects >= 180 &&
+    world.scenerySignatures >= 75 &&
+    world.sceneryMotionObjects >= 55 &&
     world.identityRibbonObjects >= 60 &&
     world.identityRibbonSignatures >= 1 &&
     missingSceneryRoles.length === 0;
@@ -2986,6 +2987,46 @@ async function checkWorldRichness(page) {
       duplicateSurfaceFingerprints,
       duplicateSurfaceSignatures,
       surfaceThinZones
+    });
+  }
+
+  const premiumSurfaceDetails =
+    world &&
+    world.surfaceDetailPartCounts?.["water-foam"] >= 6 &&
+    world.surfaceDetailPartCounts?.["shore-pin"] >= 12 &&
+    world.surfaceDetailPartCounts?.["ramp-chevron"] >= 15 &&
+    world.surfaceDetailPartCounts?.["terrain-contour"] >= 9 &&
+    world.sceneryRoleCounts?.["surface-detail"] >= 17 &&
+    world.sceneryRoleCounts?.["water-body"] >= 3 &&
+    world.sceneryRoleCounts?.["relief-ramp"] >= 5 &&
+    world.sceneryObjects >= 180 &&
+    world.scenerySignatures >= 75 &&
+    world.sceneryMotionObjects >= 55 &&
+    world.sceneObjects <= premiumWorldObjectBudget;
+  if (premiumSurfaceDetails) {
+    pass("premium-surface-details", {
+      surfaceDetailRoles: world.sceneryRoleCounts["surface-detail"],
+      waterBodies: world.sceneryRoleCounts["water-body"],
+      reliefRamps: world.sceneryRoleCounts["relief-ramp"],
+      surfaceDetailPartCounts: world.surfaceDetailPartCounts,
+      sceneryObjects: world.sceneryObjects,
+      scenerySignatures: world.scenerySignatures,
+      sceneryMotionObjects: world.sceneryMotionObjects,
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget
+    });
+  } else {
+    scenarioFail("premium-surface-details", "Water, relief and terrain detail are not materialized as a premium playable topography.", {
+      surfaceDetailRoles: world?.sceneryRoleCounts?.["surface-detail"],
+      waterBodies: world?.sceneryRoleCounts?.["water-body"],
+      reliefRamps: world?.sceneryRoleCounts?.["relief-ramp"],
+      surfaceDetailPartCounts: world?.surfaceDetailPartCounts,
+      sceneryObjects: world?.sceneryObjects,
+      scenerySignatures: world?.scenerySignatures,
+      sceneryMotionObjects: world?.sceneryMotionObjects,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget,
+      sceneryRoleCounts: world?.sceneryRoleCounts
     });
   }
 

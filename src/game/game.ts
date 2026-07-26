@@ -406,6 +406,7 @@ type QaSnapshot = {
     scenerySignatures: number;
     sceneryMotionObjects: number;
     sceneryRoleCounts: Record<string, number>;
+    surfaceDetailPartCounts: Record<string, number>;
     identityRibbonObjects: number;
     identityRibbonSignatures: number;
     terrainLayers: number;
@@ -700,6 +701,7 @@ class StudioGame {
       scenerySignatures: 0,
       sceneryMotionObjects: 0,
       sceneryRoleCounts: {},
+      surfaceDetailPartCounts: {},
       identityRibbonObjects: 0,
       identityRibbonSignatures: 0,
       terrainLayers: 0,
@@ -2900,6 +2902,7 @@ class StudioGame {
       const projectArtifactManifests = new Set(zoneAssets.flatMap((zone) => zone.projectArtifactManifests));
       const projectArtifactThemeRoles = new Set(zoneAssets.flatMap((zone) => zone.projectArtifactThemeRoles));
       const sceneryRoleCounts: Record<string, number> = {};
+      const surfaceDetailPartCounts: Record<string, number> = {};
       let identityRibbonObjects = 0;
       const identityRibbonSignatures = new Set<string>();
       this.scene.traverse((object) => {
@@ -2915,6 +2918,11 @@ class StudioGame {
               identityRibbonSignatures.add(object.userData.worldScenerySignature);
             }
           }
+        }
+        const surfaceDetailPart = object.userData.surfaceDetailPart;
+        if (typeof surfaceDetailPart === "string") {
+          const detailCount = object instanceof THREE.InstancedMesh ? object.count : 1;
+          surfaceDetailPartCounts[surfaceDetailPart] = (surfaceDetailPartCounts[surfaceDetailPart] ?? 0) + detailCount;
         }
       });
 
@@ -2960,6 +2968,7 @@ class StudioGame {
         scenerySignatures: this.scenerySignatureIds.size,
         sceneryMotionObjects: this.worldSceneryMotionObjectCount,
         sceneryRoleCounts,
+        surfaceDetailPartCounts,
         identityRibbonObjects,
         identityRibbonSignatures: identityRibbonSignatures.size,
         terrainLayers: this.terrainLayerCount,
