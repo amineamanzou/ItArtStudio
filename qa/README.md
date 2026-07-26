@@ -392,6 +392,10 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
   - `projectArtifactReliefSignatures`
   - `projectArtifactPartCount`
   - `projectArtifactVertexCount`
+  - `terrainFeatureMarkerObjects`
+  - `terrainFeatureMarkerSceneObjects`
+  - `terrainFeatureMarkerSignatures`
+  - `terrainFeatureMarkerProfiles`
 - `player`
 - `trail`
 - `drive`
@@ -419,6 +423,10 @@ In QA mode the game also exposes `window.__IT_ART_STUDIO_QA_STEP__()` for
 deterministic keyboard-route scenarios. The deterministic driver follows the
 same vehicle contract as real input: turn toward the target first, then drive
 forward.
+
+`terrain-feature-markers` proves that terrain relief is not only present in the
+heightfield telemetry: each shared physics feature has instanced visual markers
+with terrain profiles, while preserving the premium scene headroom.
 
 ## Next Gates
 

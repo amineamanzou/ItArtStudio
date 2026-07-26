@@ -4066,6 +4066,44 @@ async function checkWorldRichness(page) {
     });
   }
 
+  const terrainFeatureMarkers =
+    world &&
+    world.terrainFeatureCount >= 7 &&
+    world.terrainFeatureMarkerObjects >= world.terrainFeatureCount * 6 &&
+    world.terrainFeatureMarkerSceneObjects <= 3 &&
+    world.terrainFeatureMarkerSignatures >= world.terrainFeatureCount * 6 &&
+    world.terrainFeatureMarkerProfiles >= 3 &&
+    world.sceneryRoleCounts?.["terrain-feature-marker"] >= world.terrainFeatureCount &&
+    world.sceneryMotionObjects >= 75 &&
+    world.sceneObjects <= premiumWorldObjectBudget - 24;
+  if (terrainFeatureMarkers) {
+    pass("terrain-feature-markers", {
+      terrainFeatureCount: world.terrainFeatureCount,
+      terrainFeatureMarkerObjects: world.terrainFeatureMarkerObjects,
+      terrainFeatureMarkerSceneObjects: world.terrainFeatureMarkerSceneObjects,
+      terrainFeatureMarkerSignatures: world.terrainFeatureMarkerSignatures,
+      terrainFeatureMarkerProfiles: world.terrainFeatureMarkerProfiles,
+      terrainFeatureMarkerRoles: world.sceneryRoleCounts["terrain-feature-marker"],
+      sceneryMotionObjects: world.sceneryMotionObjects,
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget,
+      reservedHeadroom: premiumWorldObjectBudget - world.sceneObjects
+    });
+  } else {
+    scenarioFail("terrain-feature-markers", "Physical terrain features are not explicitly readable as instanced map landmarks.", {
+      terrainFeatureCount: world?.terrainFeatureCount,
+      terrainFeatureMarkerObjects: world?.terrainFeatureMarkerObjects,
+      terrainFeatureMarkerSceneObjects: world?.terrainFeatureMarkerSceneObjects,
+      terrainFeatureMarkerSignatures: world?.terrainFeatureMarkerSignatures,
+      terrainFeatureMarkerProfiles: world?.terrainFeatureMarkerProfiles,
+      terrainFeatureMarkerRoles: world?.sceneryRoleCounts?.["terrain-feature-marker"],
+      sceneryMotionObjects: world?.sceneryMotionObjects,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget,
+      reservedHeadroom: typeof world?.sceneObjects === "number" ? premiumWorldObjectBudget - world.sceneObjects : null
+    });
+  }
+
   const placeArchitectureRendered =
     world &&
     visualSpecZones.length === snapshot.zoneCount &&
@@ -7919,6 +7957,7 @@ async function writeReport() {
   const roverReadableScenarios = scenarios.filter((scenario) => scenario.name.startsWith("rover-readable:"));
   const sceneGraphHeadroomScenario = scenarios.find((scenario) => scenario.name === "scene-graph-headroom");
   const premiumSceneHeadroomScenario = scenarios.find((scenario) => scenario.name === "premium-scene-headroom");
+  const terrainFeatureMarkersScenario = scenarios.find((scenario) => scenario.name === "terrain-feature-markers");
   const propClusterInstancingScenario = scenarios.find((scenario) => scenario.name === "prop-cluster-instancing");
   const productionRuntimeScenario = scenarios.find((scenario) => scenario.name === "production-runtime-lightweight");
   const cameraSafeScenarios = scenarios.filter((scenario) => scenario.name.startsWith("camera-safe-area:"));
@@ -8033,6 +8072,11 @@ async function writeReport() {
         : (projectArtifactsScenario?.status ?? "n/a")
     }`,
     `- Terrain layers: ${world?.terrainLayers ?? "n/a"}`,
+    `- Terrain feature markers: ${
+      terrainFeatureMarkersScenario?.details
+        ? `${terrainFeatureMarkersScenario.details.terrainFeatureMarkerObjects} semantic/${terrainFeatureMarkersScenario.details.terrainFeatureMarkerSceneObjects} scene, profiles ${terrainFeatureMarkersScenario.details.terrainFeatureMarkerProfiles}, headroom ${terrainFeatureMarkersScenario.details.reservedHeadroom}`
+        : (terrainFeatureMarkersScenario?.status ?? "n/a")
+    }`,
     `- Scenery objects: ${world?.sceneryObjects ?? "n/a"}`,
     `- Scenery signatures: ${world?.scenerySignatures ?? "n/a"}`,
     `- Scenery motion objects: ${world?.sceneryMotionObjects ?? "n/a"}`,

@@ -805,6 +805,18 @@ Gates V6.6:
   silhouette doit entrer avec une marge mesurable et une preuve de conduite
   fiable au lieu de remplir le budget a l'aveugle.
 
+Gates V6.7:
+
+- les features physiques du terrain deviennent lisibles comme cartographie:
+  chaque ridge, mound ou basin porte une empreinte, des strates et des pins
+  instancies derives de `terrainConfig.features`;
+- `terrain-feature-markers` exige au moins six pieces semantiques par feature,
+  trois profils de relief et trois objets physiques maximum, pour renforcer la
+  sensation de topographie sans transformer la scene en bruit;
+- le gate conserve `premium-scene-headroom`: les marqueurs ajoutent une lecture
+  de niveau et de relief, mais gardent au moins 24 slots libres sous
+  `sceneObjects <= 940`.
+
 ## Components
 
 - `game-site`: surface principale.

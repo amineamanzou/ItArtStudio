@@ -24,6 +24,7 @@ export type RenderedWorldScenery = {
 
 type SceneRole =
   | "terrain-edge"
+  | "terrain-feature-marker"
   | "relief-ramp"
   | "water-body"
   | "surface-detail"
@@ -183,6 +184,7 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
   terrainVertexCount = heightfield.vertexCount;
   terrainGradeMax = heightfield.gradeMax;
 
+  addTerrainFeatureMarkers(add, techMat, artMat, studioMat, roadMat, inkMat);
   const terrainSpecs = [
     ["outer-cut", worldGroundRadius * 0.96, 1.08, 0.94, -0.012, terrainShade, -0.18],
     ["field-shelf", worldGroundRadius * 0.88, 1.04, 0.91, 0.0, terrainMat, 0.14],
@@ -227,6 +229,138 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
     terrainGradeMax,
     terrainFeatureCount: terrainConfig.featureCount
   };
+}
+
+function addTerrainFeatureMarkers(
+  add: (
+    object: THREE.Object3D,
+    role: SceneRole,
+    signature: string,
+    motionBehavior?: MotionBehavior,
+    options?: { signatures?: string[]; objectCount?: number; roleCount?: number; motionCount?: number }
+  ) => void,
+  techMat: THREE.Material,
+  artMat: THREE.Material,
+  studioMat: THREE.Material,
+  roadMat: THREE.Material,
+  inkMat: THREE.Material
+) {
+  const features = terrainConfig.features;
+  const featureCount = features.length;
+  const strataPerFeature = 3;
+  const pinsPerFeature = 2;
+  const markers = new THREE.Group();
+  markers.name = "terrain-feature-marker-instances";
+
+  const footprints = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.012, 5, 72), instancedColorMaterial(roadMat), featureCount);
+  const strata = new THREE.InstancedMesh(
+    new THREE.BoxGeometry(0.82, 0.032, 0.072),
+    instancedColorMaterial(studioMat),
+    featureCount * strataPerFeature
+  );
+  const pins = new THREE.InstancedMesh(
+    new THREE.CylinderGeometry(0.022, 0.034, 0.42, 7),
+    instancedColorMaterial(inkMat),
+    featureCount * pinsPerFeature
+  );
+
+  const matrix = new THREE.Matrix4();
+  const quaternion = new THREE.Quaternion();
+  const scale = new THREE.Vector3();
+  const color = new THREE.Color();
+  const up = new THREE.Vector3(0, 1, 0);
+  const signatures: string[] = [];
+  const profileIds = new Set<string>();
+  const materialByFeature = {
+    ridge: techMat,
+    basin: roadMat,
+    mound: artMat
+  } as const;
+
+  features.forEach((feature, featureIndex) => {
+    const profileId = `terrain:${feature.kind}`;
+    profileIds.add(profileId);
+    const featureMaterial = materialByFeature[feature.kind] ?? studioMat;
+    const featureColor = (featureMaterial as THREE.MeshStandardMaterial).color?.getHex() ?? 0xffe38a;
+    const accentColor = feature.kind === "basin" ? 0x54d8f2 : feature.kind === "mound" ? 0xff6f7d : 0x17d2ff;
+    const heightLift = Math.max(0.02, Math.abs(feature.height) * 0.18);
+
+    quaternion.setFromEuler(new THREE.Euler(Math.PI * 0.5, feature.rotation, 0));
+    scale.set(feature.radiusX, feature.radiusZ, 1);
+    matrix.compose(
+      new THREE.Vector3(feature.center[0], 0.105 + featureIndex * 0.003 + heightLift, feature.center[1]),
+      quaternion,
+      scale
+    );
+    footprints.setMatrixAt(featureIndex, matrix);
+    footprints.setColorAt(featureIndex, color.setHex(accentColor));
+    signatures.push(`terrain-marker:${feature.id}:${feature.kind}:footprint`);
+
+    for (let strataIndex = 0; strataIndex < strataPerFeature; strataIndex += 1) {
+      const localT = (strataIndex - 1) / 1.25;
+      const localOffset = new THREE.Vector3(localT * feature.radiusX * 0.35, 0, feature.radiusZ * (0.14 + strataIndex * 0.08)).applyAxisAngle(
+        up,
+        feature.rotation
+      );
+      quaternion.setFromEuler(new THREE.Euler(0, feature.rotation + localT * 0.16, 0));
+      scale.set(0.92 + strataIndex * 0.2, 1, 1);
+      matrix.compose(
+        new THREE.Vector3(
+          feature.center[0] + localOffset.x,
+          0.18 + heightLift + strataIndex * 0.035,
+          feature.center[1] + localOffset.z
+        ),
+        quaternion,
+        scale
+      );
+      const index = featureIndex * strataPerFeature + strataIndex;
+      strata.setMatrixAt(index, matrix);
+      strata.setColorAt(index, color.setHex(strataIndex === 1 ? featureColor : accentColor));
+      signatures.push(`terrain-marker:${feature.id}:${feature.kind}:strata-${strataIndex}`);
+    }
+
+    for (let pinIndex = 0; pinIndex < pinsPerFeature; pinIndex += 1) {
+      const side = pinIndex === 0 ? -1 : 1;
+      const localOffset = new THREE.Vector3(side * feature.radiusX * 0.56, 0, -feature.radiusZ * 0.22).applyAxisAngle(
+        up,
+        feature.rotation
+      );
+      quaternion.setFromEuler(new THREE.Euler(0.08 * side, feature.rotation, -0.08 * side));
+      scale.setScalar(1 + Math.abs(feature.height) * 0.9);
+      matrix.compose(
+        new THREE.Vector3(
+          feature.center[0] + localOffset.x,
+          0.32 + heightLift + pinIndex * 0.035,
+          feature.center[1] + localOffset.z
+        ),
+        quaternion,
+        scale
+      );
+      const index = featureIndex * pinsPerFeature + pinIndex;
+      pins.setMatrixAt(index, matrix);
+      pins.setColorAt(index, color.setHex(pinIndex === 0 ? 0xfff2b0 : featureColor));
+      signatures.push(`terrain-marker:${feature.id}:${feature.kind}:pin-${pinIndex}`);
+    }
+  });
+
+  [footprints, strata, pins].forEach((mesh) => {
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) {
+      mesh.instanceColor.needsUpdate = true;
+    }
+    mesh.userData.terrainFeatureMarkerPart = mesh === footprints ? "feature-footprint" : mesh === strata ? "feature-strata" : "feature-pin";
+    mesh.userData.terrainFeatureMarkerObjectCount = mesh.count;
+    mesh.userData.terrainFeatureMarkerProfileIds = [...profileIds];
+    mesh.userData.terrainFeatureMarkerSignatures = signatures.slice();
+    markers.add(mesh);
+  });
+
+  add(markers, "terrain-feature-marker", "terrain-feature-marker:shared-physics-features", "instance-pulse", {
+    signatures,
+    objectCount: featureCount + featureCount * strataPerFeature + featureCount * pinsPerFeature,
+    roleCount: featureCount,
+    motionCount: featureCount * (strataPerFeature + 1)
+  });
 }
 
 function createTerrainHeightfield(mat: THREE.Material) {

@@ -619,6 +619,10 @@ type QaSnapshot = {
     terrainVertexCount: number;
     terrainGradeMax: number;
     terrainFeatureCount: number;
+    terrainFeatureMarkerObjects: number;
+    terrainFeatureMarkerSceneObjects: number;
+    terrainFeatureMarkerSignatures: number;
+    terrainFeatureMarkerProfiles: number;
     routeGuidanceObjects: number;
     routeGuidanceSignatures: number;
     routeGuidanceMotionObjects: number;
@@ -1006,6 +1010,10 @@ class StudioGame {
       terrainVertexCount: 0,
       terrainGradeMax: 0,
       terrainFeatureCount: 0,
+      terrainFeatureMarkerObjects: 0,
+      terrainFeatureMarkerSceneObjects: 0,
+      terrainFeatureMarkerSignatures: 0,
+      terrainFeatureMarkerProfiles: 0,
       routeGuidanceObjects: 0,
       routeGuidanceSignatures: 0,
       routeGuidanceMotionObjects: 0,
@@ -3652,6 +3660,10 @@ class StudioGame {
       let identityRibbonObjects = 0;
       let worldBeaconObjects = 0;
       let worldBeaconSceneObjects = 0;
+      let terrainFeatureMarkerObjects = 0;
+      let terrainFeatureMarkerSceneObjects = 0;
+      const terrainFeatureMarkerSignatures = new Set<string>();
+      const terrainFeatureMarkerProfiles = new Set<string>();
       const identityRibbonSignatures = new Set<string>();
       this.scene.traverse((object) => {
         const role = object.userData.worldSceneryRole;
@@ -3723,6 +3735,31 @@ class StudioGame {
               : object instanceof THREE.InstancedMesh
                 ? object.count
                 : 1;
+        }
+        if (typeof object.userData.terrainFeatureMarkerPart === "string") {
+          terrainFeatureMarkerSceneObjects += 1;
+          terrainFeatureMarkerObjects +=
+            typeof object.userData.terrainFeatureMarkerObjectCount === "number"
+              ? object.userData.terrainFeatureMarkerObjectCount
+              : object instanceof THREE.InstancedMesh
+                ? object.count
+                : 1;
+          const markerSignatures = object.userData.terrainFeatureMarkerSignatures;
+          if (Array.isArray(markerSignatures)) {
+            for (const signature of markerSignatures) {
+              if (typeof signature === "string") {
+                terrainFeatureMarkerSignatures.add(signature);
+              }
+            }
+          }
+          const markerProfiles = object.userData.terrainFeatureMarkerProfileIds;
+          if (Array.isArray(markerProfiles)) {
+            for (const profile of markerProfiles) {
+              if (typeof profile === "string") {
+                terrainFeatureMarkerProfiles.add(profile);
+              }
+            }
+          }
         }
       });
 
@@ -3806,6 +3843,10 @@ class StudioGame {
         terrainVertexCount: this.terrainVertexCount,
         terrainGradeMax: this.terrainGradeMax,
         terrainFeatureCount: this.terrainFeatureCount,
+        terrainFeatureMarkerObjects,
+        terrainFeatureMarkerSceneObjects,
+        terrainFeatureMarkerSignatures: terrainFeatureMarkerSignatures.size,
+        terrainFeatureMarkerProfiles: terrainFeatureMarkerProfiles.size,
         routeGuidanceObjects: this.routeGuidanceObjectCount,
         routeGuidanceSignatures: this.routeGuidanceSignatureIds.size,
         routeGuidanceMotionObjects: this.routeGuidanceMotionObjects.length,
