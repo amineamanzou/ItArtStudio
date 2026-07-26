@@ -87,6 +87,7 @@ button {
 
 .game-brand,
 .game-status,
+.game-audio,
 .game-contact,
 .zone-panel,
 .world-map,
@@ -98,6 +99,7 @@ button {
 }
 
 .game-brand,
+.game-audio,
 .game-contact {
   position: fixed;
   top: 16px;
@@ -163,6 +165,18 @@ button {
   background: var(--studio);
 }
 
+.game-audio {
+  right: calc(var(--pad) + 108px);
+  cursor: pointer;
+}
+
+.game-audio[aria-pressed="true"] {
+  color: var(--void);
+  background: var(--studio);
+}
+
+.game-audio:hover,
+.game-audio:focus-visible,
 .game-contact:hover,
 .game-contact:focus-visible {
   transform: translateY(-1px);
@@ -241,7 +255,7 @@ button {
   right: var(--pad);
   bottom: var(--pad);
   z-index: 18;
-  width: min(300px, calc(100vw - var(--pad) * 2));
+  width: min(220px, calc(100vw - var(--pad) * 2));
   padding: clamp(14px, 1.8vw, 18px);
   background: linear-gradient(180deg, var(--panel-strong), var(--panel));
   clip-path: polygon(0 0, 96% 0, 100% 12%, 100% 100%, 4% 100%, 0 88%);
@@ -249,7 +263,7 @@ button {
 
 .zone-panel h2 {
   margin: 0;
-  font-size: 2.18rem;
+  font-size: 1.84rem;
   letter-spacing: 0;
   line-height: 0.94;
   text-wrap: balance;
@@ -258,7 +272,7 @@ button {
 .zone-panel__summary {
   margin: 12px 0 0;
   color: var(--ink);
-  font-size: 0.96rem;
+  font-size: 0.9rem;
   font-weight: 750;
   line-height: 1.38;
 }
@@ -266,15 +280,15 @@ button {
 .zone-panel__details {
   margin: 10px 0 0;
   color: var(--ink-soft);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   line-height: 1.5;
 }
 
 .zone-panel__signals {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 14px 0 0;
+  gap: 6px;
+  margin: 12px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -283,10 +297,10 @@ button {
   min-height: 28px;
   display: inline-flex;
   align-items: center;
-  padding: 0 10px;
+  padding: 0 8px;
   color: var(--ink);
   background: oklch(100% 0 0 / 10%);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 760;
 }
 
@@ -294,9 +308,9 @@ button {
   display: inline-flex;
   min-height: 44px;
   align-items: center;
-  margin-top: 14px;
+  margin-top: 12px;
   color: var(--studio);
-  font-size: 1.62rem;
+  font-size: 1.32rem;
   font-weight: 850;
   letter-spacing: 0;
 }
@@ -417,22 +431,26 @@ button {
   }
 
   .zone-panel {
-    width: min(240px, calc(100vw - var(--pad) * 2));
+    top: 76px;
+    bottom: auto;
+    width: min(210px, calc(100vw - var(--pad) * 2));
+    max-height: 240px;
+    overflow: auto;
     padding: 14px;
   }
 
   .zone-panel h2 {
-    font-size: 1.92rem;
+    font-size: 1.54rem;
   }
 
   .zone-panel__summary {
     margin-top: 10px;
-    font-size: 0.94rem;
+    font-size: 0.82rem;
   }
 
   .zone-panel__details {
     margin-top: 9px;
-    font-size: 0.86rem;
+    font-size: 0.76rem;
     line-height: 1.46;
   }
 
@@ -449,7 +467,7 @@ button {
 
   .zone-panel__cta {
     margin-top: 12px;
-    font-size: 1.36rem;
+    font-size: 1.14rem;
   }
 
   .world-map {

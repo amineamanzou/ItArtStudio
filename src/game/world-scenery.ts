@@ -16,6 +16,8 @@ export type RenderedWorldScenery = {
 
 type SceneRole =
   | "terrain-edge"
+  | "relief-ramp"
+  | "water-body"
   | "tech-skyline"
   | "art-sculpture"
   | "studio-threshold"
@@ -134,6 +136,15 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
   const artMat = material(palette.art, 0.2, 0.12, 0.94);
   const studioMat = material(palette.studio, 0.2, 0.14, 0.94);
   const inkMat = material(palette.ink, 0.02, 0.1, 0.9);
+  const waterMat = new THREE.MeshStandardMaterial({
+    color: 0x123f55,
+    roughness: 0.18,
+    metalness: 0.08,
+    emissive: palette.tech,
+    emissiveIntensity: 0.16,
+    transparent: true,
+    opacity: 0.68
+  });
 
   const terrainSpecs = [
     ["outer-cut", 17.8, 1.18, 0.92, -0.012, terrainShade, -0.18],
@@ -155,6 +166,8 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
     terrainLayers += 1;
   }
 
+  addWaterBodies(add, waterMat, studioMat);
+  addReliefRamps(add, techMat, artMat, studioMat, roadMat, inkMat);
   addTechSkyline(add, techMat, roadMat, inkMat);
   addArtSculptures(add, artMat, roadMat, inkMat);
   addStudioThreshold(add, studioMat, techMat, artMat, roadMat);
@@ -162,6 +175,124 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
   addRouteLights(add, worldRoutes, roadMat);
 
   return { group, objectCount, terrainLayers, signatures, motionObjects, motionObjectCount, identityRibbon };
+}
+
+function addWaterBodies(
+  add: (
+    object: THREE.Object3D,
+    role: SceneRole,
+    signature: string,
+    motionBehavior?: MotionBehavior,
+    options?: { signatures?: string[]; objectCount?: number; roleCount?: number; motionCount?: number }
+  ) => void,
+  waterMat: THREE.Material,
+  studioMat: THREE.Material
+) {
+  const basins = [
+    ["tech-harbor", -6.6, -8.7, 2.7, 0.82, -0.18],
+    ["art-lagoon", 7.3, -7.5, 2.4, 0.72, 0.24],
+    ["studio-canal", 0, 9.15, 3.5, 0.36, 0.02]
+  ] as const;
+  const water = new THREE.Group();
+  water.name = "water-body-instances";
+  const surfaces = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 42), waterMat, basins.length);
+  const rims = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.022, 8, 64), studioMat, basins.length);
+  const matrix = new THREE.Matrix4();
+  const quaternion = new THREE.Quaternion();
+  const scale = new THREE.Vector3();
+
+  basins.forEach(([, x, z, width, depth, rotation], index) => {
+    quaternion.setFromEuler(new THREE.Euler(-Math.PI * 0.5, rotation, 0));
+    scale.set(width, width * depth, 1);
+    matrix.compose(new THREE.Vector3(x, 0.035 + index * 0.004, z), quaternion, scale);
+    surfaces.setMatrixAt(index, matrix);
+
+    quaternion.setFromEuler(new THREE.Euler(Math.PI * 0.5, rotation, 0));
+    scale.set(width * 0.98, width * depth * 0.98, 1);
+    matrix.compose(new THREE.Vector3(x, 0.062 + index * 0.004, z), quaternion, scale);
+    rims.setMatrixAt(index, matrix);
+  });
+  surfaces.instanceMatrix.needsUpdate = true;
+  rims.instanceMatrix.needsUpdate = true;
+  surfaces.renderOrder = -1;
+  surfaces.userData.waterPart = "surface";
+  rims.userData.waterPart = "rim";
+  water.add(surfaces, rims);
+  add(water, "water-body", "water:instanced-basins", "float", {
+    signatures: basins.flatMap(([id]) => [`water:${id}:surface`, `water:${id}:rim`]),
+    objectCount: basins.length * 2,
+    roleCount: basins.length,
+    motionCount: basins.length
+  });
+}
+
+function addReliefRamps(
+  add: (
+    object: THREE.Object3D,
+    role: SceneRole,
+    signature: string,
+    motionBehavior?: MotionBehavior,
+    options?: { signatures?: string[]; objectCount?: number; roleCount?: number; motionCount?: number }
+  ) => void,
+  techMat: THREE.Material,
+  artMat: THREE.Material,
+  studioMat: THREE.Material,
+  roadMat: THREE.Material,
+  inkMat: THREE.Material
+) {
+  const rampGeometry = new THREE.BoxGeometry(1, 1, 1);
+  const ramps = [
+    ["tech-delta", -4.8, -4.7, 2.7, 0.22, 1.05, -0.52, techMat],
+    ["obs-rise", -7.6, 1.15, 2.9, 0.26, 0.92, 0.08, techMat],
+    ["art-sweep", 4.85, -3.95, 2.8, 0.22, 0.9, 0.72, artMat],
+    ["studio-crossing", 0.15, 2.9, 3.15, 0.2, 0.78, -0.18, studioMat],
+    ["mail-bank", -0.85, -6.35, 2.55, 0.2, 0.82, 0.04, roadMat]
+  ] as const;
+  const relief = new THREE.Group();
+  relief.name = "relief-ramp-instances";
+  const shadows = new THREE.InstancedMesh(rampGeometry, inkMat, ramps.length);
+  const decks = new THREE.InstancedMesh(rampGeometry, techMat, ramps.length);
+  const crests = new THREE.InstancedMesh(rampGeometry, roadMat, ramps.length);
+  const deckColors = new THREE.Color();
+  const matrix = new THREE.Matrix4();
+  const quaternion = new THREE.Quaternion();
+  const scale = new THREE.Vector3();
+
+  ramps.forEach(([, x, z, width, height, depth, rotation, mat], index) => {
+    quaternion.setFromEuler(new THREE.Euler(0, rotation, 0));
+    scale.set(width * 1.08, 0.035, depth * 1.12);
+    matrix.compose(new THREE.Vector3(x, 0.055, z), quaternion, scale);
+    shadows.setMatrixAt(index, matrix);
+
+    quaternion.setFromEuler(new THREE.Euler(index % 2 === 0 ? -0.08 : 0.08, rotation, 0));
+    scale.set(width, height, depth);
+    matrix.compose(new THREE.Vector3(x, 0.12 + height * 0.5, z), quaternion, scale);
+    decks.setMatrixAt(index, matrix);
+    deckColors.set((mat as THREE.MeshStandardMaterial).color);
+    decks.setColorAt(index, deckColors);
+
+    quaternion.setFromEuler(new THREE.Euler(0, rotation, 0));
+    scale.set(width * 0.82, 0.05, 0.08);
+    const crestOffset = new THREE.Vector3(0, 0, -depth * 0.4).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation);
+    matrix.compose(new THREE.Vector3(x + crestOffset.x, 0.29 + height, z + crestOffset.z), quaternion, scale);
+    crests.setMatrixAt(index, matrix);
+  });
+  shadows.instanceMatrix.needsUpdate = true;
+  decks.instanceMatrix.needsUpdate = true;
+  if (decks.instanceColor) {
+    decks.instanceColor.needsUpdate = true;
+  }
+  crests.instanceMatrix.needsUpdate = true;
+  shadows.userData.reliefPart = "shadow-foot";
+  decks.userData.reliefPart = "sloped-deck";
+  crests.userData.reliefPart = "crest-marker";
+  relief.add(shadows, decks, crests);
+  add(relief, "relief-ramp", "relief:instanced-ramps", "pulse", {
+    signatures: ramps.flatMap(([id]) => [`relief:${id}:deck`, `relief:${id}:shadow`, `relief:${id}:crest`]),
+    objectCount: ramps.length * 3,
+    roleCount: ramps.length,
+    motionCount: ramps.length
+  });
 }
 
 function addIdentityRibbon(

@@ -43,6 +43,7 @@ const outputRoot = path.join(root, "qa", "artifacts", new Date().toISOString().r
 const screenshotsDir = path.join(outputRoot, "screenshots");
 const reportJsonPath = path.join(outputRoot, "report.json");
 const reportMdPath = path.join(outputRoot, "report.md");
+const premiumWorldObjectBudget = 940;
 
 const scenarios = [];
 const failures = [];
@@ -2422,6 +2423,8 @@ async function checkWorldRichness(page) {
   const world = snapshot?.world;
   const expectedSceneryRoles = [
     "terrain-edge",
+    "relief-ramp",
+    "water-body",
     "tech-skyline",
     "art-sculpture",
     "studio-threshold",
@@ -2888,7 +2891,7 @@ async function checkWorldRichness(page) {
     projectArtifactDetailProfiles.size >= 5 &&
     projectArtifactReliefSignatures.size >= 24 &&
     projectArtifactThinZones.length === 0 &&
-    world.sceneObjects <= 923;
+    world.sceneObjects <= premiumWorldObjectBudget;
   if (projectArtifactsMaterialized) {
     pass("project-artifact-materialized", {
       projectArtifactSpecimenFamilies: [...projectArtifactSpecimenFamilies].sort(),
@@ -2900,7 +2903,7 @@ async function checkWorldRichness(page) {
       projectArtifactVertexCount: world.projectArtifactVertexCount,
       projectArtifactSceneObjects: world.projectArtifactSceneObjects,
       sceneObjects: world.sceneObjects,
-      sceneObjectBudget: 923
+      sceneObjectBudget: premiumWorldObjectBudget
     });
   } else {
     scenarioFail("project-artifact-materialized", "Project evidence kits are not detailed enough to read as premium specimens.", {
@@ -2914,7 +2917,7 @@ async function checkWorldRichness(page) {
       projectArtifactSceneObjects: world?.projectArtifactSceneObjects,
       projectArtifactThinZones,
       sceneObjects: world?.sceneObjects,
-      sceneObjectBudget: 923
+      sceneObjectBudget: premiumWorldObjectBudget
     });
   }
 
@@ -2971,14 +2974,14 @@ async function checkWorldRichness(page) {
         (proof.bounds?.depth ?? 0) >= 0.25
     ) &&
     world.projectArtifactSceneObjects <= 10 &&
-    world.sceneObjects <= 923;
+    world.sceneObjects <= premiumWorldObjectBudget;
   if (projectThemesMaterialized) {
     pass("project-themed-assets", {
       projectThemeProofs,
       projectArtifactManifests: [...projectArtifactManifests].sort(),
       projectArtifactThemeRoles: [...projectArtifactThemeRoles].sort(),
       sceneObjects: world.sceneObjects,
-      sceneObjectBudget: 923
+      sceneObjectBudget: premiumWorldObjectBudget
     });
   } else {
     scenarioFail("project-themed-assets", "Priority zones do not expose themed 3D project assets within budget.", {
@@ -2986,7 +2989,7 @@ async function checkWorldRichness(page) {
       projectArtifactManifests: [...projectArtifactManifests].sort(),
       projectArtifactThemeRoles: [...projectArtifactThemeRoles].sort(),
       sceneObjects: world?.sceneObjects,
-      sceneObjectBudget: 923
+      sceneObjectBudget: premiumWorldObjectBudget
     });
   }
 
@@ -3037,7 +3040,7 @@ async function checkWorldRichness(page) {
     world.routeSurfaceDetailSignatures >= surface.routeCount * 6 &&
     world.routeSurfaceVertexCount >= 12_000 &&
     world.routeSurfaceVertexCount <= 24_000 &&
-    world.sceneObjects <= 923;
+    world.sceneObjects <= premiumWorldObjectBudget;
   if (routeSurfaceMaterialized) {
     pass("route-surface-materialized", {
       routeSurfaceObjects: world.routeSurfaceObjects,
@@ -3048,7 +3051,7 @@ async function checkWorldRichness(page) {
       roadSegments: world.roadSegments,
       routeCount: surface.routeCount,
       sceneObjects: world.sceneObjects,
-      sceneObjectBudget: 923
+      sceneObjectBudget: premiumWorldObjectBudget
     });
   } else {
     scenarioFail("route-surface-materialized", "Playable roads are not materialized as detailed route ribbons.", {
@@ -3060,7 +3063,7 @@ async function checkWorldRichness(page) {
       roadSegments: world?.roadSegments,
       routeCount: surface?.routeCount,
       sceneObjects: world?.sceneObjects,
-      sceneObjectBudget: 923
+      sceneObjectBudget: premiumWorldObjectBudget
     });
   }
 
@@ -3238,6 +3241,62 @@ async function checkRoverTrail(page, label) {
     scenarioFail(`rover-trail:${label}`, "Playable rover did not leave enough visible trail feedback.", {
       trail,
       player: snapshot?.player
+    });
+  }
+}
+
+async function checkAudioLayer(page) {
+  const selector = "[data-audio-toggle]";
+  const actionability = await clickActionable(page, selector, "audio-toggle", {
+    minWidth: 42,
+    minHeight: 42
+  });
+  if (!actionability) {
+    return;
+  }
+
+  await holdDriveKeys(page, ["ArrowUp"], 420);
+  await page.waitForTimeout(260);
+  const activeSnapshot = await getQaSnapshot(page, { refresh: true });
+  const activeAudio = activeSnapshot?.audio;
+  const activeOk =
+    activeAudio?.supported === true &&
+    activeAudio.initialized === true &&
+    activeAudio.muted === false &&
+    activeAudio.toggleVisible === true &&
+    activeAudio.togglePressed === true &&
+    ["running", "suspended"].includes(activeAudio.contextState) &&
+    activeAudio.engineFrequency >= 80 &&
+    activeAudio.engineGain > 0 &&
+    activeAudio.ambienceGain > 0;
+
+  await clickActionable(page, selector, "audio-toggle:mute", {
+    minWidth: 42,
+    minHeight: 42
+  });
+  await page.waitForTimeout(180);
+  const mutedSnapshot = await getQaSnapshot(page, { refresh: true });
+  const mutedAudio = mutedSnapshot?.audio;
+  const mutedOk =
+    mutedAudio?.initialized === true &&
+    mutedAudio.muted === true &&
+    mutedAudio.toggleVisible === true &&
+    mutedAudio.togglePressed === false &&
+    mutedAudio.engineGain <= 0.001 &&
+    mutedAudio.driftGain <= 0.001 &&
+    mutedAudio.ambienceGain <= 0.001;
+
+  if (activeOk && mutedOk) {
+    pass("audio-layer", {
+      actionability,
+      activeAudio,
+      mutedAudio
+    });
+  } else {
+    scenarioFail("audio-layer", "Procedural audio or mute control did not expose a working engine layer.", {
+      actionability,
+      activeAudio,
+      mutedAudio
     });
   }
 }
@@ -4129,7 +4188,7 @@ async function inspectIdentityRibbonVisibility(page, label) {
     first.world.identityRibbonObjects >= 60 &&
     first.world.identityRibbonSignatures >= 1 &&
     first.world.sceneryRoleCounts?.["identity-ribbon"] === 1 &&
-    first.world.sceneObjects <= 923 &&
+    first.world.sceneObjects <= premiumWorldObjectBudget &&
     frameDelta >= 8 &&
     motionDelta >= 0.35 &&
     motionDelta <= 112 &&
@@ -6248,6 +6307,7 @@ async function main() {
       scenarioFail("canvas-color-families", "Canvas did not expose the tech/art/studio color families.", home.canvas);
     }
     await checkWorldRichness(page);
+    await checkAudioLayer(page);
     await checkFrameBudget(page);
     await checkRealKeyboardInput(page);
     await checkRealKeyboardDirectionalControls(browser);

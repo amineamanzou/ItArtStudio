@@ -484,7 +484,7 @@ Gates V4.1:
   strates et temoins de lecture;
 - le snapshot QA expose familles, profils de detail, signatures de relief,
   nombre de pieces procedurales et vertices uniques, avec conservation stricte
-  de `projectArtifactSceneObjects <= 10` et `sceneObjects <= 923`.
+  de `projectArtifactSceneObjects <= 10` et `sceneObjects <= 940`.
 
 Gates V4.2:
 
@@ -498,7 +498,8 @@ Gates V4.2:
   meshes de surface et un node par route, mais expose des signatures, pieces de
   detail et vertices pour prouver que les routes ne redeviennent pas des traits
   generiques;
-- le budget strict reste `sceneObjects <= 923`.
+- le budget strict reste `sceneObjects <= 940`, pour absorber les bassins et
+  rampes instanciees sans ouvrir la porte a une inflation generale de la scene.
 
 Gates V4.3:
 
@@ -522,12 +523,25 @@ Gates V4.4:
   thematique et des roles lies a de vraies signatures de relief;
 - les manifests restent fusionnes dans les geometries instanciees existantes:
   aucun nouvel `Object3D`, `projectArtifactSceneObjects <= 10` et
-  `sceneObjects <= 923`;
+  `sceneObjects <= 940`;
 - le snapshot QA expose `projectArtifactRoleReliefSignatures` pour refuser les
   roles fantomes, plus `renderer.info` afin de preparer les plafonds draw calls,
   geometries, textures et triangles;
 - le profil quick visite aussi Observability et Cloud via mini-map, et la
   mini-map separe les hitboxes Cloud/Mail sans modifier leurs positions monde.
+
+Gates V4.5:
+
+- `world-richness` exige maintenant des roles de decor lisibles pour
+  `water-body` et `relief-ramp`, en plus des districts tech/art/studio;
+- les bassins et rampes sont groupes en meshes instancies pour ajouter eau,
+  relief et variations de conduite sans creer une foret d'objets Three.js;
+- `audio-layer` prouve le bouton son, l'initialisation Web Audio, le moteur,
+  l'ambiance, le drift et le mute avec gains remis a zero;
+- les panels HUD sont compactes pour eviter d'occulter les specimens actifs,
+  y compris en reduced-motion;
+- le budget monde premium est nomme dans la QA (`sceneObjects <= 940`) et le
+  rapport courant doit rester proche de `930/940`.
 
 ## Components
 

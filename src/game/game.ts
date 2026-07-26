@@ -237,6 +237,19 @@ type RouteEncountersQa = {
   maxIntensity: number;
 };
 
+type AudioQa = {
+  supported: boolean;
+  initialized: boolean;
+  muted: boolean;
+  contextState: AudioContextState | "unsupported" | "uninitialized";
+  engineGain: number;
+  driftGain: number;
+  ambienceGain: number;
+  engineFrequency: number;
+  toggleVisible: boolean;
+  togglePressed: boolean;
+};
+
 type ZoneAssetQa = {
   id: string;
   meshCount: number;
@@ -433,6 +446,7 @@ type QaSnapshot = {
   };
   lighting: LightingQa;
   routeEncounters: RouteEncountersQa;
+  audio: AudioQa;
   canvas: { width: number; height: number; dpr: number };
   renderer: { calls: number; triangles: number; geometries: number; textures: number };
   frameCount: number;
@@ -561,6 +575,21 @@ class StudioGame {
   private currentDriftAngle = 0;
   private currentSteeringInput = 0;
   private currentThrottleInput = 0;
+  private audioContext: AudioContext | null = null;
+  private audioMasterGain: GainNode | null = null;
+  private engineOscillator: OscillatorNode | null = null;
+  private engineGain: GainNode | null = null;
+  private driftOscillator: OscillatorNode | null = null;
+  private driftGain: GainNode | null = null;
+  private ambienceOscillator: OscillatorNode | null = null;
+  private ambienceGain: GainNode | null = null;
+  private audioMuted = true;
+  private audioInitialized = false;
+  private currentEngineFrequency = 0;
+  private currentEngineGain = 0;
+  private currentDriftGain = 0;
+  private currentAmbienceGain = 0;
+  private audioToggleButton: HTMLButtonElement | null = null;
   private readonly drivePositionSamples: Array<{ frame: number; x: number; z: number }> = [];
   private readonly drivePhysicsSamples: DrivePhysicsSampleQa[] = [];
   private keyboardDownCount = 0;
@@ -873,6 +902,20 @@ class StudioGame {
       visitedIds: [],
       visitedCount: 0,
       maxIntensity: 0
+    },
+    audio: {
+      supported:
+        typeof window.AudioContext !== "undefined" ||
+        typeof (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext !== "undefined",
+      initialized: false,
+      muted: true,
+      contextState: "uninitialized",
+      engineGain: 0,
+      driftGain: 0,
+      ambienceGain: 0,
+      engineFrequency: 0,
+      toggleVisible: false,
+      togglePressed: false
     },
     canvas: { width: 0, height: 0, dpr: 1 },
     renderer: { calls: 0, triangles: 0, geometries: 0, textures: 0 },
@@ -1665,6 +1708,12 @@ class StudioGame {
       });
     });
 
+    this.audioToggleButton = document.querySelector<HTMLButtonElement>("[data-audio-toggle]");
+    this.syncAudioToggle();
+    this.audioToggleButton?.addEventListener("click", () => {
+      void this.toggleAudio();
+    });
+
     document.querySelectorAll<HTMLButtonElement>("[data-drive]").forEach((button) => {
       const direction = button.dataset.drive as DriveKey | undefined;
       if (!direction) {
@@ -1681,6 +1730,105 @@ class StudioGame {
       button.addEventListener("pointercancel", end);
       button.addEventListener("blur", end);
     });
+  }
+
+  private audioSupported() {
+    const audioWindow = window as Window & { webkitAudioContext?: typeof AudioContext };
+    return Boolean(window.AudioContext || audioWindow.webkitAudioContext);
+  }
+
+  private createAudioContext() {
+    const audioWindow = window as Window & { webkitAudioContext?: typeof AudioContext };
+    const AudioContextCtor = window.AudioContext ?? audioWindow.webkitAudioContext;
+    if (!AudioContextCtor) {
+      return null;
+    }
+    return new AudioContextCtor();
+  }
+
+  private ensureAudio() {
+    if (this.audioContext || !this.audioSupported()) {
+      return this.audioContext;
+    }
+
+    const context = this.createAudioContext();
+    if (!context) {
+      return null;
+    }
+
+    const master = context.createGain();
+    master.gain.value = 0;
+    master.connect(context.destination);
+
+    const engineGain = context.createGain();
+    engineGain.gain.value = 0;
+    engineGain.connect(master);
+    const engine = context.createOscillator();
+    engine.type = "sawtooth";
+    engine.frequency.value = 72;
+    engine.connect(engineGain);
+    engine.start();
+
+    const driftGain = context.createGain();
+    driftGain.gain.value = 0;
+    driftGain.connect(master);
+    const drift = context.createOscillator();
+    drift.type = "triangle";
+    drift.frequency.value = 240;
+    drift.connect(driftGain);
+    drift.start();
+
+    const ambienceGain = context.createGain();
+    ambienceGain.gain.value = 0.035;
+    ambienceGain.connect(master);
+    const ambience = context.createOscillator();
+    ambience.type = "sine";
+    ambience.frequency.value = 48;
+    ambience.connect(ambienceGain);
+    ambience.start();
+
+    this.audioContext = context;
+    this.audioMasterGain = master;
+    this.engineOscillator = engine;
+    this.engineGain = engineGain;
+    this.driftOscillator = drift;
+    this.driftGain = driftGain;
+    this.ambienceOscillator = ambience;
+    this.ambienceGain = ambienceGain;
+    this.audioInitialized = true;
+    return context;
+  }
+
+  private async toggleAudio() {
+    const context = this.ensureAudio();
+    if (!context || !this.audioMasterGain) {
+      this.syncAudioToggle();
+      return;
+    }
+
+    this.audioMuted = !this.audioMuted;
+    if (!this.audioMuted && context.state === "suspended") {
+      await context.resume().catch(() => {});
+    }
+    const now = context.currentTime;
+    this.audioMasterGain.gain.cancelScheduledValues(now);
+    this.audioMasterGain.gain.setTargetAtTime(this.audioMuted ? 0 : 0.56, now, 0.08);
+    if (this.audioMuted) {
+      this.currentEngineGain = 0;
+      this.currentDriftGain = 0;
+      this.currentAmbienceGain = 0;
+    }
+    this.syncAudioToggle();
+  }
+
+  private syncAudioToggle() {
+    if (!this.audioToggleButton) {
+      return;
+    }
+    const active = this.audioInitialized && !this.audioMuted;
+    this.audioToggleButton.setAttribute("aria-pressed", String(active));
+    this.audioToggleButton.setAttribute("aria-label", active ? "Couper le son" : "Activer le son");
+    this.audioToggleButton.textContent = active ? "Mute" : "Son";
   }
 
   private keyFromEvent(event: KeyboardEvent): DriveKey | null {
@@ -1795,6 +1943,7 @@ class StudioGame {
     }
 
     this.updatePlayer(delta);
+    this.updateAudio(delta);
     this.updateActiveZone();
     this.updateWorldMotion(delta);
     this.updateActivationFeedback(delta);
@@ -1811,6 +1960,42 @@ class StudioGame {
       this.syncQaSnapshot({ full: false });
     }
   };
+
+  private updateAudio(_delta: number) {
+    if (
+      !this.audioInitialized ||
+      !this.audioContext ||
+      !this.engineOscillator ||
+      !this.engineGain ||
+      !this.driftOscillator ||
+      !this.driftGain ||
+      !this.ambienceOscillator ||
+      !this.ambienceGain
+    ) {
+      return;
+    }
+
+    const now = this.audioContext.currentTime;
+    const speedRatio = clamp(this.lastDriveSpeed / playerMaxForwardSpeed, 0, 1);
+    const driftRatio = clamp(Math.abs(this.currentLateralSpeed) / 3.2, 0, 1);
+    const throttleEnergy = Math.abs(this.currentThrottleInput);
+    const targetFrequency = 62 + speedRatio * 145 + throttleEnergy * 18;
+    const targetEngineGain = this.audioMuted ? 0 : 0.045 + speedRatio * 0.13 + throttleEnergy * 0.025;
+    const targetDriftGain = this.audioMuted ? 0 : driftRatio * 0.095;
+    const targetAmbienceGain = this.audioMuted ? 0 : 0.032;
+
+    this.engineOscillator.frequency.setTargetAtTime(targetFrequency, now, 0.07);
+    this.engineGain.gain.setTargetAtTime(targetEngineGain, now, 0.08);
+    this.driftOscillator.frequency.setTargetAtTime(190 + driftRatio * 330, now, 0.05);
+    this.driftGain.gain.setTargetAtTime(targetDriftGain, now, 0.06);
+    this.ambienceOscillator.frequency.setTargetAtTime(42 + speedRatio * 18, now, 0.4);
+    this.ambienceGain.gain.setTargetAtTime(targetAmbienceGain, now, 0.2);
+
+    this.currentEngineFrequency = targetFrequency;
+    this.currentEngineGain = targetEngineGain;
+    this.currentDriftGain = targetDriftGain;
+    this.currentAmbienceGain = targetAmbienceGain;
+  }
 
   private updatePlayer(delta: number) {
     const throttle = (this.keys.has("up") ? 1 : 0) - (this.keys.has("down") ? 1 : 0);
@@ -2758,6 +2943,26 @@ class StudioGame {
       visitedIds: [...this.visitedRouteEncounterIds],
       visitedCount: this.visitedRouteEncounterIds.size,
       maxIntensity: Number(this.maxRouteEncounterIntensity.toFixed(3))
+    };
+    const audioToggleRect = this.audioToggleButton?.getBoundingClientRect();
+    this.qaSnapshot.audio = {
+      supported: this.audioSupported(),
+      initialized: this.audioInitialized,
+      muted: this.audioMuted,
+      contextState: this.audioContext?.state ?? (this.audioSupported() ? "uninitialized" : "unsupported"),
+      engineGain: Number(this.currentEngineGain.toFixed(3)),
+      driftGain: Number(this.currentDriftGain.toFixed(3)),
+      ambienceGain: Number(this.currentAmbienceGain.toFixed(3)),
+      engineFrequency: Number(this.currentEngineFrequency.toFixed(1)),
+      toggleVisible: Boolean(
+        this.audioToggleButton &&
+          audioToggleRect &&
+          audioToggleRect.width > 0 &&
+          audioToggleRect.height > 0 &&
+          getComputedStyle(this.audioToggleButton).display !== "none" &&
+          getComputedStyle(this.audioToggleButton).visibility !== "hidden"
+      ),
+      togglePressed: this.audioToggleButton?.getAttribute("aria-pressed") === "true"
     };
     this.qaSnapshot.canvas = {
       width: this.canvas.width,

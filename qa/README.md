@@ -199,12 +199,12 @@ The runner:
 - The central identity ribbon must remain a 3D world object: at least 60
   semantic pieces, one `identity-ribbon` role, visible screen-space bounds,
   sampled ROI detail, measurable multi-frame motion, and no scene-object budget
-  regression above `955`.
+  regression above the named premium-world budget.
 - Project artifacts must read as materialized specimens, not primitive markers:
   all 10 zones keep one instanced kit each, cover the five specimen families,
   expose detail profiles, relief signatures, procedural part counts and unique
   vertex counts, while preserving `projectArtifactSceneObjects <= 10` and
-  `sceneObjects <= 923`.
+  `sceneObjects <= 940`.
 - `project-themed-assets` protects the four priority locations from generic
   props: Observability, Cloud, Design and Contact must expose a themed manifest,
   exact semantic roles, and role-to-relief signatures that prove each role is
@@ -215,7 +215,14 @@ The runner:
 - Route surfaces must read as modeled playable ribbons, not flat strokes:
   `route-surface-materialized` checks rendered route-surface objects, detail
   parts, unique signatures and a bounded vertex budget while preserving
-  `sceneObjects <= 923`.
+  `sceneObjects <= 940`.
+- World richness must prove the authored world now contains water and relief:
+  at least 3 `water-body` basins, 5 `relief-ramp` instances, thematic districts,
+  route lights and the central identity ribbon, all inside the same premium
+  world budget.
+- `audio-layer` must prove the browser can initialize sound from a user action,
+  expose engine/ambience gain while driving, keep the toggle state visible, and
+  mute back to zero observable gains.
 - `premium-world-detail-distribution` samples each screenshot canvas outside
   UI rectangles and rejects viewports with too many flat tiles, not enough rich
   tiles, weak median edges, weak color buckets or a large flat cluster.
