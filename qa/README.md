@@ -150,6 +150,8 @@ The runner:
   promotion candidates, bounded cluster density, measured bounding-box ground
   clearance, no coplanar placement risk, visible screen-space role rectangles
   for route/water/relief/vegetation, and a wide non-flat canvas proof.
+- `assets:validate` must also prove accepted runtime texture coverage for the
+  core enlarged-map material roles: road, water, relief, and vegetation/field.
 - Every zone must expose a label, modeled landmark objects, mesh count, and
   minimum 3D bounds.
 - Every zone must expose one rendered visual spec, at least three decals, three

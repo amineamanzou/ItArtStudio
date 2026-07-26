@@ -1096,6 +1096,18 @@ Gates V8.5:
   une selection plus propre des assets qui remplaceront ensuite le bruit
   procedural.
 
+Gates V8.6:
+
+- `public/assets/textures/map/` contient maintenant une premiere grammaire
+  texture runtime pour route, field/vegetation, eau et relief;
+- ces textures restent stylisees et legeres en SVG afin de respecter le langage
+  low-poly actuel avant d'introduire des PBR externes plus lourds;
+- `assets:validate` analyse les texture-sets acceptes, verifie leurs fichiers,
+  leur poids, leur `publicPath` GitHub Pages-safe et refuse les textures map
+  runtime non declarees;
+- la prochaine boucle peut agrandir le terrain avec une base materiau verifiee
+  au lieu d'etirer uniquement des aplats proceduraux.
+
 ## Components
 
 - `game-site`: surface principale.

@@ -56,6 +56,16 @@ Critere d'acceptation:
 - budget poids, mesh, material et draw calls respecte;
 - fallback procedural ou degradation controlee.
 
+Baseline actuelle:
+
+- sources curation: Kenney, Poly Haven, ambientCG, Quaternius, Khronos, texture
+  kit local IT Art Studio;
+- modeles runtime acceptes: routes, route-edge, ponts, eau, relief,
+  vegetation;
+- textures runtime acceptees: route, field/vegetation, eau, relief;
+- chaque fichier runtime doit rester declare dans le manifest et passer
+  `npm run assets:validate`.
+
 ## Phase 2 - Pipeline GLB/glTF
 
 Le pipeline doit permettre d'importer vite sans salir la scene.
@@ -70,6 +80,9 @@ Exigences:
   hors budget;
 - telemetrie QA: placements, roles terrain, assets uniques, clearances,
   densite, preuves screen-space.
+
+La phase texture suit le meme principe: source, licence, chemin public
+GitHub Pages-safe, poids, role terrain, fallback et fichier runtime declare.
 
 ## Phase 3 - Map Agrandie
 

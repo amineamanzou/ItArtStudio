@@ -13,6 +13,7 @@ const asArray = (value) => (Array.isArray(value) ? value : []);
 const isHttpUrl = (value) => typeof value === "string" && /^https?:\/\//.test(value);
 const isPositiveNumber = (value) => typeof value === "number" && Number.isFinite(value) && value > 0;
 const roundTenth = (value) => Math.round(value * 10) / 10;
+const isTextureFile = (file) => /\.(avif|jpe?g|png|svg|webp)$/iu.test(file);
 
 const listFiles = (entryPath) => {
   const stat = fs.statSync(entryPath);
@@ -99,7 +100,7 @@ const analyzeLocalAsset = (assetId, localPath) => {
   const absolutePath = path.join(root, localPath);
   const files = listFiles(absolutePath);
   const glbFiles = files.filter((file) => file.endsWith(".glb"));
-  const textureFiles = files.filter((file) => /\.(avif|jpe?g|png|webp)$/iu.test(file));
+  const textureFiles = files.filter(isTextureFile);
   const fileKb = roundTenth(files.reduce((total, file) => total + fs.statSync(file).size / 1024, 0));
   const triangles = glbFiles.reduce((total, file) => total + countGlbTriangles(file), 0);
   glbFiles.forEach(validateGlbImageReferences);
@@ -110,6 +111,8 @@ const analyzeLocalAsset = (assetId, localPath) => {
     triangles,
     modelFiles: glbFiles.length,
     textureFiles: textureFiles.length,
+    modelFileNames: glbFiles.map((file) => path.basename(file)),
+    textureFileNames: textureFiles.map((file) => path.basename(file)),
     files: files.length
   };
 };
@@ -172,6 +175,7 @@ const heroLocations = new Set(asArray(manifest.heroLocations));
 const terrainRoles = new Set(asArray(manifest.terrainRoles));
 const productionLicenseAssets = [];
 const declaredRuntimeGlbs = new Set();
+const declaredRuntimeTextures = new Set();
 
 for (const asset of assets) {
   if (!asset.id || assetIds.has(asset.id)) {
@@ -294,31 +298,75 @@ for (const asset of assets) {
           budgetKb: Math.min(asset.budget.maxKb, budgets.acceptedTextureMaxKb)
         });
       }
-      if (Array.isArray(asset.selectedFiles) && asset.selectedFiles.length !== localAnalysis.modelFiles) {
-        fail("Accepted model selectedFiles must match the local GLB count.", {
-          assetId: asset.id,
-          selectedFiles: asset.selectedFiles.length,
-          modelFiles: localAnalysis.modelFiles
-        });
-      }
-      const localGlbFiles = listFiles(path.join(root, asset.localPath)).filter((file) => file.endsWith(".glb"));
-      const localGlbNames = new Set(localGlbFiles.map((file) => path.basename(file)));
-      for (const selectedFile of asArray(asset.selectedFiles)) {
-        if (typeof selectedFile !== "string" || !localGlbNames.has(selectedFile)) {
-          fail("Accepted model selectedFiles must name an existing local GLB.", {
+      if (asset.kind === "texture-set") {
+        if (localAnalysis.textureFiles === 0) {
+          fail("Accepted texture assets must include at least one runtime texture file.", {
             assetId: asset.id,
-            selectedFile
+            localPath: asset.localPath
+          });
+        }
+        if (!isPositiveNumber(asset.budget.targetResolution)) {
+          fail("Accepted texture assets must declare a targetResolution budget.", {
+            assetId: asset.id,
+            budget: asset.budget
           });
         }
       }
-      for (const glbFile of localGlbFiles) {
-        if (Array.isArray(asset.selectedFiles) && !asset.selectedFiles.includes(path.basename(glbFile))) {
-          fail("Accepted local GLB must be listed in selectedFiles.", {
+      if (asset.kind.includes("model")) {
+        if (Array.isArray(asset.selectedFiles) && asset.selectedFiles.length !== localAnalysis.modelFiles) {
+          fail("Accepted model selectedFiles must match the local GLB count.", {
             assetId: asset.id,
-            glbFile: path.relative(root, glbFile)
+            selectedFiles: asset.selectedFiles.length,
+            modelFiles: localAnalysis.modelFiles
           });
         }
-        declaredRuntimeGlbs.add(path.relative(root, glbFile));
+        const localGlbFiles = listFiles(path.join(root, asset.localPath)).filter((file) => file.endsWith(".glb"));
+        const localGlbNames = new Set(localGlbFiles.map((file) => path.basename(file)));
+        for (const selectedFile of asArray(asset.selectedFiles)) {
+          if (typeof selectedFile !== "string" || !localGlbNames.has(selectedFile)) {
+            fail("Accepted model selectedFiles must name an existing local GLB.", {
+              assetId: asset.id,
+              selectedFile
+            });
+          }
+        }
+        for (const glbFile of localGlbFiles) {
+          if (Array.isArray(asset.selectedFiles) && !asset.selectedFiles.includes(path.basename(glbFile))) {
+            fail("Accepted local GLB must be listed in selectedFiles.", {
+              assetId: asset.id,
+              glbFile: path.relative(root, glbFile)
+            });
+          }
+          declaredRuntimeGlbs.add(path.relative(root, glbFile));
+        }
+      }
+      if (asset.kind === "texture-set") {
+        if (Array.isArray(asset.selectedFiles) && asset.selectedFiles.length !== localAnalysis.textureFiles) {
+          fail("Accepted texture selectedFiles must match the local texture count.", {
+            assetId: asset.id,
+            selectedFiles: asset.selectedFiles.length,
+            textureFiles: localAnalysis.textureFiles
+          });
+        }
+        const localTextureFiles = listFiles(path.join(root, asset.localPath)).filter(isTextureFile);
+        const localTextureNames = new Set(localTextureFiles.map((file) => path.basename(file)));
+        for (const selectedFile of asArray(asset.selectedFiles)) {
+          if (typeof selectedFile !== "string" || !localTextureNames.has(selectedFile)) {
+            fail("Accepted texture selectedFiles must name an existing local texture.", {
+              assetId: asset.id,
+              selectedFile
+            });
+          }
+        }
+        for (const textureFile of localTextureFiles) {
+          if (Array.isArray(asset.selectedFiles) && !asset.selectedFiles.includes(path.basename(textureFile))) {
+            fail("Accepted local texture must be listed in selectedFiles.", {
+              assetId: asset.id,
+              textureFile: path.relative(root, textureFile)
+            });
+          }
+          declaredRuntimeTextures.add(path.relative(root, textureFile));
+        }
       }
     }
     if (asset.status === "integrated" && !asset.qaProof) {
@@ -336,6 +384,18 @@ if (fs.existsSync(vendorModelsPath)) {
 
   if (orphanGlbs.length > 0) {
     fail("Runtime vendor GLB files must be declared by accepted or integrated manifest entries.", { orphanGlbs });
+  }
+}
+
+const runtimeTexturesPath = path.join(root, "public", "assets", "textures", "map");
+if (fs.existsSync(runtimeTexturesPath)) {
+  const orphanTextures = listFiles(runtimeTexturesPath)
+    .filter(isTextureFile)
+    .map((file) => path.relative(root, file))
+    .filter((file) => !declaredRuntimeTextures.has(file));
+
+  if (orphanTextures.length > 0) {
+    fail("Runtime map texture files must be declared by accepted or integrated manifest entries.", { orphanTextures });
   }
 }
 
@@ -363,6 +423,20 @@ if (textureCandidates.length < 3) {
   fail("Asset-first library needs texture candidates before map expansion.", { textureCandidateCount: textureCandidates.length });
 }
 
+const acceptedMapTextureRoles = new Set(
+  assets
+    .filter((asset) => (asset.status === "accepted" || asset.status === "integrated") && asset.kind === "texture-set" && asset.target === "map")
+    .map((asset) => asset.terrainRole)
+);
+for (const role of ["road", "water", "relief", "vegetation"]) {
+  if (!acceptedMapTextureRoles.has(role)) {
+    fail("Map expansion requires accepted runtime texture coverage for core terrain roles.", {
+      role,
+      acceptedMapTextureRoles: [...acceptedMapTextureRoles].sort()
+    });
+  }
+}
+
 const ccByProductionAssets = productionLicenseAssets.filter((asset) => {
   const source = sources.find((item) => item.id === asset.sourceId);
   return source?.kind !== "pipeline-reference";
@@ -376,6 +450,7 @@ const summary = {
   assets: assets.length,
   candidates: candidateAssets.length,
   textureCandidates: textureCandidates.length,
+  acceptedMapTextureRoles: [...acceptedMapTextureRoles].sort(),
   heroLocations: [...heroLocations],
   terrainRoles: [...terrainRoles],
   warnings,
