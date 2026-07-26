@@ -45,6 +45,16 @@ export type ExternalAssetPreviewTelemetry = {
   waterLinkedPlacements: number;
   reliefLinkedPlacements: number;
   vegetationLinkedPlacements: number;
+  primaryPlacements: number;
+  supportPlacements: number;
+  contextPlacements: number;
+  promotionCandidates: number;
+  maxClusterDensity: number;
+  minGroundClearance: number;
+  coplanarRiskPlacements: number;
+  actualMinGroundClearance: number;
+  actualCoplanarRiskPlacements: number;
+  roleScreenRects: Record<string, { visible: boolean; visibleRatio: number; clippedArea: number; width: number; height: number }>;
   routePlacements: number;
   waterPlacements: number;
   reliefPlacements: number;
@@ -66,6 +76,9 @@ type MapPlacementSpec = PreviewSpec & {
   id: string;
   clusterId: string;
   linkedKind: "route" | "water" | "relief" | "vegetation";
+  curation: "primary" | "support" | "context";
+  promotionCandidate: boolean;
+  groundClearance: number;
 };
 
 const manifest = worldAssetManifest as WorldAssetManifest;
@@ -137,6 +150,16 @@ export function createExternalAssetTelemetry(enabled: boolean, mode: ExternalAss
     waterLinkedPlacements: 0,
     reliefLinkedPlacements: 0,
     vegetationLinkedPlacements: 0,
+    primaryPlacements: 0,
+    supportPlacements: 0,
+    contextPlacements: 0,
+    promotionCandidates: 0,
+    maxClusterDensity: 0,
+    minGroundClearance: 0,
+    coplanarRiskPlacements: 0,
+    actualMinGroundClearance: 0,
+    actualCoplanarRiskPlacements: 0,
+    roleScreenRects: {},
     routePlacements: 0,
     waterPlacements: 0,
     reliefPlacements: 0,
@@ -235,17 +258,31 @@ export async function createExternalAssetMapLayer() {
   telemetry.waterLinkedPlacements = jobs.filter((job) => job.spec.linkedKind === "water").length;
   telemetry.reliefLinkedPlacements = jobs.filter((job) => job.spec.linkedKind === "relief").length;
   telemetry.vegetationLinkedPlacements = jobs.filter((job) => job.spec.linkedKind === "vegetation").length;
+  telemetry.primaryPlacements = jobs.filter((job) => job.spec.curation === "primary").length;
+  telemetry.supportPlacements = jobs.filter((job) => job.spec.curation === "support").length;
+  telemetry.contextPlacements = jobs.filter((job) => job.spec.curation === "context").length;
+  telemetry.promotionCandidates = jobs.filter((job) => job.spec.promotionCandidate).length;
+  telemetry.maxClusterDensity = getMaxClusterDensity(jobs.map((job) => job.spec.clusterId));
+  telemetry.minGroundClearance = Number(Math.min(...jobs.map((job) => job.spec.groundClearance)).toFixed(3));
+  telemetry.coplanarRiskPlacements = jobs.filter((job) => job.spec.groundClearance < 0.12).length;
+  const actualGroundClearances: number[] = [];
 
   const results = await Promise.allSettled(
     jobs.map(async ({ asset, spec }) => {
       const { object, url } = await loadNormalizedObject(loader, asset, spec, cache);
       const wrapper = object;
+      applyMapCurationStyle(wrapper, spec);
+      const actualGroundClearance = measureActualGroundClearance(wrapper);
+      actualGroundClearances.push(actualGroundClearance);
       wrapper.name = `external-map-asset:${spec.id}:${asset.id}:${spec.preferredFile}`;
       wrapper.userData.externalAsset = true;
       wrapper.userData.externalAssetMapPlacement = true;
       wrapper.userData.externalAssetPlacementId = spec.id;
       wrapper.userData.externalAssetClusterId = spec.clusterId;
       wrapper.userData.externalAssetLinkedKind = spec.linkedKind;
+      wrapper.userData.externalAssetCuration = spec.curation;
+      wrapper.userData.externalAssetPromotionCandidate = spec.promotionCandidate;
+      wrapper.userData.externalAssetGroundClearance = spec.groundClearance;
       wrapper.userData.externalAssetId = asset.id;
       wrapper.userData.externalAssetSourceId = asset.sourceId;
       wrapper.userData.externalAssetTerrainRole = asset.terrainRole;
@@ -254,6 +291,7 @@ export async function createExternalAssetMapLayer() {
       wrapper.traverse((object) => {
         object.userData.externalAssetId = object.userData.externalAssetId ?? asset.id;
         object.userData.externalAssetMapPlacement = true;
+        object.userData.externalAssetCuration = object.userData.externalAssetCuration ?? spec.curation;
         if (object instanceof THREE.Mesh) {
           object.castShadow = false;
           object.receiveShadow = true;
@@ -288,6 +326,9 @@ export async function createExternalAssetMapLayer() {
   collectRejectedResults(results, telemetry);
   finalizeTelemetry(group, telemetry);
   telemetry.uniqueFiles = cache.size;
+  telemetry.actualMinGroundClearance =
+    actualGroundClearances.length > 0 ? Number(Math.min(...actualGroundClearances).toFixed(3)) : 0;
+  telemetry.actualCoplanarRiskPlacements = actualGroundClearances.filter((clearance) => clearance < 0.08).length;
   const bounds = new THREE.Box3().setFromObject(group);
   const size = new THREE.Vector3();
   bounds.getSize(size);
@@ -304,6 +345,7 @@ function getAcceptedModelCollections() {
     (asset) =>
       (asset.status === "accepted" || asset.status === "integrated") &&
       asset.kind.includes("model") &&
+      asset.target === "map" &&
       asset.publicPath &&
       Array.isArray(asset.selectedFiles)
   );
@@ -342,6 +384,40 @@ function finalizeTelemetry(group: THREE.Object3D, telemetry: ExternalAssetPrevie
   telemetry.uniqueFiles = telemetry.publicPaths.length;
 }
 
+function getMaxClusterDensity(clusterIds: string[]) {
+  const counts = new Map<string, number>();
+  for (const clusterId of clusterIds) {
+    counts.set(clusterId, (counts.get(clusterId) ?? 0) + 1);
+  }
+  return Math.max(...counts.values(), 0);
+}
+
+function applyMapCurationStyle(wrapper: THREE.Object3D, spec: MapPlacementSpec) {
+  if (spec.curation === "support") {
+    wrapper.scale.multiplyScalar(0.86);
+  }
+  if (spec.curation === "context") {
+    wrapper.scale.multiplyScalar(0.7);
+  }
+  alignObjectBottomToGroundClearance(wrapper, spec);
+}
+
+function alignObjectBottomToGroundClearance(wrapper: THREE.Object3D, spec: MapPlacementSpec) {
+  wrapper.updateWorldMatrix(true, true);
+  const terrain = sampleTerrain(new THREE.Vector3(spec.position[0], 0, spec.position[2]));
+  const box = new THREE.Box3().setFromObject(wrapper);
+  const actualClearance = box.min.y - terrain.height;
+  wrapper.position.y += spec.groundClearance - actualClearance;
+  wrapper.updateWorldMatrix(true, true);
+}
+
+function measureActualGroundClearance(wrapper: THREE.Object3D) {
+  wrapper.updateWorldMatrix(true, true);
+  const terrain = sampleTerrain(new THREE.Vector3(wrapper.position.x, 0, wrapper.position.z));
+  const box = new THREE.Box3().setFromObject(wrapper);
+  return Number((box.min.y - terrain.height).toFixed(3));
+}
+
 function createMapPlacementSpecs(): MapPlacementSpec[] {
   return [
     ...createRoutePlacementSpecs(),
@@ -370,11 +446,13 @@ function createRoutePlacementSpecs(): MapPlacementSpec[] {
     const sample = samplePolyline(points, 0.5);
     const side = index % 2 === 0 ? 1 : -1;
     return [
-      createPlacement(`route:${route.id}:road`, `route:${route.id}`, "route", "road", roadFiles[index % roadFiles.length], [sample.x, sample.z], 1.36, sample.angle),
+      createPlacement(`route:${route.id}:road`, `route:${route.id}`, "route", "primary", true, "road", roadFiles[index % roadFiles.length], [sample.x, sample.z], 1.36, sample.angle),
       createPlacement(
         `route:${route.id}:edge`,
         `route:${route.id}`,
         "route",
+        "support",
+        index % 2 === 0,
         "route-edge",
         edgeFiles[index % edgeFiles.length],
         [sample.x + Math.cos(sample.angle) * side * 0.72, sample.z - Math.sin(sample.angle) * side * 0.72],
@@ -387,6 +465,8 @@ function createRoutePlacementSpecs(): MapPlacementSpec[] {
               `route:${route.id}:bridge`,
               `route:${route.id}`,
               "route",
+              "primary",
+              true,
               "bridge",
               bridgeFiles[index % bridgeFiles.length],
               [sample.x - Math.cos(sample.angle) * side * 0.52, sample.z + Math.sin(sample.angle) * side * 0.52],
@@ -401,36 +481,39 @@ function createRoutePlacementSpecs(): MapPlacementSpec[] {
 
 function createWaterPlacementSpecs(): MapPlacementSpec[] {
   const files = ["ground_riverStraight.glb", "ground_riverBend.glb", "ground_riverRocks.glb", "lily_large.glb"];
-  return worldMaterialRegions.water.map((region, index) =>
-    createPlacement(`water:${region.id}`, `water:${region.id}`, "water", "water", files[index % files.length], region.center, index === 3 ? 1.12 : 1.74, region.rotation)
-  );
+  return [
+    ...worldMaterialRegions.water.map((region, index) =>
+      createPlacement(`water:${region.id}`, `water:${region.id}`, "water", index === 3 ? "support" : "primary", true, "water", files[index % files.length], region.center, index === 3 ? 1.12 : 1.74, region.rotation)
+    ),
+    createPlacement("water:studio-crossing-proof", "water:studio-crossing-proof", "water", "support", true, "water", "ground_riverStraight.glb", [-0.8, 4.2], 1.46, -0.18)
+  ];
 }
 
 function createReliefPlacementSpecs(): MapPlacementSpec[] {
   return [
-    createPlacement("relief:tech-ridge", "relief:tech-ridge", "relief", "relief", "cliff_blockSlope_rock.glb", [-12.7, 1.6], 1.62, -0.2),
-    createPlacement("relief:harbor-cut", "relief:harbor-cut", "relief", "relief", "cliff_corner_rock.glb", [-10.4, -14.5], 1.44, 0.42),
-    createPlacement("relief:art-mound", "relief:art-mound", "relief", "relief", "rock_largeC.glb", [12.6, 4.2], 1.28, -0.32),
-    createPlacement("relief:studio-spine", "relief:studio-spine", "relief", "relief", "cliff_steps_rock.glb", [-1.4, 11.7], 1.34, 0.08),
-    createPlacement("relief:north-field", "relief:north-field", "relief", "relief", "rock_largeA.glb", [6.8, 18.2], 1.22, -0.18),
-    createPlacement("relief:south-field", "relief:south-field", "relief", "relief", "rock_tallA.glb", [-6.2, -18.4], 1.3, 0.26)
+    createPlacement("relief:tech-ridge", "relief:tech-ridge", "relief", "primary", true, "relief", "cliff_blockSlope_rock.glb", [-12.7, 1.6], 1.62, -0.2),
+    createPlacement("relief:harbor-cut", "relief:harbor-cut", "relief", "primary", true, "relief", "cliff_corner_rock.glb", [-10.4, -14.5], 1.44, 0.42),
+    createPlacement("relief:art-mound", "relief:art-mound", "relief", "support", true, "relief", "rock_largeC.glb", [12.6, 4.2], 1.28, -0.32),
+    createPlacement("relief:studio-spine", "relief:studio-spine", "relief", "support", true, "relief", "cliff_steps_rock.glb", [-1.4, 11.7], 1.34, 0.08),
+    createPlacement("relief:north-field", "relief:north-field", "relief", "context", false, "relief", "rock_largeA.glb", [6.8, 18.2], 1.22, -0.18),
+    createPlacement("relief:south-field", "relief:south-field", "relief", "context", false, "relief", "rock_tallA.glb", [-6.2, -18.4], 1.3, 0.26)
   ];
 }
 
 function createVegetationPlacementSpecs(): MapPlacementSpec[] {
   return [
-    createPlacement("vegetation:tech-tree", "vegetation:tech-west", "vegetation", "vegetation", "tree_cone.glb", [-14.8, -5.6], 1.5, 0.1),
-    createPlacement("vegetation:tech-bush", "vegetation:tech-west", "vegetation", "vegetation", "plant_bush.glb", [-16.4, 2.8], 1.12, -0.24),
-    createPlacement("vegetation:studio-oak", "vegetation:studio-north", "vegetation", "vegetation", "tree_oak.glb", [3.6, 12.8], 1.65, -0.22),
-    createPlacement("vegetation:studio-grass", "vegetation:studio-north", "vegetation", "vegetation", "grass.glb", [-3.4, 17.8], 1.08, 0.1),
-    createPlacement("vegetation:art-palm", "vegetation:art-east", "vegetation", "vegetation", "tree_palm.glb", [15.7, -8.8], 1.55, 0.34),
-    createPlacement("vegetation:art-flower", "vegetation:art-east", "vegetation", "vegetation", "flower_yellowA.glb", [18.1, -2.6], 1.05, -0.16),
-    createPlacement("vegetation:foundry-bush", "vegetation:foundry", "vegetation", "vegetation", "plant_bushLarge.glb", [15.8, 3.9], 1.24, -0.38),
-    createPlacement("vegetation:foundry-tree", "vegetation:foundry", "vegetation", "vegetation", "tree_default.glb", [18.4, 7.6], 1.46, 0.28),
-    createPlacement("vegetation:contact-grass", "vegetation:contact-south", "vegetation", "vegetation", "grass_large.glb", [-2.8, -14.8], 1.18, 0.16),
-    createPlacement("vegetation:contact-bush", "vegetation:contact-south", "vegetation", "vegetation", "plant_bush.glb", [3.2, -18.6], 1.1, -0.12),
-    createPlacement("vegetation:north-tree", "vegetation:north-field", "vegetation", "vegetation", "tree_fat.glb", [-9.2, 18.5], 1.42, 0.24),
-    createPlacement("vegetation:south-tree", "vegetation:south-field", "vegetation", "vegetation", "tree_default.glb", [9.6, -18.1], 1.42, -0.18)
+    createPlacement("vegetation:tech-tree", "vegetation:tech-west", "vegetation", "support", true, "vegetation", "tree_cone.glb", [-14.8, -5.6], 1.5, 0.1),
+    createPlacement("vegetation:tech-bush", "vegetation:tech-west", "vegetation", "context", false, "vegetation", "plant_bush.glb", [-16.4, 2.8], 1.12, -0.24),
+    createPlacement("vegetation:studio-oak", "vegetation:studio-north", "vegetation", "support", true, "vegetation", "tree_oak.glb", [3.6, 12.8], 1.65, -0.22),
+    createPlacement("vegetation:studio-grass", "vegetation:studio-north", "vegetation", "context", false, "vegetation", "grass.glb", [-3.4, 17.8], 1.08, 0.1),
+    createPlacement("vegetation:art-palm", "vegetation:art-east", "vegetation", "support", true, "vegetation", "tree_palm.glb", [15.7, -8.8], 1.55, 0.34),
+    createPlacement("vegetation:art-flower", "vegetation:art-east", "vegetation", "context", false, "vegetation", "flower_yellowA.glb", [18.1, -2.6], 1.05, -0.16),
+    createPlacement("vegetation:foundry-bush", "vegetation:foundry", "vegetation", "context", false, "vegetation", "plant_bushLarge.glb", [15.8, 3.9], 1.24, -0.38),
+    createPlacement("vegetation:foundry-tree", "vegetation:foundry", "vegetation", "support", true, "vegetation", "tree_default.glb", [18.4, 7.6], 1.46, 0.28),
+    createPlacement("vegetation:contact-grass", "vegetation:contact-south", "vegetation", "context", false, "vegetation", "grass_large.glb", [-2.8, -14.8], 1.18, 0.16),
+    createPlacement("vegetation:contact-bush", "vegetation:contact-south", "vegetation", "context", false, "vegetation", "plant_bush.glb", [3.2, -18.6], 1.1, -0.12),
+    createPlacement("vegetation:north-tree", "vegetation:north-field", "vegetation", "context", false, "vegetation", "tree_fat.glb", [-9.2, 18.5], 1.42, 0.24),
+    createPlacement("vegetation:south-tree", "vegetation:south-field", "vegetation", "context", false, "vegetation", "tree_default.glb", [9.6, -18.1], 1.42, -0.18)
   ];
 }
 
@@ -438,6 +521,8 @@ function createPlacement(
   id: string,
   clusterId: string,
   linkedKind: MapPlacementSpec["linkedKind"],
+  curation: MapPlacementSpec["curation"],
+  promotionCandidate: boolean,
   terrainRole: string,
   preferredFile: string,
   center: readonly [number, number],
@@ -445,16 +530,33 @@ function createPlacement(
   rotationY = 0
 ): MapPlacementSpec {
   const terrain = sampleTerrain(new THREE.Vector3(center[0], 0, center[1]));
+  const groundClearance = getRoleGroundClearance(terrainRole, curation);
   return {
     id,
     clusterId,
     linkedKind,
+    curation,
+    promotionCandidate,
+    groundClearance,
     terrainRole,
     preferredFile,
-    position: [center[0], terrain.height + 0.18, center[1]],
+    position: [center[0], terrain.height + groundClearance, center[1]],
     targetSize,
     rotationY
   };
+}
+
+function getRoleGroundClearance(terrainRole: string, curation: MapPlacementSpec["curation"]) {
+  const roleClearance: Record<string, number> = {
+    road: 0.32,
+    "route-edge": 0.36,
+    bridge: 0.48,
+    water: 0.22,
+    relief: 0.3,
+    vegetation: 0.34
+  };
+  const curationNudge = curation === "primary" ? 0.03 : curation === "support" ? 0.015 : 0;
+  return Number(((roleClearance[terrainRole] ?? 0.28) + curationNudge).toFixed(3));
 }
 
 function samplePolyline(points: THREE.Vector2[], t: number) {

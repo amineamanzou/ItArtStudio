@@ -146,7 +146,10 @@ The runner:
   terrain role, with GitHub Pages-safe URLs.
 - `external-asset-map-composition` must load an opt-in map layer with at least
   32 placements, 18 unique GLB files, 8 clusters, all six terrain roles, route,
-  water, relief and vegetation linkage, and a wide non-flat canvas proof.
+  water, relief and vegetation linkage, primary/support/context curation,
+  promotion candidates, bounded cluster density, measured bounding-box ground
+  clearance, no coplanar placement risk, visible screen-space role rectangles
+  for route/water/relief/vegetation, and a wide non-flat canvas proof.
 - Every zone must expose a label, modeled landmark objects, mesh count, and
   minimum 3D bounds.
 - Every zone must expose one rendered visual spec, at least three decals, three

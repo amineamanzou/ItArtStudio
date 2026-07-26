@@ -1077,6 +1077,25 @@ Gates V8.4:
 - le runtime public normal reste procedural tant que la composition GLB n'a pas
   ete simplifiee visuellement et promue sans bruit.
 
+Gates V8.5:
+
+- la couche `?assets=map` porte maintenant une curation explicite par placement:
+  `primary`, `support` ou `context`, plus un marqueur `promotionCandidate` pour
+  preparer la future promotion selective dans le runtime public;
+- les placements `support` et `context` sont reduits a l'echelle afin de
+  diminuer le bruit de la preuve map sans cacher les assets acceptes;
+- chaque placement expose une garde au sol derivee de son role terrain, et la
+  QA mesure ensuite la bounding box reelle apres normalisation/scale pour
+  refuser les risques de placement coplanaire avec les routes, l'eau ou le
+  terrain;
+- `external-asset-map-composition` exige maintenant aussi des seuils de
+  curation: placements primaires/support/context, candidats de promotion,
+  densite maximum par cluster, absence de risque de z-fighting et rectangles
+  ecran visibles pour les familles route, eau, relief et vegetation;
+- cette etape ne promeut toujours rien dans l'URL publique normale: elle prepare
+  une selection plus propre des assets qui remplaceront ensuite le bruit
+  procedural.
+
 ## Components
 
 - `game-site`: surface principale.

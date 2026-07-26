@@ -19,6 +19,22 @@ de transformer la complexite en execution nette. La home doit vendre la marque,
 expliquer les deux pratiques, faire monter la credibilite et declencher un appel
 decouverte.
 
+## Current Build Objective
+
+La direction de production active est figee dans
+`ASSET_FIRST_MAP_OBJECTIVE.md`.
+
+Objectif court:
+
+> Construire une carte jouable premium d'IT Art Studio en partant d'abord d'une
+> bibliotheque GLB/glTF et textures robuste, puis agrandir le terrain avec ce
+> vocabulaire visuel, avant de composer trois hero locations reconnaissables et
+> testees visuellement.
+
+Cette phase privilegie les assets, la map, les textures, le relief, l'eau et la
+lisibilite des lieux. Le gameplay vehicule reste secondaire: il doit soutenir
+l'exploration sans concentrer l'effort principal.
+
 ## Brand Personality
 
 Maitrise, profondeur, singularite. La marque doit inspirer confiance sans jouer

@@ -83,6 +83,16 @@ function createDefaultExternalAssetTelemetry(enabled: boolean): ExternalAssetPre
     waterLinkedPlacements: 0,
     reliefLinkedPlacements: 0,
     vegetationLinkedPlacements: 0,
+    primaryPlacements: 0,
+    supportPlacements: 0,
+    contextPlacements: 0,
+    promotionCandidates: 0,
+    maxClusterDensity: 0,
+    minGroundClearance: 0,
+    coplanarRiskPlacements: 0,
+    actualMinGroundClearance: 0,
+    actualCoplanarRiskPlacements: 0,
+    roleScreenRects: {},
     routePlacements: 0,
     waterPlacements: 0,
     reliefPlacements: 0,
@@ -1579,7 +1589,7 @@ class StudioGame {
     canvas: { width: 0, height: 0, dpr: 1 },
     renderer: { calls: 0, triangles: 0, geometries: 0, textures: 0 },
     externalAssets: {
-      ...createDefaultExternalAssetTelemetry(externalAssetPreviewMode),
+      ...createDefaultExternalAssetTelemetry(externalAssetRuntimeMode),
       bounds: { width: 0, height: 0, depth: 0 }
     },
     frameCount: 0,
@@ -4549,7 +4559,8 @@ class StudioGame {
     };
     this.qaSnapshot.externalAssets = {
       ...this.externalAssetsTelemetry,
-      bounds: this.externalAssetPreviewGroup ? this.measureObject(this.externalAssetPreviewGroup) : { width: 0, height: 0, depth: 0 }
+      bounds: this.externalAssetPreviewGroup ? this.measureObject(this.externalAssetPreviewGroup) : { width: 0, height: 0, depth: 0 },
+      roleScreenRects: this.externalAssetPreviewGroup ? this.createExternalAssetRoleScreenRects() : {}
     };
     this.qaSnapshot.frameCount = this.frameCount;
     this.qaSnapshot.averageFrameMs = Number(averageFrameMs.toFixed(2));
@@ -5116,6 +5127,30 @@ class StudioGame {
     };
   }
 
+  private createExternalAssetRoleScreenRects() {
+    if (!this.externalAssetPreviewGroup) {
+      return {};
+    }
+
+    const roleRects = new Map<string, ScreenRectQa>();
+    for (const child of this.externalAssetPreviewGroup.children) {
+      const role = child.userData.externalAssetTerrainRole;
+      if (typeof role !== "string") {
+        continue;
+      }
+      const rect = this.projectObjectToScreenRect(child);
+      if (!rect.visible || rect.clippedArea <= 0) {
+        continue;
+      }
+      const existing = roleRects.get(role);
+      if (!existing || rect.clippedArea > existing.clippedArea) {
+        roleRects.set(role, rect);
+      }
+    }
+
+    return Object.fromEntries(roleRects.entries());
+  }
+
   private emptyAssetEnvelope(zone: StudioZone): AssetEnvelopeQa {
     return {
       width: 0,
@@ -5354,6 +5389,10 @@ class StudioGame {
 
   private projectObjectToScreenRect(object: THREE.Object3D): ScreenRectQa {
     const bounds = this.computeObjectBounds(object);
+    return this.projectBoxToScreenRect(bounds);
+  }
+
+  private projectBoxToScreenRect(bounds: THREE.Box3): ScreenRectQa {
     if (bounds.isEmpty()) {
       return this.emptyScreenRect();
     }

@@ -5071,6 +5071,11 @@ async function checkExternalAssetMapComposition(browser) {
     const externalAssets = proof.snapshot?.externalAssets;
     const requiredRoles = ["bridge", "relief", "road", "route-edge", "vegetation", "water"];
     const missingRoles = requiredRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
+    const requiredScreenRoles = ["road", "water", "relief", "vegetation"];
+    const weakScreenRoles = requiredScreenRoles.filter((role) => {
+      const rect = externalAssets?.roleScreenRects?.[role];
+      return !(rect?.visible === true && rect.clippedArea >= 300 && rect.visibleRatio >= 0.01);
+    });
     const mapPathBase = new URL(mapUrl).pathname.replace(/\/$/u, "");
     const expectedAssetPathPrefix = `${mapPathBase}/assets/models/vendor/`.replace(/^\/\//u, "/");
     const unsafePaths = (externalAssets?.publicPaths ?? []).filter((publicPath) => {
@@ -5098,6 +5103,15 @@ async function checkExternalAssetMapComposition(browser) {
       externalAssets.waterLinkedPlacements >= 4 &&
       externalAssets.reliefLinkedPlacements >= 5 &&
       externalAssets.vegetationLinkedPlacements >= 12 &&
+      externalAssets.primaryPlacements >= 18 &&
+      externalAssets.supportPlacements >= 12 &&
+      externalAssets.contextPlacements >= 8 &&
+      externalAssets.promotionCandidates >= 24 &&
+      externalAssets.maxClusterDensity <= 3 &&
+      externalAssets.minGroundClearance >= 0.2 &&
+      externalAssets.coplanarRiskPlacements === 0 &&
+      externalAssets.actualMinGroundClearance >= 0.08 &&
+      externalAssets.actualCoplanarRiskPlacements === 0 &&
       externalAssets.waterPlacements >= 4 &&
       externalAssets.reliefPlacements >= 5 &&
       externalAssets.vegetationPlacements >= 12 &&
@@ -5108,6 +5122,7 @@ async function checkExternalAssetMapComposition(browser) {
       externalAssets.bounds.depth >= 30 &&
       externalAssets.bounds.height >= 1 &&
       missingRoles.length === 0 &&
+      weakScreenRoles.length === 0 &&
       unsafePaths.length === 0 &&
       (externalAssets.errors?.length ?? 0) === 0 &&
       proof.canvas.ok;
@@ -5124,6 +5139,7 @@ async function checkExternalAssetMapComposition(browser) {
         canvas: proof.canvas,
         mapUrl,
         missingRoles,
+        weakScreenRoles,
         unsafePaths,
         expectedAssetPathPrefix
       });
@@ -9057,7 +9073,7 @@ async function writeReport() {
     }`,
     `- External asset map: ${
       externalAssetMapScenario?.details?.externalAssets
-        ? `${externalAssetMapScenario.status}, placements ${externalAssetMapScenario.details.externalAssets.placements}, unique files ${externalAssetMapScenario.details.externalAssets.uniqueFiles}, clusters ${externalAssetMapScenario.details.externalAssets.clusters}, coverage ${externalAssetMapScenario.details.externalAssets.mapCoverageWidth}x${externalAssetMapScenario.details.externalAssets.mapCoverageDepth}`
+        ? `${externalAssetMapScenario.status}, placements ${externalAssetMapScenario.details.externalAssets.placements}, unique files ${externalAssetMapScenario.details.externalAssets.uniqueFiles}, clusters ${externalAssetMapScenario.details.externalAssets.clusters}, primary/support/context ${externalAssetMapScenario.details.externalAssets.primaryPlacements}/${externalAssetMapScenario.details.externalAssets.supportPlacements}/${externalAssetMapScenario.details.externalAssets.contextPlacements}, promotion ${externalAssetMapScenario.details.externalAssets.promotionCandidates}, actual clearance ${externalAssetMapScenario.details.externalAssets.actualMinGroundClearance}, screen roles ${Object.keys(externalAssetMapScenario.details.externalAssets.roleScreenRects ?? {}).join("/")}, coverage ${externalAssetMapScenario.details.externalAssets.mapCoverageWidth}x${externalAssetMapScenario.details.externalAssets.mapCoverageDepth}`
         : (externalAssetMapScenario?.status ?? "n/a")
     }`,
     `- Landmark objects: ${world?.landmarkObjects ?? "n/a"}`,
