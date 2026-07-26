@@ -37,6 +37,8 @@ const searchParams = new URLSearchParams(window.location.search);
 const qaMode = searchParams.has("qa");
 const realKeyboardQaMode = searchParams.has("realKeys");
 const externalAssetPreviewMode = searchParams.get("assets") === "preview";
+const externalAssetMapMode = searchParams.get("assets") === "map";
+const externalAssetRuntimeMode = externalAssetPreviewMode || externalAssetMapMode;
 const playerMaxForwardSpeed = qaMode ? 12.8 : 10.5;
 const playerMaxReverseSpeed = qaMode ? 6.4 : 4.2;
 const playerAcceleration = qaMode ? 38 : 24;
@@ -59,6 +61,7 @@ const colors: Record<ZoneKind | "ground" | "road" | "ink", number> = {
 function createDefaultExternalAssetTelemetry(enabled: boolean): ExternalAssetPreviewTelemetry {
   return {
     enabled,
+    mode: enabled ? (externalAssetMapMode ? "map" : "preview") : "off",
     requested: 0,
     loaded: 0,
     failed: 0,
@@ -68,10 +71,25 @@ function createDefaultExternalAssetTelemetry(enabled: boolean): ExternalAssetPre
     sceneObjects: 0,
     collectionFileKb: 0,
     collectionTriangles: 0,
+    uniqueFiles: 0,
     assetIds: [],
     terrainRoles: [],
     publicPaths: [],
-    errors: []
+    errors: [],
+    placements: 0,
+    clusters: 0,
+    placementGroups: 0,
+    routeLinkedPlacements: 0,
+    waterLinkedPlacements: 0,
+    reliefLinkedPlacements: 0,
+    vegetationLinkedPlacements: 0,
+    routePlacements: 0,
+    waterPlacements: 0,
+    reliefPlacements: 0,
+    vegetationPlacements: 0,
+    mapCoverageWidth: 0,
+    mapCoverageDepth: 0,
+    mapCoverageArea: 0
   };
 }
 
@@ -952,7 +970,7 @@ class StudioGame {
   private readonly projectArtifactGroups = new Map<string, THREE.Object3D>();
   private identityRibbonGroup: THREE.Object3D | null = null;
   private externalAssetPreviewGroup: THREE.Object3D | null = null;
-  private externalAssetsTelemetry: ExternalAssetPreviewTelemetry = createDefaultExternalAssetTelemetry(externalAssetPreviewMode);
+  private externalAssetsTelemetry: ExternalAssetPreviewTelemetry = createDefaultExternalAssetTelemetry(externalAssetRuntimeMode);
   private readonly worldSceneryMotionObjects: THREE.Object3D[] = [];
   private readonly routeGuidanceMotionObjects: THREE.Object3D[] = [];
   private readonly routeEncounterGates: RouteEncounterGate[] = [];
@@ -1643,20 +1661,20 @@ class StudioGame {
     this.addRouteGuidance();
     this.addLightingPools();
     this.addWorldProps();
-    this.addExternalAssetPreview();
+    this.addExternalAssetLayer();
 
     for (const zone of zones) {
       this.addZone(zone);
     }
   }
 
-  private addExternalAssetPreview() {
-    if (!externalAssetPreviewMode) {
+  private addExternalAssetLayer() {
+    if (!externalAssetRuntimeMode) {
       return;
     }
 
     void import("./asset-loader")
-      .then(({ createExternalAssetPreview }) => createExternalAssetPreview())
+      .then((loader) => (externalAssetMapMode ? loader.createExternalAssetMapLayer() : loader.createExternalAssetPreview()))
       .then(({ group, telemetry }) => {
         this.externalAssetPreviewGroup = group;
         this.externalAssetsTelemetry = telemetry;
@@ -1670,6 +1688,7 @@ class StudioGame {
         this.externalAssetsTelemetry = {
           ...this.externalAssetsTelemetry,
           enabled: true,
+          mode: externalAssetMapMode ? "map" : "preview",
           failed: this.externalAssetsTelemetry.failed + 1,
           errors: [...this.externalAssetsTelemetry.errors, message]
         };

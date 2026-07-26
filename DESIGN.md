@@ -1058,6 +1058,25 @@ Gates V8.3:
   fichiers GLB visibles, chemins publics sans `public/`, six roles couverts,
   aucune erreur de chargement et capture canvas non plate.
 
+Gates V8.4:
+
+- `?assets=map` active une couche runtime opt-in qui place les GLB acceptes
+  comme vocabulaire de level design, au lieu de les aligner en planche:
+  routes, route-edge, ponts, eau, relief et vegetation sont derives des
+  `worldRoutes`, des regions d'eau et du terrain existant;
+- le loader cache chaque URL GLB unique puis clone les scenes normalisees afin
+  de separer `uniqueFiles` et `placements`, et d'eviter qu'une composition map
+  multiplie inutilement les chargements;
+- la telemetrie `externalAssets.mode` distingue `off`, `preview` et `map`, avec
+  `placements`, `clusters`, placements lies aux routes/eau/relief/vegetation,
+  couverture et chemins publics Pages-safe;
+- `external-asset-map-composition` exige une preuve topologique opt-in:
+  au moins 32 placements, 18 fichiers uniques, 8 clusters, les six roles terrain,
+  les 11 routes liees, quatre regions d'eau, cinq reliefs, douze vegetations,
+  une couverture de map large et une capture canvas non plate;
+- le runtime public normal reste procedural tant que la composition GLB n'a pas
+  ete simplifiee visuellement et promue sans bruit.
+
 ## Components
 
 - `game-site`: surface principale.

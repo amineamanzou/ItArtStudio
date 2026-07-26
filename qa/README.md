@@ -38,6 +38,10 @@ The runner:
 - verifies that the rendered canvas exposes tech, art, and studio color families;
 - verifies that the world exposes enough 3D cartography assets, per-zone
   landmark inventory, and playable avatar parts;
+- opens opt-in GLB URLs for the asset-first pipeline: `?assets=preview` proves
+  accepted files load, while `?assets=map` proves the accepted terrain
+  vocabulary can form a route/water/relief/vegetation composition across the
+  map before it is promoted to the public runtime;
 - verifies that every `ZoneVisualSpec` is materialized in the rendered scene
   graph with decals, prop clusters, prop objects, material variants, and a
   distinct visual fingerprint;
@@ -138,6 +142,11 @@ The runner:
 - Every screenshot capture must pass visible detail gates.
 - World richness must report at least 10 zones, 18 road segments, 45 decorative
   objects, 225 scene objects, and 135 landmark objects.
+- `external-asset-preview-runtime` must load six accepted GLB specimens, one per
+  terrain role, with GitHub Pages-safe URLs.
+- `external-asset-map-composition` must load an opt-in map layer with at least
+  32 placements, 18 unique GLB files, 8 clusters, all six terrain roles, route,
+  water, relief and vegetation linkage, and a wide non-flat canvas proof.
 - Every zone must expose a label, modeled landmark objects, mesh count, and
   minimum 3D bounds.
 - Every zone must expose one rendered visual spec, at least three decals, three

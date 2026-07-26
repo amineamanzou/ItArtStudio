@@ -5043,6 +5043,98 @@ async function checkExternalAssetPreview(browser) {
   }
 }
 
+async function checkExternalAssetMapComposition(browser) {
+  const mapUrl = withSearchParam(baseUrl, "assets", "map");
+  const mapPage = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+  attachPageDiagnostics(mapPage, "external-asset-map");
+
+  try {
+    await mapPage.goto(mapUrl, { waitUntil: "domcontentloaded", timeout: 20_000 });
+    await mapPage.waitForLoadState("load", { timeout: 15_000 }).catch(() => {});
+    await mapPage.waitForFunction(
+      () => {
+        const assets = window.__IT_ART_STUDIO_QA__?.externalAssets;
+        return Boolean(
+          document.documentElement.classList.contains("game-ready") &&
+            window.__IT_ART_STUDIO_QA__?.ready === true &&
+            assets?.enabled &&
+            assets.mode === "map" &&
+            assets.requested >= 32 &&
+            assets.loaded + assets.failed >= assets.requested &&
+            window.__IT_ART_STUDIO_QA__?.frameCount > 6
+        );
+      },
+      { timeout: 24_000 }
+    );
+
+    const proof = await capture(mapPage, "external-asset-map-composition");
+    const externalAssets = proof.snapshot?.externalAssets;
+    const requiredRoles = ["bridge", "relief", "road", "route-edge", "vegetation", "water"];
+    const missingRoles = requiredRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
+    const mapPathBase = new URL(mapUrl).pathname.replace(/\/$/u, "");
+    const expectedAssetPathPrefix = `${mapPathBase}/assets/models/vendor/`.replace(/^\/\//u, "/");
+    const unsafePaths = (externalAssets?.publicPaths ?? []).filter((publicPath) => {
+      try {
+        const parsed = new URL(publicPath, mapUrl);
+        return parsed.pathname.includes("/public/") || !parsed.pathname.startsWith(expectedAssetPathPrefix);
+      } catch {
+        return true;
+      }
+    });
+    const gate =
+      externalAssets?.enabled === true &&
+      externalAssets.mode === "map" &&
+      externalAssets.requested >= 32 &&
+      externalAssets.loaded >= externalAssets.requested &&
+      externalAssets.failed === 0 &&
+      externalAssets.visible >= externalAssets.requested &&
+      externalAssets.files >= externalAssets.requested &&
+      externalAssets.uniqueFiles >= 18 &&
+      externalAssets.collections >= 6 &&
+      externalAssets.placements >= 32 &&
+      externalAssets.clusters >= 8 &&
+      externalAssets.placementGroups >= 4 &&
+      externalAssets.routeLinkedPlacements >= 11 &&
+      externalAssets.waterLinkedPlacements >= 4 &&
+      externalAssets.reliefLinkedPlacements >= 5 &&
+      externalAssets.vegetationLinkedPlacements >= 12 &&
+      externalAssets.waterPlacements >= 4 &&
+      externalAssets.reliefPlacements >= 5 &&
+      externalAssets.vegetationPlacements >= 12 &&
+      externalAssets.mapCoverageWidth >= 30 &&
+      externalAssets.mapCoverageDepth >= 30 &&
+      externalAssets.mapCoverageArea >= 900 &&
+      externalAssets.bounds.width >= 30 &&
+      externalAssets.bounds.depth >= 30 &&
+      externalAssets.bounds.height >= 1 &&
+      missingRoles.length === 0 &&
+      unsafePaths.length === 0 &&
+      (externalAssets.errors?.length ?? 0) === 0 &&
+      proof.canvas.ok;
+
+    if (gate) {
+      pass("external-asset-map-composition", {
+        externalAssets,
+        canvas: proof.canvas,
+        mapUrl
+      });
+    } else {
+      scenarioFail("external-asset-map-composition", "Accepted GLB assets are not yet arranged as a coherent map vocabulary layer.", {
+        externalAssets,
+        canvas: proof.canvas,
+        mapUrl,
+        missingRoles,
+        unsafePaths,
+        expectedAssetPathPrefix
+      });
+    }
+  } finally {
+    if (!mapPage.isClosed()) {
+      await mapPage.close();
+    }
+  }
+}
+
 async function checkRoverTrail(page, label) {
   const snapshot = await getQaSnapshot(page);
   const trail = snapshot?.trail;
@@ -8845,6 +8937,7 @@ async function writeReport() {
   const worldScenario = scenarios.find((scenario) => scenario.name === "world-richness");
   const rendererBudgetScenario = scenarios.find((scenario) => scenario.name === "renderer-budget");
   const externalAssetPreviewScenario = scenarios.find((scenario) => scenario.name === "external-asset-preview-runtime");
+  const externalAssetMapScenario = scenarios.find((scenario) => scenario.name === "external-asset-map-composition");
   const visualScenario = scenarios.find((scenario) => scenario.name === "visual-specs-rendered");
   const placeArchitectureScenario = scenarios.find((scenario) => scenario.name === "place-architecture-rendered");
   const projectArtifactsScenario = scenarios.find((scenario) => scenario.name === "project-artifacts-rendered");
@@ -8961,6 +9054,11 @@ async function writeReport() {
       externalAssetPreviewScenario?.details?.externalAssets
         ? `${externalAssetPreviewScenario.status}, files ${externalAssetPreviewScenario.details.externalAssets.loaded}/${externalAssetPreviewScenario.details.externalAssets.requested}, roles ${externalAssetPreviewScenario.details.externalAssets.terrainRoles.join("/")}`
         : (externalAssetPreviewScenario?.status ?? "n/a")
+    }`,
+    `- External asset map: ${
+      externalAssetMapScenario?.details?.externalAssets
+        ? `${externalAssetMapScenario.status}, placements ${externalAssetMapScenario.details.externalAssets.placements}, unique files ${externalAssetMapScenario.details.externalAssets.uniqueFiles}, clusters ${externalAssetMapScenario.details.externalAssets.clusters}, coverage ${externalAssetMapScenario.details.externalAssets.mapCoverageWidth}x${externalAssetMapScenario.details.externalAssets.mapCoverageDepth}`
+        : (externalAssetMapScenario?.status ?? "n/a")
     }`,
     `- Landmark objects: ${world?.landmarkObjects ?? "n/a"}`,
     `- Road segments: ${world?.roadSegments ?? "n/a"}`,
@@ -9328,6 +9426,7 @@ async function main() {
       }
       await checkWorldRichness(page);
       await checkExternalAssetPreview(browser);
+      await checkExternalAssetMapComposition(browser);
       await checkStaticPlayableProofReel(browser, page, home);
       if (!page.isClosed()) {
         await page.close();
@@ -9368,6 +9467,7 @@ async function main() {
     }
     await checkWorldRichness(page);
     await checkExternalAssetPreview(browser);
+    await checkExternalAssetMapComposition(browser);
     await checkAudioLayer(browser);
     await checkFrameBudget(page);
     await checkRealKeyboardInput(page);

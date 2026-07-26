@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import worldAssetManifest from "../../assets/world-assets.manifest.json";
+import { sampleTerrain, worldMaterialRegions } from "./world-materials";
+import { worldRoutes, zones } from "./zones";
 
 type ManifestAsset = {
   id: string;
@@ -21,6 +23,7 @@ type WorldAssetManifest = {
 
 export type ExternalAssetPreviewTelemetry = {
   enabled: boolean;
+  mode: "off" | "preview" | "map";
   requested: number;
   loaded: number;
   failed: number;
@@ -30,10 +33,25 @@ export type ExternalAssetPreviewTelemetry = {
   sceneObjects: number;
   collectionFileKb: number;
   collectionTriangles: number;
+  uniqueFiles: number;
   assetIds: string[];
   terrainRoles: string[];
   publicPaths: string[];
   errors: string[];
+  placements: number;
+  clusters: number;
+  placementGroups: number;
+  routeLinkedPlacements: number;
+  waterLinkedPlacements: number;
+  reliefLinkedPlacements: number;
+  vegetationLinkedPlacements: number;
+  routePlacements: number;
+  waterPlacements: number;
+  reliefPlacements: number;
+  vegetationPlacements: number;
+  mapCoverageWidth: number;
+  mapCoverageDepth: number;
+  mapCoverageArea: number;
 };
 
 type PreviewSpec = {
@@ -44,7 +62,14 @@ type PreviewSpec = {
   rotationY?: number;
 };
 
+type MapPlacementSpec = PreviewSpec & {
+  id: string;
+  clusterId: string;
+  linkedKind: "route" | "water" | "relief" | "vegetation";
+};
+
 const manifest = worldAssetManifest as WorldAssetManifest;
+const zoneById = new Map(zones.map((zone) => [zone.id, zone]));
 
 const previewSpecs: PreviewSpec[] = [
   {
@@ -87,9 +112,10 @@ const previewSpecs: PreviewSpec[] = [
   }
 ];
 
-export function createExternalAssetTelemetry(enabled: boolean): ExternalAssetPreviewTelemetry {
+export function createExternalAssetTelemetry(enabled: boolean, mode: ExternalAssetPreviewTelemetry["mode"] = enabled ? "preview" : "off"): ExternalAssetPreviewTelemetry {
   return {
     enabled,
+    mode,
     requested: 0,
     loaded: 0,
     failed: 0,
@@ -99,10 +125,25 @@ export function createExternalAssetTelemetry(enabled: boolean): ExternalAssetPre
     sceneObjects: 0,
     collectionFileKb: 0,
     collectionTriangles: 0,
+    uniqueFiles: 0,
     assetIds: [],
     terrainRoles: [],
     publicPaths: [],
-    errors: []
+    errors: [],
+    placements: 0,
+    clusters: 0,
+    placementGroups: 0,
+    routeLinkedPlacements: 0,
+    waterLinkedPlacements: 0,
+    reliefLinkedPlacements: 0,
+    vegetationLinkedPlacements: 0,
+    routePlacements: 0,
+    waterPlacements: 0,
+    reliefPlacements: 0,
+    vegetationPlacements: 0,
+    mapCoverageWidth: 0,
+    mapCoverageDepth: 0,
+    mapCoverageArea: 0
   };
 }
 
@@ -111,15 +152,9 @@ export async function createExternalAssetPreview() {
   group.name = "external-asset-preview";
   group.userData.externalAssetPreview = true;
 
-  const telemetry = createExternalAssetTelemetry(true);
+  const telemetry = createExternalAssetTelemetry(true, "preview");
   const loader = new GLTFLoader();
-  const acceptedAssets = manifest.assets.filter(
-    (asset) =>
-      (asset.status === "accepted" || asset.status === "integrated") &&
-      asset.kind.includes("model") &&
-      asset.publicPath &&
-      Array.isArray(asset.selectedFiles)
-  );
+  const acceptedAssets = getAcceptedModelCollections();
 
   const jobs = previewSpecs
     .map((spec) => {
@@ -135,9 +170,8 @@ export async function createExternalAssetPreview() {
 
   const results = await Promise.allSettled(
     jobs.map(async ({ asset, spec }) => {
-      const url = createRuntimeAssetUrl(asset.publicPath ?? "", spec.preferredFile);
-      const gltf = await loader.loadAsync(url);
-      const wrapper = normalizePreviewObject(gltf.scene, spec);
+      const { object, url } = await loadNormalizedObject(loader, asset, spec);
+      const wrapper = object;
       wrapper.name = `external-asset:${asset.id}:${spec.preferredFile}`;
       wrapper.userData.externalAsset = true;
       wrapper.userData.externalAssetId = asset.id;
@@ -166,13 +200,137 @@ export async function createExternalAssetPreview() {
     })
   );
 
+  collectRejectedResults(results, telemetry);
+  finalizeTelemetry(group, telemetry);
+
+  return { group, telemetry };
+}
+
+export async function createExternalAssetMapLayer() {
+  const group = new THREE.Group();
+  group.name = "external-asset-map-layer";
+  group.userData.externalAssetMapLayer = true;
+
+  const telemetry = createExternalAssetTelemetry(true, "map");
+  const loader = new GLTFLoader();
+  const cache = new Map<string, Promise<THREE.Object3D>>();
+  const acceptedAssets = getAcceptedModelCollections();
+  const placements = createMapPlacementSpecs();
+
+  const jobs = placements
+    .map((spec) => {
+      const asset = acceptedAssets.find(
+        (item) => item.terrainRole === spec.terrainRole && item.selectedFiles?.includes(spec.preferredFile)
+      );
+      return asset ? { asset, spec } : null;
+    })
+    .filter((job): job is { asset: ManifestAsset; spec: MapPlacementSpec } => Boolean(job));
+
+  telemetry.requested = jobs.length;
+  telemetry.collections = new Set(jobs.map((job) => job.asset.id)).size;
+  telemetry.placements = jobs.length;
+  telemetry.clusters = new Set(jobs.map((job) => job.spec.clusterId)).size;
+  telemetry.placementGroups = new Set(jobs.map((job) => job.spec.linkedKind)).size;
+  telemetry.routeLinkedPlacements = jobs.filter((job) => job.spec.linkedKind === "route").length;
+  telemetry.waterLinkedPlacements = jobs.filter((job) => job.spec.linkedKind === "water").length;
+  telemetry.reliefLinkedPlacements = jobs.filter((job) => job.spec.linkedKind === "relief").length;
+  telemetry.vegetationLinkedPlacements = jobs.filter((job) => job.spec.linkedKind === "vegetation").length;
+
+  const results = await Promise.allSettled(
+    jobs.map(async ({ asset, spec }) => {
+      const { object, url } = await loadNormalizedObject(loader, asset, spec, cache);
+      const wrapper = object;
+      wrapper.name = `external-map-asset:${spec.id}:${asset.id}:${spec.preferredFile}`;
+      wrapper.userData.externalAsset = true;
+      wrapper.userData.externalAssetMapPlacement = true;
+      wrapper.userData.externalAssetPlacementId = spec.id;
+      wrapper.userData.externalAssetClusterId = spec.clusterId;
+      wrapper.userData.externalAssetLinkedKind = spec.linkedKind;
+      wrapper.userData.externalAssetId = asset.id;
+      wrapper.userData.externalAssetSourceId = asset.sourceId;
+      wrapper.userData.externalAssetTerrainRole = asset.terrainRole;
+      wrapper.userData.externalAssetFile = spec.preferredFile;
+      wrapper.userData.externalAssetUrl = url;
+      wrapper.traverse((object) => {
+        object.userData.externalAssetId = object.userData.externalAssetId ?? asset.id;
+        object.userData.externalAssetMapPlacement = true;
+        if (object instanceof THREE.Mesh) {
+          object.castShadow = false;
+          object.receiveShadow = true;
+          object.frustumCulled = false;
+        }
+      });
+
+      group.add(wrapper);
+      telemetry.loaded += 1;
+      telemetry.visible += 1;
+      telemetry.files += 1;
+      telemetry.collectionFileKb = Number((telemetry.collectionFileKb + (asset.fileKb ?? 0)).toFixed(1));
+      telemetry.collectionTriangles += asset.triangles ?? 0;
+      telemetry.assetIds.push(asset.id);
+      telemetry.terrainRoles.push(asset.terrainRole);
+      telemetry.publicPaths.push(url);
+      if (asset.terrainRole === "road" || asset.terrainRole === "route-edge" || asset.terrainRole === "bridge") {
+        telemetry.routePlacements += 1;
+      }
+      if (asset.terrainRole === "water") {
+        telemetry.waterPlacements += 1;
+      }
+      if (asset.terrainRole === "relief") {
+        telemetry.reliefPlacements += 1;
+      }
+      if (asset.terrainRole === "vegetation") {
+        telemetry.vegetationPlacements += 1;
+      }
+    })
+  );
+
+  collectRejectedResults(results, telemetry);
+  finalizeTelemetry(group, telemetry);
+  telemetry.uniqueFiles = cache.size;
+  const bounds = new THREE.Box3().setFromObject(group);
+  const size = new THREE.Vector3();
+  bounds.getSize(size);
+  telemetry.mapCoverageWidth = Number(size.x.toFixed(2));
+  telemetry.mapCoverageDepth = Number(size.z.toFixed(2));
+  telemetry.mapCoverageArea = Number((size.x * size.z).toFixed(2));
+
+
+  return { group, telemetry };
+}
+
+function getAcceptedModelCollections() {
+  return manifest.assets.filter(
+    (asset) =>
+      (asset.status === "accepted" || asset.status === "integrated") &&
+      asset.kind.includes("model") &&
+      asset.publicPath &&
+      Array.isArray(asset.selectedFiles)
+  );
+}
+
+async function loadNormalizedObject(loader: GLTFLoader, asset: ManifestAsset, spec: PreviewSpec, cache?: Map<string, Promise<THREE.Object3D>>) {
+  const url = createRuntimeAssetUrl(asset.publicPath ?? "", spec.preferredFile);
+  if (!cache?.has(url)) {
+    cache?.set(url, loader.loadAsync(url).then((gltf) => gltf.scene));
+  }
+  const source = cache ? (await cache.get(url))?.clone(true) : (await loader.loadAsync(url)).scene;
+  return {
+    object: normalizePreviewObject(source ?? new THREE.Group(), spec),
+    url
+  };
+}
+
+function collectRejectedResults(results: Array<PromiseSettledResult<unknown>>, telemetry: ExternalAssetPreviewTelemetry) {
   for (const result of results) {
     if (result.status === "rejected") {
       telemetry.failed += 1;
       telemetry.errors.push(result.reason instanceof Error ? result.reason.message : String(result.reason));
     }
   }
+}
 
+function finalizeTelemetry(group: THREE.Object3D, telemetry: ExternalAssetPreviewTelemetry) {
   let sceneObjects = 0;
   group.traverse(() => {
     sceneObjects += 1;
@@ -180,9 +338,149 @@ export async function createExternalAssetPreview() {
   telemetry.sceneObjects = sceneObjects;
   telemetry.assetIds = [...new Set(telemetry.assetIds)].sort();
   telemetry.terrainRoles = [...new Set(telemetry.terrainRoles)].sort();
-  telemetry.publicPaths = telemetry.publicPaths.sort();
+  telemetry.publicPaths = [...new Set(telemetry.publicPaths)].sort();
+  telemetry.uniqueFiles = telemetry.publicPaths.length;
+}
 
-  return { group, telemetry };
+function createMapPlacementSpecs(): MapPlacementSpec[] {
+  return [
+    ...createRoutePlacementSpecs(),
+    ...createWaterPlacementSpecs(),
+    ...createReliefPlacementSpecs(),
+    ...createVegetationPlacementSpecs()
+  ];
+}
+
+function createRoutePlacementSpecs(): MapPlacementSpec[] {
+  const roadFiles = ["road-straight.glb", "road-curve.glb", "road-intersection.glb", "road-roundabout.glb", "road-split.glb"];
+  const edgeFiles = ["light-square.glb", "light-curved.glb", "construction-cone.glb", "construction-barrier.glb"];
+  const bridgeFiles = ["bridge_wood.glb", "path_wood.glb"];
+
+  return worldRoutes.flatMap((route, index) => {
+    const from = zoneById.get(route.from);
+    const to = zoneById.get(route.to);
+    if (!from || !to) {
+      return [];
+    }
+    const points = [
+      new THREE.Vector2(from.position[0], from.position[1]),
+      ...(route.via ?? []).map(([x, z]) => new THREE.Vector2(x, z)),
+      new THREE.Vector2(to.position[0], to.position[1])
+    ];
+    const sample = samplePolyline(points, 0.5);
+    const side = index % 2 === 0 ? 1 : -1;
+    return [
+      createPlacement(`route:${route.id}:road`, `route:${route.id}`, "route", "road", roadFiles[index % roadFiles.length], [sample.x, sample.z], 1.36, sample.angle),
+      createPlacement(
+        `route:${route.id}:edge`,
+        `route:${route.id}`,
+        "route",
+        "route-edge",
+        edgeFiles[index % edgeFiles.length],
+        [sample.x + Math.cos(sample.angle) * side * 0.72, sample.z - Math.sin(sample.angle) * side * 0.72],
+        0.74,
+        sample.angle + Math.PI * 0.5
+      ),
+      ...(index % 3 === 0
+        ? [
+            createPlacement(
+              `route:${route.id}:bridge`,
+              `route:${route.id}`,
+              "route",
+              "bridge",
+              bridgeFiles[index % bridgeFiles.length],
+              [sample.x - Math.cos(sample.angle) * side * 0.52, sample.z + Math.sin(sample.angle) * side * 0.52],
+              1.48,
+              sample.angle + Math.PI * 0.5
+            )
+          ]
+        : [])
+    ];
+  });
+}
+
+function createWaterPlacementSpecs(): MapPlacementSpec[] {
+  const files = ["ground_riverStraight.glb", "ground_riverBend.glb", "ground_riverRocks.glb", "lily_large.glb"];
+  return worldMaterialRegions.water.map((region, index) =>
+    createPlacement(`water:${region.id}`, `water:${region.id}`, "water", "water", files[index % files.length], region.center, index === 3 ? 1.12 : 1.74, region.rotation)
+  );
+}
+
+function createReliefPlacementSpecs(): MapPlacementSpec[] {
+  return [
+    createPlacement("relief:tech-ridge", "relief:tech-ridge", "relief", "relief", "cliff_blockSlope_rock.glb", [-12.7, 1.6], 1.62, -0.2),
+    createPlacement("relief:harbor-cut", "relief:harbor-cut", "relief", "relief", "cliff_corner_rock.glb", [-10.4, -14.5], 1.44, 0.42),
+    createPlacement("relief:art-mound", "relief:art-mound", "relief", "relief", "rock_largeC.glb", [12.6, 4.2], 1.28, -0.32),
+    createPlacement("relief:studio-spine", "relief:studio-spine", "relief", "relief", "cliff_steps_rock.glb", [-1.4, 11.7], 1.34, 0.08),
+    createPlacement("relief:north-field", "relief:north-field", "relief", "relief", "rock_largeA.glb", [6.8, 18.2], 1.22, -0.18),
+    createPlacement("relief:south-field", "relief:south-field", "relief", "relief", "rock_tallA.glb", [-6.2, -18.4], 1.3, 0.26)
+  ];
+}
+
+function createVegetationPlacementSpecs(): MapPlacementSpec[] {
+  return [
+    createPlacement("vegetation:tech-tree", "vegetation:tech-west", "vegetation", "vegetation", "tree_cone.glb", [-14.8, -5.6], 1.5, 0.1),
+    createPlacement("vegetation:tech-bush", "vegetation:tech-west", "vegetation", "vegetation", "plant_bush.glb", [-16.4, 2.8], 1.12, -0.24),
+    createPlacement("vegetation:studio-oak", "vegetation:studio-north", "vegetation", "vegetation", "tree_oak.glb", [3.6, 12.8], 1.65, -0.22),
+    createPlacement("vegetation:studio-grass", "vegetation:studio-north", "vegetation", "vegetation", "grass.glb", [-3.4, 17.8], 1.08, 0.1),
+    createPlacement("vegetation:art-palm", "vegetation:art-east", "vegetation", "vegetation", "tree_palm.glb", [15.7, -8.8], 1.55, 0.34),
+    createPlacement("vegetation:art-flower", "vegetation:art-east", "vegetation", "vegetation", "flower_yellowA.glb", [18.1, -2.6], 1.05, -0.16),
+    createPlacement("vegetation:foundry-bush", "vegetation:foundry", "vegetation", "vegetation", "plant_bushLarge.glb", [15.8, 3.9], 1.24, -0.38),
+    createPlacement("vegetation:foundry-tree", "vegetation:foundry", "vegetation", "vegetation", "tree_default.glb", [18.4, 7.6], 1.46, 0.28),
+    createPlacement("vegetation:contact-grass", "vegetation:contact-south", "vegetation", "vegetation", "grass_large.glb", [-2.8, -14.8], 1.18, 0.16),
+    createPlacement("vegetation:contact-bush", "vegetation:contact-south", "vegetation", "vegetation", "plant_bush.glb", [3.2, -18.6], 1.1, -0.12),
+    createPlacement("vegetation:north-tree", "vegetation:north-field", "vegetation", "vegetation", "tree_fat.glb", [-9.2, 18.5], 1.42, 0.24),
+    createPlacement("vegetation:south-tree", "vegetation:south-field", "vegetation", "vegetation", "tree_default.glb", [9.6, -18.1], 1.42, -0.18)
+  ];
+}
+
+function createPlacement(
+  id: string,
+  clusterId: string,
+  linkedKind: MapPlacementSpec["linkedKind"],
+  terrainRole: string,
+  preferredFile: string,
+  center: readonly [number, number],
+  targetSize: number,
+  rotationY = 0
+): MapPlacementSpec {
+  const terrain = sampleTerrain(new THREE.Vector3(center[0], 0, center[1]));
+  return {
+    id,
+    clusterId,
+    linkedKind,
+    terrainRole,
+    preferredFile,
+    position: [center[0], terrain.height + 0.18, center[1]],
+    targetSize,
+    rotationY
+  };
+}
+
+function samplePolyline(points: THREE.Vector2[], t: number) {
+  const lengths = [];
+  let total = 0;
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const length = points[index].distanceTo(points[index + 1]);
+    lengths.push(length);
+    total += length;
+  }
+  let remaining = total * t;
+  for (let index = 0; index < lengths.length; index += 1) {
+    const length = lengths[index];
+    if (remaining <= length || index === lengths.length - 1) {
+      const from = points[index];
+      const to = points[index + 1];
+      const localT = length > 0 ? remaining / length : 0;
+      const x = THREE.MathUtils.lerp(from.x, to.x, localT);
+      const z = THREE.MathUtils.lerp(from.y, to.y, localT);
+      const angle = Math.atan2(to.x - from.x, to.y - from.y);
+      return { x, z, angle };
+    }
+    remaining -= length;
+  }
+  const fallback = points[0] ?? new THREE.Vector2();
+  return { x: fallback.x, z: fallback.y, angle: 0 };
 }
 
 function createRuntimeAssetUrl(publicPath: string, fileName: string) {
