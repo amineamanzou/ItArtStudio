@@ -434,6 +434,11 @@ mechanical feel: each wheel samples the shared terrain, visible suspension parts
 compress independently, and the QA report exposes peak compression, travel
 variance and terrain contact span.
 
+`tech-place-distinctiveness` protects the two main tech places from collapsing
+into the same cyan signal language. AI Lab must read as a horizontal agent
+workshop, Observability Tower as a vertical telemetry lighthouse, with role,
+silhouette and perceptual-distance evidence.
+
 ## Next Gates
 
 - Add production preview mode.

@@ -829,6 +829,19 @@ Gates V6.8:
 - cette vague accepte quelques pieces vehicule en plus, mais garde le budget
   monde premium et l'exploration libre comme gates bloquants.
 
+Gates V6.9:
+
+- `AI Lab` et `Observability Tower` ne doivent plus partager la meme grammaire
+  cyan/anneaux/signaux: AI devient un atelier horizontal d'agents avec
+  workbench, convoyeur d'evaluation, tokens de prompt et coeur compact;
+  Observability devient une tour verticale avec lighthouse telemetry, cascade de
+  logs, stack metrique et faisceau radar;
+- `tech-place-distinctiveness` verifie les familles signature, les roles de set
+  dressing, les proportions de silhouette et la distance perceptuelle
+  AI/Observability apres les sauts mini-map;
+- cette vague doit remplacer et condenser plutot qu'empiler: le monde conserve
+  au moins 24 slots libres sous `sceneObjects <= 940`.
+
 ## Components
 
 - `game-site`: surface principale.

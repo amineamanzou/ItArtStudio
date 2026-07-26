@@ -5,9 +5,16 @@ type Palette = Record<ZoneKind | "road" | "ink", number>;
 type MotionBehavior = "pulse" | "sweep" | "tilt" | "float" | "blink";
 type ArtifactRole =
   | "threshold-glyph"
+  | "agent-workbench"
+  | "evaluation-conveyor"
+  | "prompt-token"
   | "agent-core"
   | "trace-helix"
   | "telemetry-tower"
+  | "telemetry-lighthouse"
+  | "log-waterfall"
+  | "metric-stack"
+  | "radar-beam"
   | "metric-array"
   | "load-lattice"
   | "cloud-platform"
@@ -265,39 +272,109 @@ function createStudioGateArtifacts(group: THREE.Group, zone: StudioZone, mats: A
 }
 
 function createAiArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactMaterials) {
-  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.34, 1), mats.accent);
-  core.position.set(0, 1.42, -0.82);
-  add(group, core, zone, "agent-core", "agent-poly-core", "accent-poly", "tilt");
-  for (let index = 0; index < 3; index += 1) {
-    add(group, ring(0.5 + index * 0.12, 0.014, index % 2 ? mats.light : mats.secondary, [0, 1.42, -0.82], [0.55, index * 0.7, 0.3]), zone, "agent-core", `agent-orbit-${index}`, index % 2 ? "light-orbit" : "secondary-orbit", "sweep");
-  }
-  add(group, tube([new THREE.Vector3(-0.86, 0.58, -0.55), new THREE.Vector3(-0.22, 1.12, -0.7), new THREE.Vector3(0, 1.42, -0.82)], 0.018, mats.light), zone, "agent-core", "prompt-stream-a", "light-tube", "pulse");
-  add(group, tube([new THREE.Vector3(0.86, 0.58, -0.55), new THREE.Vector3(0.24, 1.12, -0.95), new THREE.Vector3(0, 1.42, -0.82)], 0.018, mats.secondary), zone, "agent-core", "prompt-stream-b", "secondary-tube", "pulse");
-}
+  const workbench = box([1.48, 0.18, 0.72], mats.dark, [0, 0.52, -0.72]);
+  workbench.rotation.y = -0.04;
+  add(group, workbench, zone, "agent-workbench", "agentic-workbench-slab", "dark-workbench", "tilt");
 
-function createTraceArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactMaterials) {
-  add(group, cylinder(0.08, 0.18, 1.42, mats.dark, [0, 1.04, -0.78], 18), zone, "telemetry-tower", "trace-core-mast", "dark-mast", "pulse");
-  add(group, cylinder(0.42, 0.5, 0.12, mats.secondary, [0, 0.42, -0.78], 24), zone, "telemetry-tower", "radar-base-dish", "secondary-dish", "tilt");
-  add(group, box([0.82, 0.12, 0.38], mats.light, [0, 1.34, -0.78]), zone, "telemetry-tower", "metric-bridge", "light-bridge", "tilt");
-  add(group, ring(0.64, 0.018, mats.accent, [0, 1.7, -0.78], [Math.PI * 0.5, 0.14, 0.26]), zone, "telemetry-tower", "radar-crown-outer", "accent-crown", "sweep");
-  add(group, ring(0.42, 0.014, mats.light, [0, 1.7, -0.78], [Math.PI * 0.5, -0.48, -0.18]), zone, "telemetry-tower", "radar-crown-inner", "light-crown", "sweep");
+  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(0.28, 1), mats.accent);
+  core.position.set(-0.52, 0.9, -0.72);
+  core.scale.set(1.15, 0.82, 1.15);
+  add(group, core, zone, "agent-core", "compact-agent-core", "accent-core", "pulse");
+
+  const conveyor = box([1.52, 0.08, 0.22], mats.secondary, [0.28, 0.7, -0.14]);
+  conveyor.rotation.y = 0.12;
+  add(group, conveyor, zone, "evaluation-conveyor", "evaluation-conveyor-belt", "secondary-belt", "sweep");
+
+  const evaluationRails = instancedBoxes([0.28, 0.055, 0.08], mats.light, [
+    { position: [-0.36, 0.82, 0.02], scale: [1, 1, 1], color: mats.light.color.getHex() },
+    { position: [0.1, 0.86, 0.02], scale: [1.16, 1, 1], color: mats.secondary.color.getHex() },
+    { position: [0.62, 0.9, 0.02], scale: [0.92, 1, 1], color: mats.accent.color.getHex() }
+  ]);
+  add(group, evaluationRails, zone, "evaluation-conveyor", "evaluation-score-rail", "instanced-evaluation-rail", "blink");
+  tagSemanticParts(evaluationRails, zone, [
+    { role: "evaluation-conveyor", signature: "eval-score-a", materialVariant: "light-score" },
+    { role: "evaluation-conveyor", signature: "eval-score-b", materialVariant: "secondary-score" },
+    { role: "evaluation-conveyor", signature: "eval-score-c", materialVariant: "accent-score" }
+  ]);
+
+  const evaluationDisplay = box([0.86, 0.18, 0.08], mats.light, [0.32, 1.78, -0.36]);
+  evaluationDisplay.rotation.y = 0.18;
+  add(group, evaluationDisplay, zone, "evaluation-conveyor", "agent-evaluation-display", "light-evaluation-display", "blink");
+
+  const promptTokens = instancedBoxes([0.16, 0.16, 0.16], mats.light, [
+    { position: [-0.62, 0.74, 0.42], color: mats.accent.color.getHex() },
+    { position: [-0.22, 0.8, 0.5], color: mats.light.color.getHex() },
+    { position: [0.18, 0.76, 0.46], color: mats.secondary.color.getHex() },
+    { position: [0.58, 0.84, 0.54], color: mats.accent.color.getHex() }
+  ]);
+  add(group, promptTokens, zone, "prompt-token", "prompt-token-batch", "instanced-prompt-tokens", "float");
+  tagSemanticParts(promptTokens, zone, [
+    { role: "prompt-token", signature: "prompt-token-system", materialVariant: "accent-token" },
+    { role: "prompt-token", signature: "prompt-token-tool", materialVariant: "light-token" },
+    { role: "prompt-token", signature: "prompt-token-memory", materialVariant: "secondary-token" },
+    { role: "prompt-token", signature: "prompt-token-output", materialVariant: "accent-token" }
+  ]);
+
   add(
     group,
     tube([
-      new THREE.Vector3(-0.58, 0.62, -0.78),
-      new THREE.Vector3(-0.24, 1.08, -0.98),
-      new THREE.Vector3(0.36, 1.5, -0.66),
-      new THREE.Vector3(0.68, 1.86, -0.88)
+      new THREE.Vector3(-0.52, 0.9, -0.72),
+      new THREE.Vector3(-0.12, 1.02, -0.42),
+      new THREE.Vector3(0.54, 0.9, -0.14)
+    ], 0.018, mats.light),
+    zone,
+    "agent-core",
+    "agent-core-to-eval-loop",
+    "light-feedback-loop",
+    "pulse"
+  );
+}
+
+function createTraceArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactMaterials) {
+  add(group, cylinder(0.09, 0.18, 2.18, mats.dark, [0, 1.32, -0.78], 18), zone, "telemetry-lighthouse", "telemetry-lighthouse-mast", "dark-lighthouse", "pulse");
+  add(group, cylinder(0.44, 0.56, 0.14, mats.secondary, [0, 0.42, -0.78], 24), zone, "telemetry-lighthouse", "lighthouse-radar-base", "secondary-base", "tilt");
+  add(group, ring(0.72, 0.018, mats.accent, [0, 2.26, -0.78], [Math.PI * 0.5, 0.14, 0.26]), zone, "radar-beam", "radar-sweep-crown", "accent-crown", "sweep");
+  add(
+    group,
+    tube([
+      new THREE.Vector3(-0.72, 2.12, -0.78),
+      new THREE.Vector3(-0.2, 2.38, -0.96),
+      new THREE.Vector3(0.44, 2.12, -0.56),
+      new THREE.Vector3(1.16, 1.92, -0.78)
     ], 0.018, mats.accent),
     zone,
-    "trace-helix",
-    "sampled-trace-spine",
-    "accent-spine",
+    "radar-beam",
+    "wide-radar-beam",
+    "accent-radar-beam",
     "sweep"
   );
-  [-0.28, 0, 0.28].forEach((x, index) => {
-    add(group, box([0.12, 0.16 + index * 0.08, 0.08], index % 2 ? mats.light : mats.secondary, [x, 1.5 + index * 0.1, -0.54]), zone, "metric-array", `latency-bar-${index}`, index % 2 ? "light-bar" : "secondary-bar", "blink");
-  });
+  const metricStack = instancedBoxes([0.16, 0.24, 0.08], mats.light, [
+    { position: [-0.5, 1.12, -0.46], scale: [1, 0.8, 1], color: mats.light.color.getHex() },
+    { position: [-0.24, 1.22, -0.46], scale: [1, 1.15, 1], color: mats.secondary.color.getHex() },
+    { position: [0.02, 1.34, -0.46], scale: [1, 1.5, 1], color: mats.accent.color.getHex() },
+    { position: [0.28, 1.46, -0.46], scale: [1, 1.9, 1], color: mats.light.color.getHex() }
+  ]);
+  add(group, metricStack, zone, "metric-stack", "vertical-metric-stack", "instanced-metric-stack", "blink");
+  tagSemanticParts(metricStack, zone, [
+    { role: "metric-stack", signature: "metric-p50", materialVariant: "light-metric" },
+    { role: "metric-stack", signature: "metric-p95", materialVariant: "secondary-metric" },
+    { role: "metric-stack", signature: "metric-error", materialVariant: "accent-metric" },
+    { role: "metric-stack", signature: "metric-slo", materialVariant: "light-metric" }
+  ]);
+
+  const logWaterfall = instancedBoxes([0.5, 0.04, 0.08], mats.secondary, [
+    { position: [0.66, 1.44, -0.78], scale: [0.9, 1, 1], color: mats.secondary.color.getHex() },
+    { position: [0.7, 1.24, -0.78], scale: [1.12, 1, 1], color: mats.light.color.getHex() },
+    { position: [0.66, 1.04, -0.78], scale: [0.74, 1, 1], color: mats.accent.color.getHex() },
+    { position: [0.7, 0.84, -0.78], scale: [1.02, 1, 1], color: mats.secondary.color.getHex() }
+  ]);
+  add(group, logWaterfall, zone, "log-waterfall", "log-waterfall-strips", "instanced-log-waterfall", "float");
+  tagSemanticParts(logWaterfall, zone, [
+    { role: "log-waterfall", signature: "log-ingest", materialVariant: "secondary-log" },
+    { role: "log-waterfall", signature: "log-parse", materialVariant: "light-log" },
+    { role: "log-waterfall", signature: "log-alert", materialVariant: "accent-log" },
+    { role: "log-waterfall", signature: "log-retain", materialVariant: "secondary-log" }
+  ]);
 }
 
 function createArchitectureArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactMaterials) {

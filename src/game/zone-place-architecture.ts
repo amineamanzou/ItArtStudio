@@ -115,19 +115,19 @@ const recipeFor = (zone: StudioZone): PlacePrimitive[] => {
 
   if (zone.id === "ai-lab") {
     return [
-      block("neural-rack-left", "working-rig", "accent", [-side, 0.78, back], [0.16, 1.12, 0.22], [0, 0, -0.08], "blink"),
-      block("neural-rack-right", "working-rig", "light", [side, 0.78, back], [0.16, 1.12, 0.22], [0, 0, 0.08], "blink"),
-      beam("prompt-conduit", "boundary-rail", "secondary", [-side, 1.22, back], [0.22, 0.72, front], 0.02, "pulse"),
-      cylinder("agent-status-mast", "orientation-post", "accent", [side * 0.86, 0.58, front * 0.72], [0.05, 0.94, 0.05], "float")
+      block("agent-workshop-bench", "working-rig", "dark", [0, 0.44, back * 0.72], [r * 1.34, 0.16, 0.38], [0, -0.04, 0], "blink"),
+      block("evaluation-lane", "boundary-rail", "secondary", [0.14, 0.62, front * 0.1], [r * 1.42, 0.08, 0.18], [0, 0.08, 0], "pulse"),
+      beam("low-agent-loop", "working-rig", "light", [-side, 0.84, front * 0.34], [side, 0.92, front * 0.08], 0.018, "pulse"),
+      cylinder("agent-core-post", "orientation-post", "accent", [-side * 0.76, 0.72, front * 0.56], [0.052, 1.18, 0.052], "float")
     ];
   }
 
   if (zone.id === "observability-tower") {
     return [
-      ring("radar-crown", "viewpoint-marker", "accent", [0, 1.58, back * 0.72], [0.78, 0.018, 0.78], [Math.PI * 0.5, 0.1, 0.36], "sweep"),
-      beam("trace-gantry-a", "working-rig", "light", [-side, 0.58, -front], [0, 1.3, back], 0.018, "pulse"),
-      beam("trace-gantry-b", "working-rig", "accent", [side, 0.58, -front], [0, 1.3, back], 0.018, "pulse"),
-      cylinder("signal-post", "orientation-post", "light", [side, 0.66, front * 0.72], [0.055, 1.08, 0.055], "blink")
+      cylinder("telemetry-lighthouse-spine", "orientation-post", "light", [0, 0.96, back * 0.72], [0.065, 1.64, 0.065], "blink"),
+      ring("radar-crown", "viewpoint-marker", "accent", [0, 1.82, back * 0.72], [0.82, 0.018, 0.82], [Math.PI * 0.5, 0.1, 0.36], "sweep"),
+      beam("log-waterfall-gantry", "working-rig", "light", [side * 0.46, 1.52, back], [side * 0.46, 0.48, front * 0.68], 0.018, "pulse"),
+      block("metric-balcony", "threshold-frame", "accent", [-side * 0.78, 1.06, back * 0.52], [0.18, 1.06, 0.16], [0, 0, -0.04], "tilt")
     ];
   }
 
@@ -208,8 +208,8 @@ const familyFor = (zone: StudioZone) => `${zone.id}:place:${zoneVisualFamily(zon
 const zoneVisualFamily = (zoneId: string) =>
   ({
     "studio-gate": "biface-arcade",
-    "ai-lab": "neural-rack",
-    "observability-tower": "radar-balcony",
+    "ai-lab": "agent-workshop",
+    "observability-tower": "telemetry-lighthouse",
     "architecture-bridge": "load-gantry",
     "cloud-dock": "container-crane",
     "design-atelier": "gallery-canopy",

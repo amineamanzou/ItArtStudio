@@ -44,27 +44,28 @@ const recipes: Record<string, ZoneDressingRecipe> = {
     ]
   },
   "ai-lab": {
-    signature: "agent-neural-laboratory",
+    signature: "agentic-evaluation-workshop",
     primitives: [
-      block("chip-table", "technical-console", "dark", [0, 0.18, -1.28], [1.3, 0.18, 0.46]),
-      block("model-screen", "technical-console", "accent", [0, 0.86, -1.48], [0.96, 0.58, 0.06]),
-      sphere("agent-node-a", "neural-node", "light", [-1.32, 0.82, 0.58], [0.22, 0.22, 0.22]),
-      sphere("agent-node-b", "neural-node", "accent", [1.24, 1.02, 0.52], [0.2, 0.2, 0.2]),
-      beam("agent-link", "neural-link", "accent", [-1.18, 0.82, 0.52], [1.1, 1.02, 0.46], 0.022),
-      sign("ai-sign", "wayfinding-sign", "accent", [-1.22, 0.74, -1.38], "AI")
+      block("agent-workbench-left", "agent-workbench", "dark", [-0.48, 0.22, -1.18], [1.2, 0.18, 0.46]),
+      block("agent-workbench-right", "agent-workbench", "dark", [0.78, 0.24, -1.04], [0.72, 0.16, 0.36], [0, 0.16, 0]),
+      block("evaluation-conveyor", "evaluation-conveyor", "secondary", [0.08, 0.48, -0.42], [1.52, 0.08, 0.22], [0, 0.1, 0]),
+      block("prompt-token-a", "prompt-token", "accent", [-0.72, 0.66, 0.38], [0.18, 0.18, 0.18]),
+      block("prompt-token-b", "prompt-token", "light", [-0.28, 0.72, 0.48], [0.16, 0.16, 0.16]),
+      sphere("agent-core-node", "agent-core", "accent", [0.42, 0.86, 0.18], [0.24, 0.24, 0.24]),
+      beam("evaluation-feedback-loop", "agent-feedback-loop", "light", [-0.5, 0.74, 0.32], [0.72, 0.9, -0.34], 0.018)
     ]
   },
   "observability-tower": {
-    signature: "radar-trace-tower",
+    signature: "telemetry-lighthouse-tower",
     primitives: [
-      cylinder("antenna-mast", "antenna-array", "light", [0.94, 0.62, 0.72], [0.045, 1.04, 0.045], [0.18, 0, -0.18]),
-      cone("antenna-dish", "antenna-array", "accent", [0.94, 1.22, 0.72], [0.28, 0.36, 0.28], [0.6, 0, -0.5]),
-      block("metric-screen-a", "metric-screen", "dark", [-1.3, 0.46, -0.82], [0.46, 0.82, 0.06], [0, 0.18, 0]),
-      block("metric-panel-relief", "metric-panel-relief", "light", [-1.02, 0.84, -0.76], [0.34, 0.08, 0.18], [0, 0.18, 0]),
-      block("log-stack-b", "signal-stack", "accent", [-0.78, 0.4, -0.82], [0.22, 0.72, 0.22]),
-      beam("sampled-trace-line", "trace-beam", "light", [-1.34, 0.82, 0.9], [1.24, 1.22, -0.74], 0.018),
-      block("trace-sample-grid", "trace-sample-grid", "secondary", [0.36, 0.34, 1.12], [0.72, 0.08, 0.34], [0, -0.22, 0]),
-      sphere("trace-sample-dot", "trace-sample-grid", "accent", [0.68, 0.54, 1.04], [0.12, 0.12, 0.12])
+      cylinder("telemetry-lighthouse-mast", "telemetry-lighthouse", "light", [0.18, 0.96, -0.82], [0.06, 1.58, 0.06], [0.08, 0, -0.1]),
+      cone("radar-dish", "radar-beam", "accent", [0.18, 1.86, -0.82], [0.34, 0.32, 0.34], [0.62, 0.1, -0.48]),
+      beam("radar-sweep", "radar-beam", "accent", [0.24, 1.78, -0.82], [1.36, 1.44, -0.36], 0.02),
+      block("metric-stack-a", "metric-stack", "dark", [-1.12, 0.52, -0.76], [0.28, 0.94, 0.08], [0, 0.18, 0]),
+      block("metric-stack-b", "metric-stack", "light", [-0.78, 0.72, -0.76], [0.22, 1.22, 0.08], [0, 0.18, 0]),
+      block("log-waterfall-a", "log-waterfall", "secondary", [0.78, 1.0, -0.68], [0.5, 0.06, 0.1]),
+      block("log-waterfall-b", "log-waterfall", "accent", [0.78, 0.74, -0.68], [0.38, 0.06, 0.1]),
+      block("trace-sample-grid", "trace-sample-grid", "secondary", [0.36, 0.34, 1.12], [0.72, 0.08, 0.34], [0, -0.22, 0])
     ]
   },
   "architecture-bridge": {
