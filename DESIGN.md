@@ -562,7 +562,8 @@ Gates V4.5:
 - les bassins et rampes sont groupes en meshes instancies pour ajouter eau,
   relief et variations de conduite sans creer une foret d'objets Three.js;
 - `audio-layer` prouve le bouton son, l'initialisation Web Audio, le moteur,
-  l'ambiance, le drift et le mute avec gains remis a zero;
+  l'ambiance, l'acceleration, le drift, les sons d'eau/rampe lies aux surfaces
+  physiques, et le mute avec tous les gains remis a zero;
 - les panels HUD sont compactes pour eviter d'occulter les specimens actifs,
   y compris en reduced-motion;
 - le budget monde premium est nomme dans la QA (`sceneObjects <= 940`) et le

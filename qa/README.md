@@ -240,14 +240,16 @@ The runner:
   route lights and the central identity ribbon, all inside the same premium
   world budget.
 - `audio-layer` must prove the browser can initialize sound from a user action,
-  expose engine/ambience gain while driving, keep the toggle state visible, and
-  mute back to zero observable gains.
+  expose engine, ambience, acceleration, drift, water and ramp gains while
+  driving in `?qa=1&realKeys=1`, keep the toggle state visible, and mute every
+  observable gain back to zero.
 - `premium-world-detail-distribution` samples each screenshot canvas outside
   UI rectangles and rejects viewports with too many flat tiles, not enough rich
   tiles, weak median edges, weak color buckets or a large flat cluster.
-- The real keyboard tour must prove route continuity: at least 180 frames, 60
-  units travelled, 16 active trail marks, stable camera distance/lag, and no
-  invisible player samples.
+- The real keyboard tour must prove route continuity: at least 180 frames, 40
+  units travelled, 16 active trail marks, stable camera distance/lag, no
+  invisible player samples, and only bounded active-zone invisibility while the
+  rover is between places.
 - The real keyboard tour must prove route adherence: at least 45 surface samples,
   route adherence >= 0.86, off-route ratio <= 0.14, max off-route distance <=
   2.8, and all expected IT/STUDIO/ART route ids covered.

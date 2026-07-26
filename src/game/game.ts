@@ -291,7 +291,11 @@ type AudioQa = {
   engineGain: number;
   driftGain: number;
   ambienceGain: number;
+  accelerationGain: number;
+  waterGain: number;
+  rampGain: number;
   engineFrequency: number;
+  surfaceFrequency: number;
   toggleVisible: boolean;
   togglePressed: boolean;
 };
@@ -660,12 +664,22 @@ class StudioGame {
   private driftGain: GainNode | null = null;
   private ambienceOscillator: OscillatorNode | null = null;
   private ambienceGain: GainNode | null = null;
+  private accelerationOscillator: OscillatorNode | null = null;
+  private accelerationGain: GainNode | null = null;
+  private waterOscillator: OscillatorNode | null = null;
+  private waterGain: GainNode | null = null;
+  private rampOscillator: OscillatorNode | null = null;
+  private rampGain: GainNode | null = null;
   private audioMuted = true;
   private audioInitialized = false;
   private currentEngineFrequency = 0;
+  private currentSurfaceFrequency = 0;
   private currentEngineGain = 0;
   private currentDriftGain = 0;
   private currentAmbienceGain = 0;
+  private currentAccelerationGain = 0;
+  private currentWaterGain = 0;
+  private currentRampGain = 0;
   private audioToggleButton: HTMLButtonElement | null = null;
   private readonly drivePositionSamples: Array<{ frame: number; x: number; z: number }> = [];
   private readonly drivePhysicsSamples: DrivePhysicsSampleQa[] = [];
@@ -1037,7 +1051,11 @@ class StudioGame {
       engineGain: 0,
       driftGain: 0,
       ambienceGain: 0,
+      accelerationGain: 0,
+      waterGain: 0,
+      rampGain: 0,
       engineFrequency: 0,
+      surfaceFrequency: 0,
       toggleVisible: false,
       togglePressed: false
     },
@@ -1993,6 +2011,33 @@ class StudioGame {
     ambience.connect(ambienceGain);
     ambience.start();
 
+    const accelerationGain = context.createGain();
+    accelerationGain.gain.value = 0;
+    accelerationGain.connect(master);
+    const acceleration = context.createOscillator();
+    acceleration.type = "triangle";
+    acceleration.frequency.value = 360;
+    acceleration.connect(accelerationGain);
+    acceleration.start();
+
+    const waterGain = context.createGain();
+    waterGain.gain.value = 0;
+    waterGain.connect(master);
+    const water = context.createOscillator();
+    water.type = "sine";
+    water.frequency.value = 92;
+    water.connect(waterGain);
+    water.start();
+
+    const rampGain = context.createGain();
+    rampGain.gain.value = 0;
+    rampGain.connect(master);
+    const ramp = context.createOscillator();
+    ramp.type = "square";
+    ramp.frequency.value = 138;
+    ramp.connect(rampGain);
+    ramp.start();
+
     this.audioContext = context;
     this.audioMasterGain = master;
     this.engineOscillator = engine;
@@ -2001,6 +2046,12 @@ class StudioGame {
     this.driftGain = driftGain;
     this.ambienceOscillator = ambience;
     this.ambienceGain = ambienceGain;
+    this.accelerationOscillator = acceleration;
+    this.accelerationGain = accelerationGain;
+    this.waterOscillator = water;
+    this.waterGain = waterGain;
+    this.rampOscillator = ramp;
+    this.rampGain = rampGain;
     this.audioInitialized = true;
     return context;
   }
@@ -2023,6 +2074,9 @@ class StudioGame {
       this.currentEngineGain = 0;
       this.currentDriftGain = 0;
       this.currentAmbienceGain = 0;
+      this.currentAccelerationGain = 0;
+      this.currentWaterGain = 0;
+      this.currentRampGain = 0;
     }
     this.syncAudioToggle();
   }
@@ -2176,7 +2230,13 @@ class StudioGame {
       !this.driftOscillator ||
       !this.driftGain ||
       !this.ambienceOscillator ||
-      !this.ambienceGain
+      !this.ambienceGain ||
+      !this.accelerationOscillator ||
+      !this.accelerationGain ||
+      !this.waterOscillator ||
+      !this.waterGain ||
+      !this.rampOscillator ||
+      !this.rampGain
     ) {
       return;
     }
@@ -2185,10 +2245,23 @@ class StudioGame {
     const speedRatio = clamp(this.lastDriveSpeed / playerMaxForwardSpeed, 0, 1);
     const driftRatio = clamp(Math.abs(this.currentLateralSpeed) / 3.2, 0, 1);
     const throttleEnergy = Math.abs(this.currentThrottleInput);
+    const accelerationRatio = clamp(this.lastDriveAcceleration / 14, 0, 1);
+    const waterRatio =
+      this.currentWorldMaterial.kind === "water"
+        ? clamp(this.currentWorldMaterial.intensity * 0.9 + speedRatio * 0.28, 0, 1)
+        : 0;
+    const rampRatio =
+      this.currentWorldMaterial.kind === "ramp"
+        ? clamp(this.currentWorldMaterial.intensity * 0.78 + Math.abs(this.currentRideHeight) * 3.4 + speedRatio * 0.18, 0, 1)
+        : 0;
     const targetFrequency = 62 + speedRatio * 145 + throttleEnergy * 18;
+    const targetSurfaceFrequency = 86 + waterRatio * 46 + rampRatio * 118;
     const targetEngineGain = this.audioMuted ? 0 : 0.045 + speedRatio * 0.13 + throttleEnergy * 0.025;
     const targetDriftGain = this.audioMuted ? 0 : driftRatio * 0.095;
     const targetAmbienceGain = this.audioMuted ? 0 : 0.032;
+    const targetAccelerationGain = this.audioMuted ? 0 : throttleEnergy * (0.012 + accelerationRatio * 0.058);
+    const targetWaterGain = this.audioMuted ? 0 : waterRatio * 0.078;
+    const targetRampGain = this.audioMuted ? 0 : rampRatio * 0.058;
 
     this.engineOscillator.frequency.setTargetAtTime(targetFrequency, now, 0.07);
     this.engineGain.gain.setTargetAtTime(targetEngineGain, now, 0.08);
@@ -2196,11 +2269,21 @@ class StudioGame {
     this.driftGain.gain.setTargetAtTime(targetDriftGain, now, 0.06);
     this.ambienceOscillator.frequency.setTargetAtTime(42 + speedRatio * 18, now, 0.4);
     this.ambienceGain.gain.setTargetAtTime(targetAmbienceGain, now, 0.2);
+    this.accelerationOscillator.frequency.setTargetAtTime(280 + accelerationRatio * 420 + speedRatio * 80, now, 0.04);
+    this.accelerationGain.gain.setTargetAtTime(targetAccelerationGain, now, 0.05);
+    this.waterOscillator.frequency.setTargetAtTime(targetSurfaceFrequency, now, 0.12);
+    this.waterGain.gain.setTargetAtTime(targetWaterGain, now, 0.09);
+    this.rampOscillator.frequency.setTargetAtTime(targetSurfaceFrequency + 54, now, 0.06);
+    this.rampGain.gain.setTargetAtTime(targetRampGain, now, 0.05);
 
     this.currentEngineFrequency = targetFrequency;
+    this.currentSurfaceFrequency = targetSurfaceFrequency;
     this.currentEngineGain = targetEngineGain;
     this.currentDriftGain = targetDriftGain;
     this.currentAmbienceGain = targetAmbienceGain;
+    this.currentAccelerationGain = targetAccelerationGain;
+    this.currentWaterGain = targetWaterGain;
+    this.currentRampGain = targetRampGain;
   }
 
   private updatePlayer(delta: number) {
@@ -3357,7 +3440,11 @@ class StudioGame {
       engineGain: Number(this.currentEngineGain.toFixed(3)),
       driftGain: Number(this.currentDriftGain.toFixed(3)),
       ambienceGain: Number(this.currentAmbienceGain.toFixed(3)),
+      accelerationGain: Number(this.currentAccelerationGain.toFixed(3)),
+      waterGain: Number(this.currentWaterGain.toFixed(3)),
+      rampGain: Number(this.currentRampGain.toFixed(3)),
       engineFrequency: Number(this.currentEngineFrequency.toFixed(1)),
+      surfaceFrequency: Number(this.currentSurfaceFrequency.toFixed(1)),
       toggleVisible: Boolean(
         this.audioToggleButton &&
           audioToggleRect &&
