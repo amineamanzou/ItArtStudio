@@ -41,8 +41,8 @@ export const zones: StudioZone[] = [
     label: "AI Lab",
     shortLabel: "AI",
     kind: "tech",
-    position: [-7, -3],
-    radius: 1.8,
+    position: [-10.8, -4.8],
+    radius: 2,
     title: "Innovation IA",
     summary: "Prototypes, agents, workflows et usage concret de l'IA.",
     details:
@@ -54,8 +54,8 @@ export const zones: StudioZone[] = [
     label: "Observability Tower",
     shortLabel: "Obs",
     kind: "tech",
-    position: [-8, 3],
-    radius: 1.9,
+    position: [-12.4, 4.8],
+    radius: 2.1,
     title: "Observabilite",
     summary: "Rendre les systemes lisibles avant de les transformer.",
     details:
@@ -67,8 +67,8 @@ export const zones: StudioZone[] = [
     label: "Architecture Bridge",
     shortLabel: "Arch",
     kind: "tech",
-    position: [-3, 5.4],
-    radius: 1.7,
+    position: [-4.8, 9.1],
+    radius: 1.9,
     title: "Architecture",
     summary: "Faire tenir le produit, la dette et l'ambition dans un systeme coherent.",
     details:
@@ -80,8 +80,8 @@ export const zones: StudioZone[] = [
     label: "Cloud Dock",
     shortLabel: "Cloud",
     kind: "tech",
-    position: [-2.6, -6],
-    radius: 1.7,
+    position: [-4.1, -10.4],
+    radius: 1.9,
     title: "Cloud & scaling",
     summary: "Deployer, operer, scaler sans perdre la maitrise.",
     details:
@@ -93,8 +93,8 @@ export const zones: StudioZone[] = [
     label: "Design Atelier",
     shortLabel: "Design",
     kind: "art",
-    position: [6.9, -3.2],
-    radius: 1.8,
+    position: [10.8, -5.2],
+    radius: 2,
     title: "Direction design",
     summary: "Donner une forme visible a une idee encore instable.",
     details:
@@ -106,8 +106,8 @@ export const zones: StudioZone[] = [
     label: "3D Foundry",
     shortLabel: "3D",
     kind: "art",
-    position: [8, 2.6],
-    radius: 1.8,
+    position: [12.6, 4.6],
+    radius: 2,
     title: "3D & volume",
     summary: "Explorer les volumes, scenes et objets qui donnent du relief.",
     details:
@@ -119,8 +119,8 @@ export const zones: StudioZone[] = [
     label: "Fashion Room",
     shortLabel: "Mode",
     kind: "art",
-    position: [3.4, 5.7],
-    radius: 1.7,
+    position: [5.2, 9.7],
+    radius: 1.9,
     title: "Collection de mode",
     summary: "Travailler la matiere, la coupe et le desir d'un objet.",
     details:
@@ -132,8 +132,8 @@ export const zones: StudioZone[] = [
     label: "Values Plaza",
     shortLabel: "Valeurs",
     kind: "studio",
-    position: [0, 7.4],
-    radius: 2,
+    position: [0, 12.1],
+    radius: 2.2,
     title: "Valeurs communes",
     summary: "Exigence, clarte, audace et transmission traversent les deux mondes.",
     details:
@@ -145,8 +145,8 @@ export const zones: StudioZone[] = [
     label: "Contact Portal",
     shortLabel: "Mail",
     kind: "studio",
-    position: [0, -8.2],
-    radius: 1.9,
+    position: [0, -13.2],
+    radius: 2.1,
     title: "Contact",
     summary: "Entrer dans le studio avec un sujet, meme encore flou.",
     details:
@@ -160,14 +160,14 @@ export const defaultZone = zones[0];
 
 export const worldRoutes: WorldRoute[] = [
   { id: "spine-contact-gate", from: "contact-portal", to: "studio-gate", kind: "studio" },
-  { id: "spine-gate-values", from: "studio-gate", to: "values-plaza", kind: "studio", via: [[-0.7, 3.4]] },
-  { id: "tech-gate-cloud", from: "studio-gate", to: "cloud-dock", kind: "tech", via: [[-1.6, -3.1]] },
-  { id: "tech-cloud-ai", from: "cloud-dock", to: "ai-lab", kind: "tech", via: [[-5.6, -5.3]] },
-  { id: "tech-ai-obs", from: "ai-lab", to: "observability-tower", kind: "tech", via: [[-9, -0.4]] },
-  { id: "tech-obs-arch", from: "observability-tower", to: "architecture-bridge", kind: "tech", via: [[-6.2, 4.9]] },
-  { id: "tech-arch-gate", from: "architecture-bridge", to: "studio-gate", kind: "tech", via: [[-2, 2.6]] },
-  { id: "art-gate-design", from: "studio-gate", to: "design-atelier", kind: "art", via: [[3.1, -2.2]] },
-  { id: "art-design-foundry", from: "design-atelier", to: "three-d-foundry", kind: "art", via: [[8.9, -0.6]] },
-  { id: "art-foundry-fashion", from: "three-d-foundry", to: "fashion-room", kind: "art", via: [[6.5, 4.6]] },
-  { id: "art-fashion-values", from: "fashion-room", to: "values-plaza", kind: "art", via: [[1.8, 6.8]] }
+  { id: "spine-gate-values", from: "studio-gate", to: "values-plaza", kind: "studio", via: [[-1.1, 5.3]] },
+  { id: "tech-gate-cloud", from: "studio-gate", to: "cloud-dock", kind: "tech", via: [[-2.4, -5.2]] },
+  { id: "tech-cloud-ai", from: "cloud-dock", to: "ai-lab", kind: "tech", via: [[-8.4, -9.1]] },
+  { id: "tech-ai-obs", from: "ai-lab", to: "observability-tower", kind: "tech", via: [[-14.1, -0.6]] },
+  { id: "tech-obs-arch", from: "observability-tower", to: "architecture-bridge", kind: "tech", via: [[-9.4, 8.1]] },
+  { id: "tech-arch-gate", from: "architecture-bridge", to: "studio-gate", kind: "tech", via: [[-3.1, 4.2]] },
+  { id: "art-gate-design", from: "studio-gate", to: "design-atelier", kind: "art", via: [[4.9, -3.7]] },
+  { id: "art-design-foundry", from: "design-atelier", to: "three-d-foundry", kind: "art", via: [[14.2, -1.1]] },
+  { id: "art-foundry-fashion", from: "three-d-foundry", to: "fashion-room", kind: "art", via: [[10.4, 8.1]] },
+  { id: "art-fashion-values", from: "fashion-room", to: "values-plaza", kind: "art", via: [[2.9, 11.2]] }
 ];

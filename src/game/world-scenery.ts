@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { WorldRoute, ZoneKind } from "./zones";
 import { worldRoutes, zones } from "./zones";
+import { worldGroundRadius, worldSize } from "./world-config";
 import { sampleTerrain, terrainConfig, worldMaterialRegions } from "./world-materials";
 
 export type WorldSceneryPalette = Record<ZoneKind | "ground" | "road" | "ink", number>;
@@ -177,11 +178,11 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
   terrainGradeMax = heightfield.gradeMax;
 
   const terrainSpecs = [
-    ["outer-cut", 17.8, 1.18, 0.92, -0.012, terrainShade, -0.18],
-    ["field-shelf", 16.7, 1.12, 0.88, 0.0, terrainMat, 0.14],
-    ["tech-ledge", 4.2, 1.7, 0.8, 0.05, techMat, -0.16, -6.9, -0.6],
-    ["art-ledge", 4.35, 1.62, 0.86, 0.065, artMat, 0.18, 6.9, -0.4],
-    ["studio-ledge", 4.25, 1.03, 1.12, 0.08, studioMat, 0.06, 0, 1.2]
+    ["outer-cut", worldGroundRadius * 0.96, 1.08, 0.94, -0.012, terrainShade, -0.18],
+    ["field-shelf", worldGroundRadius * 0.88, 1.04, 0.91, 0.0, terrainMat, 0.14],
+    ["tech-ledge", 5.8, 1.9, 0.82, 0.05, techMat, -0.16, -10.8, -0.8],
+    ["art-ledge", 5.95, 1.82, 0.88, 0.065, artMat, 0.18, 10.8, -0.7],
+    ["studio-ledge", 5.7, 1.06, 1.26, 0.08, studioMat, 0.06, 0, 2]
   ] as const;
 
   for (const [id, radius, scaleX, scaleZ, y, mat, rotation, x = 0, z = 0] of terrainSpecs) {
@@ -223,8 +224,8 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
 }
 
 function createTerrainHeightfield(mat: THREE.Material) {
-  const size = 34;
-  const segments = 30;
+  const size = worldSize;
+  const segments = 32;
   const half = size / 2;
   const positions: number[] = [];
   const colors: number[] = [];
@@ -640,10 +641,10 @@ function addTechSkyline(
   inkMat: THREE.Material
 ) {
   const anchors = [
-    [-9.1, -5.7, 1.2],
-    [-8.7, 5.1, 1.0],
-    [-4.4, 6.7, 0.82],
-    [-1.3, -6.8, 0.96]
+    [-14.2, -9.4, 1.25],
+    [-13.4, 8.4, 1.08],
+    [-6.8, 11.2, 0.92],
+    [-2.1, -11.1, 1.02]
   ] as const;
 
   anchors.forEach(([x, z, height], index) => {
@@ -665,10 +666,10 @@ function addArtSculptures(
   inkMat: THREE.Material
 ) {
   const anchors = [
-    [9.1, -5.4, 0.2],
-    [9.3, 3.9, -0.36],
-    [4.6, 7.2, 0.52],
-    [2.3, -7.5, 0.08]
+    [14.3, -8.7, 0.2],
+    [14.7, 6.6, -0.36],
+    [7.4, 11.8, 0.52],
+    [3.6, -12.1, 0.08]
   ] as const;
 
   anchors.forEach(([x, z, rotation], index) => {

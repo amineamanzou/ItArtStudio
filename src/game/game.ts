@@ -22,28 +22,28 @@ import {
   type WorldMaterialKind,
   type WorldMaterialSample
 } from "./world-materials";
+import { worldGroundRadius, worldHalfExtent, worldSize } from "./world-config";
 import { createZoneSetDressing } from "./zone-set-dressing";
 import { zoneVisualSpecs, type ZoneVisualSpec } from "./visual-specs";
 import { renderZoneVisuals } from "./zone-visual-renderer";
 import { defaultZone, worldRoutes, zones, type StudioZone, type ZoneKind } from "./zones";
 
-const mapRange = 34;
+const mapRange = worldSize;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const angleDelta = (from: number, to: number) => Math.atan2(Math.sin(to - from), Math.cos(to - from));
 const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 const searchParams = new URLSearchParams(window.location.search);
 const qaMode = searchParams.has("qa");
 const realKeyboardQaMode = searchParams.has("realKeys");
-const playerMaxForwardSpeed = qaMode ? 12.8 : 9.2;
+const playerMaxForwardSpeed = qaMode ? 12.8 : 10.5;
 const playerMaxReverseSpeed = qaMode ? 6.4 : 4.2;
-const playerAcceleration = qaMode ? 38 : 20;
+const playerAcceleration = qaMode ? 38 : 24;
 const playerBrakeAcceleration = qaMode ? 58 : 28;
 const playerRollingDrag = qaMode ? 1.9 : 1.35;
 const playerLateralGrip = qaMode ? 6.2 : 5.4;
-const playerDriftGrip = qaMode ? 1.24 : 1.5;
+const playerDriftGrip = qaMode ? 1.18 : 1.28;
 const playerTurnSpeed = qaMode ? 4.15 : 2.65;
 const playerSteerReferenceSpeed = qaMode ? 6.4 : 6.2;
-const worldHalfExtent = mapRange / 2;
 
 const colors: Record<ZoneKind | "ground" | "road" | "ink", number> = {
   tech: 0x17d2ff,
@@ -70,7 +70,7 @@ function createWorldTexture(baseColor: number, repeat = 9) {
   const base = new THREE.Color(baseColor);
   const light = base.clone().lerp(new THREE.Color(0xffffff), 0.34);
   const dark = base.clone().lerp(new THREE.Color(0x050807), 0.46);
-  const warm = base.clone().lerp(new THREE.Color(colors.studio), 0.42);
+  const warm = new THREE.Color(colors.studio);
 
   context.fillStyle = `#${light.getHexString()}`;
   context.fillRect(0, 0, canvas.width, canvas.height);
@@ -479,6 +479,7 @@ type QaSnapshot = {
     sceneryMotionObjects: number;
     sceneryRoleCounts: Record<string, number>;
     surfaceDetailPartCounts: Record<string, number>;
+    visibleBoundaryObjects: number;
     identityRibbonObjects: number;
     identityRibbonSignatures: number;
     terrainLayers: number;
@@ -838,6 +839,7 @@ class StudioGame {
       sceneryMotionObjects: 0,
       sceneryRoleCounts: {},
       surfaceDetailPartCounts: {},
+      visibleBoundaryObjects: 0,
       identityRibbonObjects: 0,
       identityRibbonSignatures: 0,
       terrainLayers: 0,
@@ -1225,7 +1227,7 @@ class StudioGame {
 
   private setScene() {
     this.scene.background = new THREE.Color(0x07100e);
-    this.scene.fog = new THREE.Fog(0x07100e, 14, 34);
+    this.scene.fog = new THREE.Fog(0x07100e, 18, 52);
 
     const hemi = new THREE.HemisphereLight(0xfff0d0, 0x0b1624, 2.2);
     this.scene.add(hemi);
@@ -1243,7 +1245,7 @@ class StudioGame {
 
   private setWorld() {
     const ground = new THREE.Mesh(
-      new THREE.CircleGeometry(18.4, 9),
+      new THREE.CircleGeometry(worldGroundRadius, 10),
       new THREE.MeshStandardMaterial({
         color: 0xffffff,
         map: worldTexture,
@@ -1259,6 +1261,7 @@ class StudioGame {
     this.scene.add(ground);
 
     this.addDistrictPlates();
+    this.addVisibleWorldBoundary();
     this.addWorldScenery();
     this.addRoads();
     this.addRouteGuidance();
@@ -1268,6 +1271,70 @@ class StudioGame {
     for (const zone of zones) {
       this.addZone(zone);
     }
+  }
+
+  private addVisibleWorldBoundary() {
+    const boundary = new THREE.Group();
+    boundary.name = "visible-world-boundary";
+    boundary.userData.visibleBoundaryRole = "world-edge";
+
+    const railMaterial = new THREE.MeshStandardMaterial({
+      color: colors.studio,
+      roughness: 0.42,
+      metalness: 0.2,
+      emissive: colors.studio,
+      emissiveIntensity: 0.28,
+      transparent: true,
+      opacity: 0.86
+    });
+    const cornerMaterial = new THREE.MeshStandardMaterial({
+      color: colors.road,
+      roughness: 0.48,
+      metalness: 0.18,
+      emissive: colors.road,
+      emissiveIntensity: 0.18,
+      transparent: true,
+      opacity: 0.88
+    });
+    const railGeometry = new THREE.BoxGeometry(worldSize, 0.08, 0.16);
+    const cornerGeometry = new THREE.CylinderGeometry(0.2, 0.28, 0.55, 8);
+    const rails = new THREE.InstancedMesh(railGeometry, railMaterial, 4);
+    const corners = new THREE.InstancedMesh(cornerGeometry, cornerMaterial, 4);
+    const matrix = new THREE.Matrix4();
+    const quaternion = new THREE.Quaternion();
+    const scale = new THREE.Vector3(1, 1, 1);
+    const railSpecs = [
+      [0, -worldHalfExtent, 0],
+      [0, worldHalfExtent, 0],
+      [-worldHalfExtent, 0, Math.PI * 0.5],
+      [worldHalfExtent, 0, Math.PI * 0.5]
+    ] as const;
+    const cornerSpecs = [
+      [-worldHalfExtent, -worldHalfExtent],
+      [worldHalfExtent, -worldHalfExtent],
+      [worldHalfExtent, worldHalfExtent],
+      [-worldHalfExtent, worldHalfExtent]
+    ] as const;
+
+    railSpecs.forEach(([x, z, rotation], index) => {
+      quaternion.setFromEuler(new THREE.Euler(0, rotation, 0));
+      matrix.compose(new THREE.Vector3(x, 0.14, z), quaternion, scale);
+      rails.setMatrixAt(index, matrix);
+    });
+    cornerSpecs.forEach(([x, z], index) => {
+      quaternion.setFromEuler(new THREE.Euler(0, index * Math.PI * 0.5, 0));
+      matrix.compose(new THREE.Vector3(x, 0.29, z), quaternion, scale);
+      corners.setMatrixAt(index, matrix);
+    });
+    rails.instanceMatrix.needsUpdate = true;
+    corners.instanceMatrix.needsUpdate = true;
+    rails.userData.visibleBoundaryPart = "edge-rail";
+    rails.userData.visibleBoundaryObjectCount = 4;
+    corners.userData.visibleBoundaryPart = "corner-pylon";
+    corners.userData.visibleBoundaryObjectCount = 4;
+    boundary.add(rails, corners);
+    this.scene.add(boundary);
+    this.decorativeObjectCount += 8;
   }
 
   private createLightPool(role: string, opacity: number) {
@@ -1357,7 +1424,7 @@ class StudioGame {
         roughness: 0.92,
         metalness: 0.02,
         transparent: true,
-        opacity: Math.min(0.13, opacity + 0.018),
+        opacity: Math.min(0.18, opacity + 0.035),
         depthWrite: false
       })
     );
@@ -1372,39 +1439,39 @@ class StudioGame {
   private addDistrictPlates() {
     this.createDistrictPlate(
       [
-        [-10.6, -6.9],
-        [-5.2, -9.2],
-        [-1.1, -5.2],
-        [-2.3, 6.7],
-        [-8.7, 6.9],
-        [-11.1, 1.4]
+        [-16.3, -10.8],
+        [-8.1, -14.8],
+        [-1.6, -8.1],
+        [-3.4, 10.9],
+        [-13.6, 11],
+        [-17.1, 2.1]
       ],
       colors.tech,
       0.11
     );
     this.createDistrictPlate(
       [
-        [2.1, -8.4],
-        [10.5, -7.1],
-        [10.9, 4.7],
-        [5.4, 8.2],
-        [1.2, 4.8],
-        [0.9, -4.6]
+        [3.2, -13.6],
+        [16.7, -11.4],
+        [17.3, 7.8],
+        [8.6, 13.2],
+        [1.9, 7.8],
+        [1.4, -7.4]
       ],
       colors.art,
       0.1
     );
     this.createDistrictPlate(
       [
-        [-3.2, -3.6],
-        [2.7, -4.1],
-        [4.1, 1.8],
-        [0.8, 8.8],
-        [-3.6, 6.4],
-        [-4.4, 0.4]
+        [-4.9, -5.9],
+        [4.2, -6.6],
+        [6.3, 2.9],
+        [1.3, 14.2],
+        [-5.6, 10.2],
+        [-6.9, 0.7]
       ],
       colors.studio,
-      0.12
+      0.16
     );
   }
 
@@ -1531,18 +1598,18 @@ class StudioGame {
     });
 
     const props = [
-      [-5.4, -1.1, techMaterial],
-      [-6.6, 1.3, techMaterial],
-      [-3.8, 3.2, techMaterial],
-      [-1.4, -4.3, techMaterial],
-      [5.2, -1.1, artMaterial],
-      [6.8, 0.7, artMaterial],
-      [4.5, 3.4, artMaterial],
-      [2.4, 4.8, artMaterial],
-      [-1.2, 1.4, beaconMaterial],
-      [1.1, 1.3, beaconMaterial],
-      [-0.9, -1.8, beaconMaterial],
-      [1.4, -2.1, beaconMaterial]
+      [-8.4, -1.7, techMaterial],
+      [-10.4, 2.1, techMaterial],
+      [-5.9, 5.2, techMaterial],
+      [-2.2, -7.1, techMaterial],
+      [8.2, -1.8, artMaterial],
+      [10.8, 1.2, artMaterial],
+      [7.2, 5.5, artMaterial],
+      [3.8, 7.8, artMaterial],
+      [-1.8, 2.4, beaconMaterial],
+      [1.7, 2.1, beaconMaterial],
+      [-1.4, -3.1, beaconMaterial],
+      [2.2, -3.5, beaconMaterial]
     ] as const;
 
     for (const [x, z, mat] of props) {
@@ -3254,6 +3321,7 @@ class StudioGame {
       const projectArtifactThemeRoles = new Set(zoneAssets.flatMap((zone) => zone.projectArtifactThemeRoles));
       const sceneryRoleCounts: Record<string, number> = {};
       const surfaceDetailPartCounts: Record<string, number> = {};
+      let visibleBoundaryObjects = 0;
       let identityRibbonObjects = 0;
       const identityRibbonSignatures = new Set<string>();
       this.scene.traverse((object) => {
@@ -3274,6 +3342,14 @@ class StudioGame {
         if (typeof surfaceDetailPart === "string") {
           const detailCount = object instanceof THREE.InstancedMesh ? object.count : 1;
           surfaceDetailPartCounts[surfaceDetailPart] = (surfaceDetailPartCounts[surfaceDetailPart] ?? 0) + detailCount;
+        }
+        if (typeof object.userData.visibleBoundaryPart === "string") {
+          visibleBoundaryObjects +=
+            typeof object.userData.visibleBoundaryObjectCount === "number"
+              ? object.userData.visibleBoundaryObjectCount
+              : object instanceof THREE.InstancedMesh
+                ? object.count
+                : 1;
         }
       });
 
@@ -3336,6 +3412,7 @@ class StudioGame {
         sceneryMotionObjects: this.worldSceneryMotionObjectCount,
         sceneryRoleCounts,
         surfaceDetailPartCounts,
+        visibleBoundaryObjects,
         identityRibbonObjects,
         identityRibbonSignatures: identityRibbonSignatures.size,
         terrainLayers: this.terrainLayerCount,

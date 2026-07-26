@@ -538,8 +538,8 @@ Gates V4.3:
 - la telemetrie cinematique mesure la vitesse depuis la velocite physique, pas
   depuis les transitions d'interface, afin de detecter les vrais pics de
   conduite sans confondre un jump de mini-map avec une acceleration moteur;
-- le monde gagne de l'echelle (`mapRange = 34`, terrain et districts agrandis)
-  en conservant des hauteurs de couches distinctes pour limiter le z-fighting.
+- le monde gagne de l'echelle via la config partagee de carte, en conservant
+  des hauteurs de couches distinctes pour limiter le z-fighting.
 
 Gates V4.4:
 
@@ -683,7 +683,7 @@ Gates V5.5:
   separer la richesse lisible de la facture draw-call / scene graph;
 - `signature-instancing-headroom` exige que Cloud conserve au moins neuf parties
   signature semantiques avec sept objets physiques ou moins, et que le monde
-  revienne a `sceneObjects <= 938`;
+  reste dans le budget `sceneObjects <= 940`, rail de bord visible inclus;
 - cette vague cree du headroom avant les prochains assets premium: toute
   augmentation de qualite doit conserver ou reduire le bruit structurel.
 
@@ -715,7 +715,20 @@ Gates V5.7:
   raconter le passage a l'action sans dependance a un label;
 - `contact-signature-headroom` verifie que Contact conserve au moins onze
   parties signature semantiques avec sept objets physiques ou moins, en gardant
-  `sceneObjects <= 938`.
+  `sceneObjects <= 940`, rail de bord visible inclus.
+
+Gates V6.0:
+
+- la taille du monde est centralisee dans `src/game/world-config.ts` et la carte
+  jouable passe a `44x44`;
+- les zones, routes, districts, eaux, rampes et reliefs sont repartis sur cette
+  scene plus large afin d'obtenir une vraie sensation d'exploration, pas une
+  limite repoussee autour d'un petit plateau;
+- le seul blocage dur reste le bord du monde, maintenant materialise par un rail
+  visible et expose en QA via `visibleBoundaryObjects >= 8`;
+- `real-drive-whole-map-freedom` cible les bandes interieures `+-18.8`, et
+  `real-drive-visible-boundary` force les contacts de bord a `+-23.8`: l'ancien
+  monde compact ne peut plus valider les gates d'exploration.
 
 ## Components
 

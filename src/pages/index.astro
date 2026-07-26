@@ -1,8 +1,9 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { defaultZone, zones } from "../game/zones";
+import { worldSize } from "../game/world-config";
 
-const mapRange = 34;
+const mapRange = worldSize;
 const mapCoordinate = (value: number) => `${((value + mapRange / 2) / mapRange) * 100}%`;
 const mapPinOffsets: Record<string, [number, number]> = {
   "cloud-dock": [-10, -8],

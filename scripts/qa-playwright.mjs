@@ -44,6 +44,9 @@ const screenshotsDir = path.join(outputRoot, "screenshots");
 const reportJsonPath = path.join(outputRoot, "report.json");
 const reportMdPath = path.join(outputRoot, "report.md");
 const premiumWorldObjectBudget = 940;
+const qaWorldHalfExtent = 22;
+const qaInnerRoamExtent = 18.8;
+const qaBoundaryTargetExtent = qaWorldHalfExtent + 1.8;
 
 const scenarios = [];
 const failures = [];
@@ -333,13 +336,14 @@ async function sampleCanvas(page) {
     let edgeTransitions = 0;
     const colorBuckets = new Set();
     const colorFamilies = { tech: 0, art: 0, studio: 0 };
-    const sampleCount = 121;
+    const sampleGridSize = 15;
+    const sampleCount = sampleGridSize * sampleGridSize;
     let previousSample = null;
 
-    for (let yIndex = 1; yIndex <= 11; yIndex += 1) {
-      for (let xIndex = 1; xIndex <= 11; xIndex += 1) {
-        const x = Math.floor((width * xIndex) / 12);
-        const y = Math.floor((height * yIndex) / 12);
+    for (let yIndex = 1; yIndex <= sampleGridSize; yIndex += 1) {
+      for (let xIndex = 1; xIndex <= sampleGridSize; xIndex += 1) {
+        const x = Math.floor((width * xIndex) / (sampleGridSize + 1));
+        const y = Math.floor((height * yIndex) / (sampleGridSize + 1));
         gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
         const luma = pixels[0] + pixels[1] + pixels[2];
         totalLuma += luma;
@@ -1668,48 +1672,48 @@ async function checkRealDriveTour(browser) {
     const targets = [
       {
         id: "ai-lab",
-        position: { x: -7, z: -3 },
+        position: { x: -10.8, z: -4.8 },
         disabled: true,
         route: [
-          { id: "cloud-dock", zoneId: "cloud-dock", position: { x: -2.6, z: -6 }, timeoutMs: 8_000 },
-          { id: "ai-lab", zoneId: "ai-lab", position: { x: -7, z: -3 }, timeoutMs: 8_000 }
+          { id: "cloud-dock", zoneId: "cloud-dock", position: { x: -4.1, z: -10.4 }, timeoutMs: 10_000 },
+          { id: "ai-lab", zoneId: "ai-lab", position: { x: -10.8, z: -4.8 }, timeoutMs: 10_000 }
         ]
       },
       {
         id: "observability-tower",
-        position: { x: -8, z: 3 },
+        position: { x: -12.4, z: 4.8 },
         disabled: true,
         route: [
           { id: "tech-ai-obs-east-approach", position: { x: -4.9, z: -1.05 }, radius: 1.45, timeoutMs: 12_000, overshootBrake: true },
           { id: "tech-ai-obs-east-entry", position: { x: -5.55, z: 1.55 }, radius: 1.45, timeoutMs: 12_000, overshootBrake: true },
-          { id: "observability-tower", zoneId: "observability-tower", position: { x: -8, z: 3 }, radius: 2.75, timeoutMs: 14_000, overshootBrake: true }
+          { id: "observability-tower", zoneId: "observability-tower", position: { x: -12.4, z: 4.8 }, radius: 3, timeoutMs: 16_000, overshootBrake: true }
         ]
       },
       {
         id: "design-atelier",
-        position: { x: 6.9, z: -3.2 },
+        position: { x: 10.8, z: -5.2 },
         route: [
-          { id: "cloud-dock", zoneId: "cloud-dock", position: { x: -2.6, z: -6 }, timeoutMs: 9_000, overshootBrake: true },
+          { id: "cloud-dock", zoneId: "cloud-dock", position: { x: -4.1, z: -10.4 }, timeoutMs: 11_000, overshootBrake: true },
           { id: "studio-gate", zoneId: "studio-gate", position: { x: 0, z: 0 }, timeoutMs: 12_000, overshootBrake: true },
-          { id: "design-atelier", zoneId: "design-atelier", position: { x: 6.9, z: -3.2 }, radius: 3.2, timeoutMs: 14_000 }
+          { id: "design-atelier", zoneId: "design-atelier", position: { x: 10.8, z: -5.2 }, radius: 3.4, timeoutMs: 16_000 }
         ]
       },
       {
         id: "contact-portal",
-        position: { x: 0, z: -8.2 },
+        position: { x: 0, z: -13.2 },
         route: [
           { id: "studio-gate", zoneId: "studio-gate", position: { x: 0, z: 0 }, timeoutMs: 9_000 },
-          { id: "values-plaza", zoneId: "values-plaza", position: { x: 0, z: 7.4 }, timeoutMs: 9_000 },
+          { id: "values-plaza", zoneId: "values-plaza", position: { x: 0, z: 12.1 }, timeoutMs: 11_000 },
           { id: "studio-gate", zoneId: "studio-gate", position: { x: 0, z: 0 }, timeoutMs: 9_000 },
-          { id: "contact-portal", zoneId: "contact-portal", position: { x: 0, z: -8.2 }, timeoutMs: 9_000 }
+          { id: "contact-portal", zoneId: "contact-portal", position: { x: 0, z: -13.2 }, timeoutMs: 11_000 }
         ]
       },
       {
         id: "values-plaza",
-        position: { x: 0, z: 7.4 },
+        position: { x: 0, z: 12.1 },
         route: [
           { id: "studio-gate", zoneId: "studio-gate", position: { x: 0, z: 0 }, timeoutMs: 9_000 },
-          { id: "values-plaza", zoneId: "values-plaza", position: { x: 0, z: 7.4 }, timeoutMs: 9_000 }
+          { id: "values-plaza", zoneId: "values-plaza", position: { x: 0, z: 12.1 }, timeoutMs: 11_000 }
         ]
       }
     ];
@@ -1762,6 +1766,7 @@ async function checkRealDriveTour(browser) {
       cameraSamples.length > 0 ? Math.min(...cameraSamples.map((sample) => sample.camera.distanceToPlayer ?? 99)) : 0;
     const invisiblePlayerSamples = cameraSamples.filter((sample) => sample.screen?.player?.visible !== true);
     const invisibleActiveZoneSamples = cameraSamples.filter((sample) => sample.screen?.activeZone?.visible !== true);
+    const activeZoneTransitionTolerance = Math.max(12, Math.ceil(cameraSamples.length * 0.08), Math.ceil(distanceDelta * 0.5));
     const visitedTargets = realDriveTargets.filter((target) => final?.visitedZoneIds?.includes(target.id)).map((target) => target.id);
     const surface = final?.drive?.surface;
     const expectedRouteIds = [
@@ -1795,7 +1800,7 @@ async function checkRealDriveTour(browser) {
       final.screen?.activeZone?.visible === true &&
       cameraSamples.length >= allSamples.length * 0.8 &&
       invisiblePlayerSamples.length === 0 &&
-      invisibleActiveZoneSamples.length <= 12 &&
+      invisibleActiveZoneSamples.length <= activeZoneTransitionTolerance &&
       maxCameraLag <= 5.8 &&
       minCameraDistance >= 10 &&
       maxCameraDistance <= 18 &&
@@ -1816,7 +1821,7 @@ async function checkRealDriveTour(browser) {
       minCameraDistance >= 13.2 &&
       maxCameraDistance <= 16.8 &&
       invisiblePlayerSamples.length === 0 &&
-      invisibleActiveZoneSamples.length <= 12 &&
+      invisibleActiveZoneSamples.length <= activeZoneTransitionTolerance &&
       (final.trail?.activeMarks ?? 0) >= 16;
     const routeFreedomGate =
       surface?.segmentCount >= 20 &&
@@ -1913,6 +1918,7 @@ async function checkRealDriveTour(browser) {
         minCameraDistance: Number(minCameraDistance.toFixed(3)),
         maxCameraDistance: Number(maxCameraDistance.toFixed(3)),
         invisibleActiveZoneSamples: invisibleActiveZoneSamples.length,
+        activeZoneTransitionTolerance,
         visitedTargets,
         input: final.input,
         drive: final.drive,
@@ -1933,6 +1939,7 @@ async function checkRealDriveTour(browser) {
         maxCameraDistance,
         invisiblePlayerSamples,
         invisibleActiveZoneSamples,
+        activeZoneTransitionTolerance,
         visitedTargets,
         input: final?.input,
         final,
@@ -1952,6 +1959,7 @@ async function checkRealDriveTour(browser) {
         distanceThreshold: continuityDistanceThreshold,
         invisiblePlayerSamples: invisiblePlayerSamples.length,
         invisibleActiveZoneSamples: invisibleActiveZoneSamples.length,
+        activeZoneTransitionTolerance,
         trail: final?.trail,
         routeResults: routeResults.map((result) => ({
           target: result.target,
@@ -1973,6 +1981,7 @@ async function checkRealDriveTour(browser) {
         distanceThreshold: continuityDistanceThreshold,
         invisiblePlayerSamples,
         invisibleActiveZoneSamples,
+        activeZoneTransitionTolerance,
         trail: final?.trail,
         routeResults
       });
@@ -2042,25 +2051,25 @@ async function checkRealDriveTour(browser) {
     const artEncounterDrive = await inspectRouteEncounterFromFreshDrive(browser, {
       label: "real-drive:art-gate-design",
       routeId: "art-gate-design",
-      position: { x: 3.8, z: -2.38 },
+      position: { x: 4.9, z: -3.7 },
       radius: 1.1,
       timeoutMs: 10_000,
       route: [
-        { id: "route-encounter-art-via-design", zoneId: "design-atelier", position: { x: 6.9, z: -3.2 }, radius: 3.2, timeoutMs: 14_000, overshootBrake: true },
-        { id: "route-encounter:art-gate-design", position: { x: 3.8, z: -2.38 }, radius: 1.45, timeoutMs: 12_000, overshootBrake: true }
+        { id: "route-encounter-art-via-design", zoneId: "design-atelier", position: { x: 10.8, z: -5.2 }, radius: 3.4, timeoutMs: 16_000, overshootBrake: true },
+        { id: "route-encounter:art-gate-design", position: { x: 4.9, z: -3.7 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true }
       ]
     });
 
     const encounterDrive = await inspectRouteEncounterFromFreshDrive(browser, {
       label: "real-drive:spine-contact-gate",
       routeId: "spine-contact-gate",
-      position: { x: 0, z: -8.2 },
+      position: { x: 0, z: -13.2 },
       radius: 2.4,
       timeoutMs: 12_000,
       route: [
-        { id: "route-encounter-spine-via-values", zoneId: "values-plaza", position: { x: 0, z: 7.4 }, radius: 2.6, timeoutMs: 10_000, overshootBrake: true },
+        { id: "route-encounter-spine-via-values", zoneId: "values-plaza", position: { x: 0, z: 12.1 }, radius: 2.9, timeoutMs: 12_000, overshootBrake: true },
         { id: "route-encounter-spine-via-studio", zoneId: "studio-gate", position: { x: 0, z: 0 }, radius: 1.65, timeoutMs: 10_000, overshootBrake: true },
-        { id: "route-encounter:spine-contact-gate", zoneId: "contact-portal", position: { x: 0, z: -8.2 }, radius: 2.4, timeoutMs: 12_000, overshootBrake: true }
+        { id: "route-encounter:spine-contact-gate", zoneId: "contact-portal", position: { x: 0, z: -13.2 }, radius: 2.7, timeoutMs: 14_000, overshootBrake: true }
       ]
     });
     const encounterFinal = await getQaSnapshot(page, { refresh: true });
@@ -2138,7 +2147,7 @@ async function checkRealDriveFreeRoam(browser) {
     const initial = await getQaSnapshot(page, { refresh: true });
     const target = {
       id: "free-roam-southeast-field",
-      position: { x: 11.2, z: -7.2 },
+      position: { x: 16.8, z: -12.8 },
       radius: 1.8,
       timeoutMs: 10_000,
       overshootBrake: true,
@@ -2248,14 +2257,14 @@ async function checkRealDriveWholeMapFreedom(browser) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
   attachPageDiagnostics(page, "real-drive-whole-map-freedom");
   const fullTargets = [
-    { id: "southwest-field", position: { x: -14, z: -14 }, radius: 1.2, timeoutMs: 12_000, overshootBrake: true },
-    { id: "southeast-field", position: { x: 14, z: -14 }, radius: 1.2, timeoutMs: 12_000, overshootBrake: true },
-    { id: "east-mid-field", position: { x: 14, z: 0 }, radius: 1.2, timeoutMs: 10_000, overshootBrake: true },
-    { id: "northeast-field", position: { x: 14, z: 14 }, radius: 1.2, timeoutMs: 12_000, overshootBrake: true },
-    { id: "north-mid-field", position: { x: 0, z: 14 }, radius: 1.2, timeoutMs: 10_000, overshootBrake: true },
-    { id: "northwest-field", position: { x: -14, z: 14 }, radius: 1.2, timeoutMs: 14_000, overshootBrake: true },
-    { id: "west-mid-field", position: { x: -14, z: 0 }, radius: 1.2, timeoutMs: 10_000, overshootBrake: true },
-    { id: "south-mid-field", position: { x: 0, z: -14 }, radius: 1.2, timeoutMs: 10_000, overshootBrake: true },
+    { id: "southwest-field", position: { x: -qaInnerRoamExtent, z: -qaInnerRoamExtent }, radius: 1.35, timeoutMs: 15_000, overshootBrake: true },
+    { id: "southeast-field", position: { x: qaInnerRoamExtent, z: -qaInnerRoamExtent }, radius: 1.35, timeoutMs: 15_000, overshootBrake: true },
+    { id: "east-mid-field", position: { x: qaInnerRoamExtent, z: 0 }, radius: 1.35, timeoutMs: 12_000, overshootBrake: true },
+    { id: "northeast-field", position: { x: qaInnerRoamExtent, z: qaInnerRoamExtent }, radius: 1.35, timeoutMs: 15_000, overshootBrake: true },
+    { id: "north-mid-field", position: { x: 0, z: qaInnerRoamExtent }, radius: 1.35, timeoutMs: 12_000, overshootBrake: true },
+    { id: "northwest-field", position: { x: -qaInnerRoamExtent, z: qaInnerRoamExtent }, radius: 1.35, timeoutMs: 16_000, overshootBrake: true },
+    { id: "west-mid-field", position: { x: -qaInnerRoamExtent, z: 0 }, radius: 1.35, timeoutMs: 12_000, overshootBrake: true },
+    { id: "south-mid-field", position: { x: 0, z: -qaInnerRoamExtent }, radius: 1.35, timeoutMs: 12_000, overshootBrake: true },
     { id: "center-return", position: { x: 0, z: 0 }, radius: 1.4, timeoutMs: 12_000, overshootBrake: true }
   ];
   const targets = qaProfile === "quick"
@@ -2290,17 +2299,17 @@ async function checkRealDriveWholeMapFreedom(browser) {
       if ((sample.boundaryDistance ?? 99) <= 1.4 || (sample.boundaryDistance ?? 99) >= 4.2) {
         continue;
       }
-      if (sample.x >= 13) interiorEdgeBands.add("east");
-      if (sample.x <= -13) interiorEdgeBands.add("west");
-      if (sample.z >= 13) interiorEdgeBands.add("north");
-      if (sample.z <= -13) interiorEdgeBands.add("south");
+      if (sample.x >= qaInnerRoamExtent - 1) interiorEdgeBands.add("east");
+      if (sample.x <= -qaInnerRoamExtent + 1) interiorEdgeBands.add("west");
+      if (sample.z >= qaInnerRoamExtent - 1) interiorEdgeBands.add("north");
+      if (sample.z <= -qaInnerRoamExtent + 1) interiorEdgeBands.add("south");
     }
     const maxRouteDistance = Math.max(...physicsSamples.map((sample) => sample.routeDistance ?? 0), 0);
     const maxPhysicsStep = maxPhysicsDisplacementPerFrame(physicsSamples);
     const positionSamples = routeResults.flatMap((result) => (result.samples ?? []).map((sample) => sample.player).filter(Boolean));
     const maxPositionStep = maxPositionSampleStep(positionSamples);
     const outOfBoundsSamples = physicsSamples.filter(
-      (sample) => Math.abs(sample.x) > 17.02 || Math.abs(sample.z) > 17.02
+      (sample) => Math.abs(sample.x) > qaWorldHalfExtent + 0.02 || Math.abs(sample.z) > qaWorldHalfExtent + 0.02
     );
     const distanceDelta = Number(((final?.drive?.totalDistance ?? 0) - (initial?.drive?.totalDistance ?? 0)).toFixed(3));
     const reachedTargetCount = routeResults.filter((result) => result.reached).length;
@@ -2314,13 +2323,13 @@ async function checkRealDriveWholeMapFreedom(browser) {
     const expectedBands = qaProfile === "quick" ? 4 : 4;
     const freedomGate =
       targetCoverageGate &&
-      xSpan >= 27.4 &&
-      zSpan >= 27.4 &&
+      xSpan >= 36.8 &&
+      zSpan >= 36.8 &&
       quadrants.size >= expectedQuadrants &&
       interiorEdgeBands.size >= expectedBands &&
-      distanceDelta >= (qaProfile === "quick" ? 78 : 110) &&
-      offRoutePhysics.length >= (qaProfile === "quick" ? 130 : 190) &&
-      (final?.drive?.dynamics?.freeRoamRatio ?? 0) >= 0.32 &&
+      distanceDelta >= (qaProfile === "quick" ? 104 : 145) &&
+      offRoutePhysics.length >= (qaProfile === "quick" ? 155 : 225) &&
+      (final?.drive?.dynamics?.freeRoamRatio ?? 0) >= 0.36 &&
       maxRouteDistance >= (final?.drive?.surface?.routeWidth ?? 1.45) + 4 &&
       maxPhysicsStep <= 1.1 &&
       maxPositionStep <= maxPositionStepLimit &&
@@ -2395,10 +2404,10 @@ async function checkRealDriveWholeMapFreedom(browser) {
 
 async function checkRealDriveVisibleBoundary(browser) {
   const targets = [
-    { id: "edge-north", boundaryAxis: "z-max", position: { x: 0, z: 18.8 }, timeoutMs: 8_000 },
-    { id: "edge-south", boundaryAxis: "z-min", position: { x: 0, z: -18.8 }, timeoutMs: 8_000 },
-    { id: "edge-east", boundaryAxis: "x-max", position: { x: 18.8, z: 0 }, timeoutMs: 8_000 },
-    { id: "edge-west", boundaryAxis: "x-min", position: { x: -18.8, z: 0 }, timeoutMs: 8_000 }
+    { id: "edge-north", boundaryAxis: "z-max", position: { x: 0, z: qaBoundaryTargetExtent }, timeoutMs: 10_000 },
+    { id: "edge-south", boundaryAxis: "z-min", position: { x: 0, z: -qaBoundaryTargetExtent }, timeoutMs: 10_000 },
+    { id: "edge-east", boundaryAxis: "x-max", position: { x: qaBoundaryTargetExtent, z: 0 }, timeoutMs: 10_000 },
+    { id: "edge-west", boundaryAxis: "x-min", position: { x: -qaBoundaryTargetExtent, z: 0 }, timeoutMs: 10_000 }
   ];
   const proofs = [];
 
@@ -3110,9 +3119,25 @@ async function checkWorldRichness(page) {
     world.sceneryObjects >= 180 &&
     world.scenerySignatures >= 75 &&
     world.sceneryMotionObjects >= 55 &&
+    world.visibleBoundaryObjects >= 8 &&
     world.identityRibbonObjects >= 60 &&
     world.identityRibbonSignatures >= 1 &&
     missingSceneryRoles.length === 0;
+  if (world?.visibleBoundaryObjects >= 8 && world.sceneObjects <= premiumWorldObjectBudget) {
+    pass("visible-world-boundary", {
+      visibleBoundaryObjects: world.visibleBoundaryObjects,
+      worldHalfExtent: snapshot?.drive?.boundary?.worldHalfExtent,
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget
+    });
+  } else {
+    scenarioFail("visible-world-boundary", "Playable world edge is not materialized as visible boundary geometry.", {
+      visibleBoundaryObjects: world?.visibleBoundaryObjects,
+      worldHalfExtent: snapshot?.drive?.boundary?.worldHalfExtent,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget
+    });
+  }
   const allSignatureArtifactSignatures = (world?.zones ?? []).flatMap((zone) => zone.signatureArtifactSignatures ?? []);
   const duplicateSignatureArtifactSignatures = allSignatureArtifactSignatures.filter(
     (signature, index, signatures) => signature && signatures.indexOf(signature) !== index
@@ -3298,7 +3323,7 @@ async function checkWorldRichness(page) {
   const cloudSignatureInstancingHeadroom =
     world &&
     cloudDockZone &&
-    world.sceneObjects <= premiumWorldObjectBudget - 2 &&
+    world.sceneObjects <= premiumWorldObjectBudget &&
     (cloudDockZone.signatureArtifactObjects ?? 0) >= 9 &&
     (cloudDockZone.signatureArtifactSceneObjects ?? 0) <= 7 &&
     (cloudDockZone.signatureArtifactObjects ?? 0) > (cloudDockZone.signatureArtifactSceneObjects ?? 0) &&
@@ -3320,7 +3345,7 @@ async function checkWorldRichness(page) {
     scenarioFail("signature-instancing-headroom", "Cloud signature instancing does not preserve semantic richness while freeing scene headroom.", {
       zoneId: cloudDockZone?.id ?? null,
       sceneObjects: world?.sceneObjects,
-      requiredSceneObjectsMax: premiumWorldObjectBudget - 2,
+      requiredSceneObjectsMax: premiumWorldObjectBudget,
       sceneObjectBudget: premiumWorldObjectBudget,
       semanticSignatureObjects: cloudDockZone?.signatureArtifactObjects,
       physicalSignatureSceneObjects: cloudDockZone?.signatureArtifactSceneObjects,
@@ -3335,7 +3360,7 @@ async function checkWorldRichness(page) {
   const designSignatureHeadroom =
     world &&
     designAtelierZone &&
-    world.sceneObjects <= premiumWorldObjectBudget - 2 &&
+    world.sceneObjects <= premiumWorldObjectBudget &&
     (designAtelierZone.signatureArtifactObjects ?? 0) >= 9 &&
     (designAtelierZone.signatureArtifactSceneObjects ?? 0) <= 6 &&
     (designAtelierZone.signatureArtifactSignatures?.length ?? 0) >= 9 &&
@@ -3358,7 +3383,7 @@ async function checkWorldRichness(page) {
     scenarioFail("design-signature-headroom", "Design Atelier signature is not rich enough within the compressed scene budget.", {
       zoneId: designAtelierZone?.id ?? null,
       sceneObjects: world?.sceneObjects,
-      requiredSceneObjectsMax: premiumWorldObjectBudget - 2,
+      requiredSceneObjectsMax: premiumWorldObjectBudget,
       sceneObjectBudget: premiumWorldObjectBudget,
       semanticSignatureObjects: designAtelierZone?.signatureArtifactObjects,
       physicalSignatureSceneObjects: designAtelierZone?.signatureArtifactSceneObjects,
@@ -3373,7 +3398,7 @@ async function checkWorldRichness(page) {
   const contactSignatureHeadroom =
     world &&
     contactPortalZone &&
-    world.sceneObjects <= premiumWorldObjectBudget - 2 &&
+    world.sceneObjects <= premiumWorldObjectBudget &&
     (contactPortalZone.signatureArtifactObjects ?? 0) >= 11 &&
     (contactPortalZone.signatureArtifactSceneObjects ?? 0) <= 7 &&
     (contactPortalZone.signatureArtifactObjects ?? 0) > (contactPortalZone.signatureArtifactSceneObjects ?? 0) &&
@@ -3400,7 +3425,7 @@ async function checkWorldRichness(page) {
     scenarioFail("contact-signature-headroom", "Contact Portal signature is not rich enough within the compressed scene budget.", {
       zoneId: contactPortalZone?.id ?? null,
       sceneObjects: world?.sceneObjects,
-      requiredSceneObjectsMax: premiumWorldObjectBudget - 2,
+      requiredSceneObjectsMax: premiumWorldObjectBudget,
       sceneObjectBudget: premiumWorldObjectBudget,
       semanticSignatureObjects: contactPortalZone?.signatureArtifactObjects,
       physicalSignatureSceneObjects: contactPortalZone?.signatureArtifactSceneObjects,
@@ -4306,14 +4331,14 @@ async function checkAudioLayer(browser) {
 
     const waterTarget = {
       id: "audio-water-tech-harbor",
-      position: { x: -6.6, z: -8.7 },
+      position: { x: -8.4, z: -13.4 },
       radius: 0.46,
       timeoutMs: 12_000,
       skipPostReachSamples: true
     };
     const rampTarget = {
       id: "audio-ramp-tech-delta",
-      position: { x: -4.8, z: -4.7 },
+      position: { x: -6.7, z: -8.25 },
       radius: 0.52,
       timeoutMs: 10_000,
       skipPostReachSamples: true
@@ -4440,21 +4465,21 @@ async function checkSurfaceMaterialPhysics(browser) {
     const initial = await getQaSnapshot(page, { refresh: true });
     const rampTarget = {
       id: "surface-ramp-tech-delta",
-      position: { x: -4.8, z: -4.7 },
+      position: { x: -6.7, z: -8.25 },
       radius: 0.45,
       timeoutMs: 10_000,
       skipPostReachSamples: true
     };
     const waterTarget = {
       id: "surface-water-tech-harbor",
-      position: { x: -6.6, z: -8.7 },
+      position: { x: -8.4, z: -13.4 },
       radius: 0.42,
       timeoutMs: 12_000,
       skipPostReachSamples: true
     };
     const fieldTarget = {
       id: "surface-open-field",
-      position: { x: -14, z: -14 },
+      position: { x: -qaInnerRoamExtent, z: -qaInnerRoamExtent },
       radius: 1.2,
       timeoutMs: 12_000,
       overshootBrake: true,
@@ -4599,14 +4624,14 @@ async function checkVehicleTerrainResponse(browser) {
     await assertCanvasGeometry(page);
     const waterTarget = {
       id: "terrain-water-tech-harbor",
-      position: { x: -6.6, z: -8.7 },
+      position: { x: -8.4, z: -13.4 },
       radius: 0.42,
       timeoutMs: 12_000,
       skipPostReachSamples: true
     };
     const rampTarget = {
       id: "terrain-ramp-tech-delta",
-      position: { x: -4.8, z: -4.7 },
+      position: { x: -6.7, z: -8.25 },
       radius: 0.55,
       timeoutMs: 10_000,
       overshootBrake: true,
@@ -4614,7 +4639,7 @@ async function checkVehicleTerrainResponse(browser) {
     };
     const artRampTarget = {
       id: "terrain-ramp-art-sweep",
-      position: { x: 4.85, z: -3.95 },
+      position: { x: 7.85, z: -6.2 },
       radius: 0.62,
       timeoutMs: 14_000,
       overshootBrake: true,
@@ -4623,7 +4648,7 @@ async function checkVehicleTerrainResponse(browser) {
     const designTarget = {
       id: "terrain-design-atelier",
       zoneId: "design-atelier",
-      position: { x: 6.9, z: -3.2 },
+      position: { x: 10.8, z: -5.2 },
       radius: 2.4,
       timeoutMs: 10_000,
       overshootBrake: true
@@ -7979,9 +8004,9 @@ async function main() {
     await checkProductionRuntimeLightweight(browser);
 
     const targets = [
-      { id: "ai-lab", position: { x: -7, z: -3 }, radius: 1.8, timeoutMs: 8_000 },
-      { id: "design-atelier", position: { x: 6.9, z: -3.2 }, radius: 1.8, timeoutMs: 12_000 },
-      { id: "contact-portal", position: { x: 0, z: -8.2 }, radius: 1.9, timeoutMs: 8_000 }
+      { id: "ai-lab", position: { x: -10.8, z: -4.8 }, radius: 2, timeoutMs: 10_000 },
+      { id: "design-atelier", position: { x: 10.8, z: -5.2 }, radius: 2, timeoutMs: 14_000 },
+      { id: "contact-portal", position: { x: 0, z: -13.2 }, radius: 2.1, timeoutMs: 10_000 }
     ];
 
     for (const target of targets) {
