@@ -10,6 +10,9 @@ export type RenderedWorldScenery = {
   group: THREE.Group;
   objectCount: number;
   terrainLayers: number;
+  mapTextureRoles: string[];
+  mapTextureUrls: string[];
+  mapTextureMaterialCount: number;
   signatures: Set<string>;
   motionObjects: THREE.Object3D[];
   motionObjectCount: number;
@@ -35,9 +38,43 @@ type SceneRole =
   | "route-light";
 type MotionBehavior = "pulse" | "sweep" | "tilt" | "float" | "blink" | "instance-pulse";
 
-const material = (color: number, emissive = 0.06, metalness = 0.14, opacity = 1) =>
+type RuntimeMapTextureRole = "relief" | "road" | "vegetation" | "water";
+
+type RuntimeMapTexture = {
+  role: RuntimeMapTextureRole;
+  url: string;
+  texture: THREE.Texture;
+};
+
+const mapTextureSpecs: Array<{ role: RuntimeMapTextureRole; path: string; repeat: number }> = [
+  { role: "vegetation", path: "assets/textures/map/field/field-grain-studio.svg", repeat: 9 },
+  { role: "relief", path: "assets/textures/map/relief/relief-contours-studio.svg", repeat: 7 },
+  { role: "road", path: "assets/textures/map/road/road-asphalt-studio.svg", repeat: 5 },
+  { role: "water", path: "assets/textures/map/water/water-edge-studio.svg", repeat: 4 }
+];
+
+const runtimeAssetUrl = (path: string) => {
+  const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+  return `${base}${path.replace(/^\/+/u, "")}`;
+};
+
+const createRuntimeMapTextures = (): RuntimeMapTexture[] =>
+  mapTextureSpecs.map((spec) => {
+    const url = runtimeAssetUrl(spec.path);
+    const texture = new THREE.TextureLoader().load(url);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(spec.repeat, spec.repeat);
+    texture.userData.mapTextureRole = spec.role;
+    texture.userData.mapTextureUrl = url;
+    return { role: spec.role, url, texture };
+  });
+
+const material = (color: number, emissive = 0.06, metalness = 0.14, opacity = 1, map?: THREE.Texture) =>
   new THREE.MeshStandardMaterial({
     color,
+    map,
     roughness: 0.62,
     metalness,
     emissive: color,
@@ -127,6 +164,8 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
   let terrainMaxHeight = 0;
   let terrainVertexCount = 0;
   let terrainGradeMax = 0;
+  const mapTextures = createRuntimeMapTextures();
+  const mapTextureByRole = new Map(mapTextures.map((entry) => [entry.role, entry.texture]));
 
   const add = (
     object: THREE.Object3D,
@@ -150,9 +189,9 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
     }
   };
 
-  const terrainMat = material(palette.ground, 0.02, 0.04, 0.74);
-  const terrainShade = material(palette.ink, 0.01, 0.02, 0.62);
-  const roadMat = material(palette.road, 0.14, 0.12, 0.92);
+  const terrainMat = material(palette.ground, 0.02, 0.04, 0.74, mapTextureByRole.get("vegetation"));
+  const terrainShade = material(palette.ink, 0.01, 0.02, 0.62, mapTextureByRole.get("relief"));
+  const roadMat = material(palette.road, 0.14, 0.12, 0.92, mapTextureByRole.get("road"));
   const contourMat = new THREE.MeshBasicMaterial({
     color: 0x7b8371,
     transparent: true,
@@ -165,6 +204,7 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
   const inkMat = material(palette.ink, 0.02, 0.1, 0.9);
   const waterMat = new THREE.MeshStandardMaterial({
     color: 0x123f55,
+    map: mapTextureByRole.get("water"),
     roughness: 0.18,
     metalness: 0.08,
     emissive: palette.tech,
@@ -174,6 +214,7 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
   });
 
   const heightfield = createTerrainHeightfield(terrainMat);
+  heightfield.mesh.userData.mapTextureRole = "vegetation";
   add(heightfield.mesh, "terrain-edge", "terrain:heightfield:shared-physics", undefined, {
     signatures: ["terrain:heightfield:shared-physics", ...terrainConfig.features.map((feature) => `terrain-feature:${feature.id}`)]
   });
@@ -201,6 +242,7 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
     shelf.scale.set(scaleX, 1, scaleZ);
     shelf.renderOrder = -3;
     shelf.receiveShadow = true;
+    shelf.userData.mapTextureRole = mat === terrainShade ? "relief" : mat === terrainMat ? "vegetation" : undefined;
     add(shelf, "terrain-edge", `terrain:${id}`);
     terrainLayers += 1;
   }
@@ -218,6 +260,9 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
     group,
     objectCount,
     terrainLayers,
+    mapTextureRoles: mapTextures.map((entry) => entry.role).sort(),
+    mapTextureUrls: mapTextures.map((entry) => entry.url).sort(),
+    mapTextureMaterialCount: mapTextures.length,
     signatures,
     motionObjects,
     motionObjectCount,

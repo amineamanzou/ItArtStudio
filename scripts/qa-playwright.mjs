@@ -3468,6 +3468,44 @@ async function checkWorldRichness(page) {
       caps: rendererCaps
     });
   }
+  const requiredMapTextureRoles = ["relief", "road", "vegetation", "water"];
+  const missingMapTextureRoles = requiredMapTextureRoles.filter((role) => !world?.mapTextureRoles?.includes(role));
+  const unsafeMapTextureUrls = (world?.mapTextureUrls ?? []).filter((url) => {
+    try {
+      const parsed = new URL(url, baseUrl);
+      const path = parsed.pathname;
+      return path.includes("/public/") || !path.includes("/assets/textures/map/");
+    } catch {
+      return true;
+    }
+  });
+  const mapTextureRuntimeOk =
+    world &&
+    world.mapTextureMaterialCount >= requiredMapTextureRoles.length &&
+    missingMapTextureRoles.length === 0 &&
+    (world.mapTextureUrls?.length ?? 0) >= requiredMapTextureRoles.length &&
+    unsafeMapTextureUrls.length === 0 &&
+    renderer &&
+    renderer.textures <= rendererCaps.textures;
+  if (mapTextureRuntimeOk) {
+    pass("map-texture-runtime", {
+      roles: world.mapTextureRoles,
+      urls: world.mapTextureUrls,
+      materialCount: world.mapTextureMaterialCount,
+      rendererTextures: renderer.textures,
+      rendererTextureCap: rendererCaps.textures
+    });
+  } else {
+    scenarioFail("map-texture-runtime", "Accepted map textures are not promoted as runtime materials.", {
+      roles: world?.mapTextureRoles ?? [],
+      urls: world?.mapTextureUrls ?? [],
+      materialCount: world?.mapTextureMaterialCount ?? 0,
+      missingMapTextureRoles,
+      unsafeMapTextureUrls,
+      rendererTextures: renderer?.textures,
+      rendererTextureCap: rendererCaps.textures
+    });
+  }
   const routeCount = snapshot?.drive?.surface?.routeCount ?? 0;
   const routeLightRunway =
     world &&
@@ -9122,6 +9160,7 @@ async function writeReport() {
   });
   const worldScenario = scenarios.find((scenario) => scenario.name === "world-richness");
   const rendererBudgetScenario = scenarios.find((scenario) => scenario.name === "renderer-budget");
+  const mapTextureRuntimeScenario = scenarios.find((scenario) => scenario.name === "map-texture-runtime");
   const externalAssetPreviewScenario = scenarios.find((scenario) => scenario.name === "external-asset-preview-runtime");
   const externalAssetMapScenario = scenarios.find((scenario) => scenario.name === "external-asset-map-composition");
   const visualScenario = scenarios.find((scenario) => scenario.name === "visual-specs-rendered");
@@ -9295,6 +9334,11 @@ async function writeReport() {
         : (projectArtifactsScenario?.status ?? "n/a")
     }`,
     `- Terrain layers: ${world?.terrainLayers ?? "n/a"}`,
+    `- Map textures: ${
+      mapTextureRuntimeScenario?.details
+        ? `${mapTextureRuntimeScenario.status}, roles ${(mapTextureRuntimeScenario.details.roles ?? []).join("/")}, materials ${mapTextureRuntimeScenario.details.materialCount}, renderer textures ${mapTextureRuntimeScenario.details.rendererTextures}/${mapTextureRuntimeScenario.details.rendererTextureCap}`
+        : (mapTextureRuntimeScenario?.status ?? "n/a")
+    }`,
     `- Terrain feature markers: ${
       terrainFeatureMarkersScenario?.details
         ? `${terrainFeatureMarkersScenario.details.terrainFeatureMarkerObjects} semantic/${terrainFeatureMarkersScenario.details.terrainFeatureMarkerSceneObjects} scene, profiles ${terrainFeatureMarkersScenario.details.terrainFeatureMarkerProfiles}, headroom ${terrainFeatureMarkersScenario.details.reservedHeadroom}`

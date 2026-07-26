@@ -123,7 +123,8 @@ Baseline actuelle:
   vegetation;
 - collection signature locale IT Art Studio: 6 GLB custom pour les lieux hero,
   soit 317.2 KB / 7 592 triangles;
-- textures runtime acceptees: route, field/vegetation, eau, relief;
+- textures runtime acceptees et promues: route, vegetation/open-field, eau,
+  relief;
 - chaque fichier runtime doit rester declare dans le manifest et passer
   `npm run assets:validate`.
 

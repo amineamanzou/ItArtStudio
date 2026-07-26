@@ -790,6 +790,9 @@ type QaSnapshot = {
     terrainVertexCount: number;
     terrainGradeMax: number;
     terrainFeatureCount: number;
+    mapTextureRoles: string[];
+    mapTextureUrls: string[];
+    mapTextureMaterialCount: number;
     terrainFeatureMarkerObjects: number;
     terrainFeatureMarkerSceneObjects: number;
     terrainFeatureMarkerSignatures: number;
@@ -964,6 +967,9 @@ class StudioGame {
   private terrainVertexCount = 0;
   private terrainGradeMax = 0;
   private terrainFeatureCount = 0;
+  private mapTextureRoles: string[] = [];
+  private mapTextureUrls: string[] = [];
+  private mapTextureMaterialCount = 0;
   private routeGuidanceObjectCount = 0;
   private routeGuidanceVisualizedSegments = 0;
   private routeEncounterObjectCount = 0;
@@ -1218,6 +1224,9 @@ class StudioGame {
       terrainVertexCount: 0,
       terrainGradeMax: 0,
       terrainFeatureCount: 0,
+      mapTextureRoles: [],
+      mapTextureUrls: [],
+      mapTextureMaterialCount: 0,
       terrainFeatureMarkerObjects: 0,
       terrainFeatureMarkerSceneObjects: 0,
       terrainFeatureMarkerSignatures: 0,
@@ -1831,6 +1840,9 @@ class StudioGame {
     this.terrainVertexCount = rendered.terrainVertexCount;
     this.terrainGradeMax = rendered.terrainGradeMax;
     this.terrainFeatureCount = rendered.terrainFeatureCount;
+    this.mapTextureRoles = rendered.mapTextureRoles;
+    this.mapTextureUrls = rendered.mapTextureUrls;
+    this.mapTextureMaterialCount = rendered.mapTextureMaterialCount;
     this.decorativeObjectCount += rendered.objectCount;
     this.motionRoleCount += rendered.motionObjectCount;
     this.worldSceneryMotionObjects.push(...rendered.motionObjects);
@@ -4204,6 +4216,9 @@ class StudioGame {
         terrainVertexCount: this.terrainVertexCount,
         terrainGradeMax: this.terrainGradeMax,
         terrainFeatureCount: this.terrainFeatureCount,
+        mapTextureRoles: this.mapTextureRoles,
+        mapTextureUrls: this.mapTextureUrls,
+        mapTextureMaterialCount: this.mapTextureMaterialCount,
         terrainFeatureMarkerObjects,
         terrainFeatureMarkerSceneObjects,
         terrainFeatureMarkerSignatures: terrainFeatureMarkerSignatures.size,

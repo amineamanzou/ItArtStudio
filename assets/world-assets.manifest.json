@@ -484,8 +484,8 @@
       "selectedFiles": ["road-asphalt-studio.svg"],
       "budget": { "maxKb": 64, "targetResolution": 512 },
       "styleFit": "high",
-      "proceduralFallback": "src/game/world-scenery.ts keeps current road and route materials until SVG texture sampling is promoted.",
-      "nextAction": "Apply to road and hard-surface materials after the enlarged route graph is locked."
+      "proceduralFallback": "src/game/world-scenery.ts keeps a solid road color if the runtime SVG texture fails to load.",
+      "nextAction": "Keep as the active road material while testing GLB road tile promotion."
     },
     {
       "id": "accepted-map-field-texture-studio",
@@ -502,8 +502,8 @@
       "selectedFiles": ["field-grain-studio.svg"],
       "budget": { "maxKb": 64, "targetResolution": 512 },
       "styleFit": "high",
-      "proceduralFallback": "src/game/world-scenery.ts keeps vertex-colored terrain until the map texture layer is promoted.",
-      "nextAction": "Use as field/green district material when the larger terrain rings are authored."
+      "proceduralFallback": "src/game/world-scenery.ts keeps vertex-colored terrain under the runtime SVG texture for readable fallback shading.",
+      "nextAction": "Use as the active vegetation/open-field material while curation continues for richer PBR candidates."
     },
     {
       "id": "accepted-map-water-texture-studio",
@@ -520,8 +520,8 @@
       "selectedFiles": ["water-edge-studio.svg"],
       "budget": { "maxKb": 64, "targetResolution": 512 },
       "styleFit": "high",
-      "proceduralFallback": "src/game/world-scenery.ts keeps current water surfaces and foam rings until the texture layer is promoted.",
-      "nextAction": "Pair with accepted water GLB edges around the first larger-map canal proof."
+      "proceduralFallback": "src/game/world-scenery.ts keeps the translucent water material and foam rings under the runtime SVG texture.",
+      "nextAction": "Pair with accepted water GLB edges around the next canal and basin proof."
     },
     {
       "id": "accepted-map-relief-texture-studio",
@@ -538,8 +538,8 @@
       "selectedFiles": ["relief-contours-studio.svg"],
       "budget": { "maxKb": 64, "targetResolution": 512 },
       "styleFit": "high",
-      "proceduralFallback": "src/game/world-scenery.ts keeps contour rings and heightfield vertex colors until texture promotion.",
-      "nextAction": "Use as relief accent material around cliffs and ramps after terrain scale increases."
+      "proceduralFallback": "src/game/world-scenery.ts keeps contour rings and solid relief shading if the SVG texture fails to load.",
+      "nextAction": "Use as the active relief accent material while cliffs and ramps are refined."
     },
     {
       "id": "cloud-dock-server-racks",

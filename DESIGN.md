@@ -1207,6 +1207,19 @@ Gates V8.12:
 - l'objectif de boucle reste asset-first: chaque nouvelle piece doit renforcer
   la silhouette du lieu avant tout agrandissement ou enrichissement procedural.
 
+Gates V8.13:
+
+- les quatre textures SVG acceptees dans le manifest sont maintenant promues en
+  runtime dans `src/game/world-scenery.ts`: road, water, relief et vegetation;
+- les textures passent par `import.meta.env.BASE_URL`, avec chemins publics
+  GitHub Pages-safe et repetition controlee pour eviter les aplats de map;
+- le snapshot QA expose `mapTextureRoles`, `mapTextureUrls` et
+  `mapTextureMaterialCount`, puis le gate `map-texture-runtime` refuse une map
+  qui perd un role texture ou depasse le budget renderer;
+- les plaques de district restent plus legeres afin que les textures terrain
+  restent visibles et que la lisibilite des zones ne repose pas sur un voile
+  colore.
+
 ## Components
 
 - `game-site`: surface principale.
