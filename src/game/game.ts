@@ -167,6 +167,20 @@ type DriveDynamicsQa = {
   peakTurnRate: number;
   averageTurnRate: number;
 };
+type VehicleFeelQa = {
+  frontWheelSteer: number;
+  peakFrontWheelSteer: number;
+  visualSteeringSamples: number;
+  chassisPitch: number;
+  chassisRoll: number;
+  peakChassisRoll: number;
+  brakeFxSamples: number;
+  driftFxSamples: number;
+  skidIntensity: number;
+  maxSkidIntensity: number;
+  driftTrailMarks: number;
+  brakeTrailMarks: number;
+};
 type DrivePhysicsSampleQa = {
   frame: number;
   tMs: number;
@@ -270,7 +284,19 @@ type ZoneCompositionQa = {
   };
   largestLayerAreaRatio: number;
 };
-type TrailMark = { mesh: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>; age: number; maxAge: number };
+type TrailMarkKind = "roll" | "drift" | "brake";
+type TrailMark = {
+  mesh: THREE.Mesh<THREE.CircleGeometry, THREE.MeshBasicMaterial>;
+  age: number;
+  maxAge: number;
+  kind: TrailMarkKind;
+  baseOpacity: number;
+};
+type WheelPart = {
+  mesh: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshStandardMaterial>;
+  front: boolean;
+  side: -1 | 1;
+};
 type SurfaceFxMark = {
   age: number;
   maxAge: number;
@@ -327,6 +353,7 @@ type AudioQa = {
   accelerationGain: number;
   waterGain: number;
   rampGain: number;
+  brakeGain: number;
   engineFrequency: number;
   surfaceFrequency: number;
   toggleVisible: boolean;
@@ -529,6 +556,7 @@ type QaSnapshot = {
       guidanceMarkerCount: number;
     };
     dynamics: DriveDynamicsQa;
+    vehicleFeel: VehicleFeelQa;
     material: SurfaceMaterialQa;
     boundary: BoundaryQa;
     physicsSamples: DrivePhysicsSampleQa[];
@@ -684,7 +712,7 @@ class StudioGame {
   private currentRouteEncounterIntensity = 0;
   private currentRouteEncounterActiveCount = 0;
   private maxRouteEncounterIntensity = 0;
-  private readonly wheelMeshes: THREE.Mesh[] = [];
+  private readonly wheelParts: WheelPart[] = [];
   private readonly trailMarks: TrailMark[] = [];
   private readonly surfaceFxMarks: SurfaceFxMark[] = [];
   private readonly frameDeltas: number[] = [];
@@ -719,6 +747,16 @@ class StudioGame {
   private currentRideHeight = 0;
   private currentRidePitch = 0;
   private currentRideRoll = 0;
+  private currentFrontWheelSteer = 0;
+  private peakFrontWheelSteer = 0;
+  private visualSteeringSamples = 0;
+  private peakChassisRoll = 0;
+  private brakeFxSamples = 0;
+  private driftFxSamples = 0;
+  private currentSkidIntensity = 0;
+  private maxSkidIntensity = 0;
+  private driftTrailMarks = 0;
+  private brakeTrailMarks = 0;
   private terrainSamples = 0;
   private minSampledTerrainHeight = Number.POSITIVE_INFINITY;
   private maxSampledTerrainHeight = Number.NEGATIVE_INFINITY;
@@ -755,6 +793,8 @@ class StudioGame {
   private waterGain: GainNode | null = null;
   private rampOscillator: OscillatorNode | null = null;
   private rampGain: GainNode | null = null;
+  private brakeOscillator: OscillatorNode | null = null;
+  private brakeGain: GainNode | null = null;
   private audioMuted = true;
   private audioInitialized = false;
   private currentEngineFrequency = 0;
@@ -765,6 +805,7 @@ class StudioGame {
   private currentAccelerationGain = 0;
   private currentWaterGain = 0;
   private currentRampGain = 0;
+  private currentBrakeGain = 0;
   private audioToggleButton: HTMLButtonElement | null = null;
   private readonly drivePositionSamples: Array<{ frame: number; x: number; z: number }> = [];
   private readonly drivePhysicsSamples: DrivePhysicsSampleQa[] = [];
@@ -908,6 +949,20 @@ class StudioGame {
         turnRate: 0,
         peakTurnRate: 0,
         averageTurnRate: 0
+      },
+      vehicleFeel: {
+        frontWheelSteer: 0,
+        peakFrontWheelSteer: 0,
+        visualSteeringSamples: 0,
+        chassisPitch: 0,
+        chassisRoll: 0,
+        peakChassisRoll: 0,
+        brakeFxSamples: 0,
+        driftFxSamples: 0,
+        skidIntensity: 0,
+        maxSkidIntensity: 0,
+        driftTrailMarks: 0,
+        brakeTrailMarks: 0
       },
       material: {
         currentKind: "road",
@@ -1181,6 +1236,7 @@ class StudioGame {
       accelerationGain: 0,
       waterGain: 0,
       rampGain: 0,
+      brakeGain: 0,
       engineFrequency: 0,
       surfaceFrequency: 0,
       toggleVisible: false,
@@ -1977,7 +2033,7 @@ class StudioGame {
         wheel.rotation.z = Math.PI * 0.5;
         wheel.position.set(x, 0.22, z);
         this.player.add(wheel);
-        this.wheelMeshes.push(wheel);
+        this.wheelParts.push({ mesh: wheel, front: z < 0, side: x < 0 ? -1 : 1 });
       }
     }
 
@@ -2012,7 +2068,7 @@ class StudioGame {
       mark.visible = false;
       mark.userData.trailMark = true;
       this.trailGroup.add(mark);
-      this.trailMarks.push({ mesh: mark, age: 12, maxAge: 12 });
+      this.trailMarks.push({ mesh: mark, age: 12, maxAge: 12, kind: "roll", baseOpacity: 0.38 });
     }
 
     this.decorativeObjectCount += this.trailMarks.length;
@@ -2248,6 +2304,15 @@ class StudioGame {
     ramp.connect(rampGain);
     ramp.start();
 
+    const brakeGain = context.createGain();
+    brakeGain.gain.value = 0;
+    brakeGain.connect(master);
+    const brake = context.createOscillator();
+    brake.type = "sawtooth";
+    brake.frequency.value = 170;
+    brake.connect(brakeGain);
+    brake.start();
+
     this.audioContext = context;
     this.audioMasterGain = master;
     this.engineOscillator = engine;
@@ -2262,6 +2327,8 @@ class StudioGame {
     this.waterGain = waterGain;
     this.rampOscillator = ramp;
     this.rampGain = rampGain;
+    this.brakeOscillator = brake;
+    this.brakeGain = brakeGain;
     this.audioInitialized = true;
     return context;
   }
@@ -2330,8 +2397,8 @@ class StudioGame {
     const travel = this.playerPosition.clone().sub(previousPosition);
     if (travel.lengthSq() > 0.0001 || direction === "left" || direction === "right") {
       this.playerVelocity.copy(travel).divideScalar(0.08);
-      for (const wheel of this.wheelMeshes) {
-        wheel.rotation.x += travel.length() * 3.8;
+      for (const wheel of this.wheelParts) {
+        wheel.mesh.rotation.x += travel.length() * 3.8;
       }
     }
     this.recordDriveTelemetry(
@@ -2450,16 +2517,22 @@ class StudioGame {
       !this.waterOscillator ||
       !this.waterGain ||
       !this.rampOscillator ||
-      !this.rampGain
+      !this.rampGain ||
+      !this.brakeOscillator ||
+      !this.brakeGain
     ) {
       return;
     }
 
     const now = this.audioContext.currentTime;
     const speedRatio = clamp(this.lastDriveSpeed / playerMaxForwardSpeed, 0, 1);
-    const driftRatio = clamp(Math.abs(this.currentLateralSpeed) / 3.2, 0, 1);
+    const driftRatio = clamp(Math.abs(this.currentLateralSpeed) / 3.2 + this.currentDriftAngle * 0.32, 0, 1);
     const throttleEnergy = Math.abs(this.currentThrottleInput);
     const accelerationRatio = clamp(this.lastDriveAcceleration / 14, 0, 1);
+    const brakeRatio =
+      this.currentThrottleInput < 0 && this.currentForwardSpeed > 0.35
+        ? clamp(this.currentForwardSpeed / playerMaxForwardSpeed + this.lastDriveAcceleration / 70, 0, 1)
+        : 0;
     const waterRatio =
       this.currentWorldMaterial.kind === "water"
         ? clamp(this.currentWorldMaterial.intensity * 0.9 + speedRatio * 0.28, 0, 1)
@@ -2476,6 +2549,7 @@ class StudioGame {
     const targetAccelerationGain = this.audioMuted ? 0 : throttleEnergy * (0.012 + accelerationRatio * 0.058);
     const targetWaterGain = this.audioMuted ? 0 : waterRatio * 0.078;
     const targetRampGain = this.audioMuted ? 0 : rampRatio * 0.058;
+    const targetBrakeGain = this.audioMuted ? 0 : brakeRatio * 0.074;
 
     this.engineOscillator.frequency.setTargetAtTime(targetFrequency, now, 0.07);
     this.engineGain.gain.setTargetAtTime(targetEngineGain, now, 0.08);
@@ -2489,6 +2563,8 @@ class StudioGame {
     this.waterGain.gain.setTargetAtTime(targetWaterGain, now, 0.09);
     this.rampOscillator.frequency.setTargetAtTime(targetSurfaceFrequency + 54, now, 0.06);
     this.rampGain.gain.setTargetAtTime(targetRampGain, now, 0.05);
+    this.brakeOscillator.frequency.setTargetAtTime(150 + brakeRatio * 210, now, 0.05);
+    this.brakeGain.gain.setTargetAtTime(targetBrakeGain, now, 0.04);
 
     this.currentEngineFrequency = targetFrequency;
     this.currentSurfaceFrequency = targetSurfaceFrequency;
@@ -2498,6 +2574,7 @@ class StudioGame {
     this.currentAccelerationGain = targetAccelerationGain;
     this.currentWaterGain = targetWaterGain;
     this.currentRampGain = targetRampGain;
+    this.currentBrakeGain = targetBrakeGain;
   }
 
   private updatePlayer(delta: number) {
@@ -2596,7 +2673,15 @@ class StudioGame {
     const poseRight = new THREE.Vector3(poseForward.z, 0, -poseForward.x).normalize();
     this.currentForwardSpeed = this.playerVelocity.dot(poseForward);
     this.currentLateralSpeed = this.playerVelocity.dot(poseRight);
+    const currentSpeed = this.playerVelocity.length();
+    this.currentDriftAngle =
+      currentSpeed > 0.01
+        ? Math.atan2(Math.abs(this.currentLateralSpeed), Math.max(0.001, Math.abs(this.currentForwardSpeed)))
+        : 0;
+    this.currentSteeringInput = turn;
+    this.currentThrottleInput = throttle;
     this.updateRidePose(materialAfter, terrainAfter, delta);
+    this.updateVehicleVisualDynamics(delta, turn, throttle, travel);
     this.player.position.set(this.playerPosition.x, this.playerPosition.y + this.currentRideHeight, this.playerPosition.z);
     this.player.rotation.x = this.currentRidePitch;
     this.player.rotation.z = this.currentRideRoll;
@@ -2604,11 +2689,6 @@ class StudioGame {
       this.emitTrail(previousPosition, travel);
     }
 
-    if (travel.lengthSq() > 0.0001) {
-      for (const wheel of this.wheelMeshes) {
-        wheel.rotation.x += travel.length() * 3.8;
-      }
-    }
     if (!guidedMove) {
       this.recordDriveTelemetry(travel, delta, previousRotationY, hasManualInput, throttle, turn, materialAfter, terrainAfter);
     }
@@ -2620,10 +2700,53 @@ class StudioGame {
     return new THREE.Vector3(Math.sin(this.player.rotation.y), 0, Math.cos(this.player.rotation.y)).normalize();
   }
 
+  private updateVehicleVisualDynamics(delta: number, steeringInput: number, throttleInput: number, travel: THREE.Vector3) {
+    const smoothing = 1 - Math.pow(0.0005, delta);
+    const speedForSteering = Math.abs(this.currentForwardSpeed) + Math.abs(this.currentLateralSpeed) * 0.35;
+    const steerAuthority = clamp(speedForSteering / playerSteerReferenceSpeed, 0, 1);
+    const counterSteer = clamp(this.currentLateralSpeed / 2.8, -0.18, 0.18);
+    const targetWheelSteer =
+      speedForSteering > 0.18 ? clamp(steeringInput * steerAuthority * 0.44 - counterSteer * 0.42, -0.5, 0.5) : 0;
+    this.currentFrontWheelSteer += (targetWheelSteer - this.currentFrontWheelSteer) * smoothing;
+    this.peakFrontWheelSteer = Math.max(this.peakFrontWheelSteer, Math.abs(this.currentFrontWheelSteer));
+    if (Math.abs(this.currentFrontWheelSteer) > 0.035) {
+      this.visualSteeringSamples += 1;
+    }
+
+    const travelDistance = travel.length();
+    if (travelDistance > 0.0001) {
+      const spinDirection = this.currentForwardSpeed < -0.08 ? -1 : 1;
+      for (const wheel of this.wheelParts) {
+        wheel.mesh.rotation.x += travelDistance * 3.8 * spinDirection;
+      }
+    }
+    for (const wheel of this.wheelParts) {
+      wheel.mesh.rotation.y = wheel.front ? this.currentFrontWheelSteer : -this.currentFrontWheelSteer * 0.07;
+    }
+
+    const driftIntensity = clamp(Math.abs(this.currentLateralSpeed) / 1.05 + this.currentDriftAngle * 0.82, 0, 1);
+    const brakeIntent = throttleInput < 0 && this.currentForwardSpeed > 0.35;
+    const brakeIntensity = brakeIntent ? clamp(this.currentForwardSpeed / playerMaxForwardSpeed + this.lastDriveAcceleration / 70, 0, 1) : 0;
+    this.currentSkidIntensity = Math.max(driftIntensity, brakeIntensity * 0.88);
+    this.maxSkidIntensity = Math.max(this.maxSkidIntensity, this.currentSkidIntensity);
+    if (driftIntensity > 0.18) {
+      this.driftFxSamples += 1;
+    }
+    if (brakeIntensity > 0.12) {
+      this.brakeFxSamples += 1;
+    }
+    this.peakChassisRoll = Math.max(this.peakChassisRoll, Math.abs(this.currentRideRoll));
+  }
+
   private updateRidePose(material: WorldMaterialSample, terrain: TerrainSample, delta: number) {
     const smoothing = 1 - Math.pow(0.0008, delta);
     const speedLean = clamp(this.currentLateralSpeed / 6, -0.22, 0.22);
     const throttleLean = clamp(this.currentForwardSpeed / playerMaxForwardSpeed, -0.18, 0.18);
+    const driftLean = clamp(this.currentLateralSpeed * 0.045 + Math.sign(this.currentLateralSpeed) * this.currentDriftAngle * 0.055, -0.18, 0.18);
+    const brakeDive =
+      this.currentThrottleInput < 0 && this.currentForwardSpeed > 0.4
+        ? clamp(this.currentForwardSpeed / playerMaxForwardSpeed, 0, 1) * 0.12
+        : 0;
     const forward = this.forwardVector();
     const right = new THREE.Vector3(forward.z, 0, -forward.x).normalize();
     const normalY = Math.max(0.2, terrain.normal.y);
@@ -2632,8 +2755,8 @@ class StudioGame {
     const terrainRoll = clamp(gradient.dot(right) * 0.62, -0.24, 0.24);
     const targetRideHeight = material.rideHeight + terrain.height;
     this.currentRideHeight += (targetRideHeight - this.currentRideHeight) * smoothing;
-    this.currentRidePitch += (material.pitch + terrainPitch - throttleLean * 0.08 - this.currentRidePitch) * smoothing;
-    this.currentRideRoll += (material.roll + terrainRoll - speedLean * 0.16 - this.currentRideRoll) * smoothing;
+    this.currentRidePitch += (material.pitch + terrainPitch - throttleLean * 0.08 + brakeDive - this.currentRidePitch) * smoothing;
+    this.currentRideRoll += (material.roll + terrainRoll - speedLean * 0.16 - driftLean - this.currentRideRoll) * smoothing;
   }
 
   private normalizePlayerRotation() {
@@ -2825,7 +2948,12 @@ class StudioGame {
     }
 
     this.trailDistance += distance;
-    if (this.trailDistance < 0.26) {
+    const brakeIntent = this.currentThrottleInput < 0 && this.currentForwardSpeed > 0.35;
+    const driftIntensity = clamp(Math.abs(this.currentLateralSpeed) / 1.05 + this.currentDriftAngle * 0.82, 0, 1);
+    const brakeIntensity = brakeIntent ? clamp(this.currentForwardSpeed / playerMaxForwardSpeed + this.lastDriveAcceleration / 70, 0, 1) : 0;
+    const markKind: TrailMarkKind = brakeIntensity > 0.16 ? "brake" : driftIntensity > 0.2 ? "drift" : "roll";
+    const interval = markKind === "roll" ? 0.26 : 0.14;
+    if (this.trailDistance < interval) {
       return;
     }
     this.trailDistance = 0;
@@ -2834,13 +2962,22 @@ class StudioGame {
     const mark = this.trailMarks[this.trailCursor];
     this.trailCursor = (this.trailCursor + 1) % this.trailMarks.length;
     mark.age = 0;
-    mark.maxAge = 12;
+    mark.kind = markKind;
+    mark.maxAge = markKind === "roll" ? 12 : markKind === "drift" ? 9.5 : 7;
+    mark.baseOpacity = markKind === "roll" ? 0.38 : markKind === "drift" ? 0.5 : 0.46;
     mark.mesh.visible = true;
     mark.mesh.position.set(previousPosition.x, 0.04, previousPosition.z);
-    mark.mesh.rotation.z = this.player.rotation.y;
-    mark.mesh.scale.setScalar(0.64 + Math.min(distance, 0.8) * 0.5);
-    mark.mesh.material.color.setHex(colors[activeZone.kind]);
-    mark.mesh.material.opacity = 0.38;
+    mark.mesh.rotation.z = this.player.rotation.y + clamp(this.currentLateralSpeed * 0.08, -0.18, 0.18);
+    const skidWidth = markKind === "drift" ? 0.42 + driftIntensity * 0.42 : markKind === "brake" ? 0.3 + brakeIntensity * 0.2 : 0.28;
+    const skidLength = markKind === "roll" ? 0.64 + Math.min(distance, 0.8) * 0.5 : 0.72 + this.currentSkidIntensity * 0.62;
+    mark.mesh.scale.set(skidWidth, skidLength, 1);
+    mark.mesh.material.color.setHex(markKind === "brake" ? 0xffb35c : markKind === "drift" ? colors.studio : colors[activeZone.kind]);
+    mark.mesh.material.opacity = mark.baseOpacity;
+    if (markKind === "drift") {
+      this.driftTrailMarks += 1;
+    } else if (markKind === "brake") {
+      this.brakeTrailMarks += 1;
+    }
   }
 
   private emitSurfaceFx(position: THREE.Vector3, material: WorldMaterialSample, speed: number) {
@@ -2865,8 +3002,9 @@ class StudioGame {
       }
       mark.age += delta;
       const life = clamp(1 - mark.age / mark.maxAge, 0, 1);
-      mark.mesh.material.opacity = life * 0.38;
-      mark.mesh.scale.multiplyScalar(1 + delta * 0.08);
+      mark.mesh.material.opacity = life * mark.baseOpacity;
+      const growth = mark.kind === "roll" ? 0.08 : 0.035;
+      mark.mesh.scale.multiplyScalar(1 + delta * growth);
       if (life <= 0.02) {
         mark.mesh.visible = false;
       }
@@ -3444,7 +3582,7 @@ class StudioGame {
       groundDelta: Number((this.player.position.y - this.currentTerrain.height).toFixed(3)),
       rotationY: Number(this.player.rotation.y.toFixed(3)),
       meshCount: this.playerPartCount,
-      wheelCount: this.wheelMeshes.length,
+      wheelCount: this.wheelParts.length,
       bounds: playerBounds
     };
     const activeTrailMarks = this.trailMarks.filter((mark) => mark.mesh.visible && mark.mesh.material.opacity > 0.02);
@@ -3494,6 +3632,20 @@ class StudioGame {
         averageTurnRate: Number(
           (this.driveTurnSamples > 0 ? this.totalDriveTurnRate / this.driveTurnSamples : 0).toFixed(3)
         )
+      },
+      vehicleFeel: {
+        frontWheelSteer: Number(this.currentFrontWheelSteer.toFixed(3)),
+        peakFrontWheelSteer: Number(this.peakFrontWheelSteer.toFixed(3)),
+        visualSteeringSamples: this.visualSteeringSamples,
+        chassisPitch: Number(this.currentRidePitch.toFixed(3)),
+        chassisRoll: Number(this.currentRideRoll.toFixed(3)),
+        peakChassisRoll: Number(this.peakChassisRoll.toFixed(3)),
+        brakeFxSamples: this.brakeFxSamples,
+        driftFxSamples: this.driftFxSamples,
+        skidIntensity: Number(this.currentSkidIntensity.toFixed(3)),
+        maxSkidIntensity: Number(this.maxSkidIntensity.toFixed(3)),
+        driftTrailMarks: this.driftTrailMarks,
+        brakeTrailMarks: this.brakeTrailMarks
       },
       material: {
         currentKind: this.currentWorldMaterial.kind,
@@ -3720,6 +3872,7 @@ class StudioGame {
       accelerationGain: Number(this.currentAccelerationGain.toFixed(3)),
       waterGain: Number(this.currentWaterGain.toFixed(3)),
       rampGain: Number(this.currentRampGain.toFixed(3)),
+      brakeGain: Number(this.currentBrakeGain.toFixed(3)),
       engineFrequency: Number(this.currentEngineFrequency.toFixed(1)),
       surfaceFrequency: Number(this.currentSurfaceFrequency.toFixed(1)),
       toggleVisible: Boolean(

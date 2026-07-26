@@ -1651,6 +1651,125 @@ async function checkRealDriveArcadeKeyboard(browser) {
   }
 }
 
+async function checkVehicleFeelSignature(browser) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+  attachPageDiagnostics(page, "vehicle-feel-signature");
+
+  const tape = [
+    { label: "launch", keys: ["ArrowUp"], durationMs: 840 },
+    { label: "left-drift", keys: ["ArrowUp", "ArrowLeft"], durationMs: 980, capture: true },
+    { label: "right-drift", keys: ["ArrowUp", "ArrowRight"], durationMs: 920 },
+    { label: "brake-skid", keys: ["ArrowDown"], durationMs: 620, capture: true },
+    { label: "recover", keys: ["ArrowUp"], durationMs: 560 }
+  ];
+
+  const snapshots = [];
+  const addSnapshot = async (segment) => {
+    const snapshot = await getQaSnapshot(page, { refresh: true });
+    if (snapshot?.drive?.vehicleFeel) {
+      snapshots.push({ segment, snapshot });
+    }
+    return snapshot;
+  };
+
+  const holdTapeSegment = async (segment) => {
+    await releaseDriveKeys(page);
+    for (const key of segment.keys) {
+      await page.keyboard.down(key);
+    }
+    const started = Date.now();
+    while (Date.now() - started < segment.durationMs) {
+      await page.waitForTimeout(Math.min(100, segment.durationMs - (Date.now() - started)));
+      await addSnapshot(segment.label);
+    }
+    if (segment.capture) {
+      await capture(page, `vehicle-feel-${segment.label}`);
+    }
+    await releaseDriveKeys(page);
+    await page.waitForTimeout(70);
+    await addSnapshot(`${segment.label}:released`);
+  };
+
+  try {
+    await assertReady(page, realDriveUrl);
+    await assertCanvasGeometry(page);
+    const initial = await getQaSnapshot(page, { refresh: true });
+    for (const segment of tape) {
+      await holdTapeSegment(segment);
+    }
+    await releaseDriveKeys(page);
+    await page.waitForTimeout(180);
+    const final = await getQaSnapshot(page, { refresh: true });
+
+    const physicsSamples = final?.drive?.physicsSamples ?? [];
+    const feel = final?.drive?.vehicleFeel ?? {};
+    const feelSamples = snapshots.map(({ snapshot }) => snapshot.drive?.vehicleFeel).filter(Boolean);
+    const wheelSteers = feelSamples.map((sample) => Math.abs(sample.frontWheelSteer ?? 0));
+    const chassisRolls = feelSamples.map((sample) => Math.abs(sample.chassisRoll ?? 0));
+    const skidSamples = feelSamples.map((sample) => sample.skidIntensity ?? 0);
+    const driftAngles = physicsSamples.map((sample) => Math.abs(sample.driftAngle ?? 0));
+    const lateralSpeeds = physicsSamples.map((sample) => Math.abs(sample.lateralSpeed ?? 0));
+    const p80WheelSteer = percentile(wheelSteers, 0.8);
+    const p80ChassisRoll = percentile(chassisRolls, 0.8);
+    const p80Skid = percentile(skidSamples, 0.8);
+    const p80DriftAngle = percentile(driftAngles, 0.8);
+    const p80LateralSpeed = percentile(lateralSpeeds, 0.8);
+    const driftSampleCount = physicsSamples.filter((sample) => (sample.speed ?? 0) >= 2 && Math.abs(sample.driftAngle ?? 0) >= 0.1).length;
+    const inputGate =
+      final?.lastInputMode === "keyboard" &&
+      (final.input?.qaStepHookCalls ?? 0) === (initial?.input?.qaStepHookCalls ?? 0) &&
+      (final.input?.activeKeys?.length ?? 99) === 0;
+    const dynamicsGate =
+      physicsSamples.length >= 180 &&
+      (final.drive?.dynamics?.peakSpeed ?? 0) >= 7.5 &&
+      (final.drive?.dynamics?.peakAcceleration ?? 0) >= 12 &&
+      driftSampleCount >= 8 &&
+      p80DriftAngle >= 0.055 &&
+      p80LateralSpeed >= 0.18;
+    const visualGate =
+      feel.visualSteeringSamples >= 8 &&
+      (feel.peakFrontWheelSteer ?? 0) >= 0.14 &&
+      p80WheelSteer >= 0.065 &&
+      (feel.peakChassisRoll ?? 0) >= 0.025 &&
+      p80ChassisRoll >= 0.012 &&
+      (feel.driftFxSamples ?? 0) >= 8 &&
+      (feel.brakeFxSamples ?? 0) >= 2 &&
+      (feel.maxSkidIntensity ?? 0) >= 0.2 &&
+      p80Skid >= 0.08 &&
+      (feel.driftTrailMarks ?? 0) >= 3 &&
+      (feel.brakeTrailMarks ?? 0) >= 1 &&
+      (final.trail?.activeMarks ?? 0) >= 8;
+    const gate = inputGate && dynamicsGate && visualGate;
+    const details = {
+      tape,
+      sampleCount: physicsSamples.length,
+      visualSampleCount: feelSamples.length,
+      p80WheelSteer: Number(p80WheelSteer.toFixed(3)),
+      p80ChassisRoll: Number(p80ChassisRoll.toFixed(3)),
+      p80Skid: Number(p80Skid.toFixed(3)),
+      p80DriftAngle: Number(p80DriftAngle.toFixed(3)),
+      p80LateralSpeed: Number(p80LateralSpeed.toFixed(3)),
+      driftSampleCount,
+      inputGate,
+      dynamicsGate,
+      visualGate,
+      vehicleFeel: feel,
+      trail: final?.trail,
+      dynamics: final?.drive?.dynamics,
+      finalPlayer: final?.player ?? null
+    };
+
+    if (gate) {
+      pass("vehicle-feel-signature", details);
+    } else {
+      scenarioFail("vehicle-feel-signature", "Vehicle feel did not prove steering wheels, chassis lean, drift trail and brake skid.", details);
+    }
+  } finally {
+    await releaseDriveKeys(page);
+    await page.close();
+  }
+}
+
 async function checkRealDriveTour(browser) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
   attachPageDiagnostics(page, "real-drive");
@@ -4327,6 +4446,16 @@ async function checkAudioLayer(browser) {
     await page.waitForTimeout(650);
     const driftSnapshot = await getQaSnapshot(page, { refresh: true });
     await releaseDriveKeys(page);
+    await page.waitForTimeout(70);
+    await page.keyboard.down("ArrowDown");
+    const brakeSnapshots = [];
+    const brakeStarted = Date.now();
+    while (Date.now() - brakeStarted < 520) {
+      await page.waitForTimeout(90);
+      brakeSnapshots.push(await getQaSnapshot(page, { refresh: true }));
+    }
+    const brakeSnapshot = brakeSnapshots.at(-1) ?? (await getQaSnapshot(page, { refresh: true }));
+    await releaseDriveKeys(page);
     await page.waitForTimeout(140);
 
     const waterTarget = {
@@ -4370,6 +4499,16 @@ async function checkAudioLayer(browser) {
 
     const activeAudio = accelerationSnapshot?.audio;
     const driftAudio = driftSnapshot?.audio;
+    const brakeAudioSamples = brakeSnapshots.map((snapshot) => snapshot?.audio).filter(Boolean);
+    const maxBrakeGain = Math.max(...brakeAudioSamples.map((audio) => audio.brakeGain ?? 0), brakeSnapshot?.audio?.brakeGain ?? 0, 0);
+    const brakingForwardSamples = brakeSnapshots.filter(
+      (snapshot) =>
+        (snapshot?.drive?.dynamics?.throttleInput ?? 0) < 0 &&
+        (snapshot?.drive?.dynamics?.forwardSpeed ?? 0) >= 0.25
+    ).length;
+    const brakeAudio =
+      brakeAudioSamples.reduce((best, audio) => ((audio.brakeGain ?? 0) > (best?.brakeGain ?? 0) ? audio : best), brakeSnapshot?.audio) ??
+      brakeSnapshot?.audio;
     const waterAudio = waterSnapshot?.audio;
     const rampAudio = rampSnapshot?.audio;
     const activeOk =
@@ -4387,6 +4526,10 @@ async function checkAudioLayer(browser) {
       driftAudio?.muted === false &&
       driftAudio.driftGain >= 0.008 &&
       (driftSnapshot?.drive?.dynamics?.driftAngle ?? 0) >= 0.08;
+    const brakeOk =
+      brakeAudio?.muted === false &&
+      maxBrakeGain >= 0.008 &&
+      brakingForwardSamples >= 1;
     const waterOk =
       (waterDrive.reached || (waterSnapshot?.drive?.material?.waterSamples ?? 0) >= 12) &&
       waterMaterialSamples >= 2 &&
@@ -4415,13 +4558,16 @@ async function checkAudioLayer(browser) {
       mutedAudio.ambienceGain <= 0.001 &&
       mutedAudio.accelerationGain <= 0.001 &&
       mutedAudio.waterGain <= 0.001 &&
-      mutedAudio.rampGain <= 0.001;
+      mutedAudio.rampGain <= 0.001 &&
+      mutedAudio.brakeGain <= 0.001;
 
-    if (activeOk && driftOk && waterOk && rampOk && mutedOk) {
+    if (activeOk && driftOk && brakeOk && waterOk && rampOk && mutedOk) {
       pass("audio-layer", {
         actionability,
         activeAudio,
         driftAudio,
+        brakeAudio,
+        brakeAudioPeak: { maxBrakeGain, brakingForwardSamples },
         waterAudio,
         rampAudio,
         mutedAudio,
@@ -4430,15 +4576,18 @@ async function checkAudioLayer(browser) {
         surfaceAudio: { maxWaterGain, maxWaterSurfaceFrequency, maxRampGain, maxRampSurfaceFrequency, waterMaterialSamples, rampMaterialSamples }
       });
     } else {
-      scenarioFail("audio-layer", "Procedural audio did not prove engine, acceleration, drift, water, ramp, and mute layers.", {
+      scenarioFail("audio-layer", "Procedural audio did not prove engine, acceleration, drift, brake, water, ramp, and mute layers.", {
         actionability,
         activeOk,
         driftOk,
+        brakeOk,
         waterOk,
         rampOk,
         mutedOk,
         activeAudio,
         driftAudio,
+        brakeAudio,
+        brakeAudioPeak: { maxBrakeGain, brakingForwardSamples, brakeSamples: brakeSnapshots.length },
         waterAudio,
         rampAudio,
         mutedAudio,
@@ -7995,6 +8144,7 @@ async function main() {
     await checkRealKeyboardInput(page);
     await checkRealKeyboardDirectionalControls(browser);
     await checkRealDriveArcadeKeyboard(browser);
+    await checkVehicleFeelSignature(browser);
     await checkRealDriveTour(browser);
     await checkRealDriveFreeRoam(browser);
     await checkRealDriveWholeMapFreedom(browser);

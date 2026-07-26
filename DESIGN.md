@@ -730,6 +730,19 @@ Gates V6.0:
   `real-drive-visible-boundary` force les contacts de bord a `+-23.8`: l'ancien
   monde compact ne peut plus valider les gates d'exploration.
 
+Gates V6.1:
+
+- la conduite doit produire une signature visuelle mesurable: roues avant qui
+  braquent en mouvement, roulis/plongee du chassis, traces differenciees drift et
+  freinage;
+- `drive.vehicleFeel` expose `frontWheelSteer`, `peakChassisRoll`,
+  `driftFxSamples`, `brakeFxSamples`, `maxSkidIntensity`, `driftTrailMarks` et
+  `brakeTrailMarks`;
+- `vehicle-feel-signature` joue un ruban clavier reel, capture drift/freinage et
+  rejette un rover qui bouge sans retour visuel de pilotage;
+- `audio-layer` exige maintenant une couche frein (`brakeGain`) en plus du
+  moteur, de l'acceleration, du drift, de l'eau, des rampes et du mute strict.
+
 ## Components
 
 - `game-site`: surface principale.
