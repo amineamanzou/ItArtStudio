@@ -5021,6 +5021,7 @@ async function checkVehicleTerrainResponse(browser) {
     await page.waitForTimeout(180);
     const final = await getQaSnapshot(page, { refresh: true });
     const material = final?.drive?.material;
+    const vehicleFeel = final?.drive?.vehicleFeel ?? {};
     const physicsSamples = collectUniquePhysicsSamples([waterDrive, rampDrive, artRampDrive, designDrive]);
     const terrainSamples = physicsSamples.filter((sample) => Number.isFinite(sample.terrainHeight));
     const rampSamples = terrainSamples.filter((sample) => sample.materialKind === "ramp");
@@ -5062,6 +5063,12 @@ async function checkVehicleTerrainResponse(browser) {
       groundDeltaSpan <= 0.32 &&
       (material?.maxTerrainHeight ?? 0) - (material?.minTerrainHeight ?? 0) >= 0.22 &&
       (material?.maxTerrainGrade ?? 0) >= 0.035;
+    const suspensionGate =
+      terrainGate &&
+      (vehicleFeel.peakSuspensionCompression ?? 0) >= 0.055 &&
+      (vehicleFeel.suspensionTravelSamples ?? 0) >= 24 &&
+      (vehicleFeel.suspensionTravelVariance ?? 0) >= 0.018 &&
+      (vehicleFeel.wheelTerrainContactSpan ?? 0) >= 0.025;
 
     const details = {
       reached: terrainRouteProven,
@@ -5080,6 +5087,8 @@ async function checkVehicleTerrainResponse(browser) {
       groundDeltaP05: Number(groundDeltaP05.toFixed(3)),
       groundDeltaP95: Number(groundDeltaP95.toFixed(3)),
       groundDeltaSpan: Number(groundDeltaSpan.toFixed(3)),
+      vehicleFeel,
+      suspensionGate,
       finalPlayer: final?.player,
       routeSteps: [
         { step: waterTarget.id, reached: waterDrive.reached, samples: waterDrive.samples.length },
@@ -5093,6 +5102,20 @@ async function checkVehicleTerrainResponse(browser) {
       pass("vehicle-terrain-response", details);
     } else {
       scenarioFail("vehicle-terrain-response", "Vehicle pose does not prove response to shared terrain height and normals.", {
+        ...details,
+        lastSamples: terrainSamples.slice(-8)
+      });
+    }
+    if (suspensionGate) {
+      pass("vehicle-suspension-response", {
+        ...details,
+        peakSuspensionCompression: vehicleFeel.peakSuspensionCompression,
+        suspensionTravelSamples: vehicleFeel.suspensionTravelSamples,
+        suspensionTravelVariance: vehicleFeel.suspensionTravelVariance,
+        wheelTerrainContactSpan: vehicleFeel.wheelTerrainContactSpan
+      });
+    } else {
+      scenarioFail("vehicle-suspension-response", "Rover suspension does not visibly respond to terrain, ramp and water traversal.", {
         ...details,
         lastSamples: terrainSamples.slice(-8)
       });
@@ -7950,6 +7973,7 @@ async function writeReport() {
   const realDriveRouteScenario = scenarios.find((scenario) => scenario.name === "real-drive-route-freedom");
   const realDriveFreeRoamScenario = scenarios.find((scenario) => scenario.name === "real-drive-free-roam");
   const surfaceMaterialScenario = scenarios.find((scenario) => scenario.name === "surface-material-physics");
+  const vehicleSuspensionScenario = scenarios.find((scenario) => scenario.name === "vehicle-suspension-response");
   const routeEncountersRenderedScenario = scenarios.find((scenario) => scenario.name === "route-encounters-rendered");
   const routeSurfaceMaterializedScenario = scenarios.find((scenario) => scenario.name === "route-surface-materialized");
   const routeEncounterTriggeredScenario = scenarios.find((scenario) => scenario.name === "route-encounter-triggered:real-drive");
@@ -8138,6 +8162,11 @@ async function writeReport() {
       surfaceMaterialScenario?.details?.material
         ? `water ${surfaceMaterialScenario.details.material.waterSamples}, ramp ${surfaceMaterialScenario.details.material.rampSamples}, field ${surfaceMaterialScenario.details.material.fieldSamples}, transitions ${surfaceMaterialScenario.details.transitionDelta}, fx ${surfaceMaterialScenario.details.emittedFxDelta}, profiles ${surfaceMaterialScenario.details.material.surfaceFxWaterProfiles}/${surfaceMaterialScenario.details.material.surfaceFxRampProfiles}, colors ${surfaceMaterialScenario.details.material.surfaceFxColorVariants}, variance ${surfaceMaterialScenario.details.material.maxSurfaceFxScaleVariance}, water max ${surfaceMaterialScenario.details.material.maxWaterIntensity}, ramp lift ${surfaceMaterialScenario.details.material.maxRampRideHeight}`
         : (surfaceMaterialScenario?.status ?? "n/a")
+    }`,
+    `- Vehicle suspension response: ${
+      vehicleSuspensionScenario?.details
+        ? `peak ${vehicleSuspensionScenario.details.peakSuspensionCompression}, samples ${vehicleSuspensionScenario.details.suspensionTravelSamples}, variance ${vehicleSuspensionScenario.details.suspensionTravelVariance}, wheel span ${vehicleSuspensionScenario.details.wheelTerrainContactSpan}`
+        : (vehicleSuspensionScenario?.status ?? "n/a")
     }`,
     `- Route encounters rendered: ${
       routeEncountersRenderedScenario?.details

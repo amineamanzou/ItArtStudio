@@ -400,6 +400,7 @@ The game exposes `window.__IT_ART_STUDIO_QA__` with:
 - `trail`
 - `drive`
   - `dynamics`
+  - `vehicleFeel`
   - `physicsSamples`
 - `camera`
 - `screen`
@@ -427,6 +428,11 @@ forward.
 `terrain-feature-markers` proves that terrain relief is not only present in the
 heightfield telemetry: each shared physics feature has instanced visual markers
 with terrain profiles, while preserving the premium scene headroom.
+
+`vehicle-suspension-response` proves that the rover translates terrain into
+mechanical feel: each wheel samples the shared terrain, visible suspension parts
+compress independently, and the QA report exposes peak compression, travel
+variance and terrain contact span.
 
 ## Next Gates
 

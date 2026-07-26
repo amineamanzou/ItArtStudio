@@ -249,6 +249,11 @@ type VehicleFeelQa = {
   chassisPitch: number;
   chassisRoll: number;
   peakChassisRoll: number;
+  suspensionCompression: number;
+  peakSuspensionCompression: number;
+  suspensionTravelSamples: number;
+  suspensionTravelVariance: number;
+  wheelTerrainContactSpan: number;
   brakeFxSamples: number;
   driftFxSamples: number;
   skidIntensity: number;
@@ -380,8 +385,13 @@ type TrailMark = {
 type SurfaceFxProfile = "water-ripple" | "water-foam" | "water-wake" | "ramp-skid" | "ramp-chevron" | "ramp-spark";
 type WheelPart = {
   mesh: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshStandardMaterial>;
+  suspension: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshStandardMaterial>;
   front: boolean;
   side: -1 | 1;
+  baseX: number;
+  baseY: number;
+  baseZ: number;
+  compression: number;
 };
 type SurfaceFxMark = {
   age: number;
@@ -858,6 +868,11 @@ class StudioGame {
   private peakFrontWheelSteer = 0;
   private visualSteeringSamples = 0;
   private peakChassisRoll = 0;
+  private currentSuspensionCompression = 0;
+  private peakSuspensionCompression = 0;
+  private suspensionTravelSamples = 0;
+  private suspensionTravelVariance = 0;
+  private wheelTerrainContactSpan = 0;
   private brakeFxSamples = 0;
   private driftFxSamples = 0;
   private currentSkidIntensity = 0;
@@ -1081,6 +1096,11 @@ class StudioGame {
         chassisPitch: 0,
         chassisRoll: 0,
         peakChassisRoll: 0,
+        suspensionCompression: 0,
+        peakSuspensionCompression: 0,
+        suspensionTravelSamples: 0,
+        suspensionTravelVariance: 0,
+        wheelTerrainContactSpan: 0,
         brakeFxSamples: 0,
         driftFxSamples: 0,
         skidIntensity: 0,
@@ -2123,6 +2143,13 @@ class StudioGame {
       emissiveIntensity: 0.12
     });
     const wheelMaterial = new THREE.MeshStandardMaterial({ color: 0x121217, roughness: 0.8 });
+    const suspensionMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffe38a,
+      roughness: 0.5,
+      metalness: 0.22,
+      emissive: 0xffc847,
+      emissiveIntensity: 0.12
+    });
 
     const chassis = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.28, 1.16), bodyMaterial);
     chassis.position.y = 0.4;
@@ -2169,11 +2196,23 @@ class StudioGame {
 
     for (const x of [-0.48, 0.48]) {
       for (const z of [-0.42, 0.42]) {
+        const suspension = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.032, 0.36, 8), suspensionMaterial);
+        suspension.position.set(x, 0.4, z);
+        this.player.add(suspension);
         const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.16, 16), wheelMaterial);
         wheel.rotation.z = Math.PI * 0.5;
         wheel.position.set(x, 0.22, z);
         this.player.add(wheel);
-        this.wheelParts.push({ mesh: wheel, front: z < 0, side: x < 0 ? -1 : 1 });
+        this.wheelParts.push({
+          mesh: wheel,
+          suspension,
+          front: z < 0,
+          side: x < 0 ? -1 : 1,
+          baseX: x,
+          baseY: 0.22,
+          baseZ: z,
+          compression: 0
+        });
       }
     }
 
@@ -2888,6 +2927,7 @@ class StudioGame {
     for (const wheel of this.wheelParts) {
       wheel.mesh.rotation.y = wheel.front ? this.currentFrontWheelSteer : -this.currentFrontWheelSteer * 0.07;
     }
+    this.updateWheelSuspension(delta, throttleInput);
 
     const driftIntensity = clamp(Math.abs(this.currentLateralSpeed) / 1.05 + this.currentDriftAngle * 0.82, 0, 1);
     const brakeIntent = throttleInput < 0 && this.currentForwardSpeed > 0.35;
@@ -2901,6 +2941,58 @@ class StudioGame {
       this.brakeFxSamples += 1;
     }
     this.peakChassisRoll = Math.max(this.peakChassisRoll, Math.abs(this.currentRideRoll));
+  }
+
+  private updateWheelSuspension(delta: number, throttleInput: number) {
+    const smoothing = 1 - Math.pow(0.0009, delta);
+    const forward = this.forwardVector();
+    const right = new THREE.Vector3(forward.z, 0, -forward.x).normalize();
+    const wheelTerrainHeights: number[] = [];
+    const wheelCompressions: number[] = [];
+    const brakeLoad = throttleInput < 0 && this.currentForwardSpeed > 0.35
+      ? clamp(this.currentForwardSpeed / playerMaxForwardSpeed, 0, 1) * 0.052
+      : 0;
+    const rampLoad = this.currentWorldMaterial.kind === "ramp" ? this.currentWorldMaterial.intensity * 0.06 : 0;
+    const waterLoad = this.currentWorldMaterial.kind === "water" ? this.currentWorldMaterial.intensity * 0.035 : 0;
+
+    for (const wheel of this.wheelParts) {
+      const samplePosition = new THREE.Vector3(
+        this.playerPosition.x + right.x * wheel.baseX + forward.x * wheel.baseZ,
+        0,
+        this.playerPosition.z + right.z * wheel.baseX + forward.z * wheel.baseZ
+      );
+      const wheelTerrain = sampleTerrain(samplePosition);
+      wheelTerrainHeights.push(wheelTerrain.height);
+      const terrainDelta = wheelTerrain.height - this.currentTerrain.height;
+      const lateralLoad = clamp(-wheel.side * this.currentLateralSpeed * 0.018, -0.035, 0.035);
+      const axleLoad = wheel.front ? brakeLoad : -brakeLoad * 0.45;
+      const targetCompression = clamp(
+        0.045 + terrainDelta * 0.78 + rampLoad + waterLoad + lateralLoad + axleLoad,
+        -0.04,
+        0.18
+      );
+      wheel.compression += (targetCompression - wheel.compression) * smoothing;
+      wheelCompressions.push(wheel.compression);
+      wheel.mesh.position.y = wheel.baseY + wheel.compression * 0.54;
+      wheel.suspension.position.y = 0.4 + wheel.compression * 0.25;
+      wheel.suspension.scale.y = clamp(1 - wheel.compression * 2.15, 0.62, 1.16);
+    }
+
+    if (wheelCompressions.length === 0) {
+      return;
+    }
+    const minCompression = Math.min(...wheelCompressions);
+    const maxCompression = Math.max(...wheelCompressions);
+    const averageCompression = wheelCompressions.reduce((sum, value) => sum + Math.abs(value), 0) / wheelCompressions.length;
+    const terrainSpan =
+      wheelTerrainHeights.length > 0 ? Math.max(...wheelTerrainHeights) - Math.min(...wheelTerrainHeights) : 0;
+    this.currentSuspensionCompression = averageCompression;
+    this.peakSuspensionCompression = Math.max(this.peakSuspensionCompression, averageCompression);
+    this.suspensionTravelVariance = Math.max(this.suspensionTravelVariance, maxCompression - minCompression);
+    this.wheelTerrainContactSpan = Math.max(this.wheelTerrainContactSpan, terrainSpan);
+    if (maxCompression - minCompression >= 0.018 || averageCompression >= 0.07 || terrainSpan >= 0.018) {
+      this.suspensionTravelSamples += 1;
+    }
   }
 
   private updateRidePose(material: WorldMaterialSample, terrain: TerrainSample, delta: number) {
@@ -3929,6 +4021,11 @@ class StudioGame {
         chassisPitch: Number(this.currentRidePitch.toFixed(3)),
         chassisRoll: Number(this.currentRideRoll.toFixed(3)),
         peakChassisRoll: Number(this.peakChassisRoll.toFixed(3)),
+        suspensionCompression: Number(this.currentSuspensionCompression.toFixed(3)),
+        peakSuspensionCompression: Number(this.peakSuspensionCompression.toFixed(3)),
+        suspensionTravelSamples: this.suspensionTravelSamples,
+        suspensionTravelVariance: Number(this.suspensionTravelVariance.toFixed(3)),
+        wheelTerrainContactSpan: Number(this.wheelTerrainContactSpan.toFixed(3)),
         brakeFxSamples: this.brakeFxSamples,
         driftFxSamples: this.driftFxSamples,
         skidIntensity: Number(this.currentSkidIntensity.toFixed(3)),

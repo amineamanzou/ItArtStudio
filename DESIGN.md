@@ -817,6 +817,18 @@ Gates V6.7:
   de niveau et de relief, mais gardent au moins 24 slots libres sous
   `sceneObjects <= 940`.
 
+Gates V6.8:
+
+- le rover gagne quatre suspensions visibles qui compressent et rebondissent
+  selon les samples terrain sous chaque roue, la vitesse laterale, l'eau, les
+  rampes et le freinage;
+- `vehicle-suspension-response` verifie en vraies touches clavier que les roues
+  ne suivent pas le relief comme un bloc rigide: compression max, variance de
+  course, span de contact terrain et nombre de samples de suspension sont
+  exposes dans `drive.vehicleFeel`;
+- cette vague accepte quelques pieces vehicule en plus, mais garde le budget
+  monde premium et l'exploration libre comme gates bloquants.
+
 ## Components
 
 - `game-site`: surface principale.
