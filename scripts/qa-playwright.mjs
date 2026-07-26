@@ -8430,6 +8430,7 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
     const captureEntry = await capture(page, `static-proof-zone-${targetId}`);
     zoneCaptures.push({ zoneId: targetId, path: captureEntry.relativePath, canvas: captureEntry.canvas });
   }
+  await page.close();
 
   const encounterTargets = [
     {
@@ -9239,7 +9240,9 @@ async function main() {
       }
       await checkWorldRichness(page);
       await checkStaticPlayableProofReel(browser, page, home);
-      await page.close();
+      if (!page.isClosed()) {
+        await page.close();
+      }
     } else {
     await assertBrandIdentity(page);
     await checkRuntimeFrameBudget(page, "pre-capture");
@@ -9361,6 +9364,24 @@ async function main() {
   console.log(`QA report: ${path.relative(root, reportMdPath)}`);
 
   if (summary.status !== "pass") {
+    console.log(
+      `[qa] failure-summary ${JSON.stringify(
+        summary.failures.slice(0, 5).map((failure) => ({
+          message: failure.message,
+          details: {
+            message: failure.details?.message,
+            failingProofs: failure.details?.failingProofs?.slice?.(0, 4),
+            routeId: failure.details?.routeId,
+            family: failure.details?.family,
+            reached: failure.details?.reached,
+            matchingProofCount: failure.details?.matchingProofCount,
+            consoleMessages: failure.details?.consoleMessages?.slice?.(0, 4)
+          }
+        })),
+        null,
+        2
+      )}`
+    );
     process.exitCode = 1;
   }
 }
