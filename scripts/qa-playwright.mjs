@@ -5149,6 +5149,11 @@ async function checkExternalAssetMapComposition(browser) {
     const requiredRoles = ["bridge", "relief", "road", "route-edge", "vegetation", "water"];
     const missingRoles = requiredRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
     const requiredHeroLocationIds = ["cloud-dock", "design-atelier", "observability-tower"];
+    const requiredHeroLocationRoles = {
+      "cloud-dock": ["server-cloud-node", "rack-core", "cable-trunk", "ops-screen"],
+      "design-atelier": ["mannequin-fabric-rack", "cutting-table", "swatch-crate", "reference-screen"],
+      "observability-tower": ["telemetry-radar-mast", "signal-pylon", "screen-wall", "trace-panel"]
+    };
     const requiredScreenRoles = ["road", "water", "relief", "vegetation"];
     const weakScreenRoles = requiredScreenRoles.filter((role) => {
       const rect = externalAssets?.roleScreenRects?.[role];
@@ -5158,14 +5163,17 @@ async function checkExternalAssetMapComposition(browser) {
     const weakHeroLocations = requiredHeroLocationIds.filter((zoneId) => {
       const placementCount = externalAssets?.heroLocationPlacementCounts?.[zoneId] ?? 0;
       const roles = externalAssets?.heroLocationRoles?.[zoneId] ?? [];
-      return placementCount < 3 || roles.length < 3 || !heroLocationProofs.find((proof) => proof.zoneId === zoneId && proof.ok);
+      const missingHeroRoles = (requiredHeroLocationRoles[zoneId] ?? []).filter((role) => !roles.includes(role));
+      return placementCount < 3 || roles.length < 3 || missingHeroRoles.length > 0 || !heroLocationProofs.find((proof) => proof.zoneId === zoneId && proof.ok);
     });
     const mapPathBase = new URL(mapUrl).pathname.replace(/\/$/u, "");
-    const expectedAssetPathPrefix = `${mapPathBase}/assets/models/vendor/`.replace(/^\/\//u, "/");
+    const expectedAssetPathPrefixes = ["vendor", "local"].map((scope) =>
+      `${mapPathBase}/assets/models/${scope}/`.replace(/^\/\//u, "/")
+    );
     const unsafePaths = (externalAssets?.publicPaths ?? []).filter((publicPath) => {
       try {
         const parsed = new URL(publicPath, mapUrl);
-        return parsed.pathname.includes("/public/") || !parsed.pathname.startsWith(expectedAssetPathPrefix);
+        return parsed.pathname.includes("/public/") || !expectedAssetPathPrefixes.some((prefix) => parsed.pathname.startsWith(prefix));
       } catch {
         return true;
       }
@@ -5231,8 +5239,9 @@ async function checkExternalAssetMapComposition(browser) {
         missingRoles,
         weakScreenRoles,
         weakHeroLocations,
+        requiredHeroLocationRoles,
         unsafePaths,
-        expectedAssetPathPrefix
+        expectedAssetPathPrefixes
       });
     }
   } finally {

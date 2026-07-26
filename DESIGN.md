@@ -1154,6 +1154,24 @@ Gates V8.9:
   curation, sans roles visuels suffisants ou avec des assets requis non
   acceptes.
 
+Gates V8.10:
+
+- `scripts/generate-signature-assets.mjs` genere une premiere collection GLB
+  locale et reproductible pour les trois silhouettes manquantes:
+  `server-cloud-node.glb`, `atelier-mannequin-rack.glb` et
+  `telemetry-radar-mast.glb`;
+- cette collection `accepted-itart-signature-hero-core` pese 164.7 KB pour
+  3 988 triangles et reste dans un langage low-poly compatible avec les packs
+  Kenney deja acceptes;
+- chaque hero location possede maintenant une piece signature dediee dans
+  `?assets=map`, au lieu de dependre uniquement de metaphors industrielles:
+  Cloud Dock a son node serveur/nuage, Design Atelier a son mannequin + rail
+  textile, Observability Tower a son mat radar/telemetrie;
+- les contrats `heroLocationCuration` exigent ces roles signature, et la QA
+  `external-asset-map-composition` refuse un lieu qui perd son role custom;
+- les prochains remplacements premium devront partir de ces silhouettes comme
+  briefs Blender: rack serveur plus riche, mannequin drape, mat radar anime.
+
 ## Components
 
 - `game-site`: surface principale.

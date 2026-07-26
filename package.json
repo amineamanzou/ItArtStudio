@@ -11,6 +11,7 @@
     "preview": "astro preview",
     "check": "astro check && npm run assets:validate",
     "assets:validate": "node scripts/validate-asset-library.mjs",
+    "assets:generate-signature": "node scripts/generate-signature-assets.mjs",
     "qa:game": "node scripts/qa-playwright.mjs",
     "qa:game:quick": "QA_PROFILE=quick node scripts/qa-playwright.mjs",
     "qa:game:static": "QA_STATIC_DIST=true QA_STATIC_BASE_PATH=/ItArtStudio node scripts/qa-playwright.mjs"

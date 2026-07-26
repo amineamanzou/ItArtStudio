@@ -29,6 +29,12 @@ Run:
 npm run assets:validate
 ```
 
+Regenerate local signature GLB assets:
+
+```bash
+npm run assets:generate-signature
+```
+
 Accepted runtime packs:
 
 - `public/assets/models/vendor/kenney/city-kit-roads/roads`: 9 GLB road
@@ -46,6 +52,9 @@ Accepted runtime packs:
 - `public/assets/models/vendor/kenney/factory-kit/industrial`: 23 GLB
   industrial, screen, pipe, platform and work-surface pieces for Cloud Dock,
   Design Atelier and Observability Tower proofs.
+- `public/assets/models/local/itart-signature-kit/hero`: 3 generated GLB
+  signature pieces, one per hero location: server/cloud node, mannequin/fabric
+  rack, and telemetry radar mast.
 
 The validator derives local file weight and triangle counts from the GLB files
 and refuses accepted entries when the manifest drifts from the runtime folders.
@@ -57,7 +66,10 @@ Hero-location curation:
 - The contract names a visual signature, accepted asset collections, at least
   six visual roles, a minimum runtime placement count, and the next custom asset
   gap.
-- The current Factory Kit integration is an accelerator, not the final premium
-  library: Design Atelier still needs a dedicated mannequin/fabric rack, Cloud
-  Dock needs a clearer server/cloud silhouette, and Observability Tower needs a
-  stronger antenna/radar mast.
+- The Factory Kit integration is an accelerator, not the final premium library.
+  The local signature kit fills the first recognisable-silhouette gap enough for
+  visual QA: server/cloud node, mannequin/fabric rack, and telemetry radar mast.
+- The local kit is generated from `scripts/generate-signature-assets.mjs`, then
+  declared in the manifest like any other accepted runtime collection. Future
+  Blender assets should replace these generated silhouettes once their visual
+  direction is proven.

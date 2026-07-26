@@ -522,6 +522,11 @@ is promoted to the public runtime.
 Non-hero clusters stay capped for noise control; hero-location clusters have a
 separate density cap because recognisable places need more authored parts than
 generic terrain samples.
+The scenario also verifies the first custom signature roles:
+`server-cloud-node`, `mannequin-fabric-rack`, and `telemetry-radar-mast`.
+Accepted runtime paths may come from `assets/models/vendor/` or
+`assets/models/local/`; both must remain GitHub Pages-safe and must never point
+through `public/`.
 
 ## Next Gates
 

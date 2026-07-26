@@ -388,6 +388,18 @@ if (fs.existsSync(vendorModelsPath)) {
   }
 }
 
+const localModelsPath = path.join(root, "public", "assets", "models", "local");
+if (fs.existsSync(localModelsPath)) {
+  const orphanGlbs = listFiles(localModelsPath)
+    .filter((file) => file.endsWith(".glb"))
+    .map((file) => path.relative(root, file))
+    .filter((file) => !declaredRuntimeGlbs.has(file));
+
+  if (orphanGlbs.length > 0) {
+    fail("Runtime local GLB files must be declared by accepted or integrated manifest entries.", { orphanGlbs });
+  }
+}
+
 const runtimeTexturesPath = path.join(root, "public", "assets", "textures", "map");
 if (fs.existsSync(runtimeTexturesPath)) {
   const orphanTextures = listFiles(runtimeTexturesPath)
