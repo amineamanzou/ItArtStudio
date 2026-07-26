@@ -506,6 +506,13 @@ type QaSnapshot = {
     sceneryMotionObjects: number;
     sceneryRoleCounts: Record<string, number>;
     surfaceDetailPartCounts: Record<string, number>;
+    surfaceDetailProfiles: number;
+    surfaceDetailWaterProfiles: number;
+    surfaceDetailRampProfiles: number;
+    surfaceDetailColorVariants: number;
+    surfaceDetailSignatures: string[];
+    missingSurfaceDetailProfiles: string[];
+    duplicateSurfaceDetailSignatures: string[];
     visibleBoundaryObjects: number;
     identityRibbonObjects: number;
     identityRibbonSignatures: number;
@@ -880,6 +887,13 @@ class StudioGame {
       sceneryMotionObjects: 0,
       sceneryRoleCounts: {},
       surfaceDetailPartCounts: {},
+      surfaceDetailProfiles: 0,
+      surfaceDetailWaterProfiles: 0,
+      surfaceDetailRampProfiles: 0,
+      surfaceDetailColorVariants: 0,
+      surfaceDetailSignatures: [],
+      missingSurfaceDetailProfiles: [],
+      duplicateSurfaceDetailSignatures: [],
       visibleBoundaryObjects: 0,
       identityRibbonObjects: 0,
       identityRibbonSignatures: 0,
@@ -3459,6 +3473,10 @@ class StudioGame {
       const projectArtifactThemeRoles = new Set(zoneAssets.flatMap((zone) => zone.projectArtifactThemeRoles));
       const sceneryRoleCounts: Record<string, number> = {};
       const surfaceDetailPartCounts: Record<string, number> = {};
+      const surfaceDetailProfiles = new Set<string>();
+      const expectedSurfaceDetailProfiles = new Set<string>();
+      const surfaceDetailSignatures: string[] = [];
+      let surfaceDetailColorVariants = 0;
       let visibleBoundaryObjects = 0;
       let identityRibbonObjects = 0;
       const identityRibbonSignatures = new Set<string>();
@@ -3480,6 +3498,41 @@ class StudioGame {
         if (typeof surfaceDetailPart === "string") {
           const detailCount = object instanceof THREE.InstancedMesh ? object.count : 1;
           surfaceDetailPartCounts[surfaceDetailPart] = (surfaceDetailPartCounts[surfaceDetailPart] ?? 0) + detailCount;
+        }
+        const detailProfileIds = object.userData.surfaceDetailProfileIds;
+        if (Array.isArray(detailProfileIds)) {
+          for (const profileId of detailProfileIds) {
+            if (typeof profileId === "string") {
+              surfaceDetailProfiles.add(profileId);
+            }
+          }
+        }
+        if (typeof object.userData.surfaceDetailColorVariantCount === "number") {
+          surfaceDetailColorVariants = Math.max(surfaceDetailColorVariants, object.userData.surfaceDetailColorVariantCount);
+        }
+        const expectedWaterProfiles = object.userData.surfaceDetailExpectedWaterProfiles;
+        if (Array.isArray(expectedWaterProfiles)) {
+          for (const profileId of expectedWaterProfiles) {
+            if (typeof profileId === "string") {
+              expectedSurfaceDetailProfiles.add(profileId);
+            }
+          }
+        }
+        const expectedRampProfiles = object.userData.surfaceDetailExpectedRampProfiles;
+        if (Array.isArray(expectedRampProfiles)) {
+          for (const profileId of expectedRampProfiles) {
+            if (typeof profileId === "string") {
+              expectedSurfaceDetailProfiles.add(profileId);
+            }
+          }
+        }
+        const detailSignatures = object.userData.surfaceDetailSignatures;
+        if (Array.isArray(detailSignatures)) {
+          for (const signature of detailSignatures) {
+            if (typeof signature === "string") {
+              surfaceDetailSignatures.push(signature);
+            }
+          }
         }
         if (typeof object.userData.visibleBoundaryPart === "string") {
           visibleBoundaryObjects +=
@@ -3550,6 +3603,15 @@ class StudioGame {
         sceneryMotionObjects: this.worldSceneryMotionObjectCount,
         sceneryRoleCounts,
         surfaceDetailPartCounts,
+        surfaceDetailProfiles: surfaceDetailProfiles.size,
+        surfaceDetailWaterProfiles: [...surfaceDetailProfiles].filter((profileId) => profileId.startsWith("water:")).length,
+        surfaceDetailRampProfiles: [...surfaceDetailProfiles].filter((profileId) => profileId.startsWith("ramp:")).length,
+        surfaceDetailColorVariants,
+        surfaceDetailSignatures: [...new Set(surfaceDetailSignatures)].sort(),
+        missingSurfaceDetailProfiles: [...expectedSurfaceDetailProfiles].filter((profileId) => !surfaceDetailProfiles.has(profileId)).sort(),
+        duplicateSurfaceDetailSignatures: surfaceDetailSignatures
+          .filter((signature, index, signatures) => signatures.indexOf(signature) !== index)
+          .sort(),
         visibleBoundaryObjects,
         identityRibbonObjects,
         identityRibbonSignatures: identityRibbonSignatures.size,

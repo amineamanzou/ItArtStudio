@@ -74,6 +74,12 @@ const beam = (
   return new THREE.Mesh(new THREE.TubeGeometry(curve, 1, radius, 6), mat);
 };
 
+const instancedColorMaterial = <T extends THREE.Material>(mat: T) => {
+  const clone = mat.clone();
+  (clone as THREE.Material & { vertexColors?: boolean }).vertexColors = true;
+  return clone;
+};
+
 const tag = (
   object: THREE.Object3D,
   role: SceneRole,
@@ -428,53 +434,96 @@ function addSurfaceDetails(
   const rampChevronCount = worldMaterialRegions.ramps.length * 3;
   const contourCount = 9;
   const signatures: string[] = [];
+  const profileIds = new Set<string>();
+  const colorVariants = new Set<number>();
 
-  const waterFoam = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.012, 6, 72), roadMat, waterFoamCount);
-  const shorePins = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.026, 0.038, 0.34, 7), studioMat, shorePinCount);
-  const rampChevrons = new THREE.InstancedMesh(new THREE.BoxGeometry(0.42, 0.036, 0.085), roadMat, rampChevronCount);
-  const terrainContours = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.009, 5, 84), inkMat, contourCount);
+  const waterProfiles: Record<string, { id: string; foam: [number, number]; pinAngle: number; pinLift: number; foamColor: number; pinColor: number }> = {
+    "tech-harbor": { id: "harbor-angular", foam: [1.12, 0.62], pinAngle: 0.18, pinLift: 0.06, foamColor: 0x4fdff6, pinColor: 0xfff2b0 },
+    "art-lagoon": { id: "lagoon-asymmetric", foam: [0.96, 0.76], pinAngle: 0.68, pinLift: 0.02, foamColor: 0xff6f8e, pinColor: 0xffd166 },
+    "studio-canal": { id: "canal-longitudinal", foam: [1.18, 0.58], pinAngle: -0.12, pinLift: 0.08, foamColor: 0xffd85c, pinColor: 0x54d8f2 },
+    "foundry-cooling-pool": { id: "cooling-tight-rings", foam: [0.88, 0.55], pinAngle: 0.42, pinLift: 0.04, foamColor: 0x83f4ff, pinColor: 0xff7a97 }
+  };
+  const rampProfiles: Record<string, { id: string; offset: number; scale: number; color: number; lift: number }> = {
+    "tech-delta": { id: "delta-blue-steps", offset: 0.04, scale: 1.06, color: 0x42d9ff, lift: 0.02 },
+    "obs-rise": { id: "observability-ticks", offset: -0.06, scale: 0.9, color: 0xffe38a, lift: 0.04 },
+    "art-sweep": { id: "art-sweep-strokes", offset: 0.12, scale: 1.18, color: 0xff6c87, lift: 0.01 },
+    "studio-crossing": { id: "studio-crossbars", offset: -0.1, scale: 1, color: 0xffd45a, lift: 0.03 },
+    "mail-bank": { id: "mail-bank-folds", offset: 0.02, scale: 0.96, color: 0xfff2b0, lift: 0.035 },
+    "foundry-roll": { id: "foundry-roll-cuts", offset: -0.14, scale: 1.08, color: 0x4fdff6, lift: 0.025 }
+  };
+
+  const waterFoam = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.012, 6, 72), instancedColorMaterial(roadMat), waterFoamCount);
+  const shorePins = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.026, 0.038, 0.34, 7), instancedColorMaterial(studioMat), shorePinCount);
+  const rampChevrons = new THREE.InstancedMesh(new THREE.BoxGeometry(0.42, 0.036, 0.085), instancedColorMaterial(roadMat), rampChevronCount);
+  const terrainContours = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.009, 5, 84), instancedColorMaterial(inkMat), contourCount);
   const matrix = new THREE.Matrix4();
   const quaternion = new THREE.Quaternion();
   const scale = new THREE.Vector3();
   const up = new THREE.Vector3(0, 1, 0);
+  const color = new THREE.Color();
 
   worldMaterialRegions.water.forEach((region, regionIndex) => {
+    const profile = waterProfiles[region.id] ?? waterProfiles["tech-harbor"];
+    profileIds.add(`water:${profile.id}`);
     const depthRatio = region.radiusZ / region.radiusX;
     for (let ringIndex = 0; ringIndex < 2; ringIndex += 1) {
       const index = regionIndex * 2 + ringIndex;
-      const ringScale = ringIndex === 0 ? 1.08 : 0.72;
-      quaternion.setFromEuler(new THREE.Euler(Math.PI * 0.5, region.rotation, 0));
-      scale.set(region.radiusX * ringScale, region.radiusX * depthRatio * ringScale, 1);
-      matrix.compose(new THREE.Vector3(region.center[0], 0.088 + ringIndex * 0.015, region.center[1]), quaternion, scale);
+      const ringScale = profile.foam[ringIndex];
+      const ringRotation = region.rotation + (ringIndex === 0 ? profile.pinAngle * 0.18 : -profile.pinAngle * 0.28);
+      const localOffset = new THREE.Vector3((ringIndex === 0 ? -0.08 : 0.14) * region.radiusX, 0, 0).applyAxisAngle(up, region.rotation);
+      quaternion.setFromEuler(new THREE.Euler(Math.PI * 0.5, ringRotation, 0));
+      scale.set(region.radiusX * ringScale, region.radiusX * depthRatio * ringScale * (ringIndex === 0 ? 0.98 : 0.86), 1);
+      matrix.compose(
+        new THREE.Vector3(region.center[0] + localOffset.x, 0.088 + ringIndex * 0.015, region.center[1] + localOffset.z),
+        quaternion,
+        scale
+      );
       waterFoam.setMatrixAt(index, matrix);
-      signatures.push(`surface-detail:water:${region.id}:foam-${ringIndex}`);
+      const foamColor = ringIndex === 0 ? profile.foamColor : profile.pinColor;
+      waterFoam.setColorAt(index, color.setHex(foamColor));
+      colorVariants.add(foamColor);
+      signatures.push(`surface-detail:water:${region.id}:${profile.id}:foam-${ringIndex}`);
     }
 
     for (let pinIndex = 0; pinIndex < 4; pinIndex += 1) {
-      const angle = region.rotation + pinIndex * Math.PI * 0.5 + 0.34;
-      const x = region.center[0] + Math.cos(angle) * region.radiusX * 1.04;
-      const z = region.center[1] + Math.sin(angle) * region.radiusZ * 1.04;
-      quaternion.setFromEuler(new THREE.Euler(0, angle * 0.18, 0));
-      matrix.compose(new THREE.Vector3(x, 0.205, z), quaternion, new THREE.Vector3(1, 1, 1));
+      const angle = region.rotation + pinIndex * Math.PI * 0.5 + profile.pinAngle;
+      const alternating = pinIndex % 2 === 0 ? 1 : 0.82;
+      const x = region.center[0] + Math.cos(angle) * region.radiusX * (1.02 + profile.pinLift);
+      const z = region.center[1] + Math.sin(angle) * region.radiusZ * (1.02 - profile.pinLift * 0.4);
+      quaternion.setFromEuler(new THREE.Euler(0, angle * 0.24, pinIndex % 2 === 0 ? 0.08 : -0.08));
+      matrix.compose(
+        new THREE.Vector3(x, 0.19 + profile.pinLift + pinIndex * 0.012, z),
+        quaternion,
+        new THREE.Vector3(alternating, 0.92 + profile.pinLift * 2.8, alternating)
+      );
       shorePins.setMatrixAt(regionIndex * 4 + pinIndex, matrix);
-      signatures.push(`surface-detail:water:${region.id}:shore-pin-${pinIndex}`);
+      const pinColor = pinIndex % 2 === 0 ? profile.pinColor : profile.foamColor;
+      shorePins.setColorAt(regionIndex * 4 + pinIndex, color.setHex(pinColor));
+      colorVariants.add(pinColor);
+      signatures.push(`surface-detail:water:${region.id}:${profile.id}:shore-pin-${pinIndex}`);
     }
   });
 
   worldMaterialRegions.ramps.forEach((region, regionIndex) => {
+    const profile = rampProfiles[region.id] ?? rampProfiles["tech-delta"];
+    profileIds.add(`ramp:${profile.id}`);
     const localOffsets = [-0.26, 0, 0.26];
     localOffsets.forEach((localZ, chevronIndex) => {
       const index = regionIndex * localOffsets.length + chevronIndex;
-      const forwardOffset = new THREE.Vector3(0, 0, localZ * region.depth).applyAxisAngle(up, region.rotation);
-      quaternion.setFromEuler(new THREE.Euler(0, region.rotation + Math.PI * 0.25 * region.direction, 0));
-      scale.set(1, 1, 1);
+      const lateralOffset = (chevronIndex - 1) * profile.offset;
+      const forwardOffset = new THREE.Vector3(lateralOffset * region.width, 0, localZ * region.depth).applyAxisAngle(up, region.rotation);
+      quaternion.setFromEuler(new THREE.Euler(0, region.rotation + Math.PI * (0.18 + chevronIndex * 0.035) * region.direction, 0));
+      scale.set(profile.scale * (1 - chevronIndex * 0.04), 1, 0.9 + chevronIndex * 0.12);
       matrix.compose(
-        new THREE.Vector3(region.center[0] + forwardOffset.x, 0.245 + region.height * 0.8, region.center[1] + forwardOffset.z),
+        new THREE.Vector3(region.center[0] + forwardOffset.x, 0.235 + region.height * 0.8 + profile.lift, region.center[1] + forwardOffset.z),
         quaternion,
         scale
       );
       rampChevrons.setMatrixAt(index, matrix);
-      signatures.push(`surface-detail:ramp:${region.id}:chevron-${chevronIndex}`);
+      const chevronColor = chevronIndex === 1 ? 0xfff2b0 : profile.color;
+      rampChevrons.setColorAt(index, color.setHex(chevronColor));
+      colorVariants.add(chevronColor);
+      signatures.push(`surface-detail:ramp:${region.id}:${profile.id}:chevron-${chevronIndex}`);
     });
   });
 
@@ -485,11 +534,17 @@ function addSurfaceDetails(
     scale.set(radius * (1.18 - index * 0.018), radius * (0.82 + index * 0.012), 1);
     matrix.compose(new THREE.Vector3(0, height, 0.2 - index * 0.04), quaternion, scale);
     terrainContours.setMatrixAt(index, matrix);
+    const contourColor = index % 3 === 0 ? 0x7b8371 : index % 3 === 1 ? 0x52645f : 0x9d9875;
+    terrainContours.setColorAt(index, color.setHex(contourColor));
+    colorVariants.add(contourColor);
     signatures.push(`surface-detail:terrain:contour-${index}`);
   }
 
   [waterFoam, shorePins, rampChevrons, terrainContours].forEach((mesh) => {
     mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) {
+      mesh.instanceColor.needsUpdate = true;
+    }
     mesh.userData.surfaceDetailPart = mesh === waterFoam
       ? "water-foam"
       : mesh === shorePins
@@ -497,8 +552,13 @@ function addSurfaceDetails(
         : mesh === rampChevrons
           ? "ramp-chevron"
           : "terrain-contour";
+    mesh.userData.surfaceDetailProfileIds = [...profileIds];
+    mesh.userData.surfaceDetailColorVariantCount = colorVariants.size;
     detail.add(mesh);
   });
+  detail.userData.surfaceDetailSignatures = signatures.slice();
+  detail.userData.surfaceDetailExpectedWaterProfiles = Object.values(waterProfiles).map((profile) => `water:${profile.id}`);
+  detail.userData.surfaceDetailExpectedRampProfiles = Object.values(rampProfiles).map((profile) => `ramp:${profile.id}`);
 
   add(detail, "surface-detail", "surface-detail:instanced-topography", "instance-pulse", {
     signatures,

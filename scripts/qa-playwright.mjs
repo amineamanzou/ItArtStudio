@@ -3882,12 +3882,39 @@ async function checkWorldRichness(page) {
     });
   }
 
+  const expectedSurfaceDetailWaterProfiles = [
+    "surface-detail:water:tech-harbor:harbor-angular:",
+    "surface-detail:water:art-lagoon:lagoon-asymmetric:",
+    "surface-detail:water:studio-canal:canal-longitudinal:",
+    "surface-detail:water:foundry-cooling-pool:cooling-tight-rings:"
+  ];
+  const expectedSurfaceDetailRampProfiles = [
+    "surface-detail:ramp:tech-delta:delta-blue-steps:",
+    "surface-detail:ramp:obs-rise:observability-ticks:",
+    "surface-detail:ramp:art-sweep:art-sweep-strokes:",
+    "surface-detail:ramp:studio-crossing:studio-crossbars:",
+    "surface-detail:ramp:mail-bank:mail-bank-folds:",
+    "surface-detail:ramp:foundry-roll:foundry-roll-cuts:"
+  ];
+  const surfaceDetailSignatures = world?.surfaceDetailSignatures ?? [];
+  const missingSurfaceDetailRegionProfiles = [
+    ...expectedSurfaceDetailWaterProfiles,
+    ...expectedSurfaceDetailRampProfiles
+  ].filter((signaturePrefix) => !surfaceDetailSignatures.some((signature) => signature.startsWith(signaturePrefix)));
+  const duplicateSurfaceDetailSignatures = world?.duplicateSurfaceDetailSignatures ?? [];
   const premiumSurfaceDetails =
     world &&
-    world.surfaceDetailPartCounts?.["water-foam"] >= 6 &&
-    world.surfaceDetailPartCounts?.["shore-pin"] >= 12 &&
-    world.surfaceDetailPartCounts?.["ramp-chevron"] >= 15 &&
+    world.surfaceDetailPartCounts?.["water-foam"] === 8 &&
+    world.surfaceDetailPartCounts?.["shore-pin"] === 16 &&
+    world.surfaceDetailPartCounts?.["ramp-chevron"] === 18 &&
     world.surfaceDetailPartCounts?.["terrain-contour"] >= 9 &&
+    world.surfaceDetailProfiles >= 10 &&
+    world.surfaceDetailWaterProfiles === 4 &&
+    world.surfaceDetailRampProfiles === 6 &&
+    world.surfaceDetailColorVariants >= 12 &&
+    (world.missingSurfaceDetailProfiles ?? []).length === 0 &&
+    missingSurfaceDetailRegionProfiles.length === 0 &&
+    duplicateSurfaceDetailSignatures.length === 0 &&
     world.sceneryRoleCounts?.["surface-detail"] >= 17 &&
     world.sceneryRoleCounts?.["water-body"] >= 3 &&
     world.sceneryRoleCounts?.["relief-ramp"] >= 5 &&
@@ -3901,6 +3928,14 @@ async function checkWorldRichness(page) {
       waterBodies: world.sceneryRoleCounts["water-body"],
       reliefRamps: world.sceneryRoleCounts["relief-ramp"],
       surfaceDetailPartCounts: world.surfaceDetailPartCounts,
+      surfaceDetailProfiles: world.surfaceDetailProfiles,
+      surfaceDetailWaterProfiles: world.surfaceDetailWaterProfiles,
+      surfaceDetailRampProfiles: world.surfaceDetailRampProfiles,
+      surfaceDetailColorVariants: world.surfaceDetailColorVariants,
+      surfaceDetailSignatures: world.surfaceDetailSignatures,
+      missingSurfaceDetailProfiles: world.missingSurfaceDetailProfiles,
+      missingSurfaceDetailRegionProfiles,
+      duplicateSurfaceDetailSignatures,
       sceneryObjects: world.sceneryObjects,
       scenerySignatures: world.scenerySignatures,
       sceneryMotionObjects: world.sceneryMotionObjects,
@@ -3913,6 +3948,14 @@ async function checkWorldRichness(page) {
       waterBodies: world?.sceneryRoleCounts?.["water-body"],
       reliefRamps: world?.sceneryRoleCounts?.["relief-ramp"],
       surfaceDetailPartCounts: world?.surfaceDetailPartCounts,
+      surfaceDetailProfiles: world?.surfaceDetailProfiles,
+      surfaceDetailWaterProfiles: world?.surfaceDetailWaterProfiles,
+      surfaceDetailRampProfiles: world?.surfaceDetailRampProfiles,
+      surfaceDetailColorVariants: world?.surfaceDetailColorVariants,
+      surfaceDetailSignatures: world?.surfaceDetailSignatures,
+      missingSurfaceDetailProfiles: world?.missingSurfaceDetailProfiles,
+      missingSurfaceDetailRegionProfiles,
+      duplicateSurfaceDetailSignatures,
       sceneryObjects: world?.sceneryObjects,
       scenerySignatures: world?.scenerySignatures,
       sceneryMotionObjects: world?.sceneryMotionObjects,
@@ -7886,6 +7929,7 @@ async function writeReport() {
     `- Scenery roles: ${
       world?.sceneryRoleCounts ? Object.entries(world.sceneryRoleCounts).map(([role, count]) => `${role}:${count}`).join(", ") : "n/a"
     }`,
+    `- Surface detail profiles: ${world?.surfaceDetailProfiles ?? "n/a"} total, water ${world?.surfaceDetailWaterProfiles ?? "n/a"}/4, ramp ${world?.surfaceDetailRampProfiles ?? "n/a"}/6, colors ${world?.surfaceDetailColorVariants ?? "n/a"}`,
     `- Identity ribbon: ${
       identityRibbonScenario?.details
         ? `${identityRibbonScenario.details.identityRibbonObjects} objects, signatures ${identityRibbonScenario.details.identityRibbonSignatures}, visibility ${identityRibbonVisibleScenarios.filter((scenario) => scenario.status === "pass").length}/${identityRibbonVisibleScenarios.length}`

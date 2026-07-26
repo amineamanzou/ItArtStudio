@@ -753,6 +753,19 @@ Gates V6.2:
 - cette tranche n'ajoute aucun nouvel `Object3D`: elle augmente la densite et la
   lisibilite du monde par instances dans les meshes existants.
 
+Gates V6.3:
+
+- les bassins et rampes ne partagent plus un motif uniforme: chaque region eau
+  ou rampe porte un profil de micro-scene instancie (`harbor`, `lagoon`,
+  `canal`, `cooling pool`, `delta`, `observability`, `art sweep`, `studio`,
+  `mail bank`, `foundry`);
+- `premium-surface-details` exige maintenant les quatre profils d'eau, les six
+  profils de rampes, des signatures regionales sans doublon et au moins douze
+  variantes de couleur d'instance;
+- aucun nouvel `Object3D` n'est ajoute: la differenciation est portee par
+  matrices, hauteurs, rotations, couleurs et signatures des `InstancedMesh`
+  existants, pour garder le budget `sceneObjects <= 940`.
+
 ## Components
 
 - `game-site`: surface principale.
