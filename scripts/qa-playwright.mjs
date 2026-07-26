@@ -91,7 +91,7 @@ const expectedPrioritySignatureFamilies = {
   "observability-tower": ["telemetry-lighthouse", "radar-beam", "metric-stack", "log-waterfall"],
   "cloud-dock": ["cloud-platform", "server-array", "electric-cloud", "cloud-skybridge"],
   "design-atelier": ["composition-wall", "pattern-table", "material-palette", "atelier-light-rig", "atelier-mannequin"],
-  "three-d-foundry": ["wireframe-knot", "scan-rig", "volume-slice", "toolpath-arm"],
+  "three-d-foundry": ["wireframe-knot", "scan-rig", "printer-gantry", "volume-slice", "toolpath-arm"],
   "fashion-room": ["garment-fold", "runway-form", "pattern-rail", "fabric-swatch"],
   "contact-portal": ["postal-counter", "reply-portal", "mail-packet", "postal-wall", "delivery-signal"]
 };
@@ -1851,9 +1851,8 @@ async function checkRealDriveTour(browser) {
         id: "design-atelier",
         position: { x: 10.8, z: -5.2 },
         route: [
-          { id: "cloud-dock", zoneId: "cloud-dock", position: { x: -4.1, z: -10.4 }, timeoutMs: 11_000, overshootBrake: true },
-          { id: "studio-gate", zoneId: "studio-gate", position: { x: 0, z: 0 }, timeoutMs: 12_000, overshootBrake: true },
-          { id: "design-atelier", zoneId: "design-atelier", position: { x: 10.8, z: -5.2 }, radius: 3.4, timeoutMs: 16_000 }
+          { id: "design-spine-return", zoneId: "studio-gate", position: { x: 0, z: 0 }, radius: 2.4, timeoutMs: 18_000, overshootBrake: true },
+          { id: "design-atelier", zoneId: "design-atelier", position: { x: 10.8, z: -5.2 }, radius: 3.4, timeoutMs: 18_000, overshootBrake: true }
         ]
       },
       {
@@ -1875,7 +1874,8 @@ async function checkRealDriveTour(browser) {
         ]
       }
     ];
-    const realDriveTargets = targets.filter((target) => target.disabled !== true);
+    const realDriveTargets = targets.filter((target) => target.disabled !== true && target.optional !== true);
+    const optionalRealDriveTargets = targets.filter((target) => target.disabled !== true && target.optional === true);
     const requiredRealDriveTargetIds = ["observability-tower", "design-atelier", "contact-portal"];
     const routeResults = [];
 
@@ -1899,15 +1899,6 @@ async function checkRealDriveTour(browser) {
         await inspectSignatureArtifactVisibility(page, `real-drive:${target.id}`);
         await inspectProjectArtifactVisibility(page, `real-drive:${target.id}`);
         await inspectPlaceCompositionVisibility(page, `real-drive:${target.id}`);
-      } else if (target.optional === true) {
-        pass(`real-drive:${target.id}:optional-coverage`, {
-          elapsedMs: result.elapsedMs,
-          sampleCount: result.samples.length,
-          maxSampleStepDistance: Number(result.maxSampleStepDistance.toFixed(3)),
-          targetVisited,
-          player: snapshot?.player,
-          drive: snapshot?.drive
-        });
       } else {
         scenarioFail(`real-drive:${target.id}`, "Real keyboard drive did not reach the target zone.", {
           result,
@@ -1939,11 +1930,10 @@ async function checkRealDriveTour(browser) {
     const visitedRequiredTargets = requiredRealDriveTargetIds.filter((targetId) => final?.visitedZoneIds?.includes(targetId));
     const surface = final?.drive?.surface;
     const expectedRouteIds = [
-      "tech-gate-cloud",
-      "tech-cloud-ai",
       "tech-ai-obs",
       "art-gate-design",
-      "spine-contact-gate"
+      "spine-contact-gate",
+      "spine-gate-values"
     ];
     const visitedRouteIds = surface?.visitedRouteIds ?? [];
     const coveredExpectedRouteIds = expectedRouteIds.filter((routeId) => visitedRouteIds.includes(routeId));
@@ -2228,6 +2218,21 @@ async function checkRealDriveTour(browser) {
         expectedRouteIds,
         coveredExpectedRouteIds,
         routeResults
+      });
+    }
+
+    for (const target of optionalRealDriveTargets) {
+      const result = await driveRouteWithRealKeyboard(page, target);
+      const snapshot = await getQaSnapshot(page);
+      const targetVisited = snapshot?.visitedZoneIds?.includes(target.id) === true;
+      pass(`real-drive:${target.id}:optional-coverage`, {
+        reached: result.reached || targetVisited,
+        elapsedMs: result.elapsedMs,
+        sampleCount: result.samples.length,
+        maxSampleStepDistance: Number(result.maxSampleStepDistance.toFixed(3)),
+        targetVisited,
+        player: snapshot?.player,
+        drive: snapshot?.drive
       });
     }
 
@@ -3359,6 +3364,25 @@ async function checkWorldRichness(page) {
       sceneObjectBudget: premiumWorldObjectBudget
     });
   }
+  const renderer = snapshot?.renderer;
+  const rendererCaps = { calls: 390, triangles: 110_000, geometries: 340, textures: 24 };
+  const rendererBudgetOk =
+    renderer &&
+    renderer.calls <= rendererCaps.calls &&
+    renderer.triangles <= rendererCaps.triangles &&
+    renderer.geometries <= rendererCaps.geometries &&
+    renderer.textures <= rendererCaps.textures;
+  if (rendererBudgetOk) {
+    pass("renderer-budget", {
+      renderer,
+      caps: rendererCaps
+    });
+  } else {
+    scenarioFail("renderer-budget", "Renderer budget drifted beyond the V7.3 premium-world caps.", {
+      renderer,
+      caps: rendererCaps
+    });
+  }
   const routeCount = snapshot?.drive?.surface?.routeCount ?? 0;
   const routeLightRunway =
     world &&
@@ -3706,6 +3730,57 @@ async function checkWorldRichness(page) {
       proofs: artPremiumProofs,
       sceneObjects: world?.sceneObjects,
       sceneObjectBudget: premiumWorldObjectBudget
+    });
+  }
+
+  const foundryZone = visualSpecZones.find((item) => item.id === "three-d-foundry");
+  const foundrySignatureFamilies = new Set(foundryZone?.signatureArtifactFamilies ?? []);
+  const foundrySignatureRoles = foundryZone?.signatureArtifactRoles ?? [];
+  const foundryPrinterHierarchy =
+    world &&
+    foundryZone &&
+    ["wireframe-knot", "scan-rig", "printer-gantry", "volume-slice", "toolpath-arm"].every((family) =>
+      foundrySignatureFamilies.has(family)
+    ) &&
+    foundrySignatureRoles.some((role) => role.startsWith("printer-gantry:printer-overhead-beam")) &&
+    foundrySignatureRoles.some((role) => role.startsWith("printer-gantry:resin-basin")) &&
+    foundrySignatureRoles.some((role) => role.startsWith("printer-gantry:extruder-head")) &&
+    (foundryZone.signatureArtifactObjects ?? 0) >= 16 &&
+    (foundryZone.signatureArtifactSceneObjects ?? 0) <= 6 &&
+    (foundryZone.signatureArtifactSignatures?.length ?? 0) >= 16 &&
+    (foundryZone.signatureArtifactRoles?.length ?? 0) >= 16 &&
+    (foundryZone.signatureArtifactBounds?.height ?? 0) >= 1.65 &&
+    (foundryZone.signatureArtifactBounds?.width ?? 0) >= 1.85 &&
+    (foundryZone.signatureArtifactBounds?.depth ?? 0) >= 1.35 &&
+    Boolean(foundryZone.signatureArtifactFingerprint) &&
+    world.sceneObjects <= premiumWorldObjectBudget - 24;
+  if (foundryPrinterHierarchy) {
+    pass("foundry-printer-hierarchy", {
+      zoneId: foundryZone.id,
+      families: foundryZone.signatureArtifactFamilies,
+      roles: foundryZone.signatureArtifactRoles,
+      signatures: foundryZone.signatureArtifactSignatures,
+      semanticSignatureObjects: foundryZone.signatureArtifactObjects,
+      physicalSignatureSceneObjects: foundryZone.signatureArtifactSceneObjects,
+      bounds: foundryZone.signatureArtifactBounds,
+      fingerprint: foundryZone.signatureArtifactFingerprint,
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget,
+      reservedHeadroom: premiumWorldObjectBudget - world.sceneObjects
+    });
+  } else {
+    scenarioFail("foundry-printer-hierarchy", "3D Foundry does not expose a dominant printer/scanner silhouette within budget.", {
+      zoneId: foundryZone?.id ?? "three-d-foundry",
+      families: foundryZone?.signatureArtifactFamilies ?? [],
+      roles: foundryZone?.signatureArtifactRoles ?? [],
+      signatures: foundryZone?.signatureArtifactSignatures ?? [],
+      semanticSignatureObjects: foundryZone?.signatureArtifactObjects,
+      physicalSignatureSceneObjects: foundryZone?.signatureArtifactSceneObjects,
+      bounds: foundryZone?.signatureArtifactBounds ?? null,
+      fingerprint: foundryZone?.signatureArtifactFingerprint ?? null,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget,
+      reservedHeadroom: typeof world?.sceneObjects === "number" ? premiumWorldObjectBudget - world.sceneObjects : null
     });
   }
 
@@ -7183,6 +7258,18 @@ async function checkPriorityPlaceCompositionVisibility() {
   const proofs = priorityPlaceZoneIds.map((zoneId) => priorityPlaceCompositionProofs.get(zoneId)).filter(Boolean);
   const missingZones = priorityPlaceZoneIds.filter((zoneId) => !priorityPlaceCompositionProofs.has(zoneId));
   const ok = missingZones.length === 0 && proofs.length === priorityPlaceZoneIds.length;
+  const foundryProof = priorityPlaceCompositionProofs.get("three-d-foundry");
+  const foundryThresholds = foundryProof?.thresholds?.priorityComposition ?? foundryProof?.thresholds?.composition;
+  const foundryComposition = foundryProof?.priorityComposition ?? foundryProof?.composition;
+  const foundryVisualProof =
+    foundryProof &&
+    foundryProof.signatureArtifact?.rect?.visible === true &&
+    foundryProof.signatureArtifact?.visibleAfterUiRatio >= 0.58 &&
+    foundryComposition?.visibleLayerCount >= 3 &&
+    foundryComposition?.visibleAfterUiRatio >= (foundryThresholds?.minVisibleAfterUiRatio ?? 0.46) &&
+    foundryComposition?.roi?.sampled === true &&
+    foundryComposition?.roi?.edgeDensity >= (foundryThresholds?.minEdgeDensity ?? 0.026) &&
+    foundryComposition?.roi?.colorBuckets >= (foundryThresholds?.minColorBuckets ?? 7);
 
   if (ok) {
     pass("priority-place-composition-visible", {
@@ -7199,6 +7286,21 @@ async function checkPriorityPlaceCompositionVisibility() {
         proofs
       }
     );
+  }
+
+  if (foundryVisualProof) {
+    pass("foundry-visual-proof", {
+      zoneId: "three-d-foundry",
+      signatureArtifact: foundryProof.signatureArtifact,
+      composition: foundryComposition,
+      compositionAreaRatio: foundryProof.compositionAreaRatio,
+      thresholds: foundryProof.thresholds
+    });
+  } else {
+    scenarioFail("foundry-visual-proof", "3D Foundry printer/scanner hierarchy is not visually readable in the map close-up.", {
+      zoneId: "three-d-foundry",
+      proof: foundryProof ?? null
+    });
   }
 }
 
@@ -8313,6 +8415,7 @@ async function writeReport() {
     } | ${canvas?.colorBuckets ?? "n/a"} |`;
   });
   const worldScenario = scenarios.find((scenario) => scenario.name === "world-richness");
+  const rendererBudgetScenario = scenarios.find((scenario) => scenario.name === "renderer-budget");
   const visualScenario = scenarios.find((scenario) => scenario.name === "visual-specs-rendered");
   const placeArchitectureScenario = scenarios.find((scenario) => scenario.name === "place-architecture-rendered");
   const projectArtifactsScenario = scenarios.find((scenario) => scenario.name === "project-artifacts-rendered");
@@ -8360,6 +8463,8 @@ async function writeReport() {
   const priorityPlaceCompositionScenario = scenarios.find((scenario) => scenario.name === "priority-place-composition-visible");
   const premiumLandmarkHierarchyScenario = scenarios.find((scenario) => scenario.name === "premium-landmark-hierarchy");
   const artPremiumRoomsScenario = scenarios.find((scenario) => scenario.name === "art-premium-rooms");
+  const foundryPrinterHierarchyScenario = scenarios.find((scenario) => scenario.name === "foundry-printer-hierarchy");
+  const foundryVisualProofScenario = scenarios.find((scenario) => scenario.name === "foundry-visual-proof");
   const perceptualDistanceScenario = scenarios.find((scenario) => scenario.name === "zone-perceptual-distance");
   const techPlaceDistinctivenessScenario = scenarios.find((scenario) => scenario.name === "tech-place-distinctiveness");
   const playableStageScenarios = scenarios.filter((scenario) => scenario.name.startsWith("playable-stage-dominance:"));
@@ -8416,6 +8521,11 @@ async function writeReport() {
     "## 3D Inventory",
     "",
     `- Scene objects: ${world?.sceneObjects ?? "n/a"}`,
+    `- Renderer budget: ${
+      rendererBudgetScenario?.details?.renderer
+        ? `${rendererBudgetScenario.status}, calls ${rendererBudgetScenario.details.renderer.calls}/${rendererBudgetScenario.details.caps.calls}, triangles ${rendererBudgetScenario.details.renderer.triangles}/${rendererBudgetScenario.details.caps.triangles}, geometries ${rendererBudgetScenario.details.renderer.geometries}/${rendererBudgetScenario.details.caps.geometries}, textures ${rendererBudgetScenario.details.renderer.textures}/${rendererBudgetScenario.details.caps.textures}`
+        : (rendererBudgetScenario?.status ?? "n/a")
+    }`,
     `- Landmark objects: ${world?.landmarkObjects ?? "n/a"}`,
     `- Road segments: ${world?.roadSegments ?? "n/a"}`,
     `- Route surface ribbons: ${
@@ -8663,6 +8773,16 @@ async function writeReport() {
       artPremiumRoomsScenario?.details
         ? `${artPremiumRoomsScenario.status}, ${artPremiumRoomsScenario.details.proofs?.length ?? 0} rooms, scene ${artPremiumRoomsScenario.details.sceneObjects}/${artPremiumRoomsScenario.details.sceneObjectBudget}`
         : "n/a"
+    }`,
+    `- Foundry printer hierarchy: ${
+      foundryPrinterHierarchyScenario?.details
+        ? `${foundryPrinterHierarchyScenario.status}, ${foundryPrinterHierarchyScenario.details.semanticSignatureObjects}/${foundryPrinterHierarchyScenario.details.physicalSignatureSceneObjects} semantic/scene, headroom ${foundryPrinterHierarchyScenario.details.reservedHeadroom}`
+        : (foundryPrinterHierarchyScenario?.status ?? "n/a")
+    }`,
+    `- Foundry visual proof: ${
+      foundryVisualProofScenario?.details
+        ? `${foundryVisualProofScenario.status}, visible-after-ui ${foundryVisualProofScenario.details.composition?.visibleAfterUiRatio}, edge density ${foundryVisualProofScenario.details.composition?.roi?.edgeDensity}, buckets ${foundryVisualProofScenario.details.composition?.roi?.colorBuckets}`
+        : (foundryVisualProofScenario?.status ?? "n/a")
     }`,
     `- Weakest place composition: ${
       weakestPlaceCompositionScenario

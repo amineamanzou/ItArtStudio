@@ -272,6 +272,14 @@ The runner:
   props. The gate checks required families, role prefixes, semantic object
   counts, physical scene-object caps, bounds and at least 24 free slots under
   the strict 940-object world budget.
+- Foundry printer hierarchy must prove that 3D Foundry reads as a modeled
+  printer/scanner place: one instanced physical asset can expose rails, bed,
+  resin basin and extruder semantics, but it must keep dominant bounds,
+  `signatureArtifactSceneObjects <= 6`, and at least 24 free scene slots.
+- Foundry visual proof must also pass through the priority mini-map composition
+  proof, with the signature artifact visible after UI occlusion and a non-flat
+  ROI. `renderer-budget` caps V7.3 at 390 calls, 110k triangles, 340 geometries
+  and 24 textures so asset quality does not silently become runtime debt.
 - Playable stage dominance must prove more than low aggregate UI coverage. The
   runner measures unioned UI occlusion, a clear center-stage rectangle, rover
   projection, and active place-composition occlusion. Desktop/tablet views must

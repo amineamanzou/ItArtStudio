@@ -878,6 +878,19 @@ Gates V7.2:
   nombre d'objets semantiques, objets physiques limites et headroom
   `sceneObjects <= 916`.
 
+Gates V7.3:
+
+- `3D Foundry` gagne une silhouette d'imprimante/scanner: rails verticaux,
+  traverse haute, lit d'impression, bassin de resine et tete d'extrusion;
+- l'asset est un seul `InstancedMesh` physique avec plusieurs pieces
+  semantiques, pour augmenter la lisibilite sans gonfler le scene graph;
+- `foundry-printer-hierarchy` exige la famille `printer-gantry`, les roles
+  printer/resine/extruder, des bounds dominants et le meme headroom strict
+  `sceneObjects <= 916`;
+- `foundry-visual-proof` exige que la Foundry reste lisible dans la preuve
+  mini-map/ROI, et `renderer-budget` surveille draw calls, triangles,
+  geometries et textures pour eviter une qualite non maitrisable.
+
 ## Components
 
 - `game-site`: surface principale.

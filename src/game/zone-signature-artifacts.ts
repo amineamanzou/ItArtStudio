@@ -28,6 +28,7 @@ type ArtifactRole =
   | "atelier-mannequin"
   | "wireframe-knot"
   | "scan-rig"
+  | "printer-gantry"
   | "volume-slice"
   | "toolpath-arm"
   | "garment-fold"
@@ -336,14 +337,14 @@ function createAiArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactM
 function createTraceArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactMaterials) {
   add(group, cylinder(0.08, 0.16, 2.72, mats.dark, [0, 1.58, -0.78], 18), zone, "telemetry-lighthouse", "telemetry-lighthouse-mast", "dark-lighthouse", "pulse");
   add(group, cylinder(0.44, 0.56, 0.14, mats.secondary, [0, 0.42, -0.78], 24), zone, "telemetry-lighthouse", "lighthouse-radar-base", "secondary-base", "tilt");
-  add(group, ring(0.7, 0.018, mats.accent, [0, 2.74, -0.78], [Math.PI * 0.5, 0.14, 0.26]), zone, "radar-beam", "radar-sweep-crown", "accent-crown", "sweep");
+  add(group, ring(0.84, 0.018, mats.accent, [0, 2.62, -0.78], [Math.PI * 0.5, 0.14, 0.26]), zone, "radar-beam", "radar-sweep-crown", "accent-crown", "sweep");
   add(
     group,
     tube([
-      new THREE.Vector3(-0.68, 2.6, -0.78),
-      new THREE.Vector3(-0.18, 2.9, -0.96),
-      new THREE.Vector3(0.42, 2.6, -0.56),
-      new THREE.Vector3(1.08, 2.26, -0.78)
+      new THREE.Vector3(-0.9, 2.48, -0.78),
+      new THREE.Vector3(-0.18, 2.78, -0.96),
+      new THREE.Vector3(0.42, 2.48, -0.56),
+      new THREE.Vector3(1.2, 2.14, -0.78)
     ], 0.018, mats.accent),
     zone,
     "radar-beam",
@@ -517,6 +518,23 @@ function createFoundryArtifacts(group: THREE.Group, zone: StudioZone, mats: Arti
   add(group, knot, zone, "wireframe-knot", "parametric-knot", "accent-knot", "sweep");
   add(group, ring(0.6, 0.014, mats.light, [0.1, 1.28, -0.84], [0.8, 0.2, 0.4]), zone, "volume-slice", "section-ring-a", "light-section", "tilt");
   add(group, ring(0.48, 0.014, mats.secondary, [0.1, 1.28, -0.84], [0.2, 0.9, 0.1]), zone, "volume-slice", "section-ring-b", "secondary-section", "tilt");
+  const printerGantry = instancedBoxes([0.12, 0.12, 0.12], mats.light, [
+    { position: [-0.96, 0.84, 0.44], scale: [0.82, 9.4, 0.82], color: mats.dark.color.getHex() },
+    { position: [1.02, 0.84, 0.44], scale: [0.82, 9.4, 0.82], color: mats.dark.color.getHex() },
+    { position: [0.03, 1.44, 0.44], scale: [17.2, 0.74, 0.74], color: mats.light.color.getHex() },
+    { position: [0.03, 0.28, 0.52], scale: [13.8, 0.58, 4.8], color: mats.secondary.color.getHex() },
+    { position: [0.03, 0.42, 0.52], scale: [8.4, 0.48, 3.1], color: mats.accent.color.getHex() },
+    { position: [0.26, 1.16, 0.28], scale: [1.7, 1.7, 1.7], color: mats.accent.color.getHex() }
+  ]);
+  add(group, printerGantry, zone, "printer-gantry", "printer-gantry-assembly", "instanced-printer-gantry", "pulse");
+  tagSemanticParts(printerGantry, zone, [
+    { role: "printer-gantry", signature: "printer-left-rail", materialVariant: "dark-printer-rail" },
+    { role: "printer-gantry", signature: "printer-right-rail", materialVariant: "dark-printer-rail" },
+    { role: "printer-gantry", signature: "printer-overhead-beam", materialVariant: "light-printer-beam" },
+    { role: "printer-gantry", signature: "printer-bed", materialVariant: "secondary-printer-bed" },
+    { role: "printer-gantry", signature: "resin-basin", materialVariant: "accent-resin-basin" },
+    { role: "printer-gantry", signature: "extruder-head", materialVariant: "accent-extruder-head" }
+  ]);
   const scanPosts = instancedBoxes([0.1, 1.02, 0.1], mats.dark, [
     { position: [-0.72, 0.96, -0.84], scale: [1, 1, 1], color: mats.dark.color.getHex() },
     { position: [0.92, 0.86, -0.82], scale: [0.82, 0.82, 0.82], color: mats.light.color.getHex() },
