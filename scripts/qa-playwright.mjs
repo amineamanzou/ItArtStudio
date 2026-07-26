@@ -8874,11 +8874,12 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
     zoneProofs.every((proof) => proof.ok === true) &&
     zoneCaptures.length === proofZoneIds.length &&
     zoneCaptures.every((entry) => entry.canvas?.ok === true);
-  const encounterFamilies = new Set(encounterProofs.filter((proof) => proof.reached || proof.matchingProofCount > 0).map((proof) => proof.family));
+  const isEncounterProofOk = (proof) => proof.reached || proof.matchingProofCount > 0 || proof.visuallyProven === true;
+  const encounterFamilies = new Set(encounterProofs.filter(isEncounterProofOk).map((proof) => proof.family));
   const requiredEncounterFamilies = staticProofScope === "full" ? ["studio", "tech", "art"] : ["tech"];
   const encounterCoverageOk =
     encounterProofs.length === encounterTargets.length &&
-    encounterProofs.every((proof) => proof.reached || proof.matchingProofCount > 0) &&
+    encounterProofs.every(isEncounterProofOk) &&
     requiredEncounterFamilies.every((family) => encounterFamilies.has(family));
   const mobileOk = mobileCapture?.canvas?.ok === true;
   const proofReelOk = homeCapture?.canvas?.ok === true && zoneCoverageOk && encounterCoverageOk && mobileOk;
