@@ -778,6 +778,18 @@ Gates V6.4:
   nouvel `Object3D`, pas de nouvelle geometrie par frame, seulement matrices,
   couleurs d'instances et telemetry QA.
 
+Gates V6.5:
+
+- `3D Foundry` et `Fashion Room` entrent dans les zones prioritaires: elles
+  doivent lire comme de vrais micro-lieux ART, pas comme des pictogrammes;
+- Foundry expose maintenant scan rig, volumes de section et toolpath instancie;
+  Fashion expose drape, runway, rails de patron et swatches matiere instancies;
+- `art-premium-rooms` exige familles, signatures, roles, bounds et set dressing
+  dedies pour les deux zones, tout en gardant `sceneObjects <= 940`;
+- les panneaux litteraux `3D` / `MODE` ne portent plus seuls la comprehension:
+  les roles de decor deviennent printer bed, resin vat, scan gantry, runway
+  arch, fabric roll, mirror panel et pattern cutting table.
+
 ## Components
 
 - `game-site`: surface principale.

@@ -18,7 +18,13 @@ type ArtifactRole =
   | "material-palette"
   | "atelier-light-rig"
   | "wireframe-knot"
+  | "scan-rig"
+  | "volume-slice"
+  | "toolpath-arm"
   | "garment-fold"
+  | "runway-form"
+  | "pattern-rail"
+  | "fabric-swatch"
   | "value-crossing"
   | "postal-counter"
   | "reply-portal"
@@ -398,9 +404,33 @@ function createFoundryArtifacts(group: THREE.Group, zone: StudioZone, mats: Arti
   knot.position.set(0.1, 1.28, -0.84);
   knot.rotation.set(0.4, 0.2, -0.1);
   add(group, knot, zone, "wireframe-knot", "parametric-knot", "accent-knot", "sweep");
-  add(group, ring(0.6, 0.014, mats.light, [0.1, 1.28, -0.84], [0.8, 0.2, 0.4]), zone, "wireframe-knot", "section-ring-a", "light-section", "tilt");
-  add(group, ring(0.48, 0.014, mats.secondary, [0.1, 1.28, -0.84], [0.2, 0.9, 0.1]), zone, "wireframe-knot", "section-ring-b", "secondary-section", "tilt");
-  add(group, box([0.12, 1.02, 0.12], mats.dark, [-0.68, 0.96, -0.84]), zone, "wireframe-knot", "scan-post", "dark-post", "blink");
+  add(group, ring(0.6, 0.014, mats.light, [0.1, 1.28, -0.84], [0.8, 0.2, 0.4]), zone, "volume-slice", "section-ring-a", "light-section", "tilt");
+  add(group, ring(0.48, 0.014, mats.secondary, [0.1, 1.28, -0.84], [0.2, 0.9, 0.1]), zone, "volume-slice", "section-ring-b", "secondary-section", "tilt");
+  const scanPosts = instancedBoxes([0.1, 1.02, 0.1], mats.dark, [
+    { position: [-0.72, 0.96, -0.84], scale: [1, 1, 1], color: mats.dark.color.getHex() },
+    { position: [0.92, 0.86, -0.82], scale: [0.82, 0.82, 0.82], color: mats.light.color.getHex() },
+    { position: [0.1, 0.56, -1.42], scale: [0.72, 0.58, 0.72], color: mats.secondary.color.getHex() }
+  ]);
+  add(group, scanPosts, zone, "scan-rig", "scan-post-array", "instanced-scan-posts", "blink");
+  tagSemanticParts(scanPosts, zone, [
+    { role: "scan-rig", signature: "scan-post-left", materialVariant: "dark-post" },
+    { role: "scan-rig", signature: "scan-post-right", materialVariant: "light-post" },
+    { role: "scan-rig", signature: "depth-calibration-pin", materialVariant: "secondary-pin" }
+  ]);
+  const toolpath = instancedBoxes([0.34, 0.045, 0.06], mats.light, [
+    { position: [-0.42, 1.86, -0.78], scale: [1, 1, 1], color: mats.light.color.getHex() },
+    { position: [-0.08, 1.72, -0.58], scale: [0.86, 1, 1], color: mats.accent.color.getHex() },
+    { position: [0.36, 1.62, -0.7], scale: [0.74, 1, 1], color: mats.secondary.color.getHex() },
+    { position: [0.72, 1.42, -0.96], scale: [0.58, 1, 1], color: mats.light.color.getHex() }
+  ]);
+  toolpath.rotation.y = -0.32;
+  add(group, toolpath, zone, "toolpath-arm", "milling-toolpath", "instanced-toolpath", "sweep");
+  tagSemanticParts(toolpath, zone, [
+    { role: "toolpath-arm", signature: "toolpath-cut-0", materialVariant: "light-cut" },
+    { role: "toolpath-arm", signature: "toolpath-cut-1", materialVariant: "accent-cut" },
+    { role: "toolpath-arm", signature: "toolpath-cut-2", materialVariant: "secondary-cut" },
+    { role: "toolpath-arm", signature: "toolpath-cut-3", materialVariant: "light-cut" }
+  ]);
 }
 
 function createFashionArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactMaterials) {
@@ -414,13 +444,44 @@ function createFashionArtifacts(group: THREE.Group, zone: StudioZone, mats: Arti
     18
   );
   const garment = new THREE.Mesh(garmentShape, mats.accent);
-  garment.position.set(0, 0.62, -0.82);
-  garment.scale.set(0.72, 0.72, 0.72);
+  garment.position.set(0, 0.42, -0.82);
+  garment.scale.set(0.72, 1.38, 0.72);
   add(group, garment, zone, "garment-fold", "lathe-drape", "accent-drape", "tilt");
-  add(group, tube([new THREE.Vector3(-0.62, 1.38, -0.82), new THREE.Vector3(0, 1.52, -0.82), new THREE.Vector3(0.62, 1.38, -0.82)], 0.018, mats.light), zone, "garment-fold", "hanger-curve", "light-hanger", "sweep");
-  for (const x of [-0.48, 0, 0.48]) {
-    add(group, box([0.06, 0.72, 0.04], mats.secondary, [x, 0.94, -0.44]), zone, "garment-fold", `fabric-rib-${x}`, "secondary-rib", "float");
-  }
+  add(group, tube([new THREE.Vector3(-0.62, 1.64, -0.82), new THREE.Vector3(0, 1.82, -0.82), new THREE.Vector3(0.62, 1.64, -0.82)], 0.018, mats.light), zone, "runway-form", "hanger-curve", "light-hanger", "sweep");
+  const ribs = instancedBoxes([0.055, 0.72, 0.04], mats.secondary, [
+    { position: [-0.48, 0.94, -0.44], scale: [1, 1, 1], color: mats.secondary.color.getHex() },
+    { position: [0, 0.98, -0.42], scale: [0.82, 1.08, 1], color: mats.light.color.getHex() },
+    { position: [0.48, 0.94, -0.44], scale: [1, 1, 1], color: mats.secondary.color.getHex() }
+  ]);
+  add(group, ribs, zone, "garment-fold", "fabric-rib-array", "instanced-ribs", "float");
+  tagSemanticParts(ribs, zone, [
+    { role: "garment-fold", signature: "fabric-rib-left", materialVariant: "secondary-rib" },
+    { role: "garment-fold", signature: "fabric-rib-center", materialVariant: "light-rib" },
+    { role: "garment-fold", signature: "fabric-rib-right", materialVariant: "secondary-rib" }
+  ]);
+  const patternRails = instancedBoxes([0.62, 0.04, 0.055], mats.light, [
+    { position: [-0.42, 0.56, 0.18], scale: [1, 1, 1], color: mats.light.color.getHex() },
+    { position: [0.42, 0.56, 0.18], scale: [1, 1, 1], color: mats.accent.color.getHex() },
+    { position: [0, 0.62, 0.52], scale: [1.24, 1, 1], color: mats.secondary.color.getHex() }
+  ]);
+  patternRails.rotation.y = 0.12;
+  add(group, patternRails, zone, "pattern-rail", "cut-pattern-rails", "instanced-pattern-rails", "blink");
+  tagSemanticParts(patternRails, zone, [
+    { role: "pattern-rail", signature: "pattern-rail-left", materialVariant: "light-pattern" },
+    { role: "pattern-rail", signature: "pattern-rail-right", materialVariant: "accent-pattern" },
+    { role: "pattern-rail", signature: "center-grain-line", materialVariant: "secondary-pattern" }
+  ]);
+  const swatches = instancedBoxes([0.16, 0.06, 0.18], mats.light, [
+    { position: [-0.66, 0.44, 0.78], color: mats.accent.color.getHex() },
+    { position: [-0.4, 0.44, 0.84], color: mats.secondary.color.getHex() },
+    { position: [-0.14, 0.44, 0.8], color: mats.light.color.getHex() }
+  ]);
+  add(group, swatches, zone, "fabric-swatch", "material-swatch-run", "instanced-swatches", "pulse");
+  tagSemanticParts(swatches, zone, [
+    { role: "fabric-swatch", signature: "fabric-swatch-accent", materialVariant: "accent-swatch" },
+    { role: "fabric-swatch", signature: "fabric-swatch-secondary", materialVariant: "secondary-swatch" },
+    { role: "fabric-swatch", signature: "fabric-swatch-light", materialVariant: "light-swatch" }
+  ]);
 }
 
 function createValuesArtifacts(group: THREE.Group, zone: StudioZone, mats: ArtifactMaterials) {

@@ -55,7 +55,7 @@ const zonePerceptualProofs = new Map();
 const zoneCompositionProofs = new Map();
 const priorityPlaceCompositionProofs = new Map();
 const projectArtifactProofs = new Map();
-const priorityPlaceZoneIds = ["observability-tower", "cloud-dock", "design-atelier", "contact-portal"];
+const priorityPlaceZoneIds = ["observability-tower", "cloud-dock", "design-atelier", "three-d-foundry", "fashion-room", "contact-portal"];
 const expectedPrioritySetDressingRoles = {
   "observability-tower": [
     "metric-screen",
@@ -74,12 +74,16 @@ const expectedPrioritySetDressingRoles = {
     "deployment-lane"
   ],
   "design-atelier": ["canvas-wall", "drafting-table", "material-roll", "color-swatch", "paint-tool", "studio-lamp", "layout-pin"],
+  "three-d-foundry": ["scan-gantry", "printer-bed", "resin-vat", "foundry-tool", "calibration-grid"],
+  "fashion-room": ["runway-arch", "fabric-roll", "mirror-panel", "stage-light", "pattern-cutting-table"],
   "contact-portal": ["postal-desk", "mail-tray", "sorting-belt", "reply-portal-field", "mail-stack", "stamp-beacon", "courier-light"]
 };
 const expectedPrioritySignatureFamilies = {
   "observability-tower": ["telemetry-tower", "trace-helix", "metric-array"],
   "cloud-dock": ["cloud-platform", "server-array", "electric-cloud"],
   "design-atelier": ["composition-wall", "pattern-table", "material-palette", "atelier-light-rig"],
+  "three-d-foundry": ["wireframe-knot", "scan-rig", "volume-slice", "toolpath-arm"],
+  "fashion-room": ["garment-fold", "runway-form", "pattern-rail", "fabric-swatch"],
   "contact-portal": ["postal-counter", "reply-portal", "mail-packet", "delivery-signal"]
 };
 let screenshotIndex = 0;
@@ -3461,6 +3465,63 @@ async function checkWorldRichness(page) {
   } else {
     scenarioFail("priority-signature-assets", "Priority signature assets are not distinctive enough.", {
       proofs: prioritySignatureProofs,
+      sceneObjects: world?.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget
+    });
+  }
+
+  const artPremiumZoneIds = ["three-d-foundry", "fashion-room"];
+  const artPremiumProofs = artPremiumZoneIds.map((zoneId) => {
+    const zone = visualSpecZones.find((item) => item.id === zoneId);
+    const expectedFamilies = expectedPrioritySignatureFamilies[zoneId] ?? [];
+    const expectedDressingRoles = expectedPrioritySetDressingRoles[zoneId] ?? [];
+    const signatureFamilies = new Set(zone?.signatureArtifactFamilies ?? []);
+    const dressingRoles = new Set(zone?.setDressingRoles ?? []);
+    return {
+      zoneId,
+      expectedFamilies,
+      signatureFamilies: [...signatureFamilies].sort(),
+      missingFamilies: expectedFamilies.filter((family) => !signatureFamilies.has(family)),
+      expectedDressingRoles,
+      dressingRoles: [...dressingRoles].sort(),
+      missingDressingRoles: expectedDressingRoles.filter((role) => !dressingRoles.has(role)),
+      signatureObjects: zone?.signatureArtifactObjects ?? 0,
+      signatureSceneObjects: zone?.signatureArtifactSceneObjects ?? 0,
+      signatureRoles: zone?.signatureArtifactRoles ?? [],
+      signatureSignatures: zone?.signatureArtifactSignatures ?? [],
+      setDressingObjects: zone?.setDressingObjects ?? 0,
+      setDressingSignatures: zone?.setDressingSignatures ?? [],
+      bounds: zone?.signatureArtifactBounds ?? null,
+      fingerprint: zone?.signatureArtifactFingerprint ?? null
+    };
+  });
+  const artPremiumRooms =
+    world &&
+    artPremiumProofs.every(
+      (proof) =>
+        proof.missingFamilies.length === 0 &&
+        proof.missingDressingRoles.length === 0 &&
+        proof.signatureObjects >= 10 &&
+        proof.signatureSceneObjects <= 6 &&
+        proof.signatureRoles.length >= 10 &&
+        proof.signatureSignatures.length >= 10 &&
+        proof.setDressingObjects >= 7 &&
+        proof.setDressingSignatures.length >= 6 &&
+        (proof.bounds?.height ?? 0) >= 1.45 &&
+        (proof.bounds?.width ?? 0) >= 0.9 &&
+        (proof.bounds?.depth ?? 0) >= 0.5 &&
+        Boolean(proof.fingerprint)
+    ) &&
+    world.sceneObjects <= premiumWorldObjectBudget;
+  if (artPremiumRooms) {
+    pass("art-premium-rooms", {
+      proofs: artPremiumProofs,
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget
+    });
+  } else {
+    scenarioFail("art-premium-rooms", "Foundry and Fashion rooms are not yet premium modeled ART places.", {
+      proofs: artPremiumProofs,
       sceneObjects: world?.sceneObjects,
       sceneObjectBudget: premiumWorldObjectBudget
     });
@@ -7480,7 +7541,16 @@ async function checkMiniMapJumps(page) {
 
   const targets =
     qaProfile === "quick"
-      ? ["studio-gate", "ai-lab", "observability-tower", "cloud-dock", "design-atelier", "contact-portal"]
+      ? [
+          "studio-gate",
+          "ai-lab",
+          "observability-tower",
+          "cloud-dock",
+          "design-atelier",
+          "three-d-foundry",
+          "fashion-room",
+          "contact-portal"
+        ]
       : [
           "studio-gate",
           "ai-lab",
@@ -7834,6 +7904,7 @@ async function writeReport() {
   );
   const placeCompositionCoverageScenario = scenarios.find((scenario) => scenario.name === "place-composition-coverage");
   const priorityPlaceCompositionScenario = scenarios.find((scenario) => scenario.name === "priority-place-composition-visible");
+  const artPremiumRoomsScenario = scenarios.find((scenario) => scenario.name === "art-premium-rooms");
   const perceptualDistanceScenario = scenarios.find((scenario) => scenario.name === "zone-perceptual-distance");
   const playableStageScenarios = scenarios.filter((scenario) => scenario.name.startsWith("playable-stage-dominance:"));
   const weakestPlayableStageScenario = playableStageScenarios
@@ -8100,6 +8171,11 @@ async function writeReport() {
     `- Priority place composition: ${
       priorityPlaceCompositionScenario?.details
         ? `${priorityPlaceCompositionScenario.status}, ${priorityPlaceCompositionScenario.details.proofs?.length ?? 0} priority zones`
+        : "n/a"
+    }`,
+    `- ART premium rooms: ${
+      artPremiumRoomsScenario?.details
+        ? `${artPremiumRoomsScenario.status}, ${artPremiumRoomsScenario.details.proofs?.length ?? 0} rooms, scene ${artPremiumRoomsScenario.details.sceneObjects}/${artPremiumRoomsScenario.details.sceneObjectBudget}`
         : "n/a"
     }`,
     `- Weakest place composition: ${

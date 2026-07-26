@@ -107,24 +107,24 @@ const recipes: Record<string, ZoneDressingRecipe> = {
   "three-d-foundry": {
     signature: "wireframe-sculpture-foundry",
     primitives: [
-      ring("wireframe-x", "wireframe-form", "secondary", [0.78, 0.9, -0.9], [0.46, 0.018, 0.46], [Math.PI * 0.5, 0.55, 0]),
-      ring("wireframe-y", "wireframe-form", "light", [0.78, 0.9, -0.9], [0.46, 0.018, 0.46], [0, 0, Math.PI * 0.5]),
-      block("sculpt-base", "sculpting-plinth", "dark", [-1.08, 0.24, 0.96], [0.74, 0.32, 0.56]),
-      sphere("rough-volume", "sculpting-volume", "accent", [-1.08, 0.62, 0.96], [0.28, 0.28, 0.28]),
+      ring("scanner-orbit-x", "scan-gantry", "secondary", [0.78, 0.9, -0.9], [0.46, 0.018, 0.46], [Math.PI * 0.5, 0.55, 0]),
+      ring("scanner-orbit-y", "scan-gantry", "light", [0.78, 0.9, -0.9], [0.46, 0.018, 0.46], [0, 0, Math.PI * 0.5]),
+      block("printer-bed", "printer-bed", "dark", [-1.08, 0.24, 0.96], [0.74, 0.32, 0.56]),
+      sphere("resin-volume", "resin-vat", "accent", [-1.08, 0.62, 0.96], [0.28, 0.28, 0.28]),
       beam("tool-arm", "foundry-tool", "accent", [-1.36, 1.18, -0.98], [0.18, 1.42, -0.98], 0.024),
-      sign("foundry-sign", "wayfinding-sign", "accent", [1.18, 0.74, 1.22], "3D")
+      sign("calibration-grid", "calibration-grid", "accent", [1.18, 0.74, 1.22], "3D")
     ]
   },
   "fashion-room": {
     signature: "runway-fabric-room",
     primitives: [
-      block("runway-left", "runway-rail", "light", [-0.42, 0.18, -1.32], [0.14, 0.1, 1.34]),
-      block("runway-right", "runway-rail", "accent", [0.42, 0.18, -1.32], [0.14, 0.1, 1.34]),
-      block("fabric-panel-a", "fabric-panel", "accent", [-1.08, 0.78, 0.88], [0.08, 0.9, 0.5]),
-      block("fabric-panel-b", "fabric-panel", "light", [1.08, 0.78, 0.88], [0.08, 0.9, 0.5]),
+      block("runway-left", "runway-arch", "light", [-0.42, 0.18, -1.32], [0.14, 0.1, 1.34]),
+      block("runway-right", "runway-arch", "accent", [0.42, 0.18, -1.32], [0.14, 0.1, 1.34]),
+      block("fabric-roll-a", "fabric-roll", "accent", [-1.08, 0.78, 0.88], [0.08, 0.9, 0.5]),
+      block("mirror-panel", "mirror-panel", "light", [1.08, 0.78, 0.88], [0.08, 0.9, 0.5]),
       cone("spotlight-a", "stage-light", "light", [-1.22, 0.64, -0.78], [0.24, 0.52, 0.24], [0.45, 0, -0.28]),
       cone("spotlight-b", "stage-light", "accent", [1.22, 0.64, -0.78], [0.24, 0.52, 0.24], [0.45, 0, 0.28]),
-      sign("fashion-sign", "wayfinding-sign", "accent", [0, 0.82, 1.38], "MODE")
+      sign("pattern-table", "pattern-cutting-table", "accent", [0, 0.82, 1.38], "MODE")
     ]
   },
   "values-plaza": {
