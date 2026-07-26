@@ -151,6 +151,11 @@ The runner:
   clearance, no coplanar placement risk, visible screen-space role rectangles
   for route/water/relief/vegetation, and a wide non-flat canvas proof covering
   at least a `42x42` map vocabulary footprint.
+- The same opt-in map layer must also prove the first hero-location GLB
+  composition pass: `cloud-dock`, `design-atelier`, and
+  `observability-tower` each need at least three runtime placements, three
+  narrative roles, and a dedicated mini-map screenshot where the GLB cluster is
+  screen-visible.
 - `assets:validate` must also prove accepted runtime texture coverage for the
   core enlarged-map material roles: road, water, relief, and vegetation/field.
 - Every zone must expose a label, modeled landmark objects, mesh count, and
