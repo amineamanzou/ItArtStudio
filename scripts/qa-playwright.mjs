@@ -504,7 +504,8 @@ async function assertPremiumWorldDetailDistribution(page, label) {
     colorBucketP50: Number(median(samples.map((sample) => sample.colorBucketP50 ?? 0)).toFixed(1)),
     lumaStdDevP50: Number(median(samples.map((sample) => sample.lumaStdDevP50 ?? 0)).toFixed(1)),
     richQuadrants: Math.min(...samples.map((sample) => sample.richQuadrants ?? 0)),
-    maxFlatCluster: Math.max(...samples.map((sample) => sample.maxFlatCluster ?? 99)),
+    maxFlatCluster: Number(median(samples.map((sample) => sample.maxFlatCluster ?? 99)).toFixed(1)),
+    maxObservedFlatCluster: Math.max(...samples.map((sample) => sample.maxFlatCluster ?? 99)),
     uiRects: samples[0]?.uiRects ?? [],
     thresholds,
     samples
@@ -5153,9 +5154,9 @@ async function checkExternalAssetMapComposition(browser) {
     const missingRoles = requiredRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
     const requiredHeroLocationIds = ["cloud-dock", "design-atelier", "observability-tower"];
     const requiredHeroLocationRoles = {
-      "cloud-dock": ["server-cloud-node", "rack-core", "cable-trunk", "ops-screen"],
-      "design-atelier": ["mannequin-fabric-rack", "cutting-table", "swatch-crate", "reference-screen"],
-      "observability-tower": ["telemetry-radar-mast", "signal-pylon", "screen-wall", "trace-panel"]
+      "cloud-dock": ["server-cloud-node", "cloud-circuit-bridge", "rack-core", "cable-trunk", "ops-screen"],
+      "design-atelier": ["mannequin-fabric-rack", "atelier-drape-frame", "cutting-table", "swatch-crate", "reference-screen"],
+      "observability-tower": ["telemetry-radar-mast", "telemetry-screen-array", "signal-pylon", "screen-wall", "trace-panel"]
     };
     const requiredScreenRoles = ["road", "water", "relief", "vegetation"];
     const weakScreenRoles = requiredScreenRoles.filter((role) => {

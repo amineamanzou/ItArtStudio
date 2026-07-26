@@ -1185,6 +1185,28 @@ Gates V8.11:
   map plus grande, plus lisible, avec assets et surfaces materialises sans
   obstacle invisible.
 
+Gates V8.12:
+
+- `scripts/generate-signature-assets.mjs` genere une seconde vague GLB locale
+  pour densifier les trois hero locations sans attendre Blender:
+  `cloud-circuit-bridge.glb`, `atelier-drape-frame.glb` et
+  `telemetry-screen-array.glb`;
+- la collection `accepted-itart-signature-hero-core` passe a 6 GLB locaux,
+  317.2 KB et 7 592 triangles, avec un budget manifeste monte a 380 KB /
+  8 200 triangles pour garder une marge de remplacement premium;
+- `Cloud Dock`, `Design Atelier` et `Observability Tower` ont maintenant deux
+  signatures custom chacun: node serveur + pont circuit, mannequin + drape
+  frame, mat radar + screen array;
+- `external-asset-map-composition` exige ces nouveaux roles custom en runtime,
+  et les nouveaux accents sont places dans des micro-clusters dedies afin de
+  conserver le plafond de densite des clusters hero-location;
+- le gate `premium-world-detail-distribution` juge maintenant le cluster plat
+  maximum en mediane sur trois echantillons, comme les autres metriques de
+  detail, tout en gardant `maxObservedFlatCluster` dans le rapport pour
+  diagnostiquer les outliers de transition camera;
+- l'objectif de boucle reste asset-first: chaque nouvelle piece doit renforcer
+  la silhouette du lieu avant tout agrandissement ou enrichissement procedural.
+
 ## Components
 
 - `game-site`: surface principale.

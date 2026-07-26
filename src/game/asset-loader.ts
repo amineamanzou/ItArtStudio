@@ -595,6 +595,11 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
       heroLocation: "cloud-dock",
       heroRole: "server-cloud-node"
     }),
+    createPlacement("hero:cloud-dock:cloud-circuit-bridge", "hero:cloud-dock:signature-bridge", "route", "primary", true, "hero-location", "cloud-circuit-bridge.glb", [-10.85, -24.45], 1.82, Math.PI * 0.38, {
+      assetId: "accepted-itart-signature-hero-core",
+      heroLocation: "cloud-dock",
+      heroRole: "cloud-circuit-bridge"
+    }),
     createPlacement("hero:cloud-dock:server-pylon", "hero:cloud-dock", "route", "primary", true, "route-edge", "bridge-pillar.glb", [-11.1, -23.3], 1.8, 0.08, {
       heroLocation: "cloud-dock",
       heroRole: "server-pylon"
@@ -632,6 +637,11 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
       heroLocation: "design-atelier",
       heroRole: "mannequin-fabric-rack"
     }),
+    createPlacement("hero:design-atelier:atelier-drape-frame", "hero:design-atelier:drape-frame", "route", "primary", true, "hero-location", "atelier-drape-frame.glb", [21.95, -9.95], 1.7, Math.PI * 0.42, {
+      assetId: "accepted-itart-signature-hero-core",
+      heroLocation: "design-atelier",
+      heroRole: "atelier-drape-frame"
+    }),
     createPlacement("hero:design-atelier:cutting-table", "hero:design-atelier", "route", "primary", true, "hero-location", "top-large-checkerboard.glb", [20.8, -9.4], 1.85, Math.PI * 0.5, {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "design-atelier",
@@ -664,6 +674,11 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
       assetId: "accepted-itart-signature-hero-core",
       heroLocation: "observability-tower",
       heroRole: "telemetry-radar-mast"
+    }),
+    createPlacement("hero:observability-tower:telemetry-screen-array", "hero:observability-tower:screen-array", "route", "primary", true, "hero-location", "telemetry-screen-array.glb", [-21.55, 8.35], 1.65, 0.36, {
+      assetId: "accepted-itart-signature-hero-core",
+      heroLocation: "observability-tower",
+      heroRole: "telemetry-screen-array"
     }),
     createPlacement("hero:observability-tower:signal-pylon", "hero:observability-tower", "route", "primary", true, "route-edge", "bridge-pillar.glb", [-22.8, 9.8], 2.2, 0, {
       heroLocation: "observability-tower",

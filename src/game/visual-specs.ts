@@ -136,20 +136,20 @@ export const zoneVisualSpecs: Record<string, ZoneVisualSpec> = {
     materialVariants: ["structural-cyan", "cream-truss", "black-span", "cool-shadow"],
     animation: { idleSpin: 0.06, activeSpin: 0.26, activeScale: 1.1, pulse: 0.08 },
     surface: surface("architecture-bridge", "brushed structural deck", "load-bearing diagonals", [
-      { offset: [-0.58, -0.24], length: 1.22, width: 0.055, rotation: -0.78, tone: "light", role: "trim" },
-      { offset: [0.58, 0.24], length: 1.22, width: 0.055, rotation: -0.78, tone: "accent", role: "trim" },
-      { offset: [0, 0.64], length: 0.86, width: 0.045, rotation: 0.12, tone: "dark", role: "seam" },
-      { offset: [0, -0.64], length: 0.72, width: 0.06, rotation: 0.12, tone: "secondary", role: "anchor" }
+      { offset: [-0.64, -0.32], length: 1.58, width: 0.07, rotation: -0.78, tone: "light", role: "trim" },
+      { offset: [0.64, 0.32], length: 1.58, width: 0.07, rotation: -0.78, tone: "accent", role: "trim" },
+      { offset: [0, 0.72], length: 1.18, width: 0.055, rotation: 0.12, tone: "dark", role: "seam" },
+      { offset: [0, -0.72], length: 1.08, width: 0.075, rotation: 0.12, tone: "secondary", role: "anchor" }
     ]),
     decals: decals("architecture-bridge", [
-      { offset: [-0.92, -0.14], size: [0.82, 0.07], rotation: -0.74, tone: "light" },
-      { offset: [0.92, 0.14], size: [0.82, 0.07], rotation: -0.74, tone: "accent" },
-      { offset: [0, -1.02], size: [1.02, 0.06], rotation: 0.12, tone: "dark" }
+      { offset: [-1.02, -0.24], size: [1.08, 0.08], rotation: -0.74, tone: "light" },
+      { offset: [1.02, 0.24], size: [1.08, 0.08], rotation: -0.74, tone: "accent" },
+      { offset: [0, -1.06], size: [1.24, 0.075], rotation: 0.12, tone: "dark" }
     ]),
     propClusters: clusters("architecture-bridge", [
-      { offset: [-1.2, -0.72], count: 3, spread: 0.3, scale: 0.7, tone: "light", form: "stack" },
-      { offset: [1.2, 0.72], count: 3, spread: 0.3, scale: 0.7, tone: "accent", form: "stack" },
-      { offset: [0.1, 1.12], count: 4, spread: 0.34, scale: 0.58, tone: "accent", form: "pin" }
+      { offset: [-1.34, -0.82], count: 3, spread: 0.36, scale: 0.78, tone: "light", form: "stack" },
+      { offset: [1.34, 0.82], count: 3, spread: 0.36, scale: 0.78, tone: "accent", form: "stack" },
+      { offset: [0.1, 1.2], count: 4, spread: 0.38, scale: 0.64, tone: "accent", form: "pin" }
     ])
   },
   "cloud-dock": {
@@ -224,20 +224,20 @@ export const zoneVisualSpecs: Record<string, ZoneVisualSpec> = {
     materialVariants: ["runway-coral", "cream-fabric", "cyan-stitch", "black-rail"],
     animation: { idleSpin: 0.08, activeSpin: 0.3, activeScale: 1.12, pulse: 0.16 },
     surface: surface("fashion-room", "soft runway laminate", "stitched runway rails", [
-      { offset: [-0.58, 0], length: 1.1, width: 0.055, rotation: 1.57, tone: "light", role: "trim" },
-      { offset: [0.58, 0], length: 1.1, width: 0.055, rotation: 1.57, tone: "accent", role: "trim" },
-      { offset: [0, -0.66], length: 0.98, width: 0.05, rotation: 0, tone: "dark", role: "seam" },
-      { offset: [0, 0.66], length: 0.72, width: 0.07, rotation: 0, tone: "secondary", role: "anchor" }
+      { offset: [-0.68, 0], length: 1.38, width: 0.07, rotation: 1.57, tone: "light", role: "trim" },
+      { offset: [0.68, 0], length: 1.38, width: 0.07, rotation: 1.57, tone: "accent", role: "trim" },
+      { offset: [0, -0.76], length: 1.24, width: 0.06, rotation: 0, tone: "dark", role: "seam" },
+      { offset: [0, 0.76], length: 1.02, width: 0.08, rotation: 0, tone: "secondary", role: "anchor" }
     ]),
     decals: decals("fashion-room", [
-      { offset: [-0.94, 0], size: [0.82, 0.06], rotation: 1.57, tone: "light" },
-      { offset: [0.94, 0], size: [0.82, 0.06], rotation: 1.57, tone: "accent" },
-      { offset: [0, -0.94], size: [1.12, 0.06], rotation: 0, tone: "dark" }
+      { offset: [-1.06, 0], size: [1.06, 0.075], rotation: 1.57, tone: "light" },
+      { offset: [1.06, 0], size: [1.06, 0.075], rotation: 1.57, tone: "accent" },
+      { offset: [0, -1.04], size: [1.34, 0.075], rotation: 0, tone: "dark" }
     ]),
     propClusters: clusters("fashion-room", [
-      { offset: [-1.16, 0.8], count: 4, spread: 0.34, scale: 0.62, tone: "light", form: "totem" },
-      { offset: [1.16, 0.8], count: 4, spread: 0.34, scale: 0.62, tone: "accent", form: "totem" },
-      { offset: [0, -1.18], count: 4, spread: 0.28, scale: 0.54, tone: "secondary", form: "pin" }
+      { offset: [-1.32, 0.9], count: 4, spread: 0.4, scale: 0.68, tone: "light", form: "totem" },
+      { offset: [1.32, 0.9], count: 4, spread: 0.4, scale: 0.68, tone: "accent", form: "totem" },
+      { offset: [0, -1.3], count: 4, spread: 0.34, scale: 0.6, tone: "secondary", form: "pin" }
     ])
   },
   "values-plaza": {

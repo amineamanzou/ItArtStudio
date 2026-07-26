@@ -18,3 +18,8 @@ Current accepted vendor roots:
 - `vendor/kenney/city-kit-roads`: CC0 road, bridge support, light and slope
   pieces.
 - `vendor/kenney/nature-kit`: CC0 bridge, water, relief and vegetation pieces.
+
+Current accepted local roots:
+
+- `local/itart-signature-kit/hero`: project-authored GLB signatures for Cloud
+  Dock, Design Atelier and Observability Tower.

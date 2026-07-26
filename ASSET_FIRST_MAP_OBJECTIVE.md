@@ -121,6 +121,8 @@ Baseline actuelle:
   kit local IT Art Studio;
 - modeles runtime acceptes: routes, route-edge, ponts, eau, relief,
   vegetation;
+- collection signature locale IT Art Studio: 6 GLB custom pour les lieux hero,
+  soit 317.2 KB / 7 592 triangles;
 - textures runtime acceptees: route, field/vegetation, eau, relief;
 - chaque fichier runtime doit rester declare dans le manifest et passer
   `npm run assets:validate`.
@@ -175,6 +177,17 @@ Hero locations:
 - `Cloud Dock`: serveurs, nuages, pontons, cables, arcs electriques;
 - `Design Atelier`: mannequin, table de coupe, tissus, portants, matieres;
 - `Observability Tower`: tour, antennes, ecrans, traces, faisceaux.
+
+Baseline actuelle:
+
+- `Cloud Dock`: 9 placements GLB runtime obligatoires, dont
+  `server-cloud-node` et `cloud-circuit-bridge`;
+- `Design Atelier`: 8 placements GLB runtime obligatoires, dont
+  `mannequin-fabric-rack` et `atelier-drape-frame`;
+- `Observability Tower`: 9 placements GLB runtime obligatoires, dont
+  `telemetry-radar-mast` et `telemetry-screen-array`;
+- les nouveaux assets signature sont repartis en micro-clusters pour enrichir
+  les silhouettes sans creer d'empilement visuel.
 
 Definition of done:
 
