@@ -3291,6 +3291,43 @@ async function checkWorldRichness(page) {
     });
   }
 
+  const cloudDockZone = visualSpecZones.find((item) => item.id === "cloud-dock");
+  const cloudSignatureFamilies = new Set(cloudDockZone?.signatureArtifactFamilies ?? []);
+  const cloudSignatureInstancingHeadroom =
+    world &&
+    cloudDockZone &&
+    world.sceneObjects <= premiumWorldObjectBudget - 2 &&
+    (cloudDockZone.signatureArtifactObjects ?? 0) >= 9 &&
+    (cloudDockZone.signatureArtifactSceneObjects ?? 0) <= 7 &&
+    (cloudDockZone.signatureArtifactObjects ?? 0) > (cloudDockZone.signatureArtifactSceneObjects ?? 0) &&
+    (cloudDockZone.signatureArtifactSignatures?.length ?? 0) >= 9 &&
+    (cloudDockZone.signatureArtifactRoles?.length ?? 0) >= 9 &&
+    ["cloud-platform", "server-array", "electric-cloud"].every((family) => cloudSignatureFamilies.has(family));
+  if (cloudSignatureInstancingHeadroom) {
+    pass("signature-instancing-headroom", {
+      zoneId: cloudDockZone.id,
+      sceneObjects: world.sceneObjects,
+      sceneObjectBudget: premiumWorldObjectBudget,
+      semanticSignatureObjects: cloudDockZone.signatureArtifactObjects,
+      physicalSignatureSceneObjects: cloudDockZone.signatureArtifactSceneObjects,
+      signatures: cloudDockZone.signatureArtifactSignatures,
+      roles: cloudDockZone.signatureArtifactRoles,
+      families: [...cloudSignatureFamilies].sort()
+    });
+  } else {
+    scenarioFail("signature-instancing-headroom", "Cloud signature instancing does not preserve semantic richness while freeing scene headroom.", {
+      zoneId: cloudDockZone?.id ?? null,
+      sceneObjects: world?.sceneObjects,
+      requiredSceneObjectsMax: premiumWorldObjectBudget - 2,
+      sceneObjectBudget: premiumWorldObjectBudget,
+      semanticSignatureObjects: cloudDockZone?.signatureArtifactObjects,
+      physicalSignatureSceneObjects: cloudDockZone?.signatureArtifactSceneObjects,
+      signatures: cloudDockZone?.signatureArtifactSignatures ?? [],
+      roles: cloudDockZone?.signatureArtifactRoles ?? [],
+      families: [...cloudSignatureFamilies].sort()
+    });
+  }
+
   const envelopeLayers = [
     { key: "setDressingEnvelope", label: "set-dressing", maxOverflow: 1.65, offsetPad: 1.35, maxHeight: 3.3 },
     { key: "placeArchitectureEnvelope", label: "place-architecture", maxOverflow: 1.75, offsetPad: 1.45, maxHeight: 3.6 },

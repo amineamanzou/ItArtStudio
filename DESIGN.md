@@ -673,6 +673,20 @@ Gates V5.4:
   bruit de set dressing: le lieu doit lire comme une infrastructure connectee,
   pas comme une collection de petits blocs.
 
+Gates V5.5:
+
+- les racks edge de `cloud-dock` passent en `InstancedMesh`: trois racks restent
+  declares comme objets, roles, signatures et variantes QA, mais ne consomment
+  plus trois noeuds de scene distincts;
+- le snapshot accepte des parties semantiques multiples sur un asset instancie
+  (`signatureArtifactObjectCount`, roles/signatures/materials multiples) afin de
+  separer la richesse lisible de la facture draw-call / scene graph;
+- `signature-instancing-headroom` exige que Cloud conserve au moins neuf parties
+  signature semantiques avec sept objets physiques ou moins, et que le monde
+  revienne a `sceneObjects <= 938`;
+- cette vague cree du headroom avant les prochains assets premium: toute
+  augmentation de qualite doit conserver ou reduire le bruit structurel.
+
 ## Components
 
 - `game-site`: surface principale.

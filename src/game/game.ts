@@ -356,6 +356,7 @@ type ZoneAssetQa = {
   placeArchitectureBounds: BoundsQa;
   placeArchitectureEnvelope: AssetEnvelopeQa;
   signatureArtifactObjects: number;
+  signatureArtifactSceneObjects: number;
   signatureArtifactFamilies: string[];
   signatureArtifactRoles: string[];
   signatureArtifactSignatures: string[];
@@ -458,6 +459,7 @@ type QaSnapshot = {
     placeArchitectureFamilies: number;
     placeArchitectureSignatures: number;
     signatureArtifactObjects: number;
+    signatureArtifactSceneObjects: number;
     signatureArtifactSignatures: number;
     projectArtifactObjects: number;
     projectArtifactSceneObjects: number;
@@ -816,6 +818,7 @@ class StudioGame {
       placeArchitectureFamilies: 0,
       placeArchitectureSignatures: 0,
       signatureArtifactObjects: 0,
+      signatureArtifactSceneObjects: 0,
       signatureArtifactSignatures: 0,
       projectArtifactObjects: 0,
       projectArtifactSceneObjects: 0,
@@ -3313,6 +3316,7 @@ class StudioGame {
         placeArchitectureFamilies: this.placeArchitectureFamilyIds.size,
         placeArchitectureSignatures: this.placeArchitectureSignatureIds.size,
         signatureArtifactObjects: this.signatureArtifactObjectCount,
+        signatureArtifactSceneObjects: zoneAssets.reduce((sum, zone) => sum + zone.signatureArtifactSceneObjects, 0),
         signatureArtifactSignatures: this.signatureArtifactSignatureIds.size,
         projectArtifactObjects: this.projectArtifactObjectCount,
         projectArtifactSceneObjects: this.projectArtifactSceneObjectCount,
@@ -3725,6 +3729,7 @@ class StudioGame {
         placeArchitectureBounds: { width: 0, height: 0, depth: 0 },
         placeArchitectureEnvelope: emptyEnvelope,
         signatureArtifactObjects: 0,
+        signatureArtifactSceneObjects: 0,
         signatureArtifactFamilies: [],
         signatureArtifactRoles: [],
         signatureArtifactSignatures: [],
@@ -3815,6 +3820,7 @@ class StudioGame {
     let setDressingObjects = 0;
     let placeArchitectureObjects = 0;
     let signatureArtifactObjects = 0;
+    let signatureArtifactSceneObjects = 0;
     let projectArtifactObjects = 0;
     let projectArtifactSceneObjects = 0;
     let projectArtifactPartCount = 0;
@@ -3900,23 +3906,60 @@ class StudioGame {
       }
       if (typeof child.userData.signatureArtifactRole === "string") {
         signatureArtifactRoles.add(child.userData.signatureArtifactRole);
+        if (Array.isArray(child.userData.signatureArtifactRoles)) {
+          child.userData.signatureArtifactRoles.forEach((role) => {
+            if (typeof role === "string") {
+              signatureArtifactRoles.add(role);
+            }
+          });
+        }
         if (typeof child.userData.signatureArtifactFamily === "string") {
           signatureArtifactFamilies.add(child.userData.signatureArtifactFamily);
         }
         if (child instanceof THREE.InstancedMesh) {
-          signatureArtifactObjects += child.count;
-          if (typeof child.userData.signatureArtifactSignature === "string") {
+          signatureArtifactSceneObjects += 1;
+          signatureArtifactObjects +=
+            typeof child.userData.signatureArtifactObjectCount === "number"
+              ? child.userData.signatureArtifactObjectCount
+              : child.count;
+          if (Array.isArray(child.userData.signatureArtifactSignatures)) {
+            child.userData.signatureArtifactSignatures.forEach((signature) => {
+              if (typeof signature === "string") {
+                signatureArtifactSignatures.add(signature);
+              }
+            });
+          } else if (typeof child.userData.signatureArtifactSignature === "string") {
             signatureArtifactSignatures.add(child.userData.signatureArtifactSignature);
           }
-          if (typeof child.userData.signatureArtifactMaterial === "string") {
+          if (Array.isArray(child.userData.signatureArtifactMaterials)) {
+            child.userData.signatureArtifactMaterials.forEach((material) => {
+              if (typeof material === "string") {
+                signatureArtifactMaterials.add(material);
+              }
+            });
+          } else if (typeof child.userData.signatureArtifactMaterial === "string") {
             signatureArtifactMaterials.add(child.userData.signatureArtifactMaterial);
           }
         } else if (child instanceof THREE.Mesh) {
-          signatureArtifactObjects += 1;
-          if (typeof child.userData.signatureArtifactSignature === "string") {
+          signatureArtifactSceneObjects += 1;
+          signatureArtifactObjects +=
+            typeof child.userData.signatureArtifactObjectCount === "number" ? child.userData.signatureArtifactObjectCount : 1;
+          if (Array.isArray(child.userData.signatureArtifactSignatures)) {
+            child.userData.signatureArtifactSignatures.forEach((signature) => {
+              if (typeof signature === "string") {
+                signatureArtifactSignatures.add(signature);
+              }
+            });
+          } else if (typeof child.userData.signatureArtifactSignature === "string") {
             signatureArtifactSignatures.add(child.userData.signatureArtifactSignature);
           }
-          if (typeof child.userData.signatureArtifactMaterial === "string") {
+          if (Array.isArray(child.userData.signatureArtifactMaterials)) {
+            child.userData.signatureArtifactMaterials.forEach((material) => {
+              if (typeof material === "string") {
+                signatureArtifactMaterials.add(material);
+              }
+            });
+          } else if (typeof child.userData.signatureArtifactMaterial === "string") {
             signatureArtifactMaterials.add(child.userData.signatureArtifactMaterial);
           }
         }
@@ -4102,6 +4145,7 @@ class StudioGame {
       placeArchitectureBounds: placeArchitectureGroup ? this.measureObject(placeArchitectureGroup) : { width: 0, height: 0, depth: 0 },
       placeArchitectureEnvelope,
       signatureArtifactObjects,
+      signatureArtifactSceneObjects,
       signatureArtifactFamilies: [...signatureArtifactFamilies].sort(),
       signatureArtifactRoles: [...signatureArtifactRoles].sort(),
       signatureArtifactSignatures: [...signatureArtifactSignatures].sort(),

@@ -55,6 +55,41 @@ const box = (size: readonly [number, number, number], mat: THREE.Material, posit
   return mesh;
 };
 
+const instancedBoxes = (
+  size: readonly [number, number, number],
+  mat: THREE.MeshStandardMaterial,
+  placements: readonly {
+    position: readonly [number, number, number];
+    scale?: readonly [number, number, number];
+    color?: number;
+  }[]
+) => {
+  const instanceMat = mat.clone();
+  instanceMat.color.set(0xffffff);
+  instanceMat.vertexColors = true;
+  const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(size[0], size[1], size[2]), instanceMat, placements.length);
+  const matrix = new THREE.Matrix4();
+  const quaternion = new THREE.Quaternion();
+  placements.forEach((placement, index) => {
+    matrix.compose(
+      new THREE.Vector3(placement.position[0], placement.position[1], placement.position[2]),
+      quaternion,
+      new THREE.Vector3(placement.scale?.[0] ?? 1, placement.scale?.[1] ?? 1, placement.scale?.[2] ?? 1)
+    );
+    mesh.setMatrixAt(index, matrix);
+    if (typeof placement.color === "number") {
+      mesh.setColorAt(index, new THREE.Color(placement.color));
+    }
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+  if (mesh.instanceColor) {
+    mesh.instanceColor.needsUpdate = true;
+  }
+  mesh.computeBoundingBox();
+  mesh.computeBoundingSphere();
+  return mesh;
+};
+
 const sphere = (radius: number, mat: THREE.Material, position: readonly [number, number, number]) => {
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 16, 10), mat);
   mesh.position.set(position[0], position[1], position[2]);
@@ -138,6 +173,29 @@ const add = (
   group.add(object);
 };
 
+const tagSemanticParts = (
+  object: THREE.Object3D,
+  zone: StudioZone,
+  parts: readonly { role: ArtifactRole; signature: string; materialVariant: string }[]
+) => {
+  object.userData.signatureArtifactObjectCount = parts.length;
+  object.userData.signatureArtifactRoles = parts.map((part) => `${part.role}:${part.signature}`);
+  object.userData.signatureArtifactSignatures = parts.map((part) => `${zone.id}:${part.signature}`);
+  object.userData.signatureArtifactMaterials = parts.map((part) => `${zone.id}:${part.materialVariant}`);
+};
+
+const addMetadataValue = (target: Set<string>, value: unknown) => {
+  if (typeof value === "string") {
+    target.add(value);
+  } else if (Array.isArray(value)) {
+    for (const item of value) {
+      if (typeof item === "string") {
+        target.add(item);
+      }
+    }
+  }
+};
+
 export function createZoneSignatureArtifacts(zone: StudioZone, palette: Palette): RenderedZoneSignatureArtifacts {
   const mats = artifactPalette(zone, palette);
   const group = new THREE.Group();
@@ -163,18 +221,20 @@ export function createZoneSignatureArtifacts(zone: StudioZone, palette: Palette)
   let objectCount = 0;
 
   group.traverse((child) => {
-    if (child instanceof THREE.Mesh && typeof child.userData.signatureArtifactRole === "string") {
-      objectCount += 1;
+    if (child instanceof THREE.InstancedMesh && typeof child.userData.signatureArtifactRole === "string") {
+      objectCount +=
+        typeof child.userData.signatureArtifactObjectCount === "number"
+          ? child.userData.signatureArtifactObjectCount
+          : child.count;
+    } else if (child instanceof THREE.Mesh && typeof child.userData.signatureArtifactRole === "string") {
+      objectCount += typeof child.userData.signatureArtifactObjectCount === "number" ? child.userData.signatureArtifactObjectCount : 1;
     }
-    if (typeof child.userData.signatureArtifactRole === "string") {
-      roles.add(child.userData.signatureArtifactRole);
-    }
-    if (typeof child.userData.signatureArtifactSignature === "string") {
-      signatures.add(child.userData.signatureArtifactSignature);
-    }
-    if (typeof child.userData.signatureArtifactMaterial === "string") {
-      materialVariants.add(child.userData.signatureArtifactMaterial);
-    }
+    addMetadataValue(roles, child.userData.signatureArtifactRole);
+    addMetadataValue(roles, child.userData.signatureArtifactRoles);
+    addMetadataValue(signatures, child.userData.signatureArtifactSignature);
+    addMetadataValue(signatures, child.userData.signatureArtifactSignatures);
+    addMetadataValue(materialVariants, child.userData.signatureArtifactMaterial);
+    addMetadataValue(materialVariants, child.userData.signatureArtifactMaterials);
     if (typeof child.userData.motionRole === "string") {
       motionObjects.push(child);
     }
@@ -246,9 +306,17 @@ function createCloudArtifacts(group: THREE.Group, zone: StudioZone, mats: Artifa
   add(group, box([1.28, 0.18, 0.68], mats.dark, [0, 0.42, -0.88]), zone, "cloud-platform", "floating-dock-deck", "dark-dock", "pulse");
   add(group, box([0.86, 0.08, 0.16], mats.light, [0, 0.6, -1.18]), zone, "cloud-platform", "deployment-runway", "light-runway", "pulse");
   add(group, cylinder(0.05, 0.08, 1.02, mats.secondary, [-0.62, 0.98, -0.86], 12), zone, "server-array", "uplink-mast", "secondary-mast", "tilt");
-  add(group, box([0.18, 0.78, 0.22], mats.accent, [-0.36, 0.88, -0.92]), zone, "server-array", "edge-rack-a", "accent-rack", "blink");
-  add(group, box([0.18, 0.96, 0.22], mats.light, [-0.08, 0.98, -0.92]), zone, "server-array", "edge-rack-b", "light-rack", "blink");
-  add(group, box([0.18, 0.68, 0.22], mats.secondary, [0.2, 0.84, -0.92]), zone, "server-array", "edge-rack-c", "secondary-rack", "blink");
+  const rackArray = instancedBoxes([0.18, 1, 0.22], mats.light, [
+    { position: [-0.36, 0.88, -0.92], scale: [1, 0.78, 1], color: mats.accent.color.getHex() },
+    { position: [-0.08, 0.98, -0.92], scale: [1, 0.96, 1], color: mats.light.color.getHex() },
+    { position: [0.2, 0.84, -0.92], scale: [1, 0.68, 1], color: mats.secondary.color.getHex() }
+  ]);
+  add(group, rackArray, zone, "server-array", "edge-rack-cluster", "instanced-racks", "blink");
+  tagSemanticParts(rackArray, zone, [
+    { role: "server-array", signature: "edge-rack-a", materialVariant: "accent-rack" },
+    { role: "server-array", signature: "edge-rack-b", materialVariant: "light-rack" },
+    { role: "server-array", signature: "edge-rack-c", materialVariant: "secondary-rack" }
+  ]);
   add(group, sphere(0.39, mats.light, [0.52, 1.5, -0.58]), zone, "electric-cloud", "cloud-core", "light-cloud", "float");
   add(group, sphere(0.27, mats.secondary, [0.88, 1.36, -0.58]), zone, "electric-cloud", "cloud-lobe", "secondary-cloud", "float");
   add(
