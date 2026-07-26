@@ -8704,7 +8704,9 @@ async function captureStaticRouteEncounterProof(browser, target) {
       return rect?.id === expectedEncounterId || rect?.routeId === target.routeId || routeScreen?.routeId === target.routeId;
     }).length;
     const visibilityProof = await inspectGameplayMomentVisibility(page, `static-proof:${target.routeId}`, drive, target.routeId);
-    const captureEntry = await capture(page, `static-proof-encounter-${target.routeId}`);
+    const captureEntry = await capture(page, `static-proof-encounter-${target.routeId}`, {
+      skipPremiumWorldDistribution: true
+    });
     const proof = {
       routeId: target.routeId,
       family: target.family,
