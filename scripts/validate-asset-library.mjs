@@ -326,6 +326,91 @@ for (const item of terrainAssetSourcingBacklog) {
   if (asArray(item.formats).includes("textures") && !isPositiveNumber(budget.targetResolution)) {
     fail("Terrain texture sourcing backlog item must declare a targetResolution budget.", { id: item.id, budget });
   }
+
+  if (["candidate", "accepted"].includes(item.status)) {
+    if (typeof item.downloadedAt !== "string" || !/^\d{4}-\d{2}-\d{2}$/u.test(item.downloadedAt)) {
+      fail("Candidate terrain sourcing backlog item must declare a YYYY-MM-DD downloadedAt date.", {
+        id: item.id,
+        downloadedAt: item.downloadedAt
+      });
+    }
+    if (typeof item.archiveSha256 !== "string" || !/^[a-f0-9]{64}$/u.test(item.archiveSha256)) {
+      fail("Candidate terrain sourcing backlog item must declare a SHA-256 archive hash.", {
+        id: item.id,
+        archiveSha256: item.archiveSha256
+      });
+    }
+    if (typeof item.quarantineInventory !== "string" || !fs.existsSync(path.join(root, item.quarantineInventory))) {
+      fail("Candidate terrain sourcing backlog item must point to an existing quarantineInventory.", {
+        id: item.id,
+        quarantineInventory: item.quarantineInventory
+      });
+    }
+    if (typeof item.quarantinePath !== "string" || !fs.existsSync(path.join(root, item.quarantinePath))) {
+      fail("Candidate terrain sourcing backlog item must point to an existing quarantinePath.", {
+        id: item.id,
+        quarantinePath: item.quarantinePath
+      });
+    }
+    if (asArray(item.candidateFiles).length === 0) {
+      fail("Candidate terrain sourcing backlog item must list candidateFiles.", { id: item.id });
+    }
+    let inventoryPack = null;
+    if (typeof item.quarantineInventory === "string" && fs.existsSync(path.join(root, item.quarantineInventory))) {
+      try {
+        const quarantineInventory = JSON.parse(fs.readFileSync(path.join(root, item.quarantineInventory), "utf8"));
+        inventoryPack = asArray(quarantineInventory.packs).find((pack) => pack.backlogId === item.id);
+        if (!inventoryPack) {
+          fail("Candidate terrain sourcing backlog item must have a matching pack in quarantineInventory.", {
+            id: item.id,
+            quarantineInventory: item.quarantineInventory
+          });
+        } else {
+          if (inventoryPack.archiveSha256 !== item.archiveSha256) {
+            fail("Candidate terrain sourcing backlog archiveSha256 must match quarantineInventory.", {
+              id: item.id,
+              manifestSha256: item.archiveSha256,
+              inventorySha256: inventoryPack.archiveSha256
+            });
+          }
+          const inventoryCandidateFiles = new Set(
+            asArray(inventoryPack.models)
+              .filter((model) => model.decision === "candidate")
+              .map((model) => `${model.name}.glb`)
+          );
+          for (const file of asArray(item.candidateFiles)) {
+            if (!inventoryCandidateFiles.has(file)) {
+              fail("Candidate terrain sourcing backlog file must be marked candidate in quarantineInventory.", {
+                id: item.id,
+                file,
+                inventoryCandidates: [...inventoryCandidateFiles].sort()
+              });
+            }
+          }
+        }
+      } catch (error) {
+        fail("Candidate terrain sourcing backlog quarantineInventory must be valid JSON.", {
+          id: item.id,
+          quarantineInventory: item.quarantineInventory,
+          error: String(error)
+        });
+      }
+    }
+    for (const file of asArray(item.candidateFiles)) {
+      if (typeof file !== "string" || !isModelFile(file)) {
+        fail("Candidate terrain sourcing backlog candidateFiles must be GLB/glTF names.", { id: item.id, file });
+        continue;
+      }
+      const candidateFilePath = path.join(root, item.quarantinePath ?? "", file);
+      if (!fs.existsSync(candidateFilePath)) {
+        fail("Candidate terrain sourcing backlog file does not exist in quarantinePath.", {
+          id: item.id,
+          file,
+          quarantinePath: item.quarantinePath
+        });
+      }
+    }
+  }
 }
 
 if (terrainAssetSourcingBacklog.length < 5) {

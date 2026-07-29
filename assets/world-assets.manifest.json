@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-29",
+  "updatedAt": "2026-07-30",
   "strategy": "asset-first",
   "statusModel": ["candidate", "accepted", "integrated", "rejected"],
   "budgets": {
@@ -901,19 +901,20 @@
   "terrainAssetSourcingBacklog": [
     {
       "id": "source-kenney-mini-forest-non-conic-vegetation",
-      "status": "research",
+      "status": "candidate",
       "sourceId": "kenney-mini-forest",
       "sourceUrl": "https://kenney.nl/assets/mini-forest",
       "assetPageUrl": "https://kenney.nl/assets/mini-forest",
-      "downloadUrl": "https://kenney.nl/assets/mini-forest",
+      "downloadUrl": "https://kenney.nl/media/pages/assets/mini-forest/44a89aed7f-1784024079/kenney_mini-forest_1.0.zip",
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "commercialUse": true,
       "attributionRequired": false,
       "retrievedAt": "2026-07-30",
+      "downloadedAt": "2026-07-30",
       "terrainRoles": ["vegetation"],
       "assetClasses": ["tree", "stump", "camp-scale prop"],
-      "formats": ["glTF"],
+      "formats": ["GLB"],
       "priority": 1,
       "targetLayer": "public-terrain-core.vegetation",
       "targetUse": "Replace remaining low-read vegetation clusters with downloaded forest assets that clearly read as trees or ground vegetation, not cones or abstract markers.",
@@ -922,23 +923,37 @@
       "rejectIf": ["cone silhouette", "abstract marker", "style mismatch", "excessive file weight"],
       "fallbackPolicy": "Allowed public fallback is omission of the failed vegetation placement, leaving only accepted downloaded terrain textures and assets visible.",
       "qaGate": "public-asset-only-terrain-visual-only",
-      "nextAction": "Download the pack into a quarantine folder, inventory GLB/glTF names, capture a sprite-sheet review, and accept only non-conic vegetation."
+      "nextAction": "Render the eight candidate GLBs in a silhouette sheet, then promote only the assets that still read as non-conic vegetation, bridge or relief in the public camera.",
+      "quarantinePath": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format",
+      "quarantineInventory": "assets/quarantine/inventory/kenney-terrain-priority-inventory.json",
+      "archiveSha256": "8691614018075a66458e35915b8c358c2e6178648aedadafcdf313b924aa6581",
+      "candidateFiles": [
+        "bridge.glb",
+        "plant.glb",
+        "rocks-high.glb",
+        "rocks-low.glb",
+        "rocks-ramp.glb",
+        "stones.glb",
+        "tree-high.glb",
+        "tree.glb"
+      ]
     },
     {
       "id": "source-kenney-modular-cave-relief",
-      "status": "research",
+      "status": "candidate",
       "sourceId": "kenney-modular-cave-kit",
       "sourceUrl": "https://kenney.nl/assets/modular-cave-kit",
       "assetPageUrl": "https://kenney.nl/assets/modular-cave-kit",
-      "downloadUrl": "https://kenney.nl/assets/modular-cave-kit",
+      "downloadUrl": "https://kenney.nl/media/pages/assets/modular-cave-kit/37ec3cb12d-1783667097/kenney_modular-cave-kit_1.0.zip",
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
       "commercialUse": true,
       "attributionRequired": false,
       "retrievedAt": "2026-07-30",
+      "downloadedAt": "2026-07-30",
       "terrainRoles": ["relief", "bridge"],
       "assetClasses": ["cliff", "cave", "rock wall", "terrain break"],
-      "formats": ["glTF"],
+      "formats": ["GLB"],
       "priority": 1,
       "targetLayer": "public-terrain-core.relief",
       "targetUse": "Build authored relief and map-edge elevation from real modular rock assets before enlarging the playable terrain.",
@@ -947,7 +962,16 @@
       "rejectIf": ["primitive wall silhouette", "flat plate", "z-fighting-prone seam", "block clutter"],
       "fallbackPolicy": "Omit failed relief pieces in public runtime; preserve only the downloaded terrain texture blend and heightfield.",
       "qaGate": "public-asset-only-terrain-core",
-      "nextAction": "Download the pack, inspect GLB/glTF pieces by silhouette, and prepare a small relief-only integration wave away from hero bases."
+      "nextAction": "Render the four candidate GLBs in a silhouette sheet and reject the remaining cave rooms/corridors until a dedicated cave biome proof exists.",
+      "quarantinePath": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format",
+      "quarantineInventory": "assets/quarantine/inventory/kenney-terrain-priority-inventory.json",
+      "archiveSha256": "48f37a6d4f241124cd7da17da1c6d4ed1bf1820bb149dcb233fbd5ebdd8ba996",
+      "candidateFiles": [
+        "gate-overhang.glb",
+        "gate-rock.glb",
+        "stairs-wide.glb",
+        "stairs.glb"
+      ]
     },
     {
       "id": "source-polyhaven-pbr-ground-upgrade",

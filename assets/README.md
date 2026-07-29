@@ -98,6 +98,10 @@ Terrain sourcing backlog:
 - A backlog item is not accepted runtime material. New files still need a
   quarantine import, local weight/triangle inventory, selected file list,
   public path, fallback, and QA proof before the world can render them.
+- `candidate` in the sourcing backlog means the pack has been downloaded into
+  `assets/quarantine`, hashed, inventoried and narrowed to candidate GLB/glTF
+  files. It still cannot render publicly until promoted into the normal
+  `assets` manifest flow.
 - Public fallback means omit the failing placement or reuse an accepted
   downloaded asset/texture. It must not draw generated trees, cones, disks,
   route ribbons, water blobs, plates, halos, markers or synthetic patterns.

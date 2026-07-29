@@ -1,0 +1,1013 @@
+{
+  "generatedAt": "2026-07-29T22:51:38.625Z",
+  "policy": "Quarantine inventory only. Files listed here are not public runtime assets until copied into public/assets, declared as accepted/integrated, budgeted, and proven by QA.",
+  "packs": [
+    {
+      "id": "kenney-mini-forest",
+      "backlogId": "source-kenney-mini-forest-non-conic-vegetation",
+      "sourceUrl": "https://kenney.nl/assets/mini-forest",
+      "license": "CC0-1.0",
+      "licenseFile": "assets/quarantine/vendor/kenney/mini-forest/extracted/License.txt",
+      "archive": "assets/quarantine/vendor/kenney/mini-forest/kenney_mini-forest_1.0.zip",
+      "archiveKb": 1091.9,
+      "archiveSha256": "8691614018075a66458e35915b8c358c2e6178648aedadafcdf313b924aa6581",
+      "extractedRoot": "assets/quarantine/vendor/kenney/mini-forest/extracted",
+      "glbCount": 22,
+      "previewCount": 22,
+      "totalGlbKb": 818.9,
+      "totalTriangles": 6615,
+      "decisions": {
+        "candidate": 8,
+        "hold": 4,
+        "rejectPublicTerrain": 10
+      },
+      "models": [
+        {
+          "name": "bridge",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/bridge.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/bridge.png",
+          "fileKb": 31.7,
+          "triangles": 372,
+          "terrainRoles": [
+            "bridge"
+          ],
+          "decision": "candidate",
+          "reviewFocus": [
+            "usable crossing",
+            "not a flat plate",
+            "compatible scale with current vehicle"
+          ]
+        },
+        {
+          "name": "building-platform",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/building-platform.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/building-platform.png",
+          "fileKb": 47.1,
+          "triangles": 508,
+          "terrainRoles": [
+            "path"
+          ],
+          "decision": "hold",
+          "reviewFocus": [
+            "flat plate risk",
+            "may read as generated rectangle",
+            "use texture layer first"
+          ]
+        },
+        {
+          "name": "building-roof",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/building-roof.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/building-roof.png",
+          "fileKb": 31.2,
+          "triangles": 324,
+          "terrainRoles": [],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "not a terrain-first asset",
+            "keep out of public terrain core"
+          ]
+        },
+        {
+          "name": "building-structure",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/building-structure.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/building-structure.png",
+          "fileKb": 16,
+          "triangles": 144,
+          "terrainRoles": [],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "not a terrain-first asset",
+            "keep out of public terrain core"
+          ]
+        },
+        {
+          "name": "character-archer",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/character-archer.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/character-archer.png",
+          "fileKb": 233.5,
+          "triangles": 574,
+          "terrainRoles": [],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "not a terrain-first asset",
+            "keep out of public terrain core"
+          ]
+        },
+        {
+          "name": "fence",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/fence.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/fence.png",
+          "fileKb": 29.2,
+          "triangles": 330,
+          "terrainRoles": [],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "not a terrain-first asset",
+            "keep out of public terrain core"
+          ]
+        },
+        {
+          "name": "flag",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/flag.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/flag.png",
+          "fileKb": 16.2,
+          "triangles": 162,
+          "terrainRoles": [],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "not a terrain-first asset",
+            "keep out of public terrain core"
+          ]
+        },
+        {
+          "name": "ladder",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/ladder.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/ladder.png",
+          "fileKb": 21.7,
+          "triangles": 216,
+          "terrainRoles": [],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "not a terrain-first asset",
+            "keep out of public terrain core"
+          ]
+        },
+        {
+          "name": "patch-dirt",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/patch-dirt.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/patch-dirt.png",
+          "fileKb": 9.9,
+          "triangles": 108,
+          "terrainRoles": [
+            "path"
+          ],
+          "decision": "hold",
+          "reviewFocus": [
+            "flat plate risk",
+            "may read as generated rectangle",
+            "use texture layer first"
+          ]
+        },
+        {
+          "name": "patch-grass",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/patch-grass.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/patch-grass.png",
+          "fileKb": 29,
+          "triangles": 295,
+          "terrainRoles": [
+            "path"
+          ],
+          "decision": "hold",
+          "reviewFocus": [
+            "flat plate risk",
+            "may read as generated rectangle",
+            "use texture layer first"
+          ]
+        },
+        {
+          "name": "plant",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/plant.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/plant.png",
+          "fileKb": 21.9,
+          "triangles": 156,
+          "terrainRoles": [
+            "vegetation"
+          ],
+          "decision": "candidate",
+          "reviewFocus": [
+            "non-conic silhouette",
+            "reads as vegetation at distance",
+            "fits current low-poly vendor palette"
+          ]
+        },
+        {
+          "name": "platform",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/platform.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/platform.png",
+          "fileKb": 61.9,
+          "triangles": 651,
+          "terrainRoles": [
+            "path"
+          ],
+          "decision": "hold",
+          "reviewFocus": [
+            "flat plate risk",
+            "may read as generated rectangle",
+            "use texture layer first"
+          ]
+        },
+        {
+          "name": "rocks-high",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/rocks-high.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/rocks-high.png",
+          "fileKb": 31.2,
+          "triangles": 342,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "candidate",
+          "reviewFocus": [
+            "authored relief silhouette",
+            "no primitive block read",
+            "useful near water or map edge"
+          ]
+        },
+        {
+          "name": "rocks-low",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/rocks-low.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/rocks-low.png",
+          "fileKb": 31.2,
+          "triangles": 342,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "candidate",
+          "reviewFocus": [
+            "authored relief silhouette",
+            "no primitive block read",
+            "useful near water or map edge"
+          ]
+        },
+        {
+          "name": "rocks-ramp",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/rocks-ramp.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/rocks-ramp.png",
+          "fileKb": 22.6,
+          "triangles": 234,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "candidate",
+          "reviewFocus": [
+            "authored relief silhouette",
+            "no primitive block read",
+            "useful near water or map edge"
+          ]
+        },
+        {
+          "name": "stones",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/stones.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/stones.png",
+          "fileKb": 22.6,
+          "triangles": 236,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "candidate",
+          "reviewFocus": [
+            "authored relief silhouette",
+            "no primitive block read",
+            "useful near water or map edge"
+          ]
+        },
+        {
+          "name": "target",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/target.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/target.png",
+          "fileKb": 17.3,
+          "triangles": 188,
+          "terrainRoles": [],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "not a terrain-first asset",
+            "keep out of public terrain core"
+          ]
+        },
+        {
+          "name": "tent",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/tent.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/tent.png",
+          "fileKb": 76.1,
+          "triangles": 847,
+          "terrainRoles": [],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "not a terrain-first asset",
+            "keep out of public terrain core"
+          ]
+        },
+        {
+          "name": "tree-high",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/tree-high.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/tree-high.png",
+          "fileKb": 30.4,
+          "triangles": 266,
+          "terrainRoles": [
+            "vegetation"
+          ],
+          "decision": "candidate",
+          "reviewFocus": [
+            "non-conic silhouette",
+            "reads as vegetation at distance",
+            "fits current low-poly vendor palette"
+          ]
+        },
+        {
+          "name": "tree",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/tree.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/tree.png",
+          "fileKb": 22.9,
+          "triangles": 182,
+          "terrainRoles": [
+            "vegetation"
+          ],
+          "decision": "candidate",
+          "reviewFocus": [
+            "non-conic silhouette",
+            "reads as vegetation at distance",
+            "fits current low-poly vendor palette"
+          ]
+        },
+        {
+          "name": "weapon-arrow",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/weapon-arrow.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/weapon-arrow.png",
+          "fileKb": 7,
+          "triangles": 58,
+          "terrainRoles": [],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "not a terrain-first asset",
+            "keep out of public terrain core"
+          ]
+        },
+        {
+          "name": "weapon-bow",
+          "file": "assets/quarantine/vendor/kenney/mini-forest/extracted/Models/GLB format/weapon-bow.glb",
+          "preview": "assets/quarantine/vendor/kenney/mini-forest/extracted/Previews/weapon-bow.png",
+          "fileKb": 8.3,
+          "triangles": 80,
+          "terrainRoles": [],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "not a terrain-first asset",
+            "keep out of public terrain core"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kenney-modular-cave-kit",
+      "backlogId": "source-kenney-modular-cave-relief",
+      "sourceUrl": "https://kenney.nl/assets/modular-cave-kit",
+      "license": "CC0-1.0",
+      "licenseFile": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/License.txt",
+      "archive": "assets/quarantine/vendor/kenney/modular-cave-kit/kenney_modular-cave-kit_1.0.zip",
+      "archiveKb": 6860.4,
+      "archiveSha256": "48f37a6d4f241124cd7da17da1c6d4ed1bf1820bb149dcb233fbd5ebdd8ba996",
+      "extractedRoot": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted",
+      "glbCount": 40,
+      "previewCount": 40,
+      "totalGlbKb": 6089.2,
+      "totalTriangles": 62704,
+      "decisions": {
+        "candidate": 4,
+        "hold": 3,
+        "rejectPublicTerrain": 33
+      },
+      "models": [
+        {
+          "name": "corridor-corner",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/corridor-corner.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/corridor-corner.png",
+          "fileKb": 65,
+          "triangles": 624,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "corridor-end",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/corridor-end.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/corridor-end.png",
+          "fileKb": 125.9,
+          "triangles": 1324,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "corridor-intersection",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/corridor-intersection.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/corridor-intersection.png",
+          "fileKb": 23.9,
+          "triangles": 244,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "corridor-junction",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/corridor-junction.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/corridor-junction.png",
+          "fileKb": 54.3,
+          "triangles": 564,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "corridor-transition",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/corridor-transition.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/corridor-transition.png",
+          "fileKb": 214.3,
+          "triangles": 2276,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "corridor-wide-corner",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/corridor-wide-corner.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/corridor-wide-corner.png",
+          "fileKb": 148.8,
+          "triangles": 1516,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "corridor-wide-end",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/corridor-wide-end.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/corridor-wide-end.png",
+          "fileKb": 228,
+          "triangles": 2428,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "corridor-wide-intersection",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/corridor-wide-intersection.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/corridor-wide-intersection.png",
+          "fileKb": 25.1,
+          "triangles": 256,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "corridor-wide-junction",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/corridor-wide-junction.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/corridor-wide-junction.png",
+          "fileKb": 89.1,
+          "triangles": 940,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "corridor-wide",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/corridor-wide.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/corridor-wide.png",
+          "fileKb": 153,
+          "triangles": 1624,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "corridor",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/corridor.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/corridor.png",
+          "fileKb": 84.5,
+          "triangles": 884,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "gate-metal-bars",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/gate-metal-bars.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/gate-metal-bars.png",
+          "fileKb": 66.6,
+          "triangles": 720,
+          "terrainRoles": [],
+          "decision": "hold",
+          "reviewFocus": [
+            "inspect manually before any public use"
+          ]
+        },
+        {
+          "name": "gate-overhang",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/gate-overhang.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/gate-overhang.png",
+          "fileKb": 9.9,
+          "triangles": 104,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "candidate",
+          "reviewFocus": [
+            "authored elevation break",
+            "not a primitive wall",
+            "use away from hero bases first"
+          ]
+        },
+        {
+          "name": "gate-rock",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/gate-rock.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/gate-rock.png",
+          "fileKb": 31,
+          "triangles": 360,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "candidate",
+          "reviewFocus": [
+            "authored elevation break",
+            "not a primitive wall",
+            "use away from hero bases first"
+          ]
+        },
+        {
+          "name": "gate",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/gate.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/gate.png",
+          "fileKb": 52.5,
+          "triangles": 592,
+          "terrainRoles": [],
+          "decision": "hold",
+          "reviewFocus": [
+            "inspect manually before any public use"
+          ]
+        },
+        {
+          "name": "ladder",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/ladder.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/ladder.png",
+          "fileKb": 16.9,
+          "triangles": 160,
+          "terrainRoles": [
+            "bridge"
+          ],
+          "decision": "hold",
+          "reviewFocus": [
+            "scale risk",
+            "could become route punctuation later",
+            "not terrain-first enough yet"
+          ]
+        },
+        {
+          "name": "room-corner",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/room-corner.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/room-corner.png",
+          "fileKb": 354.5,
+          "triangles": 3612,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "room-large-variation",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/room-large-variation.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/room-large-variation.png",
+          "fileKb": 773.2,
+          "triangles": 7956,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "room-large",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/room-large.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/room-large.png",
+          "fileKb": 786.1,
+          "triangles": 8080,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "room-small-variation",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/room-small-variation.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/room-small-variation.png",
+          "fileKb": 376.7,
+          "triangles": 3868,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "room-small",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/room-small.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/room-small.png",
+          "fileKb": 338.4,
+          "triangles": 3356,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "room-wide-variation",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/room-wide-variation.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/room-wide-variation.png",
+          "fileKb": 650.9,
+          "triangles": 6704,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "room-wide",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/room-wide.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/room-wide.png",
+          "fileKb": 537.5,
+          "triangles": 5460,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "stairs-wide",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/stairs-wide.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/stairs-wide.png",
+          "fileKb": 231.9,
+          "triangles": 2506,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "candidate",
+          "reviewFocus": [
+            "authored elevation break",
+            "not a primitive wall",
+            "use away from hero bases first"
+          ]
+        },
+        {
+          "name": "stairs",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/stairs.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/stairs.png",
+          "fileKb": 222.6,
+          "triangles": 2386,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "candidate",
+          "reviewFocus": [
+            "authored elevation break",
+            "not a primitive wall",
+            "use away from hero bases first"
+          ]
+        },
+        {
+          "name": "template-corner",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/template-corner.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/template-corner.png",
+          "fileKb": 59.6,
+          "triangles": 564,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "template-detail",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/template-detail.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/template-detail.png",
+          "fileKb": 31.9,
+          "triangles": 320,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "template-floor-big",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/template-floor-big.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/template-floor-big.png",
+          "fileKb": 63.3,
+          "triangles": 636,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "template-floor-detail-a",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/template-floor-detail-a.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/template-floor-detail-a.png",
+          "fileKb": 22.1,
+          "triangles": 204,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "template-floor-detail",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/template-floor-detail.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/template-floor-detail.png",
+          "fileKb": 22.1,
+          "triangles": 204,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "template-floor-layer-hole",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/template-floor-layer-hole.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/template-floor-layer-hole.png",
+          "fileKb": 40.1,
+          "triangles": 384,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "template-floor-layer-raised",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/template-floor-layer-raised.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/template-floor-layer-raised.png",
+          "fileKb": 32.9,
+          "triangles": 312,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "template-floor-layer",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/template-floor-layer.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/template-floor-layer.png",
+          "fileKb": 18.6,
+          "triangles": 168,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "template-floor",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/template-floor.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/template-floor.png",
+          "fileKb": 2,
+          "triangles": 4,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "template-wall-corner",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/template-wall-corner.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/template-wall-corner.png",
+          "fileKb": 7,
+          "triangles": 60,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "template-wall-detail-a",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/template-wall-detail-a.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/template-wall-detail-a.png",
+          "fileKb": 41,
+          "triangles": 420,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "template-wall-half",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/template-wall-half.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/template-wall-half.png",
+          "fileKb": 19.5,
+          "triangles": 192,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "template-wall-stairs",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/template-wall-stairs.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/template-wall-stairs.png",
+          "fileKb": 10.6,
+          "triangles": 104,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "template-wall-top",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/template-wall-top.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/template-wall-top.png",
+          "fileKb": 15,
+          "triangles": 148,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        },
+        {
+          "name": "template-wall",
+          "file": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Models/GLB format/template-wall.glb",
+          "preview": "assets/quarantine/vendor/kenney/modular-cave-kit/extracted/Previews/template-wall.png",
+          "fileKb": 42.9,
+          "triangles": 440,
+          "terrainRoles": [
+            "relief"
+          ],
+          "decision": "reject-public-terrain",
+          "reviewFocus": [
+            "wall or floor tile risk",
+            "could read as primitive block/plate",
+            "needs separate cave biome proof"
+          ]
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "packs": 2,
+    "glbCount": 62,
+    "candidateCount": 12,
+    "holdCount": 7,
+    "rejectPublicTerrainCount": 43,
+    "totalGlbKb": 6908.1,
+    "totalTriangles": 69319
+  }
+}
