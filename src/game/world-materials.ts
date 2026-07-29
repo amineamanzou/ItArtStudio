@@ -73,7 +73,9 @@ const waterRegions: WaterRegion[] = [
   { id: "far-north-canal", center: [-4.8, 43.8], radiusX: 8.8, radiusZ: 1.92, rotation: -0.08 },
   { id: "far-south-mailwater", center: [7.8, -43.2], radiusX: 8.2, radiusZ: 1.86, rotation: 0.1 },
   { id: "far-west-cloud-marsh", center: [-43.0, -9.8], radiusX: 1.94, radiusZ: 8.0, rotation: 0.04 },
-  { id: "far-east-art-ponds", center: [43.4, 11.6], radiusX: 2.0, radiusZ: 8.2, rotation: -0.06 }
+  { id: "far-east-art-ponds", center: [43.4, 11.6], radiusX: 2.0, radiusZ: 8.2, rotation: -0.06 },
+  { id: "edge-west-waterline", center: [-52.2, 1.2], radiusX: 1.86, radiusZ: 6.9, rotation: -0.02 },
+  { id: "edge-east-mirror-pond", center: [52.0, -0.8], radiusX: 1.92, radiusZ: 7.1, rotation: 0.04 }
 ];
 
 const rampRegions: RampRegion[] = [
@@ -122,7 +124,11 @@ const terrainFeatures: TerrainFeature[] = [
   { id: "far-west-cloud-marsh", kind: "basin", center: [-42.6, -9.6], radiusX: 2.25, radiusZ: 14.4, rotation: 0.04, height: -0.13, linkedRouteIds: ["tech-cloud-ai", "tech-ai-obs"], linkedZoneIds: ["cloud-dock", "ai-lab", "observability-tower"] },
   { id: "far-east-art-gallery", kind: "mound", center: [42.8, 11.4], radiusX: 2.35, radiusZ: 14.8, rotation: -0.06, height: 0.13, linkedRouteIds: ["art-design-foundry", "art-foundry-fashion"], linkedZoneIds: ["design-atelier", "three-d-foundry", "fashion-room"] },
   { id: "far-northwest-observatory", kind: "ridge", center: [-41.6, 35.6], radiusX: 7.8, radiusZ: 2.0, rotation: 0.28, height: 0.12, linkedRouteIds: ["tech-obs-arch"], linkedZoneIds: ["observability-tower", "architecture-bridge"] },
-  { id: "far-southeast-atelier-bank", kind: "mound", center: [40.8, -35.2], radiusX: 7.6, radiusZ: 2.05, rotation: -0.26, height: 0.12, linkedRouteIds: ["art-gate-design"], linkedZoneIds: ["design-atelier"] }
+  { id: "far-southeast-atelier-bank", kind: "mound", center: [40.8, -35.2], radiusX: 7.6, radiusZ: 2.05, rotation: -0.26, height: 0.12, linkedRouteIds: ["art-gate-design"], linkedZoneIds: ["design-atelier"] },
+  { id: "edge-north-ridge", kind: "ridge", center: [0.8, 51.8], radiusX: 11.8, radiusZ: 2.05, rotation: 0.06, height: 0.12, linkedRouteIds: ["spine-gate-values"], linkedZoneIds: ["values-plaza"] },
+  { id: "edge-south-cut", kind: "basin", center: [-1.2, -51.6], radiusX: 11.6, radiusZ: 2.12, rotation: -0.04, height: -0.12, linkedRouteIds: ["spine-contact-gate"], linkedZoneIds: ["contact-portal"] },
+  { id: "edge-west-marsh-bank", kind: "basin", center: [-52.0, 1.1], radiusX: 2.08, radiusZ: 11.4, rotation: -0.02, height: -0.12, linkedRouteIds: ["tech-ai-obs"], linkedZoneIds: ["observability-tower"] },
+  { id: "edge-east-gallery-bank", kind: "mound", center: [52.0, -0.8], radiusX: 2.12, radiusZ: 11.6, rotation: 0.04, height: 0.12, linkedRouteIds: ["art-design-foundry"], linkedZoneIds: ["design-atelier", "three-d-foundry"] }
 ];
 
 const fieldSample: WorldMaterialSample = {

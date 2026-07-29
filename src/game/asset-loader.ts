@@ -1298,6 +1298,46 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     }),
     createPlacement("terrain-core:east-ridge-cliff-top", "terrain-core:east-ridge-relief", "relief", "support", true, "relief", "cliff_top_rock.glb", [42.8, -29.4], 0.9, -0.18, {
       assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:edge-north-rail-marker", "terrain-core:edge-north-vista", "route", "support", true, "rail", "track-detailed.glb", [0.2, 52.1], 1.02, 0.06, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("terrain-core:edge-north-tree-marker", "terrain-core:edge-north-vista", "vegetation", "support", true, "vegetation", "tree_default.glb", [1.9, 51.55], 0.92, 0.16, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:edge-north-tall-rock", "terrain-core:edge-north-vista", "relief", "support", true, "relief", "rock_tallA.glb", [-2.7, 51.25], 0.82, -0.22, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:edge-north-bush", "terrain-core:edge-north-vista", "vegetation", "support", true, "vegetation", "plant_bush.glb", [3.1, 50.8], 0.86, 0.18, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:edge-south-rail", "terrain-core:edge-south-vista", "route", "support", true, "rail", "track-single.glb", [-0.8, -52.2], 1.02, Math.PI * 0.04, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("terrain-core:edge-south-large-rock", "terrain-core:edge-south-vista", "relief", "support", true, "relief", "rock_largeC.glb", [2.6, -51.1], 0.8, 0.24, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:edge-south-stump", "terrain-core:edge-south-vista", "vegetation", "support", true, "vegetation", "stump_roundDetailed.glb", [-3.6, -50.9], 0.74, -0.16, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:edge-west-water-lily", "terrain-core:edge-west-vista", "water", "support", true, "water", "lily_large.glb", [-52.4, 1.65], 0.48, -0.12, {
+      assetId: "accepted-nature-water-core"
+    }),
+    createPlacement("terrain-core:edge-west-boardwalk", "terrain-core:edge-west-vista", "route", "support", true, "bridge", "bridge_woodNarrow.glb", [-51.4, -1.2], 0.9, Math.PI * 0.5, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.56
+    }),
+    createPlacement("terrain-core:edge-west-large-rock", "terrain-core:edge-west-vista", "relief", "support", true, "relief", "rock_largeE.glb", [-50.7, 4.1], 0.82, 0.18, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:edge-east-water-hyacinth", "terrain-core:edge-east-vista", "water", "support", true, "water", "water-hyacinth-1.glb", [52.2, -1.4], 0.5, 0.22, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:edge-east-rail", "terrain-core:edge-east-vista", "route", "support", true, "rail", "track-rail.glb", [51.1, 1.6], 0.98, -0.12, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("terrain-core:edge-east-pine", "terrain-core:edge-east-vista", "vegetation", "support", true, "vegetation", "tree_pineTallA.glb", [50.2, -4.0], 0.96, -0.24, {
+      assetId: "accepted-nature-vegetation-core"
     })
   ];
 }

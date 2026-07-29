@@ -43,11 +43,11 @@ Accepted runtime packs:
   edge props plus the pack colormap texture.
 - `public/assets/models/vendor/kenney/nature-kit/bridges`: 6 GLB bridge/plank
   pieces for water crossings.
-- `public/assets/models/vendor/kenney/nature-kit/relief`: 8 GLB cliff and rock
+- `public/assets/models/vendor/kenney/nature-kit/relief`: 18 GLB cliff and rock
   pieces for heightfield accents.
 - `public/assets/models/vendor/kenney/nature-kit/water`: 8 GLB river/water-edge
   pieces for authored water transitions.
-- `public/assets/models/vendor/kenney/nature-kit/vegetation`: 10 GLB trees,
+- `public/assets/models/vendor/kenney/nature-kit/vegetation`: 19 GLB trees,
   bushes and ground details for sparse, instanced vegetation.
 - `public/assets/models/vendor/kenney/factory-kit/industrial`: 23 GLB
   industrial, screen, pipe, platform and work-surface pieces for Cloud Dock,
@@ -83,6 +83,17 @@ Map expansion kits:
 - Each kit must bind terrain roles to accepted model collections, accepted map
   textures, runtime fallback behavior, placement/coverage thresholds and a
   noise budget. This keeps the expansion asset-first instead of prop-first.
+
+Public terrain-first runtime:
+
+- `publicTerrainCore` is the stricter public contract for `?world=asset-only`.
+  It must prove a downloaded GLB vehicle, downloaded terrain textures, visible
+  center wetland assets, four outer edge screenshots, and zero generated
+  runtime scenery counters.
+- V13.5 expands the playable shell to 112 units and proves 167 public
+  placements across roughly 105x105 units of coverage. The edge placements
+  deliberately avoid road/path plates and block-like cliff chunks; downloaded
+  bridges are kept only where they read as water crossings.
 
 Core promotion:
 

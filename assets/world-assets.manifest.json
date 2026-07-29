@@ -66,9 +66,9 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v134",
+    "id": "public-terrain-core-v135",
     "phase": "public-terrain-first-runtime",
-    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor brown-mud-leaf/stony-dirt-path/relief/river-pebble water-edge textures, subdued integrated pond surfaces that read as wet shoreline instead of blue plates, a visible central wetland composed from downloaded reeds, lilies, rocks and bank vegetation, and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles, visible map-edge voids or hero/factory clutter.",
+    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor brown-mud-leaf/stony-dirt-path/relief/river-pebble water-edge textures, subdued integrated pond surfaces that read as wet shoreline instead of blue plates, a visible central wetland composed from downloaded reeds, lilies, rocks and bank vegetation, and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across a larger 112-unit map with no generated decorative primitives, road tiles, river tiles, visible map-edge voids or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
     "requiredPlayerAssetId": "accepted-car-vehicle-core",
     "requiredPlayerFile": "race.glb",
@@ -132,6 +132,7 @@
       "grass_large.glb",
       "grass_leafsLarge.glb",
       "plant_bushDetailed.glb",
+      "plant_bush.glb",
       "plant_bushLarge.glb",
       "stump_roundDetailed.glb",
       "tree_default.glb",
@@ -248,7 +249,20 @@
       "terrain-core:west-wetland-hanging-moss",
       "terrain-core:east-ridge-stone-bridge",
       "terrain-core:east-ridge-water-lily",
-      "terrain-core:east-ridge-cliff-top"
+      "terrain-core:east-ridge-cliff-top",
+      "terrain-core:edge-north-rail-marker",
+      "terrain-core:edge-north-tree-marker",
+      "terrain-core:edge-north-tall-rock",
+      "terrain-core:edge-north-bush",
+      "terrain-core:edge-south-rail",
+      "terrain-core:edge-south-large-rock",
+      "terrain-core:edge-south-stump",
+      "terrain-core:edge-west-water-lily",
+      "terrain-core:edge-west-boardwalk",
+      "terrain-core:edge-west-large-rock",
+      "terrain-core:edge-east-water-hyacinth",
+      "terrain-core:edge-east-rail",
+      "terrain-core:edge-east-pine"
     ],
     "forbiddenFiles": [
       "box-long.glb",
@@ -271,16 +285,16 @@
       "top-large-checkerboard.glb",
       "tree_cone.glb"
     ],
-    "minimumPlacements": 154,
-    "minimumUniqueFiles": 60,
+    "minimumPlacements": 167,
+    "minimumUniqueFiles": 61,
     "minimumRolePlacements": {
-      "route": 35,
-      "water": 30,
-      "relief": 40,
-      "vegetation": 49
+      "route": 39,
+      "water": 32,
+      "relief": 43,
+      "vegetation": 53
     },
-    "minimumCoverage": { "width": 78, "depth": 78 },
-    "minimumCoverageArea": 6500,
+    "minimumCoverage": { "width": 102, "depth": 102 },
+    "minimumCoverageArea": 10400,
     "requiredTerrainMaterialRoles": ["field", "path", "relief", "water"],
     "requiredTerrainTextureFiles": [
       "assets/textures/vendor/polyhaven/brown_mud_leaves_01/brown_mud_leaves_01_diff_1k.jpg",
@@ -303,7 +317,7 @@
     "minimumTerrainLayers": 4,
     "minimumTerrainHeightRange": 0.5,
     "minimumTerrainVertexCount": 90000,
-    "minimumTerrainVisualSize": 150,
+    "minimumTerrainVisualSize": 180,
     "maximumCanvasEdgeVoidRatio": 0.02,
     "maximumCanvasEdgeVoidRunRatio": 0.08,
     "maximumCanvasEdgeVoidTotalRatio": 0.08,
@@ -369,76 +383,52 @@
     "requiredOuterBandProofs": [
       {
         "id": "north",
-        "position": { "x": 1.8, "z": 39.8 },
+        "position": { "x": 0.2, "z": 52.1 },
         "requiredPlacementIds": [
-          "terrain-core:outer-rail-north-marker",
-          "terrain-core:far-north-relief-half",
+          "terrain-core:edge-north-rail-marker",
+          "terrain-core:edge-north-tree-marker",
+          "terrain-core:edge-north-tall-rock",
+          "terrain-core:edge-north-bush",
           "terrain-core:far-north-oak",
-          "terrain-core:outer-north-tree-detailed",
-          "terrain-core:outer-north-oak-secondary",
-          "terrain-core:outer-north-flat-rock",
-          "terrain-core:outer-north-flower-edge",
-          "terrain-core:outer-north-rail-side",
-          "terrain-core:north-meadow-boardwalk-corner",
-          "terrain-core:north-meadow-rail-tie",
-          "terrain-core:north-meadow-bush"
+          "terrain-core:outer-north-tree-detailed"
         ],
-        "minimumVisiblePlacements": 4
+        "minimumVisiblePlacements": 3
       },
       {
         "id": "south",
-        "position": { "x": 12.4, "z": -43.4 },
+        "position": { "x": -0.8, "z": -52.2 },
         "requiredPlacementIds": [
+          "terrain-core:edge-south-rail",
+          "terrain-core:edge-south-large-rock",
+          "terrain-core:edge-south-stump",
           "terrain-core:far-south-relief-large",
-          "terrain-core:far-south-grass",
-          "terrain-core:pine-ground-south",
-          "terrain-core:outer-south-pine-pair",
-          "terrain-core:outer-south-log-fallen",
-          "terrain-core:outer-south-boulder",
-          "terrain-core:outer-south-grass-line",
-          "terrain-core:south-runoff-bridge-side",
-          "terrain-core:south-runoff-rail-detailed",
-          "terrain-core:south-runoff-cliff-step"
+          "terrain-core:far-south-grass"
         ],
-        "minimumVisiblePlacements": 4
+        "minimumVisiblePlacements": 3
       },
       {
         "id": "west",
-        "position": { "x": -37.2, "z": 30.4 },
+        "position": { "x": -52.4, "z": 1.65 },
         "requiredPlacementIds": [
-          "terrain-core:outer-water-west-pond",
-          "terrain-core:outer-water-west-cattail",
-          "terrain-core:outer-bridge-west-crossing",
-          "terrain-core:outer-west-bush",
-          "terrain-core:far-west-relief-corner",
-          "terrain-core:outer-west-bank-rock",
-          "terrain-core:outer-west-bank-tree",
-          "terrain-core:outer-west-boardwalk-side",
-          "terrain-core:outer-west-lily-large",
-          "terrain-core:west-wetland-pond-four",
-          "terrain-core:west-wetland-boardwalk-corner",
-          "terrain-core:west-wetland-hanging-moss"
+          "terrain-core:edge-west-water-lily",
+          "terrain-core:edge-west-boardwalk",
+          "terrain-core:edge-west-large-rock",
+          "terrain-core:far-west-waterfall-rock",
+          "terrain-core:far-west-relief-corner"
         ],
-        "minimumVisiblePlacements": 5
+        "minimumVisiblePlacements": 3
       },
       {
         "id": "east",
-        "position": { "x": 36.8, "z": -35.2 },
+        "position": { "x": 52.2, "z": -1.4 },
         "requiredPlacementIds": [
-          "terrain-core:outer-water-east-pond",
-          "terrain-core:outer-water-east-hyacinth",
-          "terrain-core:outer-bridge-east-crossing",
-          "terrain-core:far-east-relief-slope",
-          "terrain-core:outer-east-palm",
-          "terrain-core:outer-east-bank-rock",
-          "terrain-core:outer-east-bank-palm",
-          "terrain-core:outer-east-bridge-side",
-          "terrain-core:outer-east-lily-small",
-          "terrain-core:east-ridge-stone-bridge",
-          "terrain-core:east-ridge-water-lily",
-          "terrain-core:east-ridge-cliff-top"
+          "terrain-core:edge-east-water-hyacinth",
+          "terrain-core:edge-east-rail",
+          "terrain-core:edge-east-pine",
+          "terrain-core:far-east-lily-marker",
+          "terrain-core:far-east-relief-slope"
         ],
-        "minimumVisiblePlacements": 5
+        "minimumVisiblePlacements": 3
       }
     ],
     "minimumOuterBandClippedArea": 160,
@@ -447,7 +437,7 @@
     "maximumHeroLocationPlacements": 0,
     "allowedGeneratedSubstrate": "single extended terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief/water-edge material; visible public decor must come from downloaded vendor GLB/glTF.",
     "fallback": "If a terrain GLB fails, omit that placement and keep the public world sparse rather than replacing it with a generated rectangle, cone, halo, plate or abstract primitive.",
-    "nextAction": "Review the v134 central wetland plus north/south/east/west terrain-only screenshots for wet shoreline readability before densifying Cloud Dock, Design Atelier or Observability Tower."
+    "nextAction": "Review the v135 central wetland plus enlarged north/south/east/west edge screenshots for map scale and terrain readability before densifying Cloud Dock, Design Atelier or Observability Tower."
   },
   "publicTerrainMaterialCore": {
     "id": "polyhaven-terrain-material-v112",
@@ -462,28 +452,28 @@
     "nextAction": "Evaluate screenshot fit against the Kenney terrain vocabulary; if the scanned assets look pasted-on, color-grade/downsample or demote them before sourcing another batch."
   },
   "terrainShell": {
-    "id": "expanded-empty-map-shell-v97",
+    "id": "expanded-empty-map-shell-v98",
     "phase": "map-shell-expansion",
     "purpose": "Scale the playable terrain from a compact scene into a larger sparse shell with outer water, relief, road-edge and vegetation vocabulary before adding new dense hero-location detail.",
-    "worldSize": 96,
-    "minimumInnerRoamExtent": 43,
-    "minimumGroundRadius": 51,
+    "worldSize": 112,
+    "minimumInnerRoamExtent": 51,
+    "minimumGroundRadius": 60,
     "requiredOuterBands": ["north", "south", "west", "east"],
-    "minimumWaterRegions": 16,
+    "minimumWaterRegions": 18,
     "minimumRampRegions": 18,
-    "minimumTerrainFeatures": 25,
-    "minimumMapCoverage": { "width": 86, "depth": 86 },
-    "minimumMapPlacements": 126,
+    "minimumTerrainFeatures": 29,
+    "minimumMapCoverage": { "width": 100, "depth": 100 },
+    "minimumMapPlacements": 138,
     "minimumContextPlacements": 40,
     "minimumRolePlacements": {
-      "route": 38,
-      "water": 16,
-      "relief": 20,
-      "vegetation": 28
+      "route": 42,
+      "water": 18,
+      "relief": 23,
+      "vegetation": 31
     },
     "maximumNonHeroClusterDensity": 3,
     "maximumRendererTriangles": 110000,
-    "fallback": "Keep the existing 76-unit map shell and central hero locations if the larger shell fails renderer budget, boundary QA or role coverage.",
+    "fallback": "Keep the existing 96-unit map shell and central hero locations if the larger shell fails renderer budget, boundary QA or role coverage.",
     "nextAction": "Use this sparse outer shell as the terrain canvas for authored road continuity, water crossings and biome transitions before adding another object-dense asset wave."
   },
   "assetUtilizationWave": {
