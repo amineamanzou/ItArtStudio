@@ -1452,7 +1452,7 @@ function createReliefPlacementSpecs(): MapPlacementSpec[] {
 
 function createVegetationPlacementSpecs(): MapPlacementSpec[] {
   return [
-    createPlacement("vegetation:tech-tree", "vegetation:tech-west", "vegetation", "support", true, "vegetation", "tree_cone.glb", [-27.4, -10.8], 1.5, 0.1),
+    createPlacement("vegetation:tech-tree", "vegetation:tech-west", "vegetation", "support", true, "vegetation", "tree_pineTallA.glb", [-27.4, -10.8], 1.36, 0.1),
     createPlacement("vegetation:tech-bush", "vegetation:tech-west", "vegetation", "context", false, "vegetation", "plant_bush.glb", [-31.2, 4.8], 1.12, -0.24),
     createPlacement("vegetation:studio-oak", "vegetation:studio-north", "vegetation", "support", true, "vegetation", "tree_oak.glb", [5.8, 27.4], 1.65, -0.22),
     createPlacement("vegetation:studio-grass", "vegetation:studio-north", "vegetation", "context", false, "vegetation", "grass.glb", [-5.8, 31.4], 1.08, 0.1),
@@ -1464,7 +1464,7 @@ function createVegetationPlacementSpecs(): MapPlacementSpec[] {
     createPlacement("vegetation:contact-bush", "vegetation:contact-south", "vegetation", "context", false, "vegetation", "plant_bush.glb", [6.2, -32.2], 1.1, -0.12),
     createPlacement("vegetation:north-tree", "vegetation:north-field", "vegetation", "context", false, "vegetation", "tree_fat.glb", [-16.8, 32.0], 1.42, 0.24),
     createPlacement("vegetation:south-tree", "vegetation:south-field", "vegetation", "context", false, "vegetation", "tree_default.glb", [16.6, -32.0], 1.42, -0.18),
-    createPlacement("vegetation:west-field", "vegetation:west-field", "vegetation", "context", false, "vegetation", "tree_cone.glb", [-32.0, -22.0], 1.36, 0.18),
+    createPlacement("vegetation:west-field", "vegetation:west-field", "vegetation", "context", false, "vegetation", "tree_detailed.glb", [-32.0, -22.0], 1.26, 0.18),
     createPlacement("vegetation:east-field", "vegetation:east-field", "vegetation", "context", false, "vegetation", "plant_bushLarge.glb", [32.0, 25.6], 1.2, -0.2),
     createPlacement("vegetation:west-marsh", "vegetation:west-marsh", "vegetation", "context", false, "vegetation", "grass_large.glb", [-32.3, -3.4], 1.08, 0.12),
     createPlacement("vegetation:east-pond", "vegetation:east-pond", "vegetation", "context", false, "vegetation", "flower_yellowA.glb", [32.2, 18.4], 1.04, -0.12),
@@ -1476,7 +1476,7 @@ function createVegetationPlacementSpecs(): MapPlacementSpec[] {
     createPlacement("vegetation:outer-east-reflection-palm", "vegetation:outer-east-reflection", "vegetation", "context", false, "vegetation", "tree_palm.glb", [35.6, 27.6], 1.22, 0.32),
     createPlacement("vegetation:far-north-values-oak", "vegetation:far-north-shell", "vegetation", "context", false, "vegetation", "tree_oak.glb", [-2.8, 43.6], 1.22, -0.18),
     createPlacement("vegetation:far-south-mail-grass", "vegetation:far-south-shell", "vegetation", "context", false, "vegetation", "grass_large.glb", [12.4, -43.4], 1.14, 0.12),
-    createPlacement("vegetation:far-west-cloud-tree", "vegetation:far-west-shell", "vegetation", "context", false, "vegetation", "tree_cone.glb", [-43.4, -14.2], 1.28, 0.2),
+    createPlacement("vegetation:far-west-cloud-tree", "vegetation:far-west-shell", "vegetation", "context", false, "vegetation", "tree_pineGroundA.glb", [-43.4, -14.2], 1.22, 0.2),
     createPlacement("vegetation:far-east-art-palm", "vegetation:far-east-shell", "vegetation", "context", false, "vegetation", "tree_palm.glb", [43.2, 16.4], 1.26, -0.28),
     createPlacement("vegetation:studio-crossing-proof", "vegetation:studio-crossing-proof", "vegetation", "support", true, "vegetation", "tree_oak.glb", [-3.2, 6.8], 1.32, 0.14),
     createPlacement("terrain:bridge-center:design-entry", "terrain-transition:design-entry", "vegetation", "support", true, "bridge", "bridge_center_wood.glb", [14.2, -5.8], 1.66, Math.PI * 0.34, {
