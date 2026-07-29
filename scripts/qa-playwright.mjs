@@ -4126,6 +4126,120 @@ async function waitForPublicAssetOnlyRuntime(page, url) {
   );
 }
 
+async function checkPublicAssetOnlyOuterBands(browser) {
+  const assetOnlyUrl = withSearchParam(baseUrl, "world", "asset-only");
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
+  attachPageDiagnostics(page, "public-asset-only-outer-bands");
+
+  try {
+    await waitForPublicAssetOnlyRuntime(page, assetOnlyUrl);
+    await page.waitForTimeout(320);
+    const hookState = await page.evaluate(() => ({
+      hasSetPlayer: typeof window.__IT_ART_STUDIO_QA_SET_PLAYER__ === "function",
+      hasQaStep: typeof window.__IT_ART_STUDIO_QA_STEP__ === "function",
+      href: window.location.href
+    }));
+    const bandContracts = manifestPublicTerrainCore.requiredOuterBandProofs ?? [];
+    const minimumClippedArea = manifestPublicTerrainCore.minimumOuterBandClippedArea ?? 160;
+    const minimumVisibleRatio = manifestPublicTerrainCore.minimumOuterBandVisibleRatio ?? 0.004;
+    const bandProofs = [];
+
+    for (const band of bandContracts) {
+      await page.evaluate((target) => {
+        window.__IT_ART_STUDIO_QA_SET_PLAYER__?.({
+          x: target.position.x,
+          z: target.position.z,
+          rotationY: target.rotationY ?? Math.PI
+        });
+      }, band);
+      await page.waitForTimeout(420);
+      const proof = await captureVisualOnly(page, `public-asset-only-outer-band-${band.id}`, {
+        skipCanvasDetail: true,
+        skipPremiumWorldDistribution: true
+      });
+      const snapshot = proof.snapshot ?? (await getQaSnapshot(page, { refresh: true }));
+      const visiblePlacements = (band.requiredPlacementIds ?? [])
+        .map((placementId) => {
+          const rect = snapshot?.externalAssets?.placementScreenRects?.[placementId];
+          const clippedArea = rect?.clippedArea ?? 0;
+          const visibleRatio = rect?.visibleRatio ?? 0;
+          return {
+            placementId,
+            visible: rect?.visible === true && clippedArea >= minimumClippedArea && visibleRatio >= minimumVisibleRatio,
+            clippedArea,
+            visibleRatio
+          };
+        })
+        .filter((item) => item.visible);
+      const playerDistance = Math.hypot(
+        (snapshot?.player?.x ?? 0) - band.position.x,
+        (snapshot?.player?.z ?? 0) - band.position.z
+      );
+      const cleanRuntime = isPublicAssetOnlySnapshotClean(snapshot);
+      const ok =
+        hookState.hasSetPlayer === true &&
+        proof.canvas.ok &&
+        cleanRuntime &&
+        playerDistance < 1.25 &&
+        visiblePlacements.length >= (band.minimumVisiblePlacements ?? 1);
+
+      const bandProof = {
+        id: band.id,
+        target: band.position,
+        player: snapshot?.player,
+        playerDistance: Number(playerDistance.toFixed(3)),
+        requiredPlacementIds: band.requiredPlacementIds,
+        minimumVisiblePlacements: band.minimumVisiblePlacements,
+        minimumClippedArea,
+        minimumVisibleRatio,
+        visiblePlacements,
+        cleanRuntime,
+        canvas: proof.canvas,
+        capture: proof.relativePath,
+        ok
+      };
+      bandProofs.push(bandProof);
+
+      if (ok) {
+        pass(`public-asset-only-outer-band:${band.id}`, bandProof);
+      } else {
+        scenarioFail(`public-asset-only-outer-band:${band.id}`, "Public asset-only outer terrain band is not visually proven.", {
+          hookState,
+          ...bandProof
+        });
+      }
+    }
+
+    const ok = hookState.hasSetPlayer === true && bandProofs.length >= 4 && bandProofs.every((band) => band.ok);
+    if (ok) {
+      pass("public-asset-only-outer-bands", {
+        url: assetOnlyUrl,
+        hookState,
+        bands: bandProofs.map((band) => ({
+          id: band.id,
+          target: band.target,
+          playerDistance: band.playerDistance,
+          visiblePlacements: band.visiblePlacements.length,
+          capture: band.capture
+        }))
+      });
+    } else {
+      scenarioFail("public-asset-only-outer-bands", "Public asset-only outer terrain tour did not prove all map bands.", {
+        url: assetOnlyUrl,
+        hookState,
+        bands: bandProofs
+      });
+    }
+  } catch (error) {
+    scenarioFail("public-asset-only-outer-bands", "Public asset-only outer terrain tour did not reach a verifiable state.", {
+      url: assetOnlyUrl,
+      message: error instanceof Error ? error.message : String(error)
+    });
+  } finally {
+    await page.close();
+  }
+}
+
 function isPublicAssetOnlySnapshotClean(snapshot) {
   return (
     snapshot?.externalAssets?.enabled === true &&
@@ -11543,6 +11657,7 @@ async function main() {
       checkCorePromotionManifest();
       await checkProductionRuntimeLightweight(browser);
       await checkPublicAssetOnlyPlayer(browser);
+      await checkPublicAssetOnlyOuterBands(browser);
       await checkPublicAssetOnlyMobile(browser);
       await checkPublicAssetOnlyKeyboardRoute(browser);
       if (staticSmokeOnly) {
@@ -11599,6 +11714,7 @@ async function main() {
     checkMapExpansionKitsManifest();
     checkCorePromotionManifest();
     await checkPublicAssetOnlyPlayer(browser);
+    await checkPublicAssetOnlyOuterBands(browser);
     await checkPublicAssetOnlyMobile(browser);
     await checkPublicAssetOnlyKeyboardRoute(browser);
     await checkTerrainShellRuntime(page);

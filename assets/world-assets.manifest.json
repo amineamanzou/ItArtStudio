@@ -248,6 +248,55 @@
     "minimumVisibleShorelineReliefPlacements": 3,
     "minimumShorelineReliefClippedArea": 180,
     "minimumShorelineReliefVisibleRatio": 0.004,
+    "requiredOuterBandProofs": [
+      {
+        "id": "north",
+        "position": { "x": 1.8, "z": 39.8 },
+        "requiredPlacementIds": [
+          "terrain-core:outer-rail-north-marker",
+          "terrain-core:far-north-relief-half",
+          "terrain-core:far-north-oak",
+          "terrain-core:outer-north-tree-detailed"
+        ],
+        "minimumVisiblePlacements": 2
+      },
+      {
+        "id": "south",
+        "position": { "x": 12.4, "z": -43.4 },
+        "requiredPlacementIds": [
+          "terrain-core:far-south-relief-large",
+          "terrain-core:far-south-grass",
+          "terrain-core:pine-ground-south"
+        ],
+        "minimumVisiblePlacements": 2
+      },
+      {
+        "id": "west",
+        "position": { "x": -37.2, "z": 30.4 },
+        "requiredPlacementIds": [
+          "terrain-core:outer-water-west-pond",
+          "terrain-core:outer-water-west-cattail",
+          "terrain-core:outer-bridge-west-crossing",
+          "terrain-core:outer-west-bush",
+          "terrain-core:far-west-relief-corner"
+        ],
+        "minimumVisiblePlacements": 3
+      },
+      {
+        "id": "east",
+        "position": { "x": 36.8, "z": -35.2 },
+        "requiredPlacementIds": [
+          "terrain-core:outer-water-east-pond",
+          "terrain-core:outer-water-east-hyacinth",
+          "terrain-core:outer-bridge-east-crossing",
+          "terrain-core:far-east-relief-slope",
+          "terrain-core:outer-east-palm"
+        ],
+        "minimumVisiblePlacements": 3
+      }
+    ],
+    "minimumOuterBandClippedArea": 160,
+    "minimumOuterBandVisibleRatio": 0.004,
     "maximumNonHeroClusterDensity": 4,
     "maximumHeroLocationPlacements": 0,
     "allowedGeneratedSubstrate": "single terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief/water-edge material; visible public decor must come from downloaded vendor GLB/glTF.",

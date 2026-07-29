@@ -675,6 +675,30 @@ if (!publicTerrainCore) {
     });
   }
 
+  for (const outerBandProof of asArray(publicTerrainCore.requiredOuterBandProofs)) {
+    if (typeof outerBandProof?.id !== "string" || outerBandProof.id.length === 0) {
+      fail("Public terrain core outer band proof must have a stable id.", { outerBandProof });
+    }
+    if (!Number.isFinite(outerBandProof?.position?.x) || !Number.isFinite(outerBandProof?.position?.z)) {
+      fail("Public terrain core outer band proof must define numeric x/z position.", { outerBandProof });
+    }
+    const placementIds = asArray(outerBandProof?.requiredPlacementIds);
+    if (placementIds.length < 2) {
+      fail("Public terrain core outer band proof must require at least two placements.", { outerBandProof });
+    }
+    for (const placementId of placementIds) {
+      if (!asArray(publicTerrainCore.requiredPlacementIds).includes(placementId)) {
+        fail("Public terrain core outer band proof placements must also be required terrain placements.", {
+          outerBandProofId: outerBandProof?.id,
+          placementId
+        });
+      }
+    }
+    if (!Number.isInteger(outerBandProof?.minimumVisiblePlacements) || outerBandProof.minimumVisiblePlacements < 1) {
+      fail("Public terrain core outer band proof must require visible placements.", { outerBandProof });
+    }
+  }
+
   const textureAssetsByPublicFile = new Map();
   for (const textureAsset of acceptedRuntimeTextures.values()) {
     for (const selectedFile of asArray(textureAsset.selectedFiles)) {

@@ -1194,6 +1194,7 @@ declare global {
   interface Window {
     __IT_ART_STUDIO_QA__?: QaSnapshot;
     __IT_ART_STUDIO_QA_STEP__?: (direction: DriveKey) => void;
+    __IT_ART_STUDIO_QA_SET_PLAYER__?: (position: { x: number; z: number; rotationY?: number }) => QaSnapshot;
     __IT_ART_STUDIO_QA_REFRESH__?: () => void;
     __IT_ART_STUDIO_QA_VISUAL_ONLY__?: (enabled: boolean) => { hiddenLabels: number; visibleLabels: number };
   }
@@ -4388,6 +4389,29 @@ class StudioGame {
       this.qaSnapshot.lastInputMode = "keyboard";
       this.applyQaKeyboardStep(direction);
     };
+    window.__IT_ART_STUDIO_QA_SET_PLAYER__ = (position) => this.applyQaPlayerPosition(position);
+  }
+
+  private applyQaPlayerPosition(position: { x: number; z: number; rotationY?: number }) {
+    const x = Number.isFinite(position.x) ? clamp(position.x, -worldHalfExtent + 1, worldHalfExtent - 1) : this.playerPosition.x;
+    const z = Number.isFinite(position.z) ? clamp(position.z, -worldHalfExtent + 1, worldHalfExtent - 1) : this.playerPosition.z;
+    this.playerPosition.set(x, 0.28, z);
+    this.targetPosition.copy(this.playerPosition);
+    this.playerVelocity.set(0, 0, 0);
+    if (Number.isFinite(position.rotationY)) {
+      this.player.rotation.y = position.rotationY ?? this.player.rotation.y;
+      this.normalizePlayerRotation();
+    }
+    this.currentTerrain = sampleTerrain(this.playerPosition);
+    this.currentRideHeight = this.currentTerrain.height;
+    this.player.position.set(this.playerPosition.x, this.playerPosition.y + this.currentRideHeight, this.playerPosition.z);
+    this.updateActiveZone();
+    this.updateMiniMap();
+    this.updateCamera(1);
+    this.renderer.render(this.scene, this.camera);
+    this.qaSnapshot.lastInputMode = "programmatic";
+    this.syncQaSnapshot({ full: true });
+    return this.qaSnapshot;
   }
 
   private syncQaSnapshot(options: { full?: boolean } = {}) {
