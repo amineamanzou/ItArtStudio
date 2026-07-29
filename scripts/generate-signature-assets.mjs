@@ -8,6 +8,7 @@ const heroOutputDir = path.join(root, "public", "assets", "models", "local", "it
 const environmentOutputDir = path.join(root, "public", "assets", "models", "local", "itart-signature-kit", "environment");
 const premiumOutputDir = path.join(root, "public", "assets", "models", "local", "itart-signature-kit", "premium");
 const detailOutputDir = path.join(root, "public", "assets", "models", "local", "itart-signature-kit", "detail");
+const terrainOutputDir = path.join(root, "public", "assets", "models", "local", "itart-signature-kit", "terrain");
 
 if (!globalThis.FileReader) {
   globalThis.FileReader = class NodeFileReader {
@@ -527,6 +528,69 @@ function createObservabilityLogTotem() {
   return group;
 }
 
+function createRoadWaterCauseway() {
+  const group = new THREE.Group();
+  group.name = "itart-road-water-causeway";
+
+  addBox(group, "causeway-road-slab", [2.18, 0.12, 0.78], [0, 0.08, 0], mats.graphite);
+  addBox(group, "causeway-road-core", [1.94, 0.04, 0.54], [0, 0.18, 0], mats.studio);
+  addBox(group, "causeway-lane-line-a", [0.58, 0.025, 0.035], [-0.54, 0.22, 0], mats.warm);
+  addBox(group, "causeway-lane-line-b", [0.58, 0.025, 0.035], [0.54, 0.22, 0], mats.warm);
+  addBox(group, "water-plane-left", [2.08, 0.035, 0.42], [0, 0.045, -0.58], mats.techGlass);
+  addBox(group, "water-plane-right", [2.08, 0.035, 0.42], [0, 0.045, 0.58], mats.techGlass);
+  addBox(group, "foam-edge-left", [1.9, 0.024, 0.035], [0, 0.085, -0.35], mats.tech);
+  addBox(group, "foam-edge-right", [1.9, 0.024, 0.035], [0, 0.085, 0.35], mats.tech);
+  addTube(group, "shore-cable-left", [[-0.94, 0.2, -0.4], [-0.32, 0.28, -0.52], [0.36, 0.2, -0.44], [0.98, 0.3, -0.56]], 0.016, mats.tech);
+  addTube(group, "shore-cable-right", [[-1.0, 0.2, 0.4], [-0.38, 0.3, 0.54], [0.3, 0.22, 0.45], [0.92, 0.3, 0.55]], 0.014, mats.warm);
+  addCylinder(group, "left-bollard-a", 0.035, 0.048, 0.36, [-0.84, 0.28, -0.31], mats.ink, [0, 0, 0], 8);
+  addCylinder(group, "left-bollard-b", 0.035, 0.048, 0.36, [0.84, 0.28, -0.31], mats.ink, [0, 0, 0], 8);
+  addCylinder(group, "right-bollard-a", 0.035, 0.048, 0.36, [-0.84, 0.28, 0.31], mats.ink, [0, 0, 0], 8);
+  addCylinder(group, "right-bollard-b", 0.035, 0.048, 0.36, [0.84, 0.28, 0.31], mats.ink, [0, 0, 0], 8);
+
+  return group;
+}
+
+function createReliefRoadTerrace() {
+  const group = new THREE.Group();
+  group.name = "itart-relief-road-terrace";
+
+  addBox(group, "lower-road-cut", [1.86, 0.11, 0.62], [-0.08, 0.08, -0.08], mats.graphite, [0, 0.08, 0]);
+  addBox(group, "upper-terrace-plate", [1.44, 0.14, 0.82], [0.22, 0.36, 0.22], mats.techDeep, [0, -0.12, 0]);
+  addBox(group, "terrace-road-cap", [1.16, 0.04, 0.54], [0.22, 0.46, 0.22], mats.studio, [0, -0.12, 0]);
+  addCylinder(group, "retaining-rock-a", 0.18, 0.28, 0.36, [-0.74, 0.26, 0.36], mats.graphite, [0, 0.2, 0.08], 7);
+  addCylinder(group, "retaining-rock-b", 0.16, 0.24, 0.42, [-0.36, 0.24, 0.46], mats.ink, [0.08, -0.1, -0.08], 7);
+  addCylinder(group, "retaining-rock-c", 0.14, 0.22, 0.36, [0.62, 0.22, -0.42], mats.graphite, [-0.08, 0.18, 0], 7);
+  addBox(group, "ramp-chevron-a", [0.32, 0.026, 0.045], [-0.4, 0.2, -0.1], mats.tech, [0, 0.68, 0]);
+  addBox(group, "ramp-chevron-b", [0.32, 0.026, 0.045], [0.0, 0.27, 0.03], mats.warm, [0, 0.68, 0]);
+  addBox(group, "ramp-chevron-c", [0.32, 0.026, 0.045], [0.4, 0.34, 0.14], mats.tech, [0, 0.68, 0]);
+  addTube(group, "contour-line-low", [[-0.92, 0.18, 0.18], [-0.42, 0.24, 0.34], [0.16, 0.28, 0.18], [0.82, 0.24, 0.3]], 0.012, mats.warm);
+  addTube(group, "contour-line-high", [[-0.72, 0.42, -0.34], [-0.2, 0.52, -0.18], [0.34, 0.5, -0.28], [0.82, 0.58, -0.12]], 0.011, mats.tech);
+
+  return group;
+}
+
+function createFieldMarkerGrove() {
+  const group = new THREE.Group();
+  group.name = "itart-field-marker-grove";
+
+  addBox(group, "field-shadow-pad", [1.74, 0.035, 1.18], [0, 0.025, 0], mats.techDeep, [0, 0.22, 0]);
+  const stems = [
+    [-0.56, 0.32, -0.18, 0.42, mats.tech],
+    [-0.24, 0.42, 0.22, 0.56, mats.warm],
+    [0.12, 0.36, -0.28, 0.48, mats.art],
+    [0.48, 0.46, 0.18, 0.62, mats.studio]
+  ];
+  stems.forEach(([x, y, z, height, mat], index) => {
+    addCylinder(group, `marker-stem-${index}`, 0.018, 0.026, height, [x, y, z], mats.ink, [0, 0, 0], 7);
+    addSphere(group, `marker-canopy-${index}`, 0.16, [x, y + height * 0.5, z], mat, [1.1, 0.72, 0.9]);
+  });
+  addBox(group, "field-ribbon-a", [1.22, 0.026, 0.045], [-0.08, 0.1, -0.42], mats.tech, [0, 0.2, 0]);
+  addBox(group, "field-ribbon-b", [0.96, 0.026, 0.045], [0.12, 0.11, 0.42], mats.warm, [0, -0.18, 0]);
+  addTube(group, "field-path-curve", [[-0.72, 0.08, 0.1], [-0.36, 0.1, -0.18], [0.08, 0.08, 0.16], [0.62, 0.1, -0.06]], 0.012, mats.studio);
+
+  return group;
+}
+
 const assets = [
   { outputDir: heroOutputDir, fileName: "server-cloud-node.glb", scene: createServerCloudNode() },
   { outputDir: heroOutputDir, fileName: "atelier-mannequin-rack.glb", scene: createAtelierMannequinRack() },
@@ -545,13 +609,17 @@ const assets = [
   { outputDir: premiumOutputDir, fileName: "observability-signal-spire.glb", scene: createObservabilitySignalSpire() },
   { outputDir: detailOutputDir, fileName: "cloud-cable-manifold.glb", scene: createCloudCableManifold() },
   { outputDir: detailOutputDir, fileName: "atelier-swatch-stand.glb", scene: createAtelierSwatchStand() },
-  { outputDir: detailOutputDir, fileName: "observability-log-totem.glb", scene: createObservabilityLogTotem() }
+  { outputDir: detailOutputDir, fileName: "observability-log-totem.glb", scene: createObservabilityLogTotem() },
+  { outputDir: terrainOutputDir, fileName: "road-water-causeway.glb", scene: createRoadWaterCauseway() },
+  { outputDir: terrainOutputDir, fileName: "relief-road-terrace.glb", scene: createReliefRoadTerrace() },
+  { outputDir: terrainOutputDir, fileName: "field-marker-grove.glb", scene: createFieldMarkerGrove() }
 ];
 
 fs.mkdirSync(heroOutputDir, { recursive: true });
 fs.mkdirSync(environmentOutputDir, { recursive: true });
 fs.mkdirSync(premiumOutputDir, { recursive: true });
 fs.mkdirSync(detailOutputDir, { recursive: true });
+fs.mkdirSync(terrainOutputDir, { recursive: true });
 const exporter = new GLTFExporter();
 const results = [];
 

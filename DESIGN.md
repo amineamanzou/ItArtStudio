@@ -1486,6 +1486,24 @@ Gates V9.11:
   boucle asset-first produit des lieux reconnaissables, pas seulement des
   panneaux explicatifs.
 
+Gates V10.0:
+
+- `scripts/generate-signature-assets.mjs` genere une collection locale
+  `terrain` pour preparer l'agrandissement suivant par vocabulaire GLB, pas par
+  procedural filler;
+- la nouvelle collection `accepted-itart-signature-terrain-v100` ajoute
+  `road-water-causeway.glb`, `relief-road-terrace.glb` et
+  `field-marker-grove.glb`, soit 129.7 KB et 2 616 triangles;
+- ces trois pieces representent des transitions reutilisables: route/eau,
+  route/relief et champ/repere, afin de construire une map plus grande avec
+  des coutures lisibles avant de densifier les lieux;
+- `terrain-transition-wave` exige ces trois fichiers, trois placements
+  d'inspection, au moins 149 placements map, 83 fichiers uniques et le plafond
+  renderer `110000` triangles;
+- la vague reste opt-in dans `?assets=map`: elle enrichit la bibliotheque et
+  les preuves QA sans promouvoir automatiquement plus d'objets dans le runtime
+  public `core`.
+
 ## Components
 
 - `game-site`: surface principale.

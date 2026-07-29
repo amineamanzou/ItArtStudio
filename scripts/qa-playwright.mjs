@@ -90,6 +90,9 @@ const manifestAssetUtilizationRequiredPlacementIds = manifestAssetUtilizationWav
 const manifestAssetDetailWave = worldAssetManifest.assetDetailWave ?? {};
 const manifestAssetDetailRequiredFiles = manifestAssetDetailWave.requiredFiles ?? [];
 const manifestAssetDetailRequiredPlacementIds = manifestAssetDetailWave.requiredPlacementIds ?? [];
+const manifestTerrainTransitionWave = worldAssetManifest.terrainTransitionWave ?? {};
+const manifestTerrainTransitionRequiredFiles = manifestTerrainTransitionWave.requiredFiles ?? [];
+const manifestTerrainTransitionRequiredPlacementIds = manifestTerrainTransitionWave.requiredPlacementIds ?? [];
 const manifestMapExpansionKitRoles = [
   ...new Set(manifestMapExpansionKits.flatMap((kit) => kit.requiredTerrainRoles ?? []))
 ].sort();
@@ -5866,6 +5869,12 @@ async function checkExternalAssetMapComposition(browser) {
     const missingDetailPlacementIds = manifestAssetDetailRequiredPlacementIds.filter(
       (placementId) => !externalAssets?.placementIds?.includes(placementId)
     );
+    const missingTerrainTransitionFiles = manifestTerrainTransitionRequiredFiles.filter(
+      (file) => !externalAssets?.placementFiles?.includes(file)
+    );
+    const missingTerrainTransitionPlacementIds = manifestTerrainTransitionRequiredPlacementIds.filter(
+      (placementId) => !externalAssets?.placementIds?.includes(placementId)
+    );
     const utilizationWaveOk =
       manifestAssetUtilizationWave.phase === "asset-library-utilization" &&
       manifestAssetUtilizationWave.qaGate === "asset-utilization-wave" &&
@@ -5884,12 +5893,22 @@ async function checkExternalAssetMapComposition(browser) {
         (manifestAssetDetailWave.maximumRendererTriangles ?? rendererCaps.triangles) &&
       missingDetailFiles.length === 0 &&
       missingDetailPlacementIds.length === 0;
+    const terrainTransitionWaveOk =
+      manifestTerrainTransitionWave.phase === "terrain-transition-library" &&
+      manifestTerrainTransitionWave.qaGate === "terrain-transition-wave" &&
+      externalAssets?.placements >= (manifestTerrainTransitionWave.minimumMapPlacements ?? 0) &&
+      externalAssets?.uniqueFiles >= (manifestTerrainTransitionWave.minimumUniqueFiles ?? 0) &&
+      (mapRenderer?.triangles ?? Number.POSITIVE_INFINITY) <=
+        (manifestTerrainTransitionWave.maximumRendererTriangles ?? rendererCaps.triangles) &&
+      missingTerrainTransitionFiles.length === 0 &&
+      missingTerrainTransitionPlacementIds.length === 0;
     const requiredScreenRoles = ["road", "water", "relief", "vegetation"];
     const weakScreenRoles = requiredScreenRoles.filter((role) => {
       const rect = externalAssets?.roleScreenRects?.[role];
       return !(rect?.visible === true && rect.clippedArea >= 300 && rect.visibleRatio >= 0.01);
     });
     const heroLocationProofs = await collectExternalAssetHeroLocationProofs(mapPage, requiredHeroLocationIds);
+    const terrainTransitionProofs = await collectTerrainTransitionProofs(mapPage);
     const weakHeroLocations = requiredHeroLocationIds.filter((zoneId) => {
       const placementCount = externalAssets?.heroLocationPlacementCounts?.[zoneId] ?? 0;
       const minimumPlacements = manifestHeroLocationMinimumPlacements[zoneId] ?? 3;
@@ -5897,6 +5916,7 @@ async function checkExternalAssetMapComposition(browser) {
       const missingHeroRoles = (requiredHeroLocationRoles[zoneId] ?? []).filter((role) => !roles.includes(role));
       return placementCount < minimumPlacements || missingHeroRoles.length > 0 || !heroLocationProofs.find((proof) => proof.zoneId === zoneId && proof.ok);
     });
+    const weakTerrainTransitions = terrainTransitionProofs.filter((proof) => !proof.ok);
     const mapPathBase = new URL(mapUrl).pathname.replace(/\/$/u, "");
     const expectedAssetPathPrefixes = ["vendor", "local"].map((scope) =>
       `${mapPathBase}/assets/models/${scope}/`.replace(/^\/\//u, "/")
@@ -5931,6 +5951,17 @@ async function checkExternalAssetMapComposition(browser) {
       renderer: mapRenderer,
       caps: rendererCaps
     };
+    const terrainTransitionWaveDetails = {
+      contract: manifestTerrainTransitionWave,
+      requiredFiles: manifestTerrainTransitionRequiredFiles,
+      requiredPlacementIds: manifestTerrainTransitionRequiredPlacementIds,
+      missingTerrainTransitionFiles,
+      missingTerrainTransitionPlacementIds,
+      placements: externalAssets?.placements,
+      uniqueFiles: externalAssets?.uniqueFiles,
+      renderer: mapRenderer,
+      caps: rendererCaps
+    };
     if (utilizationWaveOk) {
       pass("asset-utilization-wave", utilizationDetails);
     } else {
@@ -5947,6 +5978,15 @@ async function checkExternalAssetMapComposition(browser) {
         "asset-detail-wave",
         "Authored hero-location detail GLB files are not all visible in the map inspection layer.",
         detailWaveDetails
+      );
+    }
+    if (terrainTransitionWaveOk) {
+      pass("terrain-transition-wave", terrainTransitionWaveDetails);
+    } else {
+      scenarioFail(
+        "terrain-transition-wave",
+        "Authored terrain transition GLB files are not all visible in the map inspection layer.",
+        terrainTransitionWaveDetails
       );
     }
     const gate =
@@ -5997,9 +6037,11 @@ async function checkExternalAssetMapComposition(browser) {
       missingKitRoles.length === 0 &&
       missingKitAssetIds.length === 0 &&
       utilizationWaveOk &&
+      terrainTransitionWaveOk &&
       manifestMapExpansionKits.length >= 4 &&
       weakScreenRoles.length === 0 &&
       weakHeroLocations.length === 0 &&
+      weakTerrainTransitions.length === 0 &&
       unsafePaths.length === 0 &&
       (externalAssets.errors?.length ?? 0) === 0 &&
       mapRendererBudgetOk &&
@@ -6009,6 +6051,7 @@ async function checkExternalAssetMapComposition(browser) {
       pass("external-asset-map-composition", {
         externalAssets,
         heroLocationProofs,
+        terrainTransitionProofs,
         mapExpansionKits: manifestMapExpansionKits.map((kit) => ({
           id: kit.id,
           roles: kit.requiredTerrainRoles ?? [],
@@ -6033,10 +6076,15 @@ async function checkExternalAssetMapComposition(browser) {
         missingUtilizationFiles,
         missingUtilizationPlacementIds,
         utilizationWaveOk,
+        terrainTransitionWaveOk,
+        terrainTransitionWave: manifestTerrainTransitionWave,
+        missingTerrainTransitionFiles,
+        missingTerrainTransitionPlacementIds,
         assetUtilizationWave: manifestAssetUtilizationWave,
         mapExpansionKits: manifestMapExpansionKits,
         weakScreenRoles,
         weakHeroLocations,
+        weakTerrainTransitions,
         requiredHeroLocationRoles,
         minRuntimePlacements: manifestHeroLocationMinimumPlacements,
         renderer: mapRenderer,
@@ -6051,6 +6099,85 @@ async function checkExternalAssetMapComposition(browser) {
       await mapPage.close();
     }
   }
+}
+
+async function collectTerrainTransitionProofs(page) {
+  const targets = [
+    {
+      placementId: "terrain:road-water-causeway:cloud-harbor",
+      file: "road-water-causeway.glb",
+      zoneId: "cloud-dock",
+      role: "route-water"
+    },
+    {
+      placementId: "terrain:relief-road-terrace:design-shelf",
+      file: "relief-road-terrace.glb",
+      zoneId: "design-atelier",
+      role: "route-relief"
+    },
+    {
+      placementId: "terrain:field-marker-grove:observability-field",
+      file: "field-marker-grove.glb",
+      zoneId: "observability-tower",
+      role: "field-marker"
+    }
+  ].filter((target) => manifestTerrainTransitionRequiredPlacementIds.includes(target.placementId));
+  const proofs = [];
+
+  for (const target of targets) {
+    const label = `terrain-transition-visible:${target.role}`;
+    const actionability = await clickActionable(page, `.world-map [data-zone-jump="${target.zoneId}"]`, label, {
+      minWidth: 30,
+      minHeight: 30
+    });
+    if (!actionability) {
+      const snapshot = await getQaSnapshot(page, { refresh: true });
+      const proof = {
+        ...target,
+        ok: false,
+        actionability: null,
+        activeZoneId: snapshot?.activeZoneId ?? null
+      };
+      proofs.push(proof);
+      scenarioFail(label, "Terrain transition proof mini-map target is not actionable.", proof);
+      continue;
+    }
+
+    await page
+      .waitForFunction((targetZoneId) => window.__IT_ART_STUDIO_QA__?.activeZoneId === targetZoneId, target.zoneId, { timeout: 10_000 })
+      .catch(() => {});
+    await page.waitForTimeout(420);
+    const captureEntry = await capture(page, `terrain-transition-${target.role}`, {
+      skipPremiumWorldDistribution: true
+    });
+    const snapshot = captureEntry.snapshot;
+    const externalAssets = snapshot?.externalAssets;
+    const placementRect = externalAssets?.placementScreenRects?.[target.placementId];
+    const fileRect = externalAssets?.fileScreenRects?.[target.file];
+    const placementOk = placementRect?.visible === true && placementRect.clippedArea >= 160 && placementRect.visibleRatio >= 0.004;
+    const fileOk = fileRect?.visible === true && fileRect.clippedArea >= 160 && fileRect.visibleRatio >= 0.004;
+    const ok = snapshot?.activeZoneId === target.zoneId && placementOk && fileOk && captureEntry.canvas.ok;
+    const proof = {
+      ...target,
+      ok,
+      activeZoneId: snapshot?.activeZoneId ?? null,
+      placementOk,
+      fileOk,
+      placementRect,
+      fileRect,
+      capture: captureEntry.relativePath,
+      canvas: captureEntry.canvas,
+      actionability
+    };
+    proofs.push(proof);
+    if (ok) {
+      pass(label, proof);
+    } else {
+      scenarioFail(label, "Terrain transition GLB is not visually readable near its mapped proof zone.", proof);
+    }
+  }
+
+  return proofs;
 }
 
 async function collectExternalAssetHeroLocationProofs(page, zoneIds) {
@@ -10036,6 +10163,8 @@ async function writeReport() {
   const terrainShellScenario = scenarios.find((scenario) => scenario.name === "terrain-shell-runtime");
   const assetUtilizationWaveScenario = scenarios.find((scenario) => scenario.name === "asset-utilization-wave");
   const assetDetailWaveScenario = scenarios.find((scenario) => scenario.name === "asset-detail-wave");
+  const terrainTransitionWaveScenario = scenarios.find((scenario) => scenario.name === "terrain-transition-wave");
+  const terrainTransitionVisibleScenarios = scenarios.filter((scenario) => scenario.name.startsWith("terrain-transition-visible:"));
   const mapTextureRuntimeScenario = scenarios.find((scenario) => scenario.name === "map-texture-runtime");
   const externalAssetOffScenario = scenarios.find((scenario) => scenario.name === "external-asset-off-runtime");
   const externalAssetCoreScenario = scenarios.find((scenario) => scenario.name === "external-asset-core-runtime");
@@ -10185,6 +10314,16 @@ async function writeReport() {
       assetDetailWaveScenario?.details
         ? `${assetDetailWaveScenario.status}, files ${assetDetailWaveScenario.details.requiredFiles?.length ?? 0}, placements ${assetDetailWaveScenario.details.requiredPlacementIds?.length ?? 0}, map placements ${assetDetailWaveScenario.details.placements ?? "n/a"}, unique files ${assetDetailWaveScenario.details.uniqueFiles ?? "n/a"}, triangles ${assetDetailWaveScenario.details.renderer?.triangles ?? "n/a"}/${assetDetailWaveScenario.details.contract?.maximumRendererTriangles ?? "n/a"}`
         : (assetDetailWaveScenario?.status ?? "n/a")
+    }`,
+    `- Terrain transition wave: ${
+      terrainTransitionWaveScenario?.details
+        ? `${terrainTransitionWaveScenario.status}, files ${terrainTransitionWaveScenario.details.requiredFiles?.length ?? 0}, placements ${terrainTransitionWaveScenario.details.requiredPlacementIds?.length ?? 0}, map placements ${terrainTransitionWaveScenario.details.placements ?? "n/a"}, unique files ${terrainTransitionWaveScenario.details.uniqueFiles ?? "n/a"}, triangles ${terrainTransitionWaveScenario.details.renderer?.triangles ?? "n/a"}/${terrainTransitionWaveScenario.details.contract?.maximumRendererTriangles ?? "n/a"}`
+        : (terrainTransitionWaveScenario?.status ?? "n/a")
+    }`,
+    `- Terrain transition visual proofs: ${
+      terrainTransitionVisibleScenarios.length > 0
+        ? `${terrainTransitionVisibleScenarios.filter((scenario) => scenario.status === "pass").length}/${terrainTransitionVisibleScenarios.length}, captures ${terrainTransitionVisibleScenarios.map((scenario) => scenario.details?.capture).filter(Boolean).join("/")}`
+        : "n/a"
     }`,
     `- External asset off runtime: ${
       externalAssetOffScenario?.details?.externalAssets

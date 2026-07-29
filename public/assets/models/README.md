@@ -27,3 +27,7 @@ Current accepted local roots:
   furniture for the three hero locations.
 - `local/itart-signature-kit/premium`: project-authored V9.3 GLB silhouettes
   held in `?assets=map` before any public core promotion.
+- `local/itart-signature-kit/detail`: project-authored V9.9 secondary detail
+  pieces for the three hero locations.
+- `local/itart-signature-kit/terrain`: project-authored V10.0 transition
+  pieces for route/water, route/relief and field-marker map seams.

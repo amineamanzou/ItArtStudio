@@ -179,6 +179,7 @@ const corePromotion = manifest.corePromotion ?? null;
 const terrainShell = manifest.terrainShell ?? null;
 const assetUtilizationWave = manifest.assetUtilizationWave ?? null;
 const assetDetailWave = manifest.assetDetailWave ?? null;
+const terrainTransitionWave = manifest.terrainTransitionWave ?? null;
 const productionLicenseAssets = [];
 const declaredRuntimeGlbs = new Set();
 const declaredRuntimeTextures = new Set();
@@ -984,6 +985,85 @@ if (!assetDetailWave) {
   }
 }
 
+if (!terrainTransitionWave) {
+  fail("Terrain transition wave contract is required before the next sparse map expansion.");
+} else {
+  const requiredFiles = asArray(terrainTransitionWave.requiredFiles);
+  const requiredPlacementIds = asArray(terrainTransitionWave.requiredPlacementIds);
+  const terrainAsset = acceptedRuntimeAssets.get(terrainTransitionWave.assetId);
+
+  if (terrainTransitionWave.phase !== "terrain-transition-library") {
+    fail("Terrain transition wave must declare phase terrain-transition-library.", { phase: terrainTransitionWave.phase });
+  }
+  if (!terrainTransitionWave.id || terrainTransitionWave.id.length < 8) {
+    fail("Terrain transition wave must declare a stable id.", { id: terrainTransitionWave.id });
+  }
+  if (!terrainTransitionWave.purpose || terrainTransitionWave.purpose.length < 120) {
+    fail("Terrain transition wave must explain its asset-first map purpose.", {
+      purpose: terrainTransitionWave.purpose
+    });
+  }
+  if (!terrainAsset || !terrainAsset.kind.includes("model")) {
+    fail("Terrain transition wave assetId must point to an accepted model asset.", {
+      assetId: terrainTransitionWave.assetId,
+      status: terrainAsset?.status,
+      kind: terrainAsset?.kind
+    });
+  } else {
+    if (terrainAsset.sourceId !== "itart-signature-kit" || terrainAsset.terrainRole !== "bridge") {
+      fail("Terrain transition wave must use the local terrain transition collection.", {
+        assetId: terrainAsset.id,
+        sourceId: terrainAsset.sourceId,
+        terrainRole: terrainAsset.terrainRole
+      });
+    }
+    const selectedFiles = new Set(asArray(terrainAsset.selectedFiles));
+    for (const file of requiredFiles) {
+      if (!selectedFiles.has(file)) {
+        fail("Terrain transition wave requiredFiles must be selected by the terrain model asset.", {
+          file,
+          assetId: terrainTransitionWave.assetId,
+          selectedFiles: [...selectedFiles].sort()
+        });
+      }
+    }
+  }
+  if (requiredFiles.length < 3 || new Set(requiredFiles).size !== requiredFiles.length) {
+    fail("Terrain transition wave must require at least three unique terrain files.", { requiredFiles });
+  }
+  if (requiredPlacementIds.length !== requiredFiles.length || new Set(requiredPlacementIds).size !== requiredPlacementIds.length) {
+    fail("Terrain transition wave must bind one unique placement per required file.", {
+      requiredFiles,
+      requiredPlacementIds
+    });
+  }
+  if (!terrainTransitionWave.fallback || terrainTransitionWave.fallback.length < 96) {
+    fail("Terrain transition wave must declare a rollback fallback.", { fallback: terrainTransitionWave.fallback });
+  }
+  if (!terrainTransitionWave.nextAction || terrainTransitionWave.nextAction.length < 96) {
+    fail("Terrain transition wave must declare the next terrain curation action.", { nextAction: terrainTransitionWave.nextAction });
+  }
+  if (!Number.isInteger(terrainTransitionWave.minimumMapPlacements) || terrainTransitionWave.minimumMapPlacements < 149) {
+    fail("Terrain transition wave must raise the map placement proof after asset-detail-wave.", {
+      minimumMapPlacements: terrainTransitionWave.minimumMapPlacements
+    });
+  }
+  if (!Number.isInteger(terrainTransitionWave.minimumUniqueFiles) || terrainTransitionWave.minimumUniqueFiles < 83) {
+    fail("Terrain transition wave must raise the unique-file proof after asset-detail-wave.", {
+      minimumUniqueFiles: terrainTransitionWave.minimumUniqueFiles
+    });
+  }
+  if (!Number.isInteger(terrainTransitionWave.maximumRendererTriangles) || terrainTransitionWave.maximumRendererTriangles > budgets.rendererTriangleCap) {
+    fail("Terrain transition wave maximumRendererTriangles must stay inside the global renderer cap.", {
+      maximumRendererTriangles: terrainTransitionWave.maximumRendererTriangles,
+      rendererTriangleCap: budgets.rendererTriangleCap
+    });
+  }
+  if (terrainTransitionWave.qaGate !== "terrain-transition-wave") {
+    fail("Terrain transition wave must bind to the terrain-transition-wave QA gate.", { qaGate: terrainTransitionWave.qaGate });
+  }
+}
+
 const ccByProductionAssets = productionLicenseAssets.filter((asset) => {
   const source = sources.find((item) => item.id === asset.sourceId);
   return source?.kind !== "pipeline-reference";
@@ -1053,6 +1133,17 @@ const summary = {
         minimumMapPlacements: assetDetailWave.minimumMapPlacements,
         minimumUniqueFiles: assetDetailWave.minimumUniqueFiles,
         qaGate: assetDetailWave.qaGate
+      }
+    : null,
+  terrainTransitionWave: terrainTransitionWave
+    ? {
+        id: terrainTransitionWave.id,
+        assetId: terrainTransitionWave.assetId,
+        requiredFiles: asArray(terrainTransitionWave.requiredFiles).length,
+        requiredPlacementIds: asArray(terrainTransitionWave.requiredPlacementIds).length,
+        minimumMapPlacements: terrainTransitionWave.minimumMapPlacements,
+        minimumUniqueFiles: terrainTransitionWave.minimumUniqueFiles,
+        qaGate: terrainTransitionWave.qaGate
       }
     : null,
   warnings,

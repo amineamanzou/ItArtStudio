@@ -158,6 +158,28 @@
     "fallback": "If the detail assets read as clutter or push the renderer over budget, keep the GLB files accepted but remove the map inspection placements before public core promotion.",
     "nextAction": "Use zone screenshots to decide whether these detail pieces should be promoted into the public core after the premium anchors."
   },
+  "terrainTransitionWave": {
+    "id": "terrain-transition-v100",
+    "phase": "terrain-transition-library",
+    "purpose": "Add a first local GLB transition kit for road-water, road-relief and field-marker seams so the next map expansion can be composed from reusable terrain vocabulary instead of isolated vendor props.",
+    "assetId": "accepted-itart-signature-terrain-v100",
+    "requiredFiles": [
+      "road-water-causeway.glb",
+      "relief-road-terrace.glb",
+      "field-marker-grove.glb"
+    ],
+    "requiredPlacementIds": [
+      "terrain:road-water-causeway:cloud-harbor",
+      "terrain:relief-road-terrace:design-shelf",
+      "terrain:field-marker-grove:observability-field"
+    ],
+    "minimumMapPlacements": 149,
+    "minimumUniqueFiles": 83,
+    "maximumRendererTriangles": 110000,
+    "qaGate": "terrain-transition-wave",
+    "fallback": "If the transition kit causes visual noise or renderer pressure, keep the GLB files accepted in the library but remove their map inspection placements before any public core promotion.",
+    "nextAction": "Use the terrain transition screenshots to decide which seams should become the grammar for the next larger sparse terrain shell."
+  },
   "terrainRoles": ["road", "water", "relief", "vegetation", "route-edge", "bridge", "hero-location"],
   "mapExpansionKits": [
     {
@@ -165,7 +187,7 @@
       "phase": "map-expansion",
       "purpose": "Road, bridge and edge vocabulary for scaling the playable map with readable routes before adding more landmarks.",
       "requiredTerrainRoles": ["road", "route-edge", "bridge"],
-      "acceptedAssetIds": ["accepted-city-road-core", "accepted-city-route-edge-core", "accepted-nature-bridge-core"],
+      "acceptedAssetIds": ["accepted-city-road-core", "accepted-city-route-edge-core", "accepted-nature-bridge-core", "accepted-itart-signature-terrain-v100"],
       "textureAssetIds": ["accepted-map-road-texture-studio"],
       "linkedRuntimeLayers": ["worldRoutes", "road-ribbons", "route-guidance"],
       "minimumRuntimePlacements": 14,
@@ -180,7 +202,7 @@
       "phase": "map-expansion",
       "purpose": "Water, rocks, cliffs and crossing pieces for making the larger map feel authored rather than flat.",
       "requiredTerrainRoles": ["water", "relief", "bridge"],
-      "acceptedAssetIds": ["accepted-nature-water-core", "accepted-nature-relief-core", "accepted-nature-bridge-core"],
+      "acceptedAssetIds": ["accepted-nature-water-core", "accepted-nature-relief-core", "accepted-nature-bridge-core", "accepted-itart-signature-terrain-v100"],
       "textureAssetIds": ["accepted-map-water-texture-studio", "accepted-map-relief-texture-studio"],
       "linkedRuntimeLayers": ["worldMaterialRegions.water", "terrainConfig.features", "surface-details"],
       "minimumRuntimePlacements": 18,
@@ -195,7 +217,7 @@
       "phase": "map-expansion",
       "purpose": "Trees, bushes, grass and field texture vocabulary for open areas between hero locations.",
       "requiredTerrainRoles": ["vegetation"],
-      "acceptedAssetIds": ["accepted-nature-vegetation-core"],
+      "acceptedAssetIds": ["accepted-nature-vegetation-core", "accepted-itart-signature-terrain-v100"],
       "textureAssetIds": ["accepted-map-field-texture-studio"],
       "linkedRuntimeLayers": ["world-scenery", "terrain-feature-markers"],
       "minimumRuntimePlacements": 16,
@@ -907,6 +929,29 @@
       "styleFit": "high",
       "proceduralFallback": "src/game/world-scenery.ts keeps procedural hero-location details visible if the V9.9 GLB detail set fails to load.",
       "nextAction": "Inspect each detail asset in ?assets=map screenshots and promote only the pieces that improve recognition without adding noise."
+    },
+    {
+      "id": "accepted-itart-signature-terrain-v100",
+      "status": "accepted",
+      "sourceId": "itart-signature-kit",
+      "kind": "model-collection",
+      "target": "map",
+      "terrainRole": "bridge",
+      "narrativeRole": "Accepted local terrain transition GLB set for V10.0 that gives the expanded map reusable road-water, road-relief and field marker seams before adding a larger terrain shell.",
+      "preferredFormat": "GLB",
+      "localPath": "public/assets/models/local/itart-signature-kit/terrain",
+      "publicPath": "assets/models/local/itart-signature-kit/terrain",
+      "fileKb": 129.7,
+      "triangles": 2616,
+      "selectedFiles": [
+        "field-marker-grove.glb",
+        "relief-road-terrace.glb",
+        "road-water-causeway.glb"
+      ],
+      "budget": { "maxKb": 180, "targetTriangles": 3200 },
+      "styleFit": "high",
+      "proceduralFallback": "src/game/world-scenery.ts keeps route ribbons, water pads, relief contours and field markers visible if the terrain transition GLB set fails to load.",
+      "nextAction": "Inspect these transition pieces in ?assets=map before using them as the grammar for the next sparse map expansion."
     },
     {
       "id": "cloud-dock-skybridge-spaceport",

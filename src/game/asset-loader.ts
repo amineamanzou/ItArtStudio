@@ -802,6 +802,19 @@ function createRoutePlacementSpecs(): MapPlacementSpec[] {
       [42.4, 10.4],
       1.16,
       -Math.PI * 0.5
+    ),
+    createPlacement(
+      "terrain:road-water-causeway:cloud-harbor",
+      "terrain-transition:cloud-harbor",
+      "route",
+      "support",
+      true,
+      "bridge",
+      "road-water-causeway.glb",
+      [-9.2, -28.1],
+      1.66,
+      Math.PI * 0.42,
+      { assetId: "accepted-itart-signature-terrain-v100" }
     )
   ];
 }
@@ -840,7 +853,10 @@ function createReliefPlacementSpecs(): MapPlacementSpec[] {
     createPlacement("relief:far-west-cloud-marsh", "relief:far-west-shell", "relief", "context", false, "relief", "cliff_corner_rock.glb", [-44.2, -10.8], 1.14, 0.1),
     createPlacement("relief:far-east-art-gallery", "relief:far-east-shell", "relief", "context", false, "relief", "cliff_blockSlope_rock.glb", [44.2, 12.4], 1.16, -0.18),
     createPlacement("relief:far-north-block-utilization", "relief:far-north-block-utilization", "relief", "context", false, "relief", "cliff_block_rock.glb", [-2.6, 44.8], 1.12, 0.2),
-    createPlacement("relief:studio-crossing-proof", "relief:studio-crossing-proof", "relief", "support", true, "relief", "rock_largeC.glb", [2.8, 6.5], 1.18, -0.12)
+    createPlacement("relief:studio-crossing-proof", "relief:studio-crossing-proof", "relief", "support", true, "relief", "rock_largeC.glb", [2.8, 6.5], 1.18, -0.12),
+    createPlacement("terrain:relief-road-terrace:design-shelf", "terrain-transition:design-shelf", "relief", "support", true, "relief", "relief-road-terrace.glb", [25.6, -6.8], 1.34, -0.28, {
+      assetId: "accepted-itart-signature-terrain-v100"
+    })
   ];
 }
 
@@ -872,7 +888,10 @@ function createVegetationPlacementSpecs(): MapPlacementSpec[] {
     createPlacement("vegetation:far-south-mail-grass", "vegetation:far-south-shell", "vegetation", "context", false, "vegetation", "grass_large.glb", [12.4, -43.4], 1.14, 0.12),
     createPlacement("vegetation:far-west-cloud-tree", "vegetation:far-west-shell", "vegetation", "context", false, "vegetation", "tree_cone.glb", [-43.4, -14.2], 1.28, 0.2),
     createPlacement("vegetation:far-east-art-palm", "vegetation:far-east-shell", "vegetation", "context", false, "vegetation", "tree_palm.glb", [43.2, 16.4], 1.26, -0.28),
-    createPlacement("vegetation:studio-crossing-proof", "vegetation:studio-crossing-proof", "vegetation", "support", true, "vegetation", "tree_oak.glb", [-3.2, 6.8], 1.32, 0.14)
+    createPlacement("vegetation:studio-crossing-proof", "vegetation:studio-crossing-proof", "vegetation", "support", true, "vegetation", "tree_oak.glb", [-3.2, 6.8], 1.32, 0.14),
+    createPlacement("terrain:field-marker-grove:observability-field", "terrain-transition:observability-field", "vegetation", "support", true, "vegetation", "field-marker-grove.glb", [-27.6, 12.8], 1.28, 0.18, {
+      assetId: "accepted-itart-signature-terrain-v100"
+    })
   ];
 }
 

@@ -62,6 +62,12 @@ Accepted runtime packs:
 - `public/assets/models/local/itart-signature-kit/premium`: 3 generated V9.3
   GLB silhouettes, one per hero location: cloud infra gateway, atelier garment
   loom and observability signal spire.
+- `public/assets/models/local/itart-signature-kit/detail`: 3 generated V9.9
+  secondary detail GLB pieces, one per hero location: cloud cable manifold,
+  atelier swatch stand and observability log totem.
+- `public/assets/models/local/itart-signature-kit/terrain`: 3 generated V10.0
+  terrain transition GLB pieces for route/water, route/relief and field-marker
+  seams before the next sparse map expansion.
 - `public/assets/textures/map/hero`: 3 SVG runtime texture pads for Cloud Dock,
   Design Atelier and Observability Tower.
 

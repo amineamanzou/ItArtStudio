@@ -251,6 +251,9 @@ Baseline actuelle:
   sont maintenant obligatoires dans la couche `?assets=map` via
   `assetUtilizationWave`, portant la preuve d'inspection a 143 placements et
   77 fichiers uniques;
+- vague terrain V10.0: trois pieces GLB locales de transition
+  route/eau, route/relief et champ/repere constituent maintenant la premiere
+  grammaire de coutures pour agrandir la map sans filler procedural;
 - chaque fichier runtime doit rester declare dans le manifest et passer
   `npm run assets:validate`.
 
@@ -303,6 +306,9 @@ Baseline actuelle:
 - contrat manifeste `terrainShell`: placements minimums route/eau/relief/
   vegetation, densite non-hero plafonnee et budget renderer conserve a
   `110000` triangles.
+- contrat manifeste `terrainTransitionWave`: trois assets de transition visibles
+  en QA, au moins 149 placements map, 83 fichiers uniques et un plafond renderer
+  maintenu a `110000` triangles avant toute extension plus large.
 
 ## Phase 4 - Trois Hero Locations
 
