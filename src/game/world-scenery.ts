@@ -1189,8 +1189,9 @@ function sampleRouteMarkers(routes: WorldRoute[]) {
       return [];
     }
     const points = [from.position, ...(route.via ?? []), to.position];
-    const isArchitectureRoute = route.from === "architecture-bridge" || route.to === "architecture-bridge";
-    const samples = isArchitectureRoute ? [0.12, 0.24, 0.38, 0.5, 0.62, 0.76, 0.88] : [0.27, 0.5, 0.73];
+    const needsDenseRouteLights =
+      route.from === "architecture-bridge" || route.to === "architecture-bridge" || route.from === "ai-lab" || route.to === "ai-lab";
+    const samples = needsDenseRouteLights ? [0.12, 0.24, 0.38, 0.5, 0.62, 0.76, 0.88] : [0.27, 0.5, 0.73];
     return samples.map((sample, lane) => {
       const marker = samplePolyline(points, sample);
       return {
