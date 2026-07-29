@@ -3562,7 +3562,7 @@ async function checkProductionRuntimeLightweight(browser) {
   attachPageDiagnostics(page, "production-runtime");
 
   try {
-    await page.goto(productionUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.goto(productionUrl, { waitUntil: "domcontentloaded", timeout: assetModeNavigationTimeoutMs });
     await page.waitForFunction(
       () => {
         const canvas = document.querySelector("#studio-map-canvas");
@@ -3574,7 +3574,7 @@ async function checkProductionRuntimeLightweight(browser) {
           canvas.height > 0
         );
       },
-      { timeout: 20_000 }
+      { timeout: assetModeReadyTimeoutMs }
     );
     const state = await page.evaluate(async () => {
       const started = performance.now();
