@@ -570,7 +570,31 @@ function applyMapCurationStyle(wrapper: THREE.Object3D, spec: MapPlacementSpec) 
   if (spec.curation === "context") {
     wrapper.scale.multiplyScalar(0.7);
   }
+  applyAssetSpecificMaterialStyle(wrapper, spec);
   alignObjectBottomToGroundClearance(wrapper, spec);
+}
+
+function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlacementSpec) {
+  if (spec.assetId !== "accepted-assetquest-pond-water-core") {
+    return;
+  }
+
+  const materialColor = spec.preferredFile.startsWith("pond-")
+    ? 0x7bb4b6
+    : spec.preferredFile.startsWith("rock-")
+      ? 0x7a786c
+      : 0x527b54;
+
+  wrapper.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) {
+      return;
+    }
+    object.material = new THREE.MeshStandardMaterial({
+      color: materialColor,
+      roughness: spec.preferredFile.startsWith("pond-") ? 0.54 : 0.82,
+      metalness: 0
+    });
+  });
 }
 
 function alignObjectBottomToGroundClearance(wrapper: THREE.Object3D, spec: MapPlacementSpec) {
@@ -657,8 +681,6 @@ function createCorePlacementSpecs(): MapPlacementSpec[] {
 
 function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
   const terrainPlacementIds = new Set([
-    "route:studio-crossing-road-proof",
-    "water:studio-crossing-proof",
     "relief:studio-crossing-proof",
     "relief:studio-spine",
     "vegetation:studio-crossing-proof",
@@ -676,27 +698,37 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
 
   return [
     ...curatedTerrain,
-    createPlacement("terrain-core:road-entry", "terrain-core:entry-road", "route", "primary", true, "road", "road-straight.glb", [3.8, 1.3], 1.5, Math.PI * 0.5),
-    createPlacement("terrain-core:road-bend", "terrain-core:entry-road", "route", "support", true, "road", "road-curve.glb", [6.2, 1.8], 1.36, Math.PI * 0.5),
     createPlacement("terrain-core:rail-spine-a", "terrain-core:rail-spine", "route", "primary", true, "rail", "track-detailed.glb", [5.7, 0.2], 1.38, Math.PI * 0.5, {
       assetId: "accepted-train-rail-core"
     }),
     createPlacement("terrain-core:rail-spine-b", "terrain-core:rail-spine", "route", "support", true, "rail", "track-single-detailed.glb", [7.15, 0.2], 1.28, Math.PI * 0.5, {
       assetId: "accepted-train-rail-core"
     }),
-    createPlacement("terrain-core:water-channel", "terrain-core:central-water", "water", "primary", true, "water", "ground_riverBend.glb", [-4.7, 2.8], 1.64, -0.28),
-    createPlacement("terrain-core:water-bank-corner", "terrain-core:central-water", "water", "support", true, "water", "ground_riverCorner.glb", [-4.2, 1.0], 1.36, Math.PI * 0.2),
-    createPlacement("terrain-core:water-straight", "terrain-core:central-water", "water", "support", true, "water", "ground_riverStraight.glb", [-5.55, 4.15], 1.44, -0.28),
-    createPlacement("terrain-core:water-rocks", "terrain-core:central-water", "water", "support", true, "water", "ground_riverRocks.glb", [-6.15, 5.65], 1.3, 0.18),
-    createPlacement("terrain-core:water-lily", "terrain-core:central-water", "water", "support", true, "water", "lily_large.glb", [-5.05, 2.35], 0.62, -0.1),
-    createPlacement("terrain-core:bridge-crossing", "terrain-core:central-crossing", "route", "primary", true, "bridge", "bridge_wood.glb", [-2.5, 3.6], 1.52, Math.PI * 0.42, {
-      assetId: "accepted-nature-bridge-core"
+    createPlacement("terrain-core:pond-basin", "terrain-core:central-water", "water", "primary", true, "water", "pond-2.glb", [-4.85, 3.05], 3.35, -0.18, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:pond-rock-a", "terrain-core:central-water", "water", "support", true, "water", "rock-1a.glb", [-6.35, 4.95], 0.78, 0.2, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:pond-cattail", "terrain-core:central-water", "water", "support", true, "water", "cattail-1.glb", [-3.45, 1.35], 0.7, -0.2, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:pond-hyacinth", "terrain-core:central-water", "water", "support", true, "water", "water-hyacinth-1.glb", [-5.7, 2.5], 0.54, 0.36, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:pond-lily-leaf", "terrain-core:central-water", "water", "support", true, "water", "water-lily-leaf-1.glb", [-4.6, 4.55], 0.46, -0.12, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:bridge-crossing", "terrain-core:central-crossing", "route", "primary", true, "bridge", "bridge_stoneNarrow.glb", [-2.5, 3.6], 1.58, Math.PI * 0.42, {
+      assetId: "accepted-nature-stone-bridge-core"
     }),
     createPlacement("terrain-core:relief-slope", "terrain-core:central-relief", "relief", "primary", true, "relief", "cliff_blockSlope_rock.glb", [4.6, 6.4], 1.38, -0.18),
-    createPlacement("terrain-core:relief-rock", "terrain-core:central-relief", "relief", "support", true, "relief", "rock_largeA.glb", [1.8, 7.4], 1.12, 0.32),
-    createPlacement("terrain-core:grass-left", "terrain-core:central-field", "vegetation", "support", true, "vegetation", "grass_large.glb", [-5.6, 8.0], 1.08, 0.1),
-    createPlacement("terrain-core:tree-left", "terrain-core:central-field", "vegetation", "primary", true, "vegetation", "tree_default.glb", [-7.2, 7.0], 1.44, -0.16),
-    createPlacement("terrain-core:tree-right", "terrain-core:central-field", "vegetation", "support", true, "vegetation", "tree_oak.glb", [7.1, 5.5], 1.36, 0.22)
+    createPlacement("terrain-core:relief-top", "terrain-core:central-relief", "relief", "support", true, "relief", "cliff_top_rock.glb", [2.3, 7.6], 1.12, 0.16),
+    createPlacement("terrain-core:relief-rock", "terrain-core:central-relief", "relief", "support", true, "relief", "rock_largeD.glb", [1.1, 6.6], 1.0, 0.32),
+    createPlacement("terrain-core:grass-left", "terrain-core:central-field", "vegetation", "support", true, "vegetation", "grass_leafsLarge.glb", [-5.6, 8.0], 1.08, 0.1),
+    createPlacement("terrain-core:tree-left", "terrain-core:central-field", "vegetation", "primary", true, "vegetation", "tree_pineTallA.glb", [-7.2, 7.0], 1.5, -0.16),
+    createPlacement("terrain-core:tree-right", "terrain-core:central-field", "vegetation", "support", true, "vegetation", "tree_pineRoundC.glb", [7.1, 5.5], 1.42, 0.22),
+    createPlacement("terrain-core:field-log", "terrain-core:central-field", "vegetation", "support", true, "vegetation", "log_stack.glb", [-4.15, 7.35], 0.92, -0.34)
   ];
 }
 
@@ -925,6 +957,32 @@ function createRoutePlacementSpecs(): MapPlacementSpec[] {
       1.52,
       Math.PI * 0.08,
       { assetId: "accepted-nature-bridge-core" }
+    ),
+    createPlacement(
+      "terrain:path-natural:studio-entry",
+      "terrain-transition:natural-path",
+      "route",
+      "context",
+      false,
+      "road",
+      "ground_pathStraight.glb",
+      [11.6, -11.8],
+      1.2,
+      -0.18,
+      { assetId: "accepted-nature-path-core" }
+    ),
+    createPlacement(
+      "terrain:bridge-stone:pond-crossing",
+      "terrain-transition:pond-crossing",
+      "water",
+      "context",
+      false,
+      "bridge",
+      "bridge_stoneNarrow.glb",
+      [-8.4, 6.8],
+      1.24,
+      Math.PI * 0.34,
+      { assetId: "accepted-nature-stone-bridge-core" }
     )
   ];
 }
@@ -935,6 +993,9 @@ function createWaterPlacementSpecs(): MapPlacementSpec[] {
     ...worldMaterialRegions.water.map((region, index) =>
       createPlacement(`water:${region.id}`, `water:${region.id}`, "water", index >= 8 ? "context" : index >= 4 ? "support" : index === 3 ? "support" : "primary", true, "water", files[index % files.length], region.center, index >= 8 ? 1.18 : index >= 4 ? 1.08 : index === 3 ? 1.12 : 1.74, region.rotation)
     ),
+    createPlacement("water:assetquest-pond:studio-basin", "water:assetquest-pond", "water", "context", false, "water", "pond-2.glb", [-8.0, 7.4], 2.25, -0.18, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
     createPlacement("water:studio-crossing-proof", "water:studio-crossing-proof", "water", "support", true, "water", "ground_riverStraight.glb", [-0.8, 5.9], 1.46, -0.18),
     createPlacement("water:far-west-waterfall-utilization", "water:far-west-waterfall-utilization", "water", "context", false, "water", "cliff_waterfall_rock.glb", [-43.6, -7.8], 1.12, Math.PI * 0.5),
     createPlacement("water:far-east-lily-utilization", "water:far-east-lily-utilization", "water", "context", false, "water", "lily_small.glb", [43.2, 13.5], 0.92, -0.2),
