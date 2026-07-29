@@ -88,6 +88,8 @@
       "bridge_stoneRoundNarrow.glb",
       "bridge_wood.glb",
       "bridge_woodNarrow.glb",
+      "path_wood.glb",
+      "path_woodCorner.glb",
       "pond-2.glb",
       "pond-3.glb",
       "pond-4.glb",
@@ -133,6 +135,10 @@
       "terrain-core:far-east-lily-marker",
       "terrain-core:outer-bridge-west-crossing",
       "terrain-core:outer-bridge-east-crossing",
+      "terrain-core:path-boardwalk-pond-a",
+      "terrain-core:path-boardwalk-pond-b",
+      "terrain-core:path-boardwalk-pond-corner",
+      "terrain-core:path-boardwalk-ridge",
       "terrain-core:far-north-relief-half",
       "terrain-core:far-south-relief-large",
       "terrain-core:far-west-relief-corner",
@@ -172,10 +178,10 @@
       "top-large-checkerboard.glb",
       "tree_cone.glb"
     ],
-    "minimumPlacements": 78,
-    "minimumUniqueFiles": 52,
+    "minimumPlacements": 82,
+    "minimumUniqueFiles": 56,
     "minimumRolePlacements": {
-      "route": 9,
+      "route": 13,
       "water": 16,
       "relief": 17,
       "vegetation": 23
@@ -192,6 +198,7 @@
     "requiredMaterialStyleRoles": [
       "bridge-stone",
       "bridge-wood",
+      "path-boardwalk",
       "rail-track",
       "relief-stone",
       "vegetation-natural",
@@ -206,6 +213,16 @@
     "maximumIntroAssetOcclusions": 0,
     "maximumIntroAssetOcclusionRatio": 0.01,
     "introAssetClearancePx": 80,
+    "requiredBoardwalkFiles": ["path_wood.glb", "path_woodCorner.glb"],
+    "requiredBoardwalkPlacementIds": [
+      "terrain-core:path-boardwalk-pond-a",
+      "terrain-core:path-boardwalk-pond-b",
+      "terrain-core:path-boardwalk-pond-corner",
+      "terrain-core:path-boardwalk-ridge"
+    ],
+    "minimumVisibleBoardwalkPlacements": 2,
+    "minimumBoardwalkClippedArea": 160,
+    "minimumBoardwalkVisibleRatio": 0.004,
     "maximumNonHeroClusterDensity": 4,
     "maximumHeroLocationPlacements": 0,
     "allowedGeneratedSubstrate": "single terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief/water-edge material; visible public decor must come from downloaded vendor GLB/glTF.",

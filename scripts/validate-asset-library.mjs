@@ -615,6 +615,33 @@ if (!publicTerrainCore) {
     }
   }
 
+  for (const boardwalkFile of asArray(publicTerrainCore.requiredBoardwalkFiles)) {
+    if (!asArray(publicTerrainCore.requiredFiles).includes(boardwalkFile)) {
+      fail("Public terrain core boardwalk files must also be required model files.", { boardwalkFile });
+    }
+    if (!/^path_wood(?:Corner)?\.glb$/u.test(boardwalkFile)) {
+      fail("Public terrain core boardwalk files must stay limited to Kenney path_wood GLB assets.", { boardwalkFile });
+    }
+  }
+
+  for (const boardwalkPlacementId of asArray(publicTerrainCore.requiredBoardwalkPlacementIds)) {
+    if (!asArray(publicTerrainCore.requiredPlacementIds).includes(boardwalkPlacementId)) {
+      fail("Public terrain core boardwalk placements must also be required terrain placements.", { boardwalkPlacementId });
+    }
+    if (!boardwalkPlacementId.startsWith("terrain-core:path-boardwalk-")) {
+      fail("Public terrain core boardwalk placements must use the path-boardwalk namespace.", { boardwalkPlacementId });
+    }
+  }
+
+  if (
+    !Number.isInteger(publicTerrainCore.minimumVisibleBoardwalkPlacements) ||
+    publicTerrainCore.minimumVisibleBoardwalkPlacements < 1
+  ) {
+    fail("Public terrain core boardwalk proof must require at least one visible placement.", {
+      minimumVisibleBoardwalkPlacements: publicTerrainCore.minimumVisibleBoardwalkPlacements
+    });
+  }
+
   const textureAssetsByPublicFile = new Map();
   for (const textureAsset of acceptedRuntimeTextures.values()) {
     for (const selectedFile of asArray(textureAsset.selectedFiles)) {

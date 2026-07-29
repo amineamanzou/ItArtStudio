@@ -3707,6 +3707,11 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const maximumIntroAssetOcclusions = manifestPublicTerrainCore.maximumIntroAssetOcclusions ?? 0;
     const maximumIntroAssetOcclusionRatio = manifestPublicTerrainCore.maximumIntroAssetOcclusionRatio ?? 0.06;
     const introAssetClearancePx = manifestPublicTerrainCore.introAssetClearancePx ?? 0;
+    const requiredBoardwalkFiles = manifestPublicTerrainCore.requiredBoardwalkFiles ?? [];
+    const requiredBoardwalkPlacementIds = manifestPublicTerrainCore.requiredBoardwalkPlacementIds ?? [];
+    const minimumVisibleBoardwalkPlacements = manifestPublicTerrainCore.minimumVisibleBoardwalkPlacements ?? 0;
+    const minimumBoardwalkClippedArea = manifestPublicTerrainCore.minimumBoardwalkClippedArea ?? 160;
+    const minimumBoardwalkVisibleRatio = manifestPublicTerrainCore.minimumBoardwalkVisibleRatio ?? 0.004;
     const availableTerrainRoles = new Set([...(externalAssets?.terrainRoles ?? []), ...(snapshot?.world?.mapTextureRoles ?? [])]);
     const missingTerrainRoles = requiredTerrainRoles.filter((role) => !availableTerrainRoles.has(role));
     const missingAssetIds = requiredAssetIds.filter((assetId) => !externalAssets?.assetIds?.includes(assetId));
@@ -3719,6 +3724,56 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const missingMaterialStyleRoles = requiredMaterialStyleRoles.filter(
       (role) => !externalAssets?.materialStyleRoles?.includes(role)
     );
+    const boardwalkFileByPlacement = new Map(
+      (externalAssets?.placementAssetKeys ?? [])
+        .map((key) => {
+          const [assetId, placementId, file] = String(key).split("::");
+          return { assetId, placementId, file };
+        })
+        .filter(
+          (item) =>
+            item.assetId === "accepted-nature-bridge-core" &&
+            item.placementId?.startsWith("terrain-core:path-boardwalk-") &&
+            requiredBoardwalkFiles.includes(item.file)
+        )
+        .map((item) => [item.placementId, item.file])
+    );
+    const missingBoardwalkFiles = requiredBoardwalkFiles.filter((file) => !externalAssets?.placementFiles?.includes(file));
+    const missingBoardwalkPlacements = requiredBoardwalkPlacementIds.filter(
+      (placementId) => !externalAssets?.placementIds?.includes(placementId)
+    );
+    const missingBoardwalkPublicPaths = requiredBoardwalkFiles.filter(
+      (file) =>
+        !externalAssets?.publicPaths?.some((publicPath) =>
+          String(publicPath).endsWith(`/assets/models/vendor/kenney/nature-kit/bridges/${file}`)
+        )
+    );
+    const visibleBoardwalkPlacements = requiredBoardwalkPlacementIds
+      .map((placementId) => {
+        const rect = externalAssets?.placementScreenRects?.[placementId];
+        const file = boardwalkFileByPlacement.get(placementId);
+        const clippedArea = rect?.clippedArea ?? 0;
+        const visibleRatio = rect?.visibleRatio ?? 0;
+        return {
+          placementId,
+          file,
+          visible: rect?.visible === true && clippedArea >= minimumBoardwalkClippedArea && visibleRatio >= minimumBoardwalkVisibleRatio,
+          clippedArea,
+          visibleRatio
+        };
+      })
+      .filter((item) => item.visible);
+    const boardwalkProof = {
+      requiredBoardwalkFiles,
+      requiredBoardwalkPlacementIds,
+      minimumVisibleBoardwalkPlacements,
+      minimumBoardwalkClippedArea,
+      minimumBoardwalkVisibleRatio,
+      missingBoardwalkFiles,
+      missingBoardwalkPlacements,
+      missingBoardwalkPublicPaths,
+      visibleBoardwalkPlacements
+    };
     const introAssetOcclusion = await page.evaluate(
       ({ placementScreenRects, maximumRatio }) => {
         const intro = document.querySelector("[data-intro-plate]");
@@ -3898,6 +3953,10 @@ async function checkPublicAssetOnlyPlayer(browser) {
       externalAssets.mapCoverageDepth >= minimumCoverage.depth &&
       externalAssets.mapCoverageArea >= minimumCoverageArea &&
       missingMaterialStyleRoles.length === 0 &&
+      missingBoardwalkFiles.length === 0 &&
+      missingBoardwalkPlacements.length === 0 &&
+      missingBoardwalkPublicPaths.length === 0 &&
+      visibleBoardwalkPlacements.length >= minimumVisibleBoardwalkPlacements &&
       introAssetOcclusion.introVisible === true &&
       introAssetOcclusion.occludedPlacements.length <= maximumIntroAssetOcclusions &&
       terrainShellOk &&
@@ -3921,6 +3980,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
         forbiddenFiles,
         requiredMaterialStyleRoles,
         missingMaterialStyleRoles,
+        boardwalkProof,
         introAssetOcclusion,
         terrainShell: {
           terrainLayers: snapshot?.world?.terrainLayers,
@@ -3958,6 +4018,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
           missingTerrainMaterialRoles,
           missingTerrainTextureFiles,
           missingMaterialStyleRoles,
+          boardwalkProof,
           introAssetOcclusion,
           forbiddenPlacementFiles,
           forbiddenPublicPaths,

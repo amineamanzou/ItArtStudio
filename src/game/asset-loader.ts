@@ -636,6 +636,22 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
   }
 
   if (spec.assetId === "accepted-nature-stone-bridge-core" || spec.assetId === "accepted-nature-bridge-core") {
+    if (spec.assetId === "accepted-nature-bridge-core" && spec.preferredFile.startsWith("path_wood")) {
+      wrapper.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) {
+          return;
+        }
+        object.material = new THREE.MeshStandardMaterial({
+          color: 0x7a5a39,
+          roughness: 0.8,
+          metalness: 0.01
+        });
+        object.userData.externalAssetMaterialStyleRole = "path-boardwalk";
+      });
+      tagMaterialStyle(wrapper, "path-boardwalk");
+      return;
+    }
+
     const isWood = spec.assetId === "accepted-nature-bridge-core" || spec.preferredFile.includes("wood");
     const styleRole = isWood ? "bridge-wood" : "bridge-stone";
     const materialColor = isWood ? 0x8f6f48 : 0x9a9382;
@@ -909,6 +925,22 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     }),
     createPlacement("terrain-core:bridge-bank", "terrain-core:central-crossing-bank", "water", "support", true, "bridge", "bridge_side_stone.glb", offsetTerrainCoreIntroSafe([-6.35, 3.4]), 1.08, Math.PI * 0.44, {
       assetId: "accepted-nature-stone-bridge-core"
+    }),
+    createPlacement("terrain-core:path-boardwalk-pond-a", "terrain-core:path-boardwalk-pond", "route", "support", true, "bridge", "path_wood.glb", [-0.4, 8.4], 1.65, Math.PI * 0.44, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.62
+    }),
+    createPlacement("terrain-core:path-boardwalk-pond-b", "terrain-core:path-boardwalk-pond", "route", "support", true, "bridge", "path_wood.glb", [1.2, 9.1], 1.55, Math.PI * 0.44, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.62
+    }),
+    createPlacement("terrain-core:path-boardwalk-pond-corner", "terrain-core:path-boardwalk-corner", "route", "support", true, "bridge", "path_woodCorner.glb", [2.6, 9.55], 1.45, Math.PI * 0.68, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.62
+    }),
+    createPlacement("terrain-core:path-boardwalk-ridge", "terrain-core:path-boardwalk-ridge", "route", "support", true, "bridge", "path_wood.glb", [4.6, 6.9], 1.45, -0.24, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.62
     }),
     createPlacement("terrain-core:relief-slope", "terrain-core:central-relief", "relief", "primary", true, "relief", "rock_largeE.glb", [4.8, 6.55], 1.2, -0.2),
     createPlacement("terrain-core:polyhaven-rock-shore", "terrain-core:premium-relief-shore", "relief", "support", true, "relief", "rock_09_1k.gltf", [-0.35, 7.85], 1.26, -0.16, {
@@ -1579,10 +1611,11 @@ function createPlacement(
   center: readonly [number, number],
   targetSize: number,
   rotationY = 0,
-  options: Pick<MapPlacementSpec, "assetId" | "heroLocation" | "heroRole"> = {}
+  options: Pick<MapPlacementSpec, "assetId" | "heroLocation" | "heroRole"> & { groundClearance?: number } = {}
 ): MapPlacementSpec {
   const terrain = sampleTerrain(new THREE.Vector3(center[0], 0, center[1]));
-  const groundClearance = getRoleGroundClearance(terrainRole, curation);
+  const groundClearance = options.groundClearance ?? getRoleGroundClearance(terrainRole, curation);
+  const { groundClearance: _groundClearance, ...placementOptions } = options;
   return {
     id,
     clusterId,
@@ -1595,7 +1628,7 @@ function createPlacement(
     position: [center[0], terrain.height + groundClearance, center[1]],
     targetSize,
     rotationY,
-    ...options
+    ...placementOptions
   };
 }
 
