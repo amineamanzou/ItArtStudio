@@ -3712,6 +3712,11 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const minimumVisibleBoardwalkPlacements = manifestPublicTerrainCore.minimumVisibleBoardwalkPlacements ?? 0;
     const minimumBoardwalkClippedArea = manifestPublicTerrainCore.minimumBoardwalkClippedArea ?? 160;
     const minimumBoardwalkVisibleRatio = manifestPublicTerrainCore.minimumBoardwalkVisibleRatio ?? 0.004;
+    const requiredShorelineReliefFiles = manifestPublicTerrainCore.requiredShorelineReliefFiles ?? [];
+    const requiredShorelineReliefPlacementIds = manifestPublicTerrainCore.requiredShorelineReliefPlacementIds ?? [];
+    const minimumVisibleShorelineReliefPlacements = manifestPublicTerrainCore.minimumVisibleShorelineReliefPlacements ?? 0;
+    const minimumShorelineReliefClippedArea = manifestPublicTerrainCore.minimumShorelineReliefClippedArea ?? 180;
+    const minimumShorelineReliefVisibleRatio = manifestPublicTerrainCore.minimumShorelineReliefVisibleRatio ?? 0.004;
     const availableTerrainRoles = new Set([...(externalAssets?.terrainRoles ?? []), ...(snapshot?.world?.mapTextureRoles ?? [])]);
     const missingTerrainRoles = requiredTerrainRoles.filter((role) => !availableTerrainRoles.has(role));
     const missingAssetIds = requiredAssetIds.filter((assetId) => !externalAssets?.assetIds?.includes(assetId));
@@ -3773,6 +3778,61 @@ async function checkPublicAssetOnlyPlayer(browser) {
       missingBoardwalkPlacements,
       missingBoardwalkPublicPaths,
       visibleBoardwalkPlacements
+    };
+    const shorelineReliefFileByPlacement = new Map(
+      (externalAssets?.placementAssetKeys ?? [])
+        .map((key) => {
+          const [assetId, placementId, file] = String(key).split("::");
+          return { assetId, placementId, file };
+        })
+        .filter(
+          (item) =>
+            item.assetId === "accepted-nature-relief-core" &&
+            item.placementId?.startsWith("terrain-core:shoreline-") &&
+            requiredShorelineReliefFiles.includes(item.file)
+        )
+        .map((item) => [item.placementId, item.file])
+    );
+    const missingShorelineReliefFiles = requiredShorelineReliefFiles.filter(
+      (file) => !externalAssets?.placementFiles?.includes(file)
+    );
+    const missingShorelineReliefPlacements = requiredShorelineReliefPlacementIds.filter(
+      (placementId) => !externalAssets?.placementIds?.includes(placementId)
+    );
+    const missingShorelineReliefPublicPaths = requiredShorelineReliefFiles.filter(
+      (file) =>
+        !externalAssets?.publicPaths?.some((publicPath) =>
+          String(publicPath).endsWith(`/assets/models/vendor/kenney/nature-kit/relief/${file}`)
+        )
+    );
+    const visibleShorelineReliefPlacements = requiredShorelineReliefPlacementIds
+      .map((placementId) => {
+        const rect = externalAssets?.placementScreenRects?.[placementId];
+        const file = shorelineReliefFileByPlacement.get(placementId);
+        const clippedArea = rect?.clippedArea ?? 0;
+        const visibleRatio = rect?.visibleRatio ?? 0;
+        return {
+          placementId,
+          file,
+          visible:
+            rect?.visible === true &&
+            clippedArea >= minimumShorelineReliefClippedArea &&
+            visibleRatio >= minimumShorelineReliefVisibleRatio,
+          clippedArea,
+          visibleRatio
+        };
+      })
+      .filter((item) => item.visible);
+    const shorelineReliefProof = {
+      requiredShorelineReliefFiles,
+      requiredShorelineReliefPlacementIds,
+      minimumVisibleShorelineReliefPlacements,
+      minimumShorelineReliefClippedArea,
+      minimumShorelineReliefVisibleRatio,
+      missingShorelineReliefFiles,
+      missingShorelineReliefPlacements,
+      missingShorelineReliefPublicPaths,
+      visibleShorelineReliefPlacements
     };
     const introAssetOcclusion = await page.evaluate(
       ({ placementScreenRects, maximumRatio }) => {
@@ -3957,6 +4017,10 @@ async function checkPublicAssetOnlyPlayer(browser) {
       missingBoardwalkPlacements.length === 0 &&
       missingBoardwalkPublicPaths.length === 0 &&
       visibleBoardwalkPlacements.length >= minimumVisibleBoardwalkPlacements &&
+      missingShorelineReliefFiles.length === 0 &&
+      missingShorelineReliefPlacements.length === 0 &&
+      missingShorelineReliefPublicPaths.length === 0 &&
+      visibleShorelineReliefPlacements.length >= minimumVisibleShorelineReliefPlacements &&
       introAssetOcclusion.introVisible === true &&
       introAssetOcclusion.occludedPlacements.length <= maximumIntroAssetOcclusions &&
       terrainShellOk &&
@@ -3981,6 +4045,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
         requiredMaterialStyleRoles,
         missingMaterialStyleRoles,
         boardwalkProof,
+        shorelineReliefProof,
         introAssetOcclusion,
         terrainShell: {
           terrainLayers: snapshot?.world?.terrainLayers,
@@ -4019,6 +4084,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
           missingTerrainTextureFiles,
           missingMaterialStyleRoles,
           boardwalkProof,
+          shorelineReliefProof,
           introAssetOcclusion,
           forbiddenPlacementFiles,
           forbiddenPublicPaths,

@@ -642,6 +642,39 @@ if (!publicTerrainCore) {
     });
   }
 
+  for (const shorelineReliefFile of asArray(publicTerrainCore.requiredShorelineReliefFiles)) {
+    if (!asArray(publicTerrainCore.requiredFiles).includes(shorelineReliefFile)) {
+      fail("Public terrain core shoreline relief files must also be required model files.", { shorelineReliefFile });
+    }
+    if (!/^(?:cliff_[a-zA-Z]+_rock|rock_(?:large[A-Z]|smallFlat[A-Z]))\.glb$/u.test(shorelineReliefFile)) {
+      fail("Public terrain core shoreline relief files must stay limited to Kenney natural cliff/rock GLB assets.", {
+        shorelineReliefFile
+      });
+    }
+  }
+
+  for (const shorelineReliefPlacementId of asArray(publicTerrainCore.requiredShorelineReliefPlacementIds)) {
+    if (!asArray(publicTerrainCore.requiredPlacementIds).includes(shorelineReliefPlacementId)) {
+      fail("Public terrain core shoreline relief placements must also be required terrain placements.", {
+        shorelineReliefPlacementId
+      });
+    }
+    if (!shorelineReliefPlacementId.startsWith("terrain-core:shoreline-")) {
+      fail("Public terrain core shoreline relief placements must use the shoreline namespace.", {
+        shorelineReliefPlacementId
+      });
+    }
+  }
+
+  if (
+    !Number.isInteger(publicTerrainCore.minimumVisibleShorelineReliefPlacements) ||
+    publicTerrainCore.minimumVisibleShorelineReliefPlacements < 1
+  ) {
+    fail("Public terrain core shoreline relief proof must require at least one visible placement.", {
+      minimumVisibleShorelineReliefPlacements: publicTerrainCore.minimumVisibleShorelineReliefPlacements
+    });
+  }
+
   const textureAssetsByPublicFile = new Map();
   for (const textureAsset of acceptedRuntimeTextures.values()) {
     for (const selectedFile of asArray(textureAsset.selectedFiles)) {

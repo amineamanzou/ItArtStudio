@@ -1011,6 +1011,14 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     createPlacement("terrain-core:outer-bridge-east-crossing", "terrain-core:outer-bridge-east", "route", "support", true, "bridge", "bridge_woodNarrow.glb", [34.6, -33.4], 1.28, Math.PI * 0.6, {
       assetId: "accepted-nature-bridge-core"
     }),
+    createPlacement("terrain-core:shoreline-bridge-center", "terrain-core:shoreline-bridge-visible", "route", "support", true, "bridge", "bridge_center_wood.glb", [7.05, 8.25], 1.0, Math.PI * 0.36, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.56
+    }),
+    createPlacement("terrain-core:shoreline-bridge-side", "terrain-core:shoreline-bridge-visible", "route", "support", true, "bridge", "bridge_side_wood.glb", [8.45, 8.05], 0.92, Math.PI * 0.36, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.56
+    }),
     createPlacement("terrain-core:far-north-relief-half", "terrain-core:far-north-relief", "relief", "support", true, "relief", "cliff_half_rock.glb", [-6.6, 44.4], 1.18, -0.1, {
       assetId: "accepted-nature-relief-core"
     }),
@@ -1058,6 +1066,22 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     }),
     createPlacement("terrain-core:ridge-tall-rock", "terrain-core:shore-relief-ridge", "relief", "support", true, "relief", "rock_tallH.glb", [22.2, -26.8], 1.02, -0.12, {
       assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:shoreline-boulder-west", "terrain-core:shoreline-relief-visible", "relief", "support", true, "relief", "rock_largeA.glb", [2.85, 6.35], 0.92, -0.22, {
+      assetId: "accepted-nature-relief-core",
+      groundClearance: 0.32
+    }),
+    createPlacement("terrain-core:shoreline-boulder-east", "terrain-core:shoreline-relief-visible", "relief", "support", true, "relief", "rock_largeD.glb", [5.25, 6.65], 0.88, 0.34, {
+      assetId: "accepted-nature-relief-core",
+      groundClearance: 0.32
+    }),
+    createPlacement("terrain-core:shoreline-flat-stone", "terrain-core:shoreline-relief-visible", "relief", "support", true, "relief", "rock_smallFlatC.glb", [6.75, 7.45], 0.86, -0.28, {
+      assetId: "accepted-nature-relief-core",
+      groundClearance: 0.32
+    }),
+    createPlacement("terrain-core:shoreline-boulder-anchor", "terrain-core:shoreline-relief-visible", "relief", "support", true, "relief", "rock_largeA.glb", [8.25, 6.35], 0.82, 0.18, {
+      assetId: "accepted-nature-relief-core",
+      groundClearance: 0.32
     }),
     createPlacement("terrain-core:pine-ground-south", "terrain-core:pine-vegetation-south", "vegetation", "support", true, "vegetation", "tree_pineGroundA.glb", [18.4, -32.6], 1.12, 0.2, {
       assetId: "accepted-nature-vegetation-core"
