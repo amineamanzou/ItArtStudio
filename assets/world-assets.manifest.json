@@ -66,9 +66,9 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v135",
+    "id": "public-terrain-core-v136",
     "phase": "public-terrain-first-runtime",
-    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor brown-mud-leaf/stony-dirt-path/relief/river-pebble water-edge textures, subdued integrated pond surfaces that read as wet shoreline instead of blue plates, a visible central wetland composed from downloaded reeds, lilies, rocks and bank vegetation, and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across a larger 112-unit map with no generated decorative primitives, road tiles, river tiles, visible map-edge voids or hero/factory clutter.",
+    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor brown-mud-leaf/stony-dirt-path/relief/river-pebble water-edge textures, a readable spawn clearing with an integrated terrain water mask plus downloaded reed, lily, boardwalk, rock, grass and tree assets, subdued integrated pond surfaces that read as wet shoreline instead of blue plates, a visible central wetland composed from downloaded reeds, lilies, rocks and bank vegetation, and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across a larger 112-unit map with no generated decorative primitives, road tiles, river tiles, visible map-edge voids or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
     "requiredPlayerAssetId": "accepted-car-vehicle-core",
     "requiredPlayerFile": "race.glb",
@@ -241,6 +241,13 @@
       "terrain-core:bank-southeast-water-lily",
       "terrain-core:bank-southeast-boulder",
       "terrain-core:bank-southeast-grass",
+      "terrain-core:spawn-pond-cattail",
+      "terrain-core:spawn-pond-lily",
+      "terrain-core:spawn-pond-boardwalk",
+      "terrain-core:spawn-pond-bank-rock",
+      "terrain-core:spawn-pond-bank-flat",
+      "terrain-core:spawn-pond-bank-grass",
+      "terrain-core:spawn-pond-bank-tree",
       "terrain-core:north-meadow-boardwalk-corner",
       "terrain-core:north-meadow-rail-tie",
       "terrain-core:north-meadow-bush",
@@ -288,13 +295,13 @@
       "top-large-checkerboard.glb",
       "tree_cone.glb"
     ],
-    "minimumPlacements": 167,
+    "minimumPlacements": 174,
     "minimumUniqueFiles": 61,
     "minimumRolePlacements": {
-      "route": 39,
-      "water": 32,
-      "relief": 43,
-      "vegetation": 53
+      "route": 40,
+      "water": 34,
+      "relief": 45,
+      "vegetation": 55
     },
     "minimumCoverage": { "width": 102, "depth": 102 },
     "minimumCoverageArea": 10400,
@@ -383,6 +390,18 @@
     "minimumVisibleCentralWetlandPlacements": 5,
     "minimumCentralWetlandClippedArea": 120,
     "minimumCentralWetlandVisibleRatio": 0.003,
+    "requiredSpawnClearingPlacementIds": [
+      "terrain-core:spawn-pond-cattail",
+      "terrain-core:spawn-pond-lily",
+      "terrain-core:spawn-pond-boardwalk",
+      "terrain-core:spawn-pond-bank-rock",
+      "terrain-core:spawn-pond-bank-flat",
+      "terrain-core:spawn-pond-bank-grass",
+      "terrain-core:spawn-pond-bank-tree"
+    ],
+    "minimumVisibleSpawnClearingPlacements": 5,
+    "minimumSpawnClearingClippedArea": 110,
+    "minimumSpawnClearingVisibleRatio": 0.003,
     "requiredOuterBandProofs": [
       {
         "id": "north",
@@ -440,7 +459,7 @@
     "maximumHeroLocationPlacements": 0,
     "allowedGeneratedSubstrate": "single extended terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief/water-edge material; visible public decor must come from downloaded vendor GLB/glTF.",
     "fallback": "If a terrain GLB fails, omit that placement and keep the public world sparse rather than replacing it with a generated rectangle, cone, halo, plate or abstract primitive.",
-    "nextAction": "Review the v135 central wetland plus enlarged north/south/east/west edge screenshots for map scale and terrain readability before densifying Cloud Dock, Design Atelier or Observability Tower."
+    "nextAction": "Review the v136 spawn clearing, central wetland and enlarged north/south/east/west edge screenshots for map scale and terrain readability before densifying Cloud Dock, Design Atelier or Observability Tower."
   },
   "publicTerrainMaterialCore": {
     "id": "polyhaven-terrain-material-v112",
@@ -462,9 +481,9 @@
     "minimumInnerRoamExtent": 51,
     "minimumGroundRadius": 60,
     "requiredOuterBands": ["north", "south", "west", "east"],
-    "minimumWaterRegions": 18,
+    "minimumWaterRegions": 19,
     "minimumRampRegions": 18,
-    "minimumTerrainFeatures": 29,
+    "minimumTerrainFeatures": 30,
     "minimumMapCoverage": { "width": 100, "depth": 100 },
     "minimumMapPlacements": 138,
     "minimumContextPlacements": 40,

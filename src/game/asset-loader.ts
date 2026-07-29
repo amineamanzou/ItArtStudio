@@ -598,12 +598,12 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
         return;
       }
       object.material = new THREE.MeshStandardMaterial({
-        color: materialColor,
+        color: isPondSurface ? 0x2f4942 : materialColor,
         map: isPondSurface ? getPublicWaterEdgeTexture() : null,
-        roughness: isPondSurface ? 0.72 : 0.82,
+        roughness: isPondSurface ? 0.64 : 0.82,
         metalness: 0,
         transparent: isPondSurface,
-        opacity: isPondSurface ? 0.46 : 1,
+        opacity: isPondSurface ? 0.64 : 1,
         depthWrite: !isPondSurface,
         emissive: 0x000000,
         emissiveIntensity: 0
@@ -987,6 +987,28 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     createPlacement("terrain-core:spawn-stump-east", "terrain-core:spawn-clearing-north", "vegetation", "support", true, "vegetation", "stump_roundDetailed.glb", [8.45, 3.9], 0.78, -0.2),
     createPlacement("terrain-core:spawn-grass-east", "terrain-core:spawn-clearing-south", "vegetation", "support", true, "vegetation", "grass_large.glb", [7.75, 1.65], 0.92, 0.08),
     createPlacement("terrain-core:spawn-tree-ground", "terrain-core:spawn-clearing-west", "vegetation", "support", true, "vegetation", "tree_default.glb", [4.95, 5.05], 1.18, 0.22),
+    createPlacement("terrain-core:spawn-pond-cattail", "terrain-core:spawn-pond-water", "water", "support", true, "water", "cattail-1.glb", [-1.6, -4.65], 0.54, -0.24, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:spawn-pond-lily", "terrain-core:spawn-pond-water", "water", "support", true, "water", "water-lily-leaf-1.glb", [0.9, -4.35], 0.44, 0.2, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:spawn-pond-boardwalk", "terrain-core:spawn-pond-water", "route", "support", true, "bridge", "path_wood.glb", [1.85, -5.85], 1.08, Math.PI * 0.34, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.58
+    }),
+    createPlacement("terrain-core:spawn-pond-bank-rock", "terrain-core:spawn-pond-bank", "relief", "support", true, "relief", "rock_largeA.glb", [-2.0, -6.45], 0.84, -0.18, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:spawn-pond-bank-flat", "terrain-core:spawn-pond-bank", "relief", "support", true, "relief", "rock_smallFlatC.glb", [1.75, -7.2], 0.72, 0.22, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:spawn-pond-bank-grass", "terrain-core:spawn-pond-bank", "vegetation", "support", true, "vegetation", "grass_leafsLarge.glb", [-2.65, -3.45], 0.84, 0.14, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:spawn-pond-bank-tree", "terrain-core:spawn-pond-bank", "vegetation", "support", true, "vegetation", "tree_pineGroundA.glb", [2.95, -3.95], 0.96, -0.26, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
     createPlacement("terrain-core:pond-bank-log", "terrain-core:pond-bank", "vegetation", "support", true, "vegetation", "log.glb", offsetTerrainCoreIntroSafe([-8.0, 2.2]), 0.92, Math.PI * 0.34),
     createPlacement("terrain-core:pond-bank-bush", "terrain-core:pond-bank", "vegetation", "support", true, "vegetation", "plant_bushDetailed.glb", offsetTerrainCoreIntroSafe([-7.35, 7.05]), 0.82, -0.18),
     createPlacement("terrain-core:polyhaven-fern-bank", "terrain-core:premium-vegetation-bank", "vegetation", "support", true, "vegetation", "fern_02_1k.gltf", offsetTerrainCoreIntroSafe([-5.85, 8.2]), 0.82, 0.32, {

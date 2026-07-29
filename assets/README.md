@@ -93,10 +93,12 @@ Public terrain-first runtime:
 - The public vehicle proof is semantic, not only dimensional: `race.glb` must
   expose the downloaded Kenney mesh names `body` plus four `wheel-*` meshes in
   the runtime QA snapshot.
-- V13.5 expands the playable shell to 112 units and proves 167 public
-  placements across roughly 105x105 units of coverage. The edge placements
-  deliberately avoid road/path plates and block-like cliff chunks; downloaded
-  bridges are kept only where they read as water crossings.
+- V13.6 keeps the 112-unit shell and proves 174 public placements across
+  roughly 105x105 units of coverage. It adds a spawn clearing with an integrated
+  terrain-water mask plus downloaded reeds, lily, boardwalk, rocks, grass and a
+  tree so the first viewport reads as terrain rather than only textured ground.
+  The edge placements deliberately avoid road/path plates and block-like cliff
+  chunks; downloaded bridges are kept only where they read as water crossings.
 
 Core promotion:
 
