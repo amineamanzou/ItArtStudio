@@ -1455,6 +1455,21 @@ Gates V9.9:
 - cette vague doit ameliorer la reconnaissance des lieux par silhouettes
   custom secondaires, pas par densification de petits props generiques.
 
+Gates V9.10:
+
+- la premiere passe de reduction du bruit procedural intervient apres la vague
+  `asset-detail-wave`: les assets sont assez lisibles pour que les couches de
+  sol cessent de porter autant de contraste;
+- les textures runtime `vegetation`, `relief` et `road` sont moins repetees
+  afin de reduire les motifs qui scintillent ou dominent les captures;
+- les grandes plaques de terrain IT/ART/STUDIO deviennent plus transparentes et
+  plus arrondies, avec moins de bords polygonaux visibles autour des hero
+  locations;
+- les pads de hero locations restent presents pour l'orientation, mais passent
+  en accent discret pour que les GLB custom deviennent le signal principal;
+- les contours globaux de surface sont reduits: ils doivent suggérer la
+  topographie, pas dessiner une couche graphique au-dessus des lieux.
+
 ## Components
 
 - `game-site`: surface principale.

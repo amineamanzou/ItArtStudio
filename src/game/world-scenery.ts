@@ -47,9 +47,9 @@ type RuntimeMapTexture = {
 };
 
 const mapTextureSpecs: Array<{ role: RuntimeMapTextureRole; path: string; repeat: number }> = [
-  { role: "vegetation", path: "assets/textures/map/field/field-grain-studio.svg", repeat: 11 },
-  { role: "relief", path: "assets/textures/map/relief/relief-contours-studio.svg", repeat: 9 },
-  { role: "road", path: "assets/textures/map/road/road-asphalt-studio.svg", repeat: 7 },
+  { role: "vegetation", path: "assets/textures/map/field/field-grain-studio.svg", repeat: 6 },
+  { role: "relief", path: "assets/textures/map/relief/relief-contours-studio.svg", repeat: 5 },
+  { role: "road", path: "assets/textures/map/road/road-asphalt-studio.svg", repeat: 4 },
   { role: "water", path: "assets/textures/map/water/water-edge-studio.svg", repeat: 4 },
   { role: "cloud-dock", path: "assets/textures/map/hero/cloud-dock-circuit-pad.svg", repeat: 2 },
   { role: "design-atelier", path: "assets/textures/map/hero/design-atelier-pattern-pad.svg", repeat: 2 },
@@ -196,18 +196,21 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
     }
   };
 
-  const terrainMat = material(palette.ground, 0.02, 0.04, 0.74, mapTextureByRole.get("vegetation"));
-  const terrainShade = material(palette.ink, 0.01, 0.02, 0.62, mapTextureByRole.get("relief"));
-  const roadMat = material(palette.road, 0.14, 0.12, 0.92, mapTextureByRole.get("road"));
+  const terrainMat = material(palette.ground, 0.02, 0.04, 0.68, mapTextureByRole.get("vegetation"));
+  const terrainShade = material(palette.ink, 0.01, 0.02, 0.28, mapTextureByRole.get("relief"));
+  const roadMat = material(palette.road, 0.12, 0.12, 0.84, mapTextureByRole.get("road"));
   const contourMat = new THREE.MeshBasicMaterial({
     color: 0x7b8371,
     transparent: true,
-    opacity: 0.2,
+    opacity: 0.1,
     depthWrite: false
   });
   const techMat = material(palette.tech, 0.2, 0.24, 0.94);
   const artMat = material(palette.art, 0.2, 0.12, 0.94);
   const studioMat = material(palette.studio, 0.2, 0.14, 0.94);
+  const techLedgeMat = material(palette.tech, 0.1, 0.16, 0.4);
+  const artLedgeMat = material(palette.art, 0.1, 0.1, 0.36);
+  const studioLedgeMat = material(palette.studio, 0.1, 0.12, 0.44);
   const inkMat = material(palette.ink, 0.02, 0.1, 0.9);
   const waterMat = new THREE.MeshStandardMaterial({
     color: 0x123f55,
@@ -236,13 +239,13 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
   const terrainSpecs = [
     ["outer-cut", worldGroundRadius * 0.96, 1.08, 0.94, -0.012, terrainShade, -0.18],
     ["field-shelf", worldGroundRadius * 0.88, 1.04, 0.91, 0.0, terrainMat, 0.14],
-    ["tech-ledge", 5.8, 1.9, 0.82, 0.05, techMat, -0.16, -10.8, -0.8],
-    ["art-ledge", 5.95, 1.82, 0.88, 0.065, artMat, 0.18, 10.8, -0.7],
-    ["studio-ledge", 5.7, 1.06, 1.26, 0.08, studioMat, 0.06, 0, 2]
+    ["tech-ledge", 5.8, 1.78, 0.78, 0.05, techLedgeMat, -0.16, -10.8, -0.8],
+    ["art-ledge", 5.95, 1.68, 0.82, 0.065, artLedgeMat, 0.18, 10.8, -0.7],
+    ["studio-ledge", 5.7, 1.0, 1.18, 0.08, studioLedgeMat, 0.06, 0, 2]
   ] as const;
 
   for (const [id, radius, scaleX, scaleZ, y, mat, rotation, x = 0, z = 0] of terrainSpecs) {
-    const shelf = new THREE.Mesh(new THREE.CircleGeometry(radius, 7), mat);
+    const shelf = new THREE.Mesh(new THREE.CircleGeometry(radius, 28), mat);
     shelf.rotation.x = -Math.PI * 0.5;
     shelf.rotation.z = rotation;
     shelf.position.set(x, y, z);
@@ -621,7 +624,7 @@ function addHeroTexturePads(
       size: [7.2, 5.8] as const,
       rotation: -0.22,
       color: palette.tech,
-      opacity: 0.36
+      opacity: 0.28
     },
     {
       id: "design-atelier",
@@ -630,7 +633,7 @@ function addHeroTexturePads(
       size: [6.9, 5.6] as const,
       rotation: 0.38,
       color: palette.art,
-      opacity: 0.34
+      opacity: 0.26
     },
     {
       id: "observability-tower",
@@ -639,7 +642,7 @@ function addHeroTexturePads(
       size: [6.7, 5.7] as const,
       rotation: 0.08,
       color: palette.tech,
-      opacity: 0.32
+      opacity: 0.26
     }
   ];
 
