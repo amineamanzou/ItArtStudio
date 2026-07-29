@@ -66,7 +66,7 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v122",
+    "id": "public-terrain-core-v123",
     "phase": "public-terrain-first-runtime",
     "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor field/stony-dirt-path/relief/water-edge textures and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
@@ -200,7 +200,15 @@
       "terrain-core:outer-east-bank-rock",
       "terrain-core:outer-east-bank-palm",
       "terrain-core:outer-east-bridge-side",
-      "terrain-core:outer-east-lily-small"
+      "terrain-core:outer-east-lily-small",
+      "terrain-core:corner-northwest-pond",
+      "terrain-core:corner-northwest-cattail",
+      "terrain-core:corner-northeast-pine",
+      "terrain-core:corner-northeast-boulder",
+      "terrain-core:corner-southwest-grass",
+      "terrain-core:corner-southwest-log-stack",
+      "terrain-core:corner-southeast-tall-rock",
+      "terrain-core:corner-southeast-bush"
     ],
     "forbiddenFiles": [
       "box-long.glb",
@@ -223,13 +231,13 @@
       "top-large-checkerboard.glb",
       "tree_cone.glb"
     ],
-    "minimumPlacements": 107,
+    "minimumPlacements": 115,
     "minimumUniqueFiles": 59,
     "minimumRolePlacements": {
       "route": 18,
-      "water": 20,
-      "relief": 31,
-      "vegetation": 38
+      "water": 22,
+      "relief": 33,
+      "vegetation": 42
     },
     "minimumCoverage": { "width": 78, "depth": 78 },
     "minimumCoverageArea": 6500,

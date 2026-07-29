@@ -1144,6 +1144,30 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     }),
     createPlacement("terrain-core:outer-east-lily-small", "terrain-core:outer-east-water-a", "water", "support", true, "water", "lily_small.glb", [37.2, -36.9], 0.48, 0.24, {
       assetId: "accepted-nature-water-core"
+    }),
+    createPlacement("terrain-core:corner-northwest-pond", "terrain-core:corner-northwest-water", "water", "support", true, "water", "pond-1.glb", [-43.0, 39.4], 1.62, -0.2, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:corner-northwest-cattail", "terrain-core:corner-northwest-water", "water", "support", true, "water", "cattail-1.glb", [-41.6, 40.5], 0.58, 0.18, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:corner-northeast-pine", "terrain-core:corner-northeast-grove", "vegetation", "support", true, "vegetation", "tree_pineTallA.glb", [41.2, 39.8], 1.08, -0.24, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:corner-northeast-boulder", "terrain-core:corner-northeast-relief", "relief", "support", true, "relief", "rock_largeC.glb", [43.6, 37.5], 0.86, 0.28, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:corner-southwest-grass", "terrain-core:corner-southwest-meadow", "vegetation", "support", true, "vegetation", "grass_leafsLarge.glb", [-42.4, -40.8], 0.92, -0.16, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:corner-southwest-log-stack", "terrain-core:corner-southwest-deadwood", "vegetation", "support", true, "vegetation", "log_stack.glb", [-39.8, -42.6], 0.76, Math.PI * 0.32, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:corner-southeast-tall-rock", "terrain-core:corner-southeast-relief", "relief", "support", true, "relief", "rock_tallH.glb", [42.6, -41.4], 0.86, -0.14, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:corner-southeast-bush", "terrain-core:corner-southeast-shrub", "vegetation", "support", true, "vegetation", "plant_bushDetailed.glb", [39.8, -42.4], 0.84, 0.18, {
+      assetId: "accepted-nature-vegetation-core"
     })
   ];
 }
