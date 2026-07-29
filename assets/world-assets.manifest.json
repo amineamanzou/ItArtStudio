@@ -352,6 +352,15 @@
     "minimumTerrainVisualSize": 205,
     "maximumVisualOnlyVisibleUiElements": 0,
     "maximumVisualOnlyVisibleLabels": 0,
+    "minimumVisualOnlyTotalVisibleTerrainPlacements": 18,
+    "minimumVisualOnlyVisibleTerrainPlacements": {
+      "route": 3,
+      "water": 3,
+      "relief": 4,
+      "vegetation": 5
+    },
+    "minimumVisualOnlyPlacementClippedArea": 90,
+    "minimumVisualOnlyPlacementVisibleRatio": 0.002,
     "minimumTerrainMaterialCoverage": {
       "field": 0.55,
       "path": 0.035,

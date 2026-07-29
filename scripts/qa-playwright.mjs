@@ -4127,18 +4127,81 @@ async function checkPublicAssetOnlyPlayer(browser) {
     }
     const visualOnlyMaxVisibleUiElements = manifestPublicTerrainCore.maximumVisualOnlyVisibleUiElements ?? 0;
     const visualOnlyMaxVisibleLabels = manifestPublicTerrainCore.maximumVisualOnlyVisibleLabels ?? 0;
+    const minimumVisualOnlyVisibleTerrainPlacements =
+      manifestPublicTerrainCore.minimumVisualOnlyVisibleTerrainPlacements ?? {};
+    const minimumVisualOnlyTotalVisibleTerrainPlacements =
+      manifestPublicTerrainCore.minimumVisualOnlyTotalVisibleTerrainPlacements ?? 0;
+    const minimumVisualOnlyPlacementClippedArea = manifestPublicTerrainCore.minimumVisualOnlyPlacementClippedArea ?? 90;
+    const minimumVisualOnlyPlacementVisibleRatio = manifestPublicTerrainCore.minimumVisualOnlyPlacementVisibleRatio ?? 0.002;
     const visualOnlyUiVisibleCount = visualOnlyProof.qaVisualOnly?.visibleElementCount ?? Number.POSITIVE_INFINITY;
     const visualOnlyVisibleLabelCount = visualOnlyProof.qaVisualOnly?.scene?.visibleLabels ?? Number.POSITIVE_INFINITY;
+    const visualOnlyPlacementEntries = Array.isArray(externalAssets?.placementAssetKeys)
+      ? externalAssets.placementAssetKeys
+          .map((key) => {
+            const [assetId, placementId, file] = String(key).split("::");
+            return { assetId, placementId, file };
+          })
+          .filter((entry) => entry.placementId?.startsWith("terrain-core:"))
+      : [];
+    const visualOnlyRoleForPlacement = (entry) => {
+      const searchable = `${entry.assetId ?? ""} ${entry.file ?? ""}`.toLowerCase();
+      if (/rail|bridge|path_|track/u.test(searchable)) {
+        return "route";
+      }
+      if (/water|pond|lily|cattail|hyacinth/u.test(searchable)) {
+        return "water";
+      }
+      if (/relief|rock|cliff/u.test(searchable)) {
+        return "relief";
+      }
+      if (/vegetation|grass|tree|bush|flower|moss|fern|log|stump/u.test(searchable)) {
+        return "vegetation";
+      }
+      return "other";
+    };
+    const visualOnlyVisibleTerrainPlacements = visualOnlyPlacementEntries
+      .map((entry) => {
+        const rect = externalAssets?.placementScreenRects?.[entry.placementId];
+        const clippedArea = rect?.clippedArea ?? 0;
+        const visibleRatio = rect?.visibleRatio ?? 0;
+        return {
+          ...entry,
+          role: visualOnlyRoleForPlacement(entry),
+          visible:
+            rect?.visible === true &&
+            clippedArea >= minimumVisualOnlyPlacementClippedArea &&
+            visibleRatio >= minimumVisualOnlyPlacementVisibleRatio,
+          clippedArea,
+          visibleRatio
+        };
+      })
+      .filter((entry) => entry.visible);
+    const visualOnlyVisibleTerrainRoleCounts = visualOnlyVisibleTerrainPlacements.reduce((counts, entry) => {
+      counts[entry.role] = (counts[entry.role] ?? 0) + 1;
+      return counts;
+    }, {});
+    const missingVisualOnlyTerrainRoleCounts = Object.entries(minimumVisualOnlyVisibleTerrainPlacements).filter(
+      ([role, minimum]) => (visualOnlyVisibleTerrainRoleCounts[role] ?? 0) < minimum
+    );
     const visualOnlyOk =
       visualOnlyProof.canvas.ok &&
       visualOnlyUiVisibleCount <= visualOnlyMaxVisibleUiElements &&
-      visualOnlyVisibleLabelCount <= visualOnlyMaxVisibleLabels;
+      visualOnlyVisibleLabelCount <= visualOnlyMaxVisibleLabels &&
+      visualOnlyVisibleTerrainPlacements.length >= minimumVisualOnlyTotalVisibleTerrainPlacements &&
+      missingVisualOnlyTerrainRoleCounts.length === 0;
     const visualOnlyDetails = {
       capture: visualOnlyProof.relativePath,
       canvas: visualOnlyProof.canvas,
       qaVisualOnly: visualOnlyProof.qaVisualOnly,
       maximumVisibleUiElements: visualOnlyMaxVisibleUiElements,
       maximumVisibleLabels: visualOnlyMaxVisibleLabels,
+      minimumVisibleTerrainPlacements: minimumVisualOnlyVisibleTerrainPlacements,
+      minimumTotalVisibleTerrainPlacements: minimumVisualOnlyTotalVisibleTerrainPlacements,
+      minimumPlacementClippedArea: minimumVisualOnlyPlacementClippedArea,
+      minimumPlacementVisibleRatio: minimumVisualOnlyPlacementVisibleRatio,
+      visibleTerrainRoleCounts: visualOnlyVisibleTerrainRoleCounts,
+      visibleTerrainPlacements: visualOnlyVisibleTerrainPlacements,
+      missingTerrainRoleCounts: missingVisualOnlyTerrainRoleCounts,
       ok: visualOnlyOk
     };
     if (visualOnlyOk) {
@@ -11605,7 +11668,7 @@ async function writeReport() {
     }`,
     `- Public terrain visual-only: ${
       publicTerrainVisualOnlyScenario?.details
-        ? `${publicTerrainVisualOnlyScenario.status}, hidden UI ${publicTerrainVisualOnlyScenario.details.qaVisualOnly?.hiddenElementCount ?? "n/a"}/${publicTerrainVisualOnlyScenario.details.qaVisualOnly?.trackedElementCount ?? "n/a"}, visible UI ${publicTerrainVisualOnlyScenario.details.qaVisualOnly?.visibleElementCount ?? "n/a"}, visible labels ${publicTerrainVisualOnlyScenario.details.qaVisualOnly?.scene?.visibleLabels ?? "n/a"}, capture ${publicTerrainVisualOnlyScenario.details.capture ?? "n/a"}`
+        ? `${publicTerrainVisualOnlyScenario.status}, hidden UI ${publicTerrainVisualOnlyScenario.details.qaVisualOnly?.hiddenElementCount ?? "n/a"}/${publicTerrainVisualOnlyScenario.details.qaVisualOnly?.trackedElementCount ?? "n/a"}, visible UI ${publicTerrainVisualOnlyScenario.details.qaVisualOnly?.visibleElementCount ?? "n/a"}, visible labels ${publicTerrainVisualOnlyScenario.details.qaVisualOnly?.scene?.visibleLabels ?? "n/a"}, terrain roles ${Object.entries(publicTerrainVisualOnlyScenario.details.visibleTerrainRoleCounts ?? {}).map(([role, count]) => `${role}:${count}`).join("/") || "n/a"}, visible terrain ${publicTerrainVisualOnlyScenario.details.visibleTerrainPlacements?.length ?? "n/a"}/${publicTerrainVisualOnlyScenario.details.minimumTotalVisibleTerrainPlacements ?? "n/a"}, capture ${publicTerrainVisualOnlyScenario.details.capture ?? "n/a"}`
         : (publicTerrainVisualOnlyScenario?.status ?? "n/a")
     }`,
     `- Public asset-only generated runtime clean: ${

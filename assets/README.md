@@ -116,6 +116,10 @@ Public terrain-first runtime:
 - V13.11 adds a visual-only public terrain capture. The QA hides the HUD,
   panels, mini-map and 3D labels, then fails the public terrain core if any UI
   or label remains visible over the map-only screenshot.
+- V13.12 makes that visual-only proof semantic: the hidden-UI screenshot must
+  include enough visible terrain-core placements across route, water, relief
+  and vegetation roles, so a visually empty map cannot pass on canvas metrics
+  alone.
 
 Core promotion:
 
