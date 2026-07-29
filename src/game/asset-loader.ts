@@ -1360,6 +1360,55 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     }),
     createPlacement("terrain-core:edge-east-pine", "terrain-core:edge-east-vista", "vegetation", "support", true, "vegetation", "tree_pineTallA.glb", [50.2, -4.0], 0.96, -0.24, {
       assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:rim-north-rail-marker", "terrain-core:rim-north-vista", "route", "support", true, "rail", "track-detailed.glb", [-1.2, 61.8], 1.0, 0.04, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("terrain-core:rim-north-tree", "terrain-core:rim-north-vista", "vegetation", "support", true, "vegetation", "tree_oak.glb", [2.4, 60.8], 0.96, -0.18, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:rim-north-rock", "terrain-core:rim-north-vista", "relief", "support", true, "relief", "rock_tallA.glb", [-4.0, 60.5], 0.82, 0.22, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:rim-north-bush", "terrain-core:rim-north-vista", "vegetation", "support", true, "vegetation", "plant_bush.glb", [4.6, 59.8], 0.82, 0.12, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:rim-south-rail", "terrain-core:rim-south-vista", "route", "support", true, "rail", "track-single.glb", [0.8, -61.8], 1.0, -0.04, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("terrain-core:rim-south-rock", "terrain-core:rim-south-vista", "relief", "support", true, "relief", "rock_largeC.glb", [4.2, -60.9], 0.82, -0.22, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:rim-south-stump", "terrain-core:rim-south-vista", "vegetation", "support", true, "vegetation", "stump_roundDetailed.glb", [-3.8, -60.7], 0.74, 0.18, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:rim-south-grass", "terrain-core:rim-south-vista", "vegetation", "support", true, "vegetation", "grass_large.glb", [6.0, -59.6], 0.82, -0.12, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:rim-west-lily", "terrain-core:rim-west-vista", "water", "support", true, "water", "lily_large.glb", [-61.8, -1.8], 0.48, 0.2, {
+      assetId: "accepted-nature-water-core"
+    }),
+    createPlacement("terrain-core:rim-west-boardwalk", "terrain-core:rim-west-vista", "route", "support", true, "bridge", "bridge_woodNarrow.glb", [-60.9, 1.4], 0.9, Math.PI * 0.5, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.56
+    }),
+    createPlacement("terrain-core:rim-west-rock", "terrain-core:rim-west-vista", "relief", "support", true, "relief", "rock_largeE.glb", [-60.2, -5.0], 0.82, -0.2, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:rim-west-tree", "terrain-core:rim-west-vista", "vegetation", "support", true, "vegetation", "tree_default.glb", [-59.2, 4.4], 0.9, 0.14, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:rim-east-hyacinth", "terrain-core:rim-east-vista", "water", "support", true, "water", "water-hyacinth-1.glb", [61.7, 2.0], 0.5, -0.16, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:rim-east-rail", "terrain-core:rim-east-vista", "route", "support", true, "rail", "track-rail.glb", [60.7, -1.5], 0.98, 0.14, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("terrain-core:rim-east-rock", "terrain-core:rim-east-vista", "relief", "support", true, "relief", "rock_largeA.glb", [60.1, 4.8], 0.82, 0.18, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:rim-east-oak", "terrain-core:rim-east-vista", "vegetation", "support", true, "vegetation", "tree_oak.glb", [59.1, -4.5], 0.94, -0.24, {
+      assetId: "accepted-nature-vegetation-core"
     })
   ];
 }

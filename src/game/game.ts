@@ -465,8 +465,8 @@ function sampleOrganicPathMask(position: THREE.Vector3) {
     Math.sin(position.x * 0.61 + position.z * 0.37) * 0.16 +
     Math.sin(position.x * 1.17 - position.z * 0.53) * 0.1 +
     Math.cos(position.x * 0.29 + position.z * 0.91) * 0.08;
-  const width = 2.26 + grain * 0.78 - zoneSuppression * 0.12;
-  const feather = 0.98 + Math.abs(grain) * 0.5;
+  const width = 3.08 + grain * 0.82 - zoneSuppression * 0.1;
+  const feather = 1.16 + Math.abs(grain) * 0.52;
   return 1 - smoothstep(width, width + feather, routeDistance);
 }
 
@@ -474,7 +474,7 @@ function sampleAssetOnlyTerrainMasks(position: THREE.Vector3) {
   const worldMaterial = sampleWorldMaterial(position, false);
   const terrain = sampleTerrain(position);
   const path = worldMaterial.kind === "water" ? 0 : sampleOrganicPathMask(position);
-  const relief = terrain.dominantFeatureId ? clamp((Math.abs(terrain.height) - 0.012) / 0.145, 0, 1) : 0;
+  const relief = terrain.dominantFeatureId ? clamp((Math.abs(terrain.height) - 0.004) / 0.13, 0, 1) : 0;
   const water = worldMaterial.kind === "water" ? clamp(0.58 + worldMaterial.intensity * 0.42, 0, 1) : 0;
   return {
     path,
