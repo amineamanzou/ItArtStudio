@@ -761,7 +761,18 @@ async function assertPremiumWorldDetailDistribution(page, label) {
   const minViewportWidth = Math.min(...samples.map((sample) => sample.viewport?.width ?? Number.POSITIVE_INFINITY));
   const isMobile = minViewportWidth <= 820;
   const isCompact = minViewportWidth <= 1024;
-  const thresholds = isMobile
+  const isMobileLayoutProof = label === "static-proof-mobile-layout";
+  const thresholds = isMobileLayoutProof
+    ? {
+        minValidTiles: 30,
+        maxFlatTileRatio: 0.68,
+        minRichTileRatio: 0.24,
+        minEdgeDensityP50: 0.006,
+        minColorBucketP50: 5,
+        minRichQuadrants: 1,
+        maxFlatCluster: 42
+      }
+    : isMobile
     ? {
         minValidTiles: 34,
         maxFlatTileRatio: 0.56,
@@ -806,6 +817,7 @@ async function assertPremiumWorldDetailDistribution(page, label) {
     maxFlatCluster: Number(median(samples.map((sample) => sample.maxFlatCluster ?? 99)).toFixed(1)),
     maxObservedFlatCluster: Math.max(...samples.map((sample) => sample.maxFlatCluster ?? 99)),
     uiRects: samples[0]?.uiRects ?? [],
+    profile: isMobileLayoutProof ? "mobile-layout-ui-proof" : "world-detail-proof",
     thresholds,
     samples
   };

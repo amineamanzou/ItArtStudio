@@ -272,6 +272,10 @@ The runner:
   parts, unique signatures, a bounded vertex budget and a slim visual profile
   so roads guide exploration without becoming black bars on mobile, while
   preserving `sceneObjects <= 940`.
+- `premium-world-detail-distribution:static-proof-mobile-layout` uses a lighter
+  layout profile because that capture primarily proves HUD, controls and safe
+  areas; `static-proof-mobile-touch` remains the stricter mobile world-detail
+  proof after actual interaction.
 - World richness must prove the authored world now contains water and relief:
   at least 3 `water-body` basins, 5 `relief-ramp` instances, thematic districts,
   route lights and the central identity ribbon, all inside the same premium
