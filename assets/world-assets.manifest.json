@@ -173,6 +173,17 @@
       "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg",
       "assets/textures/vendor/polyhaven/low_tide_rocks/low_tide_rocks_diff_1k.jpg"
     ],
+    "requiredMaterialStyleRoles": [
+      "bridge-stone",
+      "bridge-wood",
+      "rail-track",
+      "relief-stone",
+      "vegetation-natural",
+      "water-bank-rock",
+      "water-plant",
+      "water-surface-textured",
+      "waterfall-rock"
+    ],
     "minimumTerrainLayers": 4,
     "minimumTerrainHeightRange": 0.5,
     "minimumTerrainVertexCount": 90000,

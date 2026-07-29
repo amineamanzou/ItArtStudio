@@ -84,6 +84,7 @@ export type ExternalAssetPreviewTelemetry = {
   mapCoverageWidth: number;
   mapCoverageDepth: number;
   mapCoverageArea: number;
+  materialStyleRoles: string[];
 };
 
 type PreviewSpec = {
@@ -232,7 +233,8 @@ export function createExternalAssetTelemetry(enabled: boolean, mode: ExternalAss
     vegetationPlacements: 0,
     mapCoverageWidth: 0,
     mapCoverageDepth: 0,
-    mapCoverageArea: 0
+    mapCoverageArea: 0,
+    materialStyleRoles: []
   };
 }
 
@@ -382,6 +384,7 @@ async function createExternalAssetPlacementLayer(mode: "core" | "map", placement
       const { object, url } = await loadNormalizedObject(loader, asset, spec, cache, mode === "core");
       const wrapper = object;
       applyMapCurationStyle(wrapper, spec);
+      const materialStyleRoles = getObjectMaterialStyleRoles(wrapper);
       const actualGroundClearance = measureActualGroundClearance(wrapper);
       actualGroundClearances.push(actualGroundClearance);
       wrapper.name = `external-map-asset:${spec.id}:${asset.id}:${spec.preferredFile}`;
@@ -428,6 +431,7 @@ async function createExternalAssetPlacementLayer(mode: "core" | "map", placement
       telemetry.placementIds.push(spec.id);
       telemetry.placementFiles.push(spec.preferredFile);
       telemetry.placementAssetKeys.push(`${asset.id}::${spec.id}::${spec.preferredFile}`);
+      telemetry.materialStyleRoles.push(...materialStyleRoles);
       if (asset.id === promotedAssetId && promotedFiles.has(spec.preferredFile) && promotedPlacementIds.has(spec.id)) {
         telemetry.premiumPromotionFiles.push(spec.preferredFile);
         telemetry.premiumPromotionPlacementIds.push(spec.id);
@@ -558,6 +562,7 @@ function finalizeTelemetry(group: THREE.Object3D, telemetry: ExternalAssetPrevie
   telemetry.placementAssetKeys = [...new Set(telemetry.placementAssetKeys)].sort();
   telemetry.premiumPromotionFiles = [...new Set(telemetry.premiumPromotionFiles)].sort();
   telemetry.premiumPromotionPlacementIds = [...new Set(telemetry.premiumPromotionPlacementIds)].sort();
+  telemetry.materialStyleRoles = [...new Set(telemetry.materialStyleRoles)].sort();
   telemetry.uniqueFiles = telemetry.publicPaths.length;
 }
 
@@ -583,11 +588,10 @@ function applyMapCurationStyle(wrapper: THREE.Object3D, spec: MapPlacementSpec) 
 function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlacementSpec) {
   if (spec.assetId === "accepted-assetquest-pond-water-core") {
     const isPondSurface = spec.preferredFile.startsWith("pond-");
-    const materialColor = spec.preferredFile.startsWith("pond-")
-      ? 0x4b6862
-      : spec.preferredFile.startsWith("rock-")
-        ? 0x7a786c
-        : 0x527b54;
+    const isRock = spec.preferredFile.startsWith("rock-");
+    const styleRole = isPondSurface ? "water-surface-textured" : isRock ? "water-bank-rock" : "water-plant";
+    const materialColor = isPondSurface ? 0x1f5d68 : isRock ? 0x8b806f : 0x4f7f55;
+    const emissiveColor = isPondSurface ? 0x0b3139 : 0x000000;
 
     wrapper.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) {
@@ -596,10 +600,14 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
       object.material = new THREE.MeshStandardMaterial({
         color: materialColor,
         map: isPondSurface ? getPublicWaterEdgeTexture() : null,
-        roughness: isPondSurface ? 0.9 : 0.82,
-        metalness: 0
+        roughness: isPondSurface ? 0.36 : 0.82,
+        metalness: isPondSurface ? 0.06 : 0,
+        emissive: emissiveColor,
+        emissiveIntensity: isPondSurface ? 0.1 : 0
       });
+      object.userData.externalAssetMaterialStyleRole = styleRole;
     });
+    tagMaterialStyle(wrapper, styleRole);
     return;
   }
 
@@ -608,7 +616,9 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
   }
 
   if (spec.assetId === "accepted-nature-water-core") {
-    const materialColor = spec.preferredFile.startsWith("lily_") ? 0x4f7a4f : 0x6d7167;
+    const isPlant = spec.preferredFile.startsWith("lily_");
+    const materialColor = isPlant ? 0x5e8c52 : 0x827d6d;
+    const styleRole = isPlant ? "water-plant" : "waterfall-rock";
     wrapper.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) {
         return;
@@ -618,7 +628,44 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
         roughness: 0.86,
         metalness: 0
       });
+      object.userData.externalAssetMaterialStyleRole = styleRole;
     });
+    tagMaterialStyle(wrapper, styleRole);
+    return;
+  }
+
+  if (spec.assetId === "accepted-nature-stone-bridge-core" || spec.assetId === "accepted-nature-bridge-core") {
+    const isWood = spec.assetId === "accepted-nature-bridge-core" || spec.preferredFile.includes("wood");
+    const styleRole = isWood ? "bridge-wood" : "bridge-stone";
+    const materialColor = isWood ? 0x8f6f48 : 0x9a9382;
+    wrapper.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) {
+        return;
+      }
+      object.material = new THREE.MeshStandardMaterial({
+        color: materialColor,
+        roughness: isWood ? 0.74 : 0.82,
+        metalness: 0.02
+      });
+      object.userData.externalAssetMaterialStyleRole = styleRole;
+    });
+    tagMaterialStyle(wrapper, styleRole);
+    return;
+  }
+
+  if (spec.assetId === "accepted-train-rail-core") {
+    wrapper.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) {
+        return;
+      }
+      object.material = new THREE.MeshStandardMaterial({
+        color: 0x8b7a5f,
+        roughness: 0.62,
+        metalness: 0.18
+      });
+      object.userData.externalAssetMaterialStyleRole = "rail-track";
+    });
+    tagMaterialStyle(wrapper, "rail-track");
     return;
   }
 
@@ -650,7 +697,9 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
       object.material = Array.isArray(object.material)
         ? object.material.map((material) => remapPathMaterial(material))
         : remapPathMaterial(object.material);
+      object.userData.externalAssetMaterialStyleRole = "path-earth";
     });
+    tagMaterialStyle(wrapper, "path-earth");
     return;
   }
 
@@ -658,7 +707,8 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
     return;
   }
 
-  const materialColor = spec.terrainRole === "vegetation" ? 0x486f46 : 0x777268;
+  const materialColor = spec.terrainRole === "vegetation" ? 0x587f4b : 0x897f70;
+  const styleRole = spec.terrainRole === "vegetation" ? "vegetation-natural" : "relief-stone";
 
   wrapper.traverse((object) => {
     if (!(object instanceof THREE.Mesh)) {
@@ -669,7 +719,34 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
       roughness: spec.terrainRole === "relief" ? 0.9 : 0.78,
       metalness: 0
     });
+    object.userData.externalAssetMaterialStyleRole = styleRole;
   });
+  tagMaterialStyle(wrapper, styleRole);
+}
+
+function tagMaterialStyle(wrapper: THREE.Object3D, styleRole: string) {
+  wrapper.userData.externalAssetMaterialStyleRoles = [
+    ...new Set([...(getObjectMaterialStyleRoles(wrapper) ?? []), styleRole])
+  ];
+}
+
+function getObjectMaterialStyleRoles(object: THREE.Object3D) {
+  const roles = new Set<string>();
+  const directRoles = object.userData.externalAssetMaterialStyleRoles;
+  if (Array.isArray(directRoles)) {
+    for (const role of directRoles) {
+      if (typeof role === "string") {
+        roles.add(role);
+      }
+    }
+  }
+  object.traverse((child) => {
+    const role = child.userData.externalAssetMaterialStyleRole;
+    if (typeof role === "string") {
+      roles.add(role);
+    }
+  });
+  return [...roles].sort();
 }
 
 function getPublicWaterEdgeTexture() {

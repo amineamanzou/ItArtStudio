@@ -124,7 +124,8 @@ function createDefaultExternalAssetTelemetry(enabled: boolean): ExternalAssetPre
     vegetationPlacements: 0,
     mapCoverageWidth: 0,
     mapCoverageDepth: 0,
-    mapCoverageArea: 0
+    mapCoverageArea: 0,
+    materialStyleRoles: []
   };
 }
 

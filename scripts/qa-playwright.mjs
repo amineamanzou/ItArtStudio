@@ -3703,6 +3703,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const minimumCoverageArea = manifestPublicTerrainCore.minimumCoverageArea ?? 0;
     const requiredTerrainMaterialRoles = manifestPublicTerrainCore.requiredTerrainMaterialRoles ?? [];
     const requiredTerrainTextureFiles = manifestPublicTerrainCore.requiredTerrainTextureFiles ?? [];
+    const requiredMaterialStyleRoles = manifestPublicTerrainCore.requiredMaterialStyleRoles ?? [];
     const availableTerrainRoles = new Set([...(externalAssets?.terrainRoles ?? []), ...(snapshot?.world?.mapTextureRoles ?? [])]);
     const missingTerrainRoles = requiredTerrainRoles.filter((role) => !availableTerrainRoles.has(role));
     const missingAssetIds = requiredAssetIds.filter((assetId) => !externalAssets?.assetIds?.includes(assetId));
@@ -3711,6 +3712,9 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const missingTerrainMaterialRoles = requiredTerrainMaterialRoles.filter((role) => !snapshot?.world?.mapTextureRoles?.includes(role));
     const missingTerrainTextureFiles = requiredTerrainTextureFiles.filter(
       (file) => !snapshot?.world?.mapTextureUrls?.some((url) => url.endsWith(file))
+    );
+    const missingMaterialStyleRoles = requiredMaterialStyleRoles.filter(
+      (role) => !externalAssets?.materialStyleRoles?.includes(role)
     );
     const forbiddenPlacementFiles = forbiddenFiles.filter((file) => externalAssets?.placementFiles?.includes(file));
     const forbiddenPublicPaths = (externalAssets?.publicPaths ?? []).filter((publicPath) => {
@@ -3778,6 +3782,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
       externalAssets.mapCoverageWidth >= minimumCoverage.width &&
       externalAssets.mapCoverageDepth >= minimumCoverage.depth &&
       externalAssets.mapCoverageArea >= minimumCoverageArea &&
+      missingMaterialStyleRoles.length === 0 &&
       terrainShellOk &&
       (externalAssets.errors?.length ?? 0) === 0;
     const ok = vehicleOk && terrainCoreOk;
@@ -3797,6 +3802,8 @@ async function checkPublicAssetOnlyPlayer(browser) {
         requiredFiles,
         requiredPlacementIds,
         forbiddenFiles,
+        requiredMaterialStyleRoles,
+        missingMaterialStyleRoles,
         terrainShell: {
           terrainLayers: snapshot?.world?.terrainLayers,
           terrainHeightRange: snapshot?.world?.terrainHeightRange,
@@ -3832,6 +3839,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
           missingPlacementIds,
           missingTerrainMaterialRoles,
           missingTerrainTextureFiles,
+          missingMaterialStyleRoles,
           forbiddenPlacementFiles,
           forbiddenPublicPaths,
           missingRolePlacementCounts,
