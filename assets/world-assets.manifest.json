@@ -66,7 +66,7 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v125",
+    "id": "public-terrain-core-v126",
     "phase": "public-terrain-first-runtime",
     "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor field/stony-dirt-path/relief/water-edge textures and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
@@ -126,6 +126,7 @@
       "track-rail.glb",
       "track-segment.glb",
       "track-single-detailed.glb",
+      "track-single.glb",
       "track.glb",
       "grass.glb",
       "grass_large.glb",
@@ -216,7 +217,19 @@
       "terrain-core:outer-loop-south-boardwalk-a",
       "terrain-core:outer-loop-south-boardwalk-b",
       "terrain-core:outer-loop-east-rail-a",
-      "terrain-core:outer-loop-east-rail-b"
+      "terrain-core:outer-loop-east-rail-b",
+      "terrain-core:wetland-northwest-pond",
+      "terrain-core:wetland-northwest-boardwalk",
+      "terrain-core:wetland-northwest-bank-tree",
+      "terrain-core:ridge-northeast-track",
+      "terrain-core:ridge-northeast-cliff",
+      "terrain-core:ridge-northeast-pine",
+      "terrain-core:runoff-southwest-pond",
+      "terrain-core:runoff-southwest-crossing",
+      "terrain-core:runoff-southwest-flat-rock",
+      "terrain-core:bank-southeast-water-lily",
+      "terrain-core:bank-southeast-boulder",
+      "terrain-core:bank-southeast-grass"
     ],
     "forbiddenFiles": [
       "box-long.glb",
@@ -239,13 +252,13 @@
       "top-large-checkerboard.glb",
       "tree_cone.glb"
     ],
-    "minimumPlacements": 123,
-    "minimumUniqueFiles": 59,
+    "minimumPlacements": 135,
+    "minimumUniqueFiles": 60,
     "minimumRolePlacements": {
-      "route": 26,
-      "water": 22,
-      "relief": 33,
-      "vegetation": 42
+      "route": 29,
+      "water": 25,
+      "relief": 36,
+      "vegetation": 45
     },
     "minimumCoverage": { "width": 78, "depth": 78 },
     "minimumCoverageArea": 6500,
