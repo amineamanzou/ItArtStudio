@@ -51,6 +51,50 @@ par une QA jouee au clavier, avec captures desktop, verification des budgets
 renderer, absence de scintillement evident et reconnaissance visuelle des trois
 hero locations sans dependance aux panneaux HTML.
 
+## Decision De Cadrage Validee
+
+Le plan asset-first est fige suite a l'arbitrage produit du 2026-07-29:
+
+- utiliser les bibliotheques d'assets et de textures comme accelerateur avant
+  tout nouvel agrandissement massif de la map;
+- collecter, trier et accepter un maximum d'assets GLB/glTF utiles au langage
+  visuel du monde;
+- preparer ensuite une map plus grande mais volontairement peu dense, avec le
+  terrain, les routes, la verdure, l'eau, le relief et les respirations poses
+  avant le set dressing;
+- construire seulement trois hero locations premium dans un premier temps:
+  `Cloud Dock`, `Design Atelier` et `Observability Tower`;
+- reduire le bruit procedural, les objets repetitifs et les superpositions qui
+  provoquent du scintillement;
+- iterer en QA visuelle et clavier jusqu'a ce que les captures prouvent des
+  lieux reconnaissables, pas seulement une scene plus chargee.
+
+Ce cadrage remplace toute boucle centree d'abord sur le gameplay vehicule, les
+effets gratuits ou l'ajout de procedural generique. Le vehicule reste utile pour
+explorer la carte, mais le coeur de la prochaine phase est la qualite du monde.
+
+## Objectif Pret A Lancer
+
+Objectif a utiliser comme brief de prochaine loop:
+
+> Lancer une boucle agentic asset-first pour amener IT Art Studio vers une
+> qualite de mini-monde web comparable a une vitrine ludique premium inspiree
+> par Bruno Simon. Priorite absolue: constituer et valider une bibliotheque
+> GLB/glTF + textures web-ready avec licences, poids, roles narratifs et
+> fallbacks; puis agrandir une map plus respirante en posant d'abord routes,
+> eau, relief, verdure et transitions de terrain; ensuite composer trois hero
+> locations reconnaissables sans texte - `Cloud Dock`, `Design Atelier`,
+> `Observability Tower` - avec des assets 3D concrets et peu de bruit; enfin
+> faire passer une QA clavier/desktop/mobile qui capture les lieux, verifie les
+> budgets renderer, detecte scintillement/z-fighting/assets casses et refuse
+> toute iteration qui remplit la scene sans la rendre plus lisible.
+
+Definition courte:
+
+> Assets et textures d'abord, map agrandie ensuite, trois lieux premium apres,
+> QA visuelle a chaque boucle. Le gameplay vehicule reste secondaire tant que le
+> monde ne porte pas encore l'effet waou.
+
 ## Plan Fige Et Non Negociable
 
 Le plan de production est maintenant verrouille dans cet ordre:
