@@ -66,9 +66,9 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v126",
+    "id": "public-terrain-core-v127",
     "phase": "public-terrain-first-runtime",
-    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor field/stony-dirt-path/relief/water-edge textures and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles or hero/factory clutter.",
+    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor field/stony-dirt-path/relief/water-edge textures and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles, visible map-edge voids or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
     "requiredPlayerAssetId": "accepted-car-vehicle-core",
     "requiredPlayerFile": "race.glb",
@@ -284,6 +284,8 @@
     "minimumTerrainLayers": 4,
     "minimumTerrainHeightRange": 0.5,
     "minimumTerrainVertexCount": 90000,
+    "minimumTerrainVisualSize": 150,
+    "maximumCanvasEdgeVoidRatio": 0.02,
     "maximumIntroAssetOcclusions": 0,
     "maximumIntroAssetOcclusionRatio": 0.01,
     "introAssetClearancePx": 80,
@@ -378,7 +380,7 @@
     "minimumOuterBandVisibleRatio": 0.004,
     "maximumNonHeroClusterDensity": 4,
     "maximumHeroLocationPlacements": 0,
-    "allowedGeneratedSubstrate": "single terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief/water-edge material; visible public decor must come from downloaded vendor GLB/glTF.",
+    "allowedGeneratedSubstrate": "single extended terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief/water-edge material; visible public decor must come from downloaded vendor GLB/glTF.",
     "fallback": "If a terrain GLB fails, omit that placement and keep the public world sparse rather than replacing it with a generated rectangle, cone, halo, plate or abstract primitive.",
     "nextAction": "Review the denser north/south/east/west terrain-only screenshots for asset readability, then source stronger shoreline and authored relief packs before densifying Cloud Dock, Design Atelier or Observability Tower."
   },

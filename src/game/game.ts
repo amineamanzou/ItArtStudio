@@ -54,6 +54,8 @@ const assetOnlyGroundTexturePath = "assets/textures/vendor/polyhaven/forrest_gro
 const assetOnlyReliefTexturePath = "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg";
 const assetOnlyPathTexturePath = "assets/textures/vendor/polyhaven/stony_dirt_path/stony_dirt_path_diff_1k.jpg";
 const assetOnlyWaterTexturePath = "assets/textures/vendor/polyhaven/low_tide_rocks/low_tide_rocks_diff_1k.jpg";
+const assetOnlyTerrainVisualScale = 1.62;
+const assetOnlyTerrainVisualSize = worldSize * assetOnlyTerrainVisualScale;
 const terrainZoneById = new Map(zones.map((zone) => [zone.id, zone]));
 const playerMaxForwardSpeed = qaMode ? 12.8 : 10.5;
 const playerMaxReverseSpeed = qaMode ? 6.4 : 4.2;
@@ -322,6 +324,8 @@ type AssetOnlyTerrainMetrics = {
   maxHeight: number;
   gradeMax: number;
   vertexCount: number;
+  visualSize: number;
+  visualScale: number;
   materialRoles: AssetOnlyTerrainKind[];
   textureUrls: string[];
 };
@@ -338,6 +342,7 @@ function createAssetOnlyTerrainMaterial() {
       reliefMap: { value: reliefMap },
       pathMap: { value: pathMap },
       waterMap: { value: waterMap },
+      textureScale: { value: assetOnlyTerrainVisualScale },
       ambientColor: { value: new THREE.Color(0x1a231c) },
       keyLightColor: { value: new THREE.Color(0xfff1ce) },
       waterDeep: { value: new THREE.Color(0x123f47) },
@@ -370,6 +375,7 @@ function createAssetOnlyTerrainMaterial() {
       uniform sampler2D reliefMap;
       uniform sampler2D pathMap;
       uniform sampler2D waterMap;
+      uniform float textureScale;
       uniform vec3 ambientColor;
       uniform vec3 keyLightColor;
       uniform vec3 waterDeep;
@@ -382,11 +388,11 @@ function createAssetOnlyTerrainMaterial() {
       varying float vShadeBias;
 
       void main() {
-        vec3 fieldTex = texture2D(fieldMap, vUv * 5.6).rgb * vec3(0.62, 0.78, 0.58);
-        vec3 reliefTex = texture2D(reliefMap, vUv * 4.1).rgb * vec3(0.74, 0.72, 0.65);
-        vec3 pathRaw = texture2D(pathMap, vUv * 4.6).rgb;
+        vec3 fieldTex = texture2D(fieldMap, vUv * 5.6 * textureScale).rgb * vec3(0.62, 0.78, 0.58);
+        vec3 reliefTex = texture2D(reliefMap, vUv * 4.1 * textureScale).rgb * vec3(0.74, 0.72, 0.65);
+        vec3 pathRaw = texture2D(pathMap, vUv * 4.6 * textureScale).rgb;
         vec3 pathTex = mix(vec3(0.50, 0.38, 0.24), pathRaw * vec3(0.92, 0.80, 0.62) + vec3(0.14, 0.11, 0.07), 0.62);
-        vec3 waterTex = texture2D(waterMap, vUv * 4.2).rgb;
+        vec3 waterTex = texture2D(waterMap, vUv * 4.2 * textureScale).rgb;
         float relief = smoothstep(0.12, 0.72, vReliefMask) * (1.0 - vPathMask * 0.5);
         float path = smoothstep(0.08, 0.72, vPathMask);
         float water = smoothstep(0.44, 0.92, vWaterMask);
@@ -478,7 +484,7 @@ function sampleAssetOnlyTerrainMasks(position: THREE.Vector3) {
 function createAssetOnlyTerrainShell() {
   const material = createAssetOnlyTerrainMaterial();
   const segments = 300;
-  const size = worldSize * 1.04;
+  const size = assetOnlyTerrainVisualSize;
   const half = size / 2;
   const group = new THREE.Group();
   group.name = "asset-only-terrain-shell";
@@ -538,6 +544,8 @@ function createAssetOnlyTerrainShell() {
   mesh.renderOrder = -4;
   mesh.userData.assetOnlyTerrainRole = "field/path/water/relief";
   mesh.userData.assetOnlyTerrainVertexCount = positions.length / 3;
+  mesh.userData.assetOnlyTerrainVisualSize = Number(size.toFixed(2));
+  mesh.userData.assetOnlyTerrainVisualScale = assetOnlyTerrainVisualScale;
   group.add(mesh);
 
   const materialRoles: AssetOnlyTerrainKind[] = ["field", "path", "water", "relief"];
@@ -547,6 +555,8 @@ function createAssetOnlyTerrainShell() {
     maxHeight: Number(maxHeight.toFixed(3)),
     gradeMax: Number(gradeMax.toFixed(3)),
     vertexCount: positions.length / 3,
+    visualSize: Number(size.toFixed(2)),
+    visualScale: assetOnlyTerrainVisualScale,
     materialRoles,
     textureUrls: [assetOnlyGroundTexturePath, assetOnlyPathTexturePath, assetOnlyReliefTexturePath, assetOnlyWaterTexturePath]
   };
@@ -1065,6 +1075,8 @@ type QaSnapshot = {
     terrainMinHeight: number;
     terrainMaxHeight: number;
     terrainVertexCount: number;
+    terrainVisualSize: number;
+    terrainVisualScale: number;
     terrainGradeMax: number;
     terrainFeatureCount: number;
     terrainFeaturesLinkedToRoutesOrZones: number;
@@ -1253,6 +1265,8 @@ class StudioGame {
   private terrainMinHeight = 0;
   private terrainMaxHeight = 0;
   private terrainVertexCount = 0;
+  private terrainVisualSize = 0;
+  private terrainVisualScale = 0;
   private terrainGradeMax = 0;
   private terrainFeatureCount = 0;
   private mapTextureRoles: string[] = [];
@@ -1516,6 +1530,8 @@ class StudioGame {
       terrainMinHeight: 0,
       terrainMaxHeight: 0,
       terrainVertexCount: 0,
+      terrainVisualSize: 0,
+      terrainVisualScale: 0,
       terrainGradeMax: 0,
       terrainFeatureCount: 0,
       terrainFeaturesLinkedToRoutesOrZones: 0,
@@ -2178,6 +2194,8 @@ class StudioGame {
     this.terrainMinHeight = metrics.minHeight;
     this.terrainMaxHeight = metrics.maxHeight;
     this.terrainVertexCount = metrics.vertexCount;
+    this.terrainVisualSize = metrics.visualSize;
+    this.terrainVisualScale = metrics.visualScale;
     this.terrainGradeMax = metrics.gradeMax;
     this.terrainFeatureCount = terrainConfig.featureCount;
     this.mapTextureRoles = metrics.materialRoles;
@@ -4663,6 +4681,8 @@ class StudioGame {
         terrainMinHeight: this.terrainMinHeight,
         terrainMaxHeight: this.terrainMaxHeight,
         terrainVertexCount: this.terrainVertexCount,
+        terrainVisualSize: this.terrainVisualSize,
+        terrainVisualScale: this.terrainVisualScale,
         terrainGradeMax: this.terrainGradeMax,
         terrainFeatureCount: this.terrainFeatureCount,
         terrainFeaturesLinkedToRoutesOrZones: terrainConfig.linkedFeatureCount,

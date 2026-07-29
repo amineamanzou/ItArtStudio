@@ -753,6 +753,71 @@ async function sampleCanvas(page) {
   });
 }
 
+async function sampleCanvasVoidEdges(page) {
+  return page.evaluate(() => {
+    const canvas = document.querySelector("#studio-map-canvas");
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      return { ok: false, reason: "missing-canvas" };
+    }
+
+    const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
+    if (!gl) {
+      return { ok: false, reason: "missing-webgl-context" };
+    }
+
+    const width = gl.drawingBufferWidth;
+    const height = gl.drawingBufferHeight;
+    const pixels = new Uint8Array(4);
+    const samplesPerSide = 48;
+    const inset = Math.max(4, Math.floor(Math.min(width, height) * 0.018));
+    const sides = {
+      top: { voidSamples: 0, samples: 0 },
+      right: { voidSamples: 0, samples: 0 },
+      bottom: { voidSamples: 0, samples: 0 },
+      left: { voidSamples: 0, samples: 0 }
+    };
+    const isSceneVoid = (r, g, b) => r <= 18 && g <= 28 && b <= 26;
+    const read = (side, x, y) => {
+      gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+      sides[side].samples += 1;
+      if (isSceneVoid(pixels[0], pixels[1], pixels[2])) {
+        sides[side].voidSamples += 1;
+      }
+    };
+
+    for (let index = 0; index < samplesPerSide; index += 1) {
+      const t = samplesPerSide === 1 ? 0.5 : index / (samplesPerSide - 1);
+      const x = Math.floor(inset + t * Math.max(1, width - inset * 2));
+      const y = Math.floor(inset + t * Math.max(1, height - inset * 2));
+      read("top", x, height - inset);
+      read("bottom", x, inset);
+      read("left", inset, y);
+      read("right", width - inset, y);
+    }
+
+    const ratios = Object.fromEntries(
+      Object.entries(sides).map(([side, value]) => [
+        side,
+        Number((value.samples > 0 ? value.voidSamples / value.samples : 1).toFixed(3))
+      ])
+    );
+    const maxSideRatio = Number(Math.max(...Object.values(ratios)).toFixed(3));
+    const totalVoidSamples = Object.values(sides).reduce((sum, value) => sum + value.voidSamples, 0);
+    const totalSamples = Object.values(sides).reduce((sum, value) => sum + value.samples, 0);
+
+    return {
+      ok: true,
+      width,
+      height,
+      inset,
+      samplesPerSide,
+      ratios,
+      maxSideRatio,
+      totalVoidRatio: Number((totalSamples > 0 ? totalVoidSamples / totalSamples : 1).toFixed(3))
+    };
+  });
+}
+
 function assertCanvasDetail(label, canvas) {
   if (!canvas?.ok) {
     scenarioFail(`canvas:${label}`, "Canvas is blank, missing, or too dark for this QA capture.", canvas);
@@ -3704,6 +3769,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const requiredTerrainMaterialRoles = manifestPublicTerrainCore.requiredTerrainMaterialRoles ?? [];
     const requiredTerrainTextureFiles = manifestPublicTerrainCore.requiredTerrainTextureFiles ?? [];
     const requiredMaterialStyleRoles = manifestPublicTerrainCore.requiredMaterialStyleRoles ?? [];
+    const minimumTerrainVisualSize = manifestPublicTerrainCore.minimumTerrainVisualSize ?? 0;
     const maximumIntroAssetOcclusions = manifestPublicTerrainCore.maximumIntroAssetOcclusions ?? 0;
     const maximumIntroAssetOcclusionRatio = manifestPublicTerrainCore.maximumIntroAssetOcclusionRatio ?? 0.06;
     const introAssetClearancePx = manifestPublicTerrainCore.introAssetClearancePx ?? 0;
@@ -3979,6 +4045,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
       (snapshot?.world?.terrainLayers ?? 0) >= (manifestPublicTerrainCore.minimumTerrainLayers ?? 0) &&
       (snapshot?.world?.terrainHeightRange ?? 0) >= (manifestPublicTerrainCore.minimumTerrainHeightRange ?? 0) &&
       (snapshot?.world?.terrainVertexCount ?? 0) >= (manifestPublicTerrainCore.minimumTerrainVertexCount ?? 0) &&
+      (snapshot?.world?.terrainVisualSize ?? 0) >= minimumTerrainVisualSize &&
       missingTerrainMaterialRoles.length === 0 &&
       missingTerrainTextureFiles.length === 0;
     const terrainCoreOk =
@@ -4049,6 +4116,9 @@ async function checkPublicAssetOnlyPlayer(browser) {
           terrainLayers: snapshot?.world?.terrainLayers,
           terrainHeightRange: snapshot?.world?.terrainHeightRange,
           terrainVertexCount: snapshot?.world?.terrainVertexCount,
+          terrainVisualSize: snapshot?.world?.terrainVisualSize,
+          terrainVisualScale: snapshot?.world?.terrainVisualScale,
+          minimumTerrainVisualSize,
           mapTextureRoles: snapshot?.world?.mapTextureRoles,
           mapTextureUrls: snapshot?.world?.mapTextureUrls
         },
@@ -4128,6 +4198,7 @@ async function checkPublicAssetOnlyOuterBands(browser) {
     const bandContracts = manifestPublicTerrainCore.requiredOuterBandProofs ?? [];
     const minimumClippedArea = manifestPublicTerrainCore.minimumOuterBandClippedArea ?? 160;
     const minimumVisibleRatio = manifestPublicTerrainCore.minimumOuterBandVisibleRatio ?? 0.004;
+    const maximumCanvasEdgeVoidRatio = manifestPublicTerrainCore.maximumCanvasEdgeVoidRatio ?? 0.04;
     const bandProofs = [];
 
     for (const band of bandContracts) {
@@ -4143,6 +4214,7 @@ async function checkPublicAssetOnlyOuterBands(browser) {
         skipCanvasDetail: true,
         skipPremiumWorldDistribution: true
       });
+      const canvasEdgeVoid = await sampleCanvasVoidEdges(page);
       const snapshot = proof.snapshot ?? (await getQaSnapshot(page, { refresh: true }));
       const visiblePlacements = (band.requiredPlacementIds ?? [])
         .map((placementId) => {
@@ -4165,6 +4237,8 @@ async function checkPublicAssetOnlyOuterBands(browser) {
       const ok =
         hookState.hasSetPlayer === true &&
         proof.canvas.ok &&
+        canvasEdgeVoid.ok === true &&
+        canvasEdgeVoid.maxSideRatio <= maximumCanvasEdgeVoidRatio &&
         cleanRuntime &&
         playerDistance < 1.25 &&
         visiblePlacements.length >= (band.minimumVisiblePlacements ?? 1);
@@ -4180,6 +4254,8 @@ async function checkPublicAssetOnlyOuterBands(browser) {
         minimumVisibleRatio,
         visiblePlacements,
         cleanRuntime,
+        canvasEdgeVoid,
+        maximumCanvasEdgeVoidRatio,
         canvas: proof.canvas,
         capture: proof.relativePath,
         ok
@@ -4206,6 +4282,7 @@ async function checkPublicAssetOnlyOuterBands(browser) {
           target: band.target,
           playerDistance: band.playerDistance,
           visiblePlacements: band.visiblePlacements.length,
+          maxCanvasEdgeVoidRatio: band.canvasEdgeVoid?.maxSideRatio,
           capture: band.capture
         }))
       });
