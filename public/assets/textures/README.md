@@ -13,6 +13,8 @@ unrelated libraries.
 enlarged map:
 
 - `road`: dark asphalt/hard-surface route material;
+- `path`: downloaded natural grass-path material for the public asset-only
+  terrain route mask;
 - `field`: authored green ground grain for vegetation districts;
 - `water`: stylized water edge/foam material;
 - `relief`: contour/rock material for cliffs and height changes.

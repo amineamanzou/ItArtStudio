@@ -66,9 +66,9 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v117",
+    "id": "public-terrain-core-v118",
     "phase": "public-terrain-first-runtime",
-    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor field/path/relief/water-edge textures and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles or hero/factory clutter.",
+    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor field/grass-path/relief/water-edge textures and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
     "requiredPlayerAssetId": "accepted-car-vehicle-core",
     "requiredPlayerFile": "sedan-sports.glb",
@@ -169,7 +169,7 @@
     "requiredTerrainMaterialRoles": ["field", "path", "relief", "water"],
     "requiredTerrainTextureFiles": [
       "assets/textures/vendor/polyhaven/forrest_ground_01/forrest_ground_01_diff_1k.jpg",
-      "assets/textures/vendor/polyhaven/stony_dirt_path/stony_dirt_path_diff_1k.jpg",
+      "assets/textures/vendor/polyhaven/grass_path_2/grass_path_2_diff_1k.jpg",
       "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg",
       "assets/textures/vendor/polyhaven/low_tide_rocks/low_tide_rocks_diff_1k.jpg"
     ],
@@ -180,7 +180,7 @@
     "maximumHeroLocationPlacements": 0,
     "allowedGeneratedSubstrate": "single terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief/water-edge material; visible public decor must come from downloaded vendor GLB/glTF.",
     "fallback": "If a terrain GLB fails, omit that placement and keep the public world sparse rather than replacing it with a generated rectangle, cone, halo, plate or abstract primitive.",
-    "nextAction": "Review the wider public terrain screenshots for asset readability, then source stronger terrain packs for roads, shoreline and authored relief before densifying Cloud Dock, Design Atelier or Observability Tower."
+    "nextAction": "Review the wider public terrain screenshots for asset readability, then source stronger shoreline and authored relief packs before densifying Cloud Dock, Design Atelier or Observability Tower."
   },
   "publicTerrainMaterialCore": {
     "id": "polyhaven-terrain-material-v112",
@@ -544,7 +544,7 @@
   "assets": [
     {
       "id": "accepted-car-vehicle-core",
-      "status": "integrated",
+      "status": "accepted",
       "sourceId": "kenney-car-kit",
       "kind": "model-collection",
       "target": "player",
@@ -1115,6 +1115,30 @@
       "qaProof": "qa/artifacts/2026-07-29T13-24-58-952Z/report.md#public-terrain-core",
       "proceduralFallback": "If this downloaded texture fails to load, public terrain keeps the forest-ground material and omits synthetic route markings rather than drawing generated plates.",
       "nextAction": "Source complementary downloaded path-edge and mud textures so future map expansion can vary route shoulders without reintroducing placed path tiles."
+    },
+    {
+      "id": "accepted-polyhaven-grass-path-2-texture",
+      "status": "integrated",
+      "sourceId": "polyhaven",
+      "kind": "texture-set",
+      "target": "map",
+      "terrainRole": "path",
+      "narrativeRole": "Downloaded CC0 grass path diffuse texture used as the public path material so routes read as authored terrain, not black skid marks or modular ground tiles.",
+      "preferredFormat": "JPG",
+      "assetPageUrl": "https://polyhaven.com/a/grass_path_2",
+      "downloadUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grass_path_2/grass_path_2_diff_1k.jpg",
+      "licenseUrl": "https://polyhaven.com/license",
+      "retrievedAt": "2026-07-29",
+      "sha256": "7f30b163739435c11f500f3818c7bb4922bab5f2734cc9ba6dd36817f0c9a8ab",
+      "localPath": "public/assets/textures/vendor/polyhaven/grass_path_2",
+      "publicPath": "assets/textures/vendor/polyhaven/grass_path_2",
+      "fileKb": 699.6,
+      "selectedFiles": ["grass_path_2_diff_1k.jpg"],
+      "budget": { "maxKb": 900, "targetResolution": 1024 },
+      "styleFit": "high",
+      "qaProof": "qa/artifacts/2026-07-29T14-26-35-418Z/report.md#public-terrain-core",
+      "proceduralFallback": "If this downloaded texture fails to load, public terrain keeps the forest-ground material and no generated road plate, tire trace or path tile is drawn.",
+      "nextAction": "Use QA screenshots to decide whether the stony path texture should remain as an opt-in secondary material or be demoted from public terrain."
     },
     {
       "id": "accepted-polyhaven-low-tide-rocks-water-texture",

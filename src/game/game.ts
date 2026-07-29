@@ -47,7 +47,7 @@ const externalAssetRuntimeMode = !externalAssetDisabledMode;
 const assetOnlyPlayerPath = "assets/models/vendor/kenney/car-kit/vehicles/sedan-sports.glb";
 const assetOnlyGroundTexturePath = "assets/textures/vendor/polyhaven/forrest_ground_01/forrest_ground_01_diff_1k.jpg";
 const assetOnlyReliefTexturePath = "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg";
-const assetOnlyPathTexturePath = "assets/textures/vendor/polyhaven/stony_dirt_path/stony_dirt_path_diff_1k.jpg";
+const assetOnlyPathTexturePath = "assets/textures/vendor/polyhaven/grass_path_2/grass_path_2_diff_1k.jpg";
 const assetOnlyWaterTexturePath = "assets/textures/vendor/polyhaven/low_tide_rocks/low_tide_rocks_diff_1k.jpg";
 const terrainZoneById = new Map(zones.map((zone) => [zone.id, zone]));
 const playerMaxForwardSpeed = qaMode ? 12.8 : 10.5;
