@@ -376,6 +376,18 @@
       "notes": "Secondary low-poly model library; use only after style fit review because packs may diverge from Kenney's shape language."
     },
     {
+      "id": "kenney-car-kit",
+      "name": "Kenney Car Kit",
+      "kind": "model-pack",
+      "sourceUrl": "https://kenney.nl/assets/car-kit",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "commercialUse": true,
+      "attributionRequired": false,
+      "formats": ["GLB", "glTF", "OBJ", "FBX"],
+      "notes": "CC0 vehicle pack used to replace the temporary public player placeholder with an actual car asset."
+    },
+    {
       "id": "khronos-gltf-sample-assets",
       "name": "Khronos glTF Sample Assets",
       "kind": "pipeline-reference",
@@ -389,6 +401,32 @@
     }
   ],
   "assets": [
+    {
+      "id": "accepted-car-vehicle-core",
+      "status": "accepted",
+      "sourceId": "kenney-car-kit",
+      "kind": "model-collection",
+      "target": "player",
+      "terrainRole": "vehicle",
+      "narrativeRole": "Accepted CC0 car vocabulary for the public player avatar so exploration is represented by a real vehicle rather than a bridge or generated primitive.",
+      "preferredFormat": "GLB",
+      "localPath": "public/assets/models/vendor/kenney/car-kit/vehicles",
+      "publicPath": "assets/models/vendor/kenney/car-kit/vehicles",
+      "fileKb": 765.6,
+      "triangles": 8824,
+      "selectedFiles": [
+        "hatchback-sports.glb",
+        "race.glb",
+        "sedan-sports.glb",
+        "sedan.glb",
+        "wheel-default.glb",
+        "wheel-racing.glb"
+      ],
+      "budget": { "maxKb": 900, "targetTriangles": 9500 },
+      "styleFit": "high",
+      "proceduralFallback": "src/game/game.ts keeps the legacy QA rover only behind qa or legacy modes; public runtime must use the downloaded car GLB.",
+      "nextAction": "Use sedan-sports.glb as the public player, then evaluate separated wheels only after terrain readability is validated."
+    },
     {
       "id": "terrain-road-modular-primary",
       "status": "candidate",

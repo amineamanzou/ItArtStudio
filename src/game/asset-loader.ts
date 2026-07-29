@@ -301,6 +301,10 @@ export async function createExternalAssetCoreLayer() {
   return createExternalAssetPlacementLayer("core", createCorePlacementSpecs());
 }
 
+export async function createExternalAssetTerrainCoreLayer() {
+  return createExternalAssetPlacementLayer("core", createTerrainCorePlacementSpecs());
+}
+
 export async function createExternalAssetMapLayer() {
   return createExternalAssetPlacementLayer("map", createMapPlacementSpecs());
 }
@@ -648,6 +652,42 @@ function createCorePlacementSpecs(): MapPlacementSpec[] {
           }
         : spec
     );
+}
+
+function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
+  const terrainPlacementIds = new Set([
+    "route:studio-crossing-road-proof",
+    "water:studio-crossing-proof",
+    "relief:studio-crossing-proof",
+    "relief:studio-spine",
+    "vegetation:studio-crossing-proof",
+    "vegetation:studio-oak",
+    "vegetation:studio-grass"
+  ]);
+
+  const curatedTerrain = createMapPlacementSpecs()
+    .filter((spec) => terrainPlacementIds.has(spec.id))
+    .map((spec) => ({
+      ...spec,
+      curation: spec.curation === "context" ? "support" : spec.curation,
+      promotionCandidate: true
+    }));
+
+  return [
+    ...curatedTerrain,
+    createPlacement("terrain-core:road-entry", "terrain-core:entry-road", "route", "primary", true, "road", "road-straight.glb", [3.8, 1.3], 1.5, Math.PI * 0.5),
+    createPlacement("terrain-core:road-bend", "terrain-core:entry-road", "route", "support", true, "road", "road-curve.glb", [6.2, 1.8], 1.36, Math.PI * 0.5),
+    createPlacement("terrain-core:water-channel", "terrain-core:central-water", "water", "primary", true, "water", "ground_riverBend.glb", [-4.7, 2.8], 1.64, -0.28),
+    createPlacement("terrain-core:water-rocks", "terrain-core:central-water", "water", "support", true, "water", "ground_riverRocks.glb", [-6.0, 5.2], 1.24, 0.18),
+    createPlacement("terrain-core:bridge-crossing", "terrain-core:central-crossing", "route", "primary", true, "bridge", "bridge_wood.glb", [-2.5, 3.6], 1.52, Math.PI * 0.42, {
+      assetId: "accepted-nature-bridge-core"
+    }),
+    createPlacement("terrain-core:relief-slope", "terrain-core:central-relief", "relief", "primary", true, "relief", "cliff_blockSlope_rock.glb", [4.6, 6.4], 1.38, -0.18),
+    createPlacement("terrain-core:relief-rock", "terrain-core:central-relief", "relief", "support", true, "relief", "rock_largeA.glb", [1.8, 7.4], 1.12, 0.32),
+    createPlacement("terrain-core:grass-left", "terrain-core:central-field", "vegetation", "support", true, "vegetation", "grass_large.glb", [-5.6, 8.0], 1.08, 0.1),
+    createPlacement("terrain-core:tree-left", "terrain-core:central-field", "vegetation", "primary", true, "vegetation", "tree_default.glb", [-7.2, 7.0], 1.44, -0.16),
+    createPlacement("terrain-core:tree-right", "terrain-core:central-field", "vegetation", "support", true, "vegetation", "tree_oak.glb", [7.1, 5.5], 1.36, 0.22)
+  ];
 }
 
 function createRoutePlacementSpecs(): MapPlacementSpec[] {

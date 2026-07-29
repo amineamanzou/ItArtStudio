@@ -3,6 +3,12 @@
 Statut: fige le 2026-07-29. Ce document devient la source de verite pour les
 prochaines boucles agentic du site IT Art Studio.
 
+Mise a jour V11 du 2026-07-29: l'objectif est recentre sur une boucle
+terrain-first stricte. Le pont utilise temporairement comme joueur public doit
+etre remplace par une vraie voiture GLB/glTF telechargee et libre de droits,
+puis le travail doit porter sur la map elle-meme avant tout set dressing des
+bases.
+
 ## Objectif Canonique
 
 Faire de IT Art Studio un mini-monde web jouable de qualite vitrine premium,
@@ -75,42 +81,69 @@ explorer la carte, mais le coeur de la prochaine phase est la qualite du monde.
 
 ## Objectif Pret A Lancer
 
-Objectif a utiliser comme brief de prochaine loop:
+Objectif a utiliser comme brief de prochaine loop V11:
 
-> Lancer une boucle agentic asset-first pour amener IT Art Studio vers une
-> qualite de mini-monde web comparable a une vitrine ludique premium inspiree
-> par Bruno Simon. Priorite absolue: constituer et valider une bibliotheque
-> GLB/glTF + textures web-ready avec licences, poids, roles narratifs et
-> fallbacks; puis agrandir une map plus respirante en posant d'abord routes,
-> eau, relief, verdure et transitions de terrain; ensuite composer trois hero
-> locations reconnaissables sans texte - `Cloud Dock`, `Design Atelier`,
-> `Observability Tower` - avec des assets 3D concrets et peu de bruit; enfin
-> faire passer une QA clavier/desktop/mobile qui capture les lieux, verifie les
-> budgets renderer, detecte scintillement/z-fighting/assets casses et refuse
-> toute iteration qui remplit la scene sans la rendre plus lisible.
+> Lancer une boucle agentic terrain-first pour rapprocher IT Art Studio d'un
+> mini-monde web coherent et premium. La premiere correction obligatoire est de
+> remplacer le joueur public temporaire, actuellement symbolise par un asset de
+> pont/structure, par une vraie voiture GLB/glTF telechargee et libre de
+> droits. Ensuite, travailler la carte avant les bases: integrer des textures et
+> assets de terrain libres de droits, poser un sol lisible, des zones d'herbe,
+> de terre, d'eau, de relief, de routes, de chemins, de ponts et de rails, puis
+> verifier par QA que la map se comprend sans decor narratif supplementaire.
+> Les bases thematiques `Cloud Dock`, `Design Atelier` et `Observability Tower`
+> ne doivent etre densifiees qu'apres cette preuve terrain. Aucun objet
+> procedural, aucune forme generee localement, aucun remplissage abstrait ne
+> doit revenir dans le rendu public.
 
 Definition courte:
 
-> Assets et textures d'abord, map agrandie ensuite, trois lieux premium apres,
-> QA visuelle a chaque boucle. Le gameplay vehicule reste secondaire tant que le
-> monde ne porte pas encore l'effet waou.
+> Vraie voiture d'abord, terrain/map ensuite, bases thematiques apres. Le rendu
+> public doit rester asset-only: fichiers telecharges, licences claires, aucune
+> primitive generee comme decor ou avatar.
+
+## Objectif Terrain-First V11
+
+La prochaine boucle doit produire une map credible avant de chercher l'effet
+waou des bases.
+
+Priorites V11:
+
+1. Remplacer le joueur public temporaire par un vrai asset voiture.
+2. Sourcer et documenter les packs terrain utiles: routes, sol, terre, herbe,
+   eau, rochers, falaises, ponts, chemins et rails.
+3. Construire une premiere carte terrain-only, volontairement peu dense, ou les
+   zones d'eau, relief, herbe, terre, route et passage sont deja lisibles.
+4. Prouver le terrain par screenshots desktop/mobile et route clavier avant
+   d'ajouter les decors de base.
+5. Densifier ensuite `Cloud Dock`, `Design Atelier` et `Observability Tower`
+   avec des assets thematiques telecharges, jamais avec des formes generees.
+
+Le resultat attendu de cette boucle n'est pas encore une base Cloud
+spectaculaire: c'est une carte qui ressemble enfin a un lieu traversable. L'eau
+doit ressembler a de l'eau, le relief a du relief, les routes a des routes, les
+ponts a des ponts et le joueur a une voiture.
 
 ## Plan Fige Et Non Negociable
 
 Le plan de production est maintenant verrouille dans cet ordre:
 
-1. Collecter et curer un maximum d'assets et textures accelerateurs.
-2. Stabiliser le pipeline GLB/glTF et textures.
-3. Agrandir une map vide mais coherente, deja pensee pour les routes, l'eau,
+1. Remplacer le joueur public temporaire par un vrai asset voiture libre de
+   droits.
+2. Collecter et curer les assets/textures terrain accelerateurs.
+3. Stabiliser le pipeline GLB/glTF et textures.
+4. Agrandir une map vide mais coherente, deja pensee pour les routes, l'eau,
    le relief, la vegetation et les futures compositions.
-4. Construire trois hero locations premium avec la bibliotheque d'assets.
-5. Reduire le bruit procedural et les doublons visuels.
-6. Iterer en boucle QA jusqu'a obtenir des captures comparables a un livrable
+5. Valider la map terrain-only par QA visuelle avant de poser les bases.
+6. Construire trois hero locations premium avec la bibliotheque d'assets.
+7. Reduire le bruit procedural et les doublons visuels.
+8. Iterer en boucle QA jusqu'a obtenir des captures comparables a un livrable
    vitrine premium.
 
-Ce plan remplace l'approche "agrandir d'abord puis habiller ensuite".
-L'ordre est volontaire: la bibliotheque cree le langage visuel, la map s'etend
-avec ce langage, puis les lieux deviennent memorables.
+Ce plan remplace l'approche "poser des objets puis esperer une map".
+L'ordre est volontaire: la voiture rend l'exploration credible, la bibliotheque
+cree le langage visuel, le terrain pose l'espace, puis les lieux deviennent
+memorables.
 
 Toute boucle qui saute directement a l'agrandissement, au gameplay, a de
 nouveaux effets ou a des proceduraux generiques doit etre consideree hors plan,
@@ -148,13 +181,35 @@ Le prochain jalon doit livrer une preuve concrete de cartographie premium:
   clefs, capture les lieux et refuse les scintillements, assets casses, budgets
   renderer depasses ou lieux illisibles.
 
+## Jalon V11 Attendu
+
+Le prochain jalon doit livrer une preuve terrain-first, pas une nouvelle scene
+chargee.
+
+Livrables attendus:
+
+- une vraie voiture GLB/glTF telechargee, libre de droits, declaree dans le
+  manifest et visible sur GitHub Pages;
+- une selection d'assets terrain telecharges et documentes: route, pont, chemin,
+  rail, eau, sol herbe, sol terre, rocher, falaise, arbre;
+- une map publique asset-only ou ces roles terrain sont visibles sans objets
+  decoratifs generes;
+- une QA qui capture au moins trois vues terrain: zone eau/pont, zone relief,
+  zone route/vegetation;
+- une preuve d'absence de primitives decoratives publiques: pas de rectangles,
+  ronds, cones, halos, plaques, traces de pneus initiales ou objets abstraits;
+- une dette explicite pour les bases: Cloud aura des nuages et serveurs,
+  Design aura atelier/mode, Observability aura tour/ecrans, mais seulement apres
+  validation de la carte terrain.
+
 ## Priorite Figee
 
-- Bibliotheque assets et textures: 30%;
-- Pipeline GLB/glTF: 20%;
-- Agrandissement map et terrain: 25%;
-- Hero locations: 20%;
-- Gameplay vehicule: 5%.
+- Voiture asset-only: 10%;
+- Bibliotheque terrain assets et textures: 25%;
+- Pipeline GLB/glTF + manifest/licences/budgets: 15%;
+- Map terrain-only: 35%;
+- Hero locations thematiques: 10%;
+- Gameplay vehicule hors remplacement asset: 5%.
 
 Le vehicule reste un moyen d'exploration. Il doit etre agreable et credible,
 mais il ne doit pas consommer l'effort principal tant que la carte, les assets,
@@ -180,12 +235,15 @@ supprime.
 
 ## Ordre Operationnel
 
-1. Collecter et curer la bibliotheque d'assets et textures.
-2. Stabiliser le pipeline GLB/glTF.
-3. Agrandir une map vide mais coherente.
-4. Composer les trois hero locations.
-5. Reduire le bruit procedural.
-6. Iterer avec une QA visuelle et performance.
+1. Remplacer l'avatar temporaire par une vraie voiture asset-only.
+2. Collecter et curer la bibliotheque terrain: textures, routes, ponts, rails,
+   eau, relief, vegetation.
+3. Stabiliser le pipeline GLB/glTF et textures.
+4. Construire une map terrain-only coherente.
+5. Capturer et valider la map terrain avant les bases.
+6. Composer les trois hero locations.
+7. Reduire le bruit procedural restant.
+8. Iterer avec une QA visuelle et performance.
 
 ## Definition De Succes Du Prochain Jalon
 
@@ -212,10 +270,14 @@ licence claire, poids maitrise et usage narratif explicite.
 
 Families prioritaires:
 
+- voiture, roues separees si possible, variantes propres et lisibles;
 - routes, chemins, bordures, ponts, plateformes;
-- herbe, sols, rochers, falaises, reliefs, vegetation;
+- rails, traverses, petits ponts ferroviaires ou modules assimilables;
+- herbe, terre, sols, rochers, falaises, reliefs, vegetation;
 - eau, berges, pontons, traverses, materiaux humides;
 - serveurs, racks, cables, antennes, ecrans, arcs electriques;
+- nuages et silhouettes de cloud infrastructure, uniquement via assets
+  telecharges ou textures libres;
 - mannequins, tables de coupe, tissus, portants, outils d'atelier;
 - comptoir postal, boites, lettres, tapis de tri, signal contact.
 
@@ -223,7 +285,23 @@ Sources a privilegier:
 
 - Kenney, Quaternius, Poly Pizza, Poly Haven, Khronos sample assets;
 - assets CC0 ou licences simples;
-- exports Blender uniquement pour les pieces introuvables ou signature.
+- exports Blender uniquement pour convertir, optimiser ou normaliser des assets
+  telecharges; pas pour generer des formes de contenu public.
+
+Sources verifiees pour V11:
+
+- Kenney Car Kit: 45 fichiers, categorie 3D/Transport, licence Creative Commons
+  CC0, prioritaire pour remplacer le joueur temporaire;
+- Kenney Train Kit: 100 fichiers, tags train/tram/trolley/track/railroad/rail,
+  licence Creative Commons CC0, prioritaire pour rails et passages;
+- Kenney Nature Kit: 330 fichiers, tags nature/tree/rock/foliage, licence
+  Creative Commons CC0, prioritaire pour arbres, rochers, eau et relief;
+- Quaternius Ultimate Stylized Nature Pack: 63 modeles, formats FBX/OBJ/Blend/
+  glTF, licence CC0, utile pour completer le terrain stylise;
+- Poly Pizza / Quaternius Cloud: modele low-poly cloud en FBX/glTF sous Public
+  Domain CC0, candidat pour la future base Cloud apres validation terrain;
+- Poly Haven: textures, HDRI et modeles sous CC0, utile pour les textures PBR
+  herbe/terre/roche/eau si elles restent web-ready et budgetees.
 
 Critere d'acceptation:
 
@@ -262,6 +340,9 @@ Baseline actuelle:
 - depuis V10.3, le chemin public sans `?qa` est asset-only strict: pas de
   plaques/halos/routes/props proceduraux visibles, pas de traces au sol
   generees, et un joueur public charge depuis un GLB vendor existant.
+- ce joueur public est temporaire et incorrect narrativement: il est symbolise
+  par une piece de type structure/pont. V11 doit le remplacer par une voiture
+  telechargee et licenciee.
 
 ## Phase 2 - Pipeline GLB/glTF
 
@@ -287,18 +368,24 @@ Exigences:
 La phase texture suit le meme principe: source, licence, chemin public
 GitHub Pages-safe, poids, role terrain, fallback et fichier runtime declare.
 
-## Phase 3 - Map Agrandie
+## Phase 3 - Map Terrain-First
 
-Agrandir la carte apres avoir constitue le vocabulaire visuel, pas avant.
+Construire la carte apres avoir constitue le vocabulaire terrain, et avant de
+densifier les bases.
 
 Principes:
 
 - poser un terrain plus vaste et lisible avec respirations;
 - definir routes, chemins, eau, relief et vegetation comme langage de level
   design;
+- differencier visuellement les sols: herbe, terre, route, eau, roche/relief;
+- travailler les berges, ponts, passages et rails comme preuves de map, pas
+  comme decoration;
 - eviter les murs invisibles: le decor guide, il ne bloque pas gratuitement;
 - construire des silhouettes lointaines et des points de repere;
 - laisser des zones vides assumees pour donner de l'echelle.
+- interdire les primitives decoratives publiques: pas de rectangles, spheres,
+  cones, cylindres, plaques ou halos comme substituts d'assets.
 
 Baseline actuelle:
 
@@ -319,14 +406,19 @@ Baseline actuelle:
 - V10.3 retire le rendu procedural de la page publique par defaut. La prochaine
   boucle doit donc enrichir la carte par collecte de vraies textures et assets,
   pas en reactiver les formes generees.
+- V11 doit traiter la map comme livrable principal: une premiere passe de
+  terrain coherent doit etre validee avant tout ajout de nuages, serveurs,
+  atelier ou tour d'observabilite.
 
 ## Phase 4 - Trois Hero Locations
 
-Composer seulement trois lieux premium au depart, plutot que dix lieux moyens.
+Composer seulement trois lieux premium apres validation du terrain, plutot que
+poser des bases sur une carte encore abstraite.
 
 Hero locations:
 
-- `Cloud Dock`: serveurs, nuages, pontons, cables, arcs electriques;
+- `Cloud Dock`: nuages assets-only, serveurs, pontons, cables, arcs
+  electriques, infrastructure cloud;
 - `Design Atelier`: mannequin, table de coupe, tissus, portants, matieres;
 - `Observability Tower`: tour, antennes, ecrans, traces, faisceaux.
 
@@ -351,6 +443,7 @@ Baseline actuelle:
 
 Definition of done:
 
+- la map terrain-only a ete validee avant la densification du lieu;
 - chaque lieu est reconnaissable sans lire le panneau HTML;
 - chaque lieu a une silhouette forte en vue eloignee;
 - chaque lieu garde un plan clair en vue rapprochee;

@@ -44,7 +44,7 @@ const externalAssetDisabledMode = requestedAssetMode === "off";
 const externalAssetMapMode = requestedAssetMode === "map";
 const externalAssetCoreMode = !externalAssetDisabledMode && !externalAssetPreviewMode && !externalAssetMapMode;
 const externalAssetRuntimeMode = !externalAssetDisabledMode;
-const assetOnlyPlayerPath = "assets/models/vendor/kenney/factory-kit/industrial/machine-fortified.glb";
+const assetOnlyPlayerPath = "assets/models/vendor/kenney/car-kit/vehicles/sedan-sports.glb";
 const playerMaxForwardSpeed = qaMode ? 12.8 : 10.5;
 const playerMaxReverseSpeed = qaMode ? 6.4 : 4.2;
 const playerAcceleration = qaMode ? 38 : 24;
@@ -1746,7 +1746,9 @@ class StudioGame {
           ? loader.createExternalAssetMapLayer()
           : externalAssetPreviewMode
             ? loader.createExternalAssetPreview()
-            : loader.createExternalAssetCoreLayer()
+            : assetOnlyWorld
+              ? loader.createExternalAssetTerrainCoreLayer()
+              : loader.createExternalAssetCoreLayer()
       )
       .then(({ group, telemetry }) => {
         this.externalAssetPreviewGroup = group;
@@ -2553,7 +2555,7 @@ class StudioGame {
       `${base}${assetOnlyPlayerPath}`,
       (gltf) => {
         const visual = gltf.scene;
-        visual.name = "vendor-player:machine-fortified";
+        visual.name = "vendor-player:sedan-sports";
         const box = new THREE.Box3().setFromObject(visual);
         const center = new THREE.Vector3();
         const size = new THREE.Vector3();
@@ -2562,7 +2564,7 @@ class StudioGame {
         const maxSize = Math.max(size.x, size.y, size.z, 0.001);
         visual.position.sub(center);
         visual.position.y += 0.5;
-        visual.scale.setScalar(1.18 / maxSize);
+        visual.scale.setScalar(1.42 / maxSize);
         visual.traverse((child) => {
           child.userData.playerPart = true;
           if (child instanceof THREE.Mesh) {
