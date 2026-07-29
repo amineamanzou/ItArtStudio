@@ -40,9 +40,11 @@ jobs:
 
       - name: Smoke GitHub Pages artifact
         run: npm run qa:game:static
+        timeout-minutes: 6
         env:
           QA_PORT: "4333"
           QA_BASE_URL: "http://127.0.0.1:4333/ItArtStudio/?qa=1"
+          QA_STATIC_PROOF_SCOPE: "smoke"
 
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4

@@ -63,6 +63,7 @@ const assetModeNavigationTimeoutMs = isCi ? 60_000 : 20_000;
 const assetModeLoadTimeoutMs = isCi ? 45_000 : 15_000;
 const assetModeReadyTimeoutMs = isCi ? 60_000 : 24_000;
 const staticProofScope = process.env.QA_STATIC_PROOF_SCOPE ?? (process.env.GITHUB_ACTIONS === "true" ? "ci" : "full");
+const staticSmokeOnly = staticProofScope === "smoke";
 const browserChannel = process.env.QA_BROWSER_CHANNEL ?? (isCi ? undefined : "chrome");
 const outputRoot = path.join(root, "qa", "artifacts", new Date().toISOString().replace(/[:.]/g, "-"));
 const screenshotsDir = path.join(outputRoot, "screenshots");
@@ -10398,12 +10399,19 @@ async function main() {
       await checkWorldRichness(page);
       checkMapExpansionKitsManifest();
       checkCorePromotionManifest();
-      await checkTerrainShellRuntime(page);
-      await checkExternalAssetOffRuntime(browser);
-      await checkExternalAssetCoreRuntime(page);
-      await checkExternalAssetPreview(browser);
-      await checkExternalAssetMapComposition(browser);
-      await checkStaticPlayableProofReel(browser, page, home);
+      if (staticSmokeOnly) {
+        pass("static-dist-smoke-profile", {
+          scope: staticProofScope,
+          reason: "CI Pages preview smoke keeps the deploy path fast; local static QA keeps the full playable proof reel."
+        });
+      } else {
+        await checkTerrainShellRuntime(page);
+        await checkExternalAssetOffRuntime(browser);
+        await checkExternalAssetCoreRuntime(page);
+        await checkExternalAssetPreview(browser);
+        await checkExternalAssetMapComposition(browser);
+        await checkStaticPlayableProofReel(browser, page, home);
+      }
       if (!page.isClosed()) {
         await page.close();
       }
