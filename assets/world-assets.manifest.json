@@ -17,23 +17,23 @@
     "cloud-dock": {
       "visualSignature": "Infra dock: server-like machine blocks, service deck, cable trunks, screen panels, electric masts and a cloud circuit bridge around the harbor edge.",
       "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-factory-industrial-core", "accepted-city-route-edge-core", "accepted-city-road-core"],
-      "requiredVisualRoles": ["server-cloud-node", "cloud-circuit-bridge", "rack-core", "cable-trunk", "service-deck", "ops-screen", "electric-mast", "platform-span"],
-      "minRuntimePlacements": 9,
-      "nextCustomAsset": "Upgrade the generated node into a richer Blender-authored server rack with cooling fins, visible cabling and cloud-energy anchors."
+      "requiredVisualRoles": ["server-cloud-node", "cloud-circuit-bridge", "cloud-energy-anchor", "rack-core", "cable-trunk", "service-deck", "ops-screen", "electric-mast", "platform-span"],
+      "minRuntimePlacements": 10,
+      "nextCustomAsset": "Upgrade the generated node and energy anchor into a richer Blender-authored server rack with cooling fins, visible cabling and cloud-energy anchors."
     },
     "design-atelier": {
       "visualSignature": "Fashion atelier: mannequin, drape frame, cutting table, worktop, pattern corner, swatch crates, reference screen and softer art markers.",
       "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-factory-industrial-core", "accepted-nature-bridge-core", "accepted-nature-vegetation-core"],
-      "requiredVisualRoles": ["mannequin-fabric-rack", "atelier-drape-frame", "cutting-table", "worktop", "pattern-corner", "swatch-crate", "reference-screen", "swatch-marker"],
-      "minRuntimePlacements": 8,
-      "nextCustomAsset": "Upgrade the generated mannequin into a more premium atelier asset with garment drape, pins, pattern curves and a fabric rail."
+      "requiredVisualRoles": ["mannequin-fabric-rack", "atelier-drape-frame", "atelier-pattern-wall", "cutting-table", "worktop", "pattern-corner", "swatch-crate", "reference-screen", "swatch-marker"],
+      "minRuntimePlacements": 9,
+      "nextCustomAsset": "Upgrade the generated mannequin and pattern wall into a more premium atelier asset with garment drape, pins, pattern curves and a fabric rail."
     },
     "observability-tower": {
       "visualSignature": "Telemetry tower: high pylon, radar ring, screen array, screen wall, trace panel, data pipe and service platform.",
       "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-factory-industrial-core", "accepted-city-route-edge-core", "accepted-city-road-core"],
-      "requiredVisualRoles": ["telemetry-radar-mast", "telemetry-screen-array", "signal-pylon", "radar-ring", "screen-wall", "trace-panel", "data-pipe", "service-platform"],
-      "minRuntimePlacements": 9,
-      "nextCustomAsset": "Upgrade the generated mast into a taller Blender-authored observability beacon with animated scan arcs and trace-beam anchors."
+      "requiredVisualRoles": ["telemetry-radar-mast", "telemetry-screen-array", "telemetry-trace-beacon", "signal-pylon", "radar-ring", "screen-wall", "trace-panel", "data-pipe", "service-platform"],
+      "minRuntimePlacements": 10,
+      "nextCustomAsset": "Upgrade the generated mast and trace beacon into a taller Blender-authored observability beacon with animated scan arcs and trace-beam anchors."
     }
   },
   "terrainRoles": ["road", "water", "relief", "vegetation", "route-edge", "bridge"],
@@ -608,17 +608,20 @@
       "preferredFormat": "GLB",
       "localPath": "public/assets/models/local/itart-signature-kit/hero",
       "publicPath": "assets/models/local/itart-signature-kit/hero",
-      "fileKb": 317.2,
-      "triangles": 7592,
+      "fileKb": 574.3,
+      "triangles": 14412,
       "selectedFiles": [
         "atelier-drape-frame.glb",
         "atelier-mannequin-rack.glb",
+        "atelier-pattern-wall.glb",
         "cloud-circuit-bridge.glb",
+        "cloud-energy-anchor.glb",
         "server-cloud-node.glb",
         "telemetry-screen-array.glb",
+        "telemetry-trace-beacon.glb",
         "telemetry-radar-mast.glb"
       ],
-      "budget": { "maxKb": 380, "targetTriangles": 8200 },
+      "budget": { "maxKb": 650, "targetTriangles": 15000 },
       "styleFit": "high",
       "proceduralFallback": "src/game/world-scenery.ts keeps procedural hero-location signatures until the local signature GLB set is QA-visible.",
       "nextAction": "Use these as signature anchors in ?assets=map, then replace or refine them with Blender-authored variants after visual QA."

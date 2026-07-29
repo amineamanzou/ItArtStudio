@@ -71,17 +71,21 @@ const createRuntimeMapTextures = (): RuntimeMapTexture[] =>
     return { role: spec.role, url, texture };
   });
 
-const material = (color: number, emissive = 0.06, metalness = 0.14, opacity = 1, map?: THREE.Texture) =>
-  new THREE.MeshStandardMaterial({
+const material = (color: number, emissive = 0.06, metalness = 0.14, opacity = 1, map?: THREE.Texture) => {
+  const parameters: THREE.MeshStandardMaterialParameters = {
     color,
-    map,
     roughness: 0.62,
     metalness,
     emissive: color,
     emissiveIntensity: emissive,
     transparent: opacity < 1,
     opacity
-  });
+  };
+  if (map) {
+    parameters.map = map;
+  }
+  return new THREE.MeshStandardMaterial(parameters);
+};
 
 const box = (size: readonly [number, number, number], mat: THREE.Material, position: readonly [number, number, number]) => {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(size[0], size[1], size[2]), mat);

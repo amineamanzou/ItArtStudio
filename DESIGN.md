@@ -1241,6 +1241,29 @@ Gates V8.14:
   visibles par defaut tout en conservant `?assets=map` pour tester la
   bibliotheque complete avant une future composition plus ambitieuse.
 
+Gates V8.15:
+
+- `scripts/generate-signature-assets.mjs` genere une troisieme vague locale de
+  signatures GLB: `cloud-energy-anchor.glb`, `atelier-pattern-wall.glb` et
+  `telemetry-trace-beacon.glb`;
+- la collection `accepted-itart-signature-hero-core` passe a 9 GLB locaux,
+  574.3 KB et 14 412 triangles, avec un budget manifeste monte a 650 KB /
+  15 000 triangles pour assumer cette densite signature;
+- `Cloud Dock`, `Design Atelier` et `Observability Tower` ont maintenant trois
+  pieces custom chacun: energie cloud, mur de patron textile et beacon de
+  traces viennent renforcer les silhouettes sans toucher au gameplay vehicule;
+- ces nouveaux GLB restent dans `?assets=map` avant promotion publique: le
+  runtime `core` public demeure leger, tandis que la couche map complete sert
+  de banc visuel pour les futures promotions;
+- `external-asset-map-composition` exige maintenant ces trois nouveaux roles
+  custom et au moins 12 placements hero-location, afin que la QA prouve une
+  progression lisible de la bibliotheque, pas seulement une augmentation de
+  fichiers.
+- le runner QA derive les roles et minimums hero-location depuis
+  `assets/world-assets.manifest.json`, applique aussi les caps renderer a
+  `?assets=map`, et couvre `?assets=off` comme mode de comparaison
+  procedural-only.
+
 ## Components
 
 - `game-site`: surface principale.

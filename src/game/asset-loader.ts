@@ -196,6 +196,7 @@ export async function createExternalAssetPreview() {
   const telemetry = createExternalAssetTelemetry(true, "preview");
   const loader = new GLTFLoader();
   const acceptedAssets = getAcceptedModelCollections();
+  const meteredAssetIds = new Set<string>();
 
   const jobs = previewSpecs
     .map((spec) => {
@@ -233,8 +234,11 @@ export async function createExternalAssetPreview() {
       telemetry.loaded += 1;
       telemetry.visible += 1;
       telemetry.files += 1;
-      telemetry.collectionFileKb = Number((telemetry.collectionFileKb + (asset.fileKb ?? 0)).toFixed(1));
-      telemetry.collectionTriangles += asset.triangles ?? 0;
+      if (!meteredAssetIds.has(asset.id)) {
+        meteredAssetIds.add(asset.id);
+        telemetry.collectionFileKb = Number((telemetry.collectionFileKb + (asset.fileKb ?? 0)).toFixed(1));
+        telemetry.collectionTriangles += asset.triangles ?? 0;
+      }
       telemetry.assetIds.push(asset.id);
       telemetry.terrainRoles.push(asset.terrainRole);
       telemetry.publicPaths.push(url);
@@ -265,6 +269,7 @@ async function createExternalAssetPlacementLayer(mode: "core" | "map", placement
   const loader = new GLTFLoader();
   const cache = new Map<string, Promise<THREE.Object3D>>();
   const acceptedAssets = getAcceptedModelCollections();
+  const meteredAssetIds = new Set<string>();
 
   const jobs = placements
     .map((spec) => {
@@ -355,8 +360,11 @@ async function createExternalAssetPlacementLayer(mode: "core" | "map", placement
       telemetry.loaded += 1;
       telemetry.visible += 1;
       telemetry.files += 1;
-      telemetry.collectionFileKb = Number((telemetry.collectionFileKb + (asset.fileKb ?? 0)).toFixed(1));
-      telemetry.collectionTriangles += asset.triangles ?? 0;
+      if (!meteredAssetIds.has(asset.id)) {
+        meteredAssetIds.add(asset.id);
+        telemetry.collectionFileKb = Number((telemetry.collectionFileKb + (asset.fileKb ?? 0)).toFixed(1));
+        telemetry.collectionTriangles += asset.triangles ?? 0;
+      }
       telemetry.assetIds.push(asset.id);
       telemetry.terrainRoles.push(asset.terrainRole);
       telemetry.publicPaths.push(url);
@@ -679,6 +687,11 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
       heroLocation: "cloud-dock",
       heroRole: "cloud-circuit-bridge"
     }),
+    createPlacement("hero:cloud-dock:cloud-energy-anchor", "hero:cloud-dock:energy-anchor", "route", "primary", true, "hero-location", "cloud-energy-anchor.glb", [-12.3, -24.85], 1.78, Math.PI * 0.16, {
+      assetId: "accepted-itart-signature-hero-core",
+      heroLocation: "cloud-dock",
+      heroRole: "cloud-energy-anchor"
+    }),
     createPlacement("hero:cloud-dock:server-pylon", "hero:cloud-dock", "route", "primary", true, "route-edge", "bridge-pillar.glb", [-11.1, -23.3], 1.8, 0.08, {
       heroLocation: "cloud-dock",
       heroRole: "server-pylon"
@@ -721,6 +734,11 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
       heroLocation: "design-atelier",
       heroRole: "atelier-drape-frame"
     }),
+    createPlacement("hero:design-atelier:atelier-pattern-wall", "hero:design-atelier:pattern-wall", "route", "primary", true, "hero-location", "atelier-pattern-wall.glb", [22.35, -8.85], 1.58, Math.PI * 0.28, {
+      assetId: "accepted-itart-signature-hero-core",
+      heroLocation: "design-atelier",
+      heroRole: "atelier-pattern-wall"
+    }),
     createPlacement("hero:design-atelier:cutting-table", "hero:design-atelier", "route", "primary", true, "hero-location", "top-large-checkerboard.glb", [20.8, -9.4], 1.85, Math.PI * 0.5, {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "design-atelier",
@@ -758,6 +776,11 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
       assetId: "accepted-itart-signature-hero-core",
       heroLocation: "observability-tower",
       heroRole: "telemetry-screen-array"
+    }),
+    createPlacement("hero:observability-tower:telemetry-trace-beacon", "hero:observability-tower:trace-beacon", "route", "primary", true, "hero-location", "telemetry-trace-beacon.glb", [-23.6, 10.45], 1.78, -0.28, {
+      assetId: "accepted-itart-signature-hero-core",
+      heroLocation: "observability-tower",
+      heroRole: "telemetry-trace-beacon"
     }),
     createPlacement("hero:observability-tower:signal-pylon", "hero:observability-tower", "route", "primary", true, "route-edge", "bridge-pillar.glb", [-22.8, 9.8], 2.2, 0, {
       heroLocation: "observability-tower",

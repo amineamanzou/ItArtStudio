@@ -121,8 +121,8 @@ Baseline actuelle:
   kit local IT Art Studio;
 - modeles runtime acceptes: routes, route-edge, ponts, eau, relief,
   vegetation;
-- collection signature locale IT Art Studio: 6 GLB custom pour les lieux hero,
-  soit 317.2 KB / 7 592 triangles;
+- collection signature locale IT Art Studio: 9 GLB custom pour les lieux hero,
+  soit 574.3 KB / 14 412 triangles;
 - textures runtime acceptees et promues: route, vegetation/open-field, eau,
   relief;
 - runtime public: couche GLB `core` curatee par defaut, avec `?assets=off` pour
@@ -190,16 +190,21 @@ Hero locations:
 
 Baseline actuelle:
 
-- `Cloud Dock`: 9 placements GLB runtime obligatoires, dont
-  `server-cloud-node` et `cloud-circuit-bridge`;
-- `Design Atelier`: 8 placements GLB runtime obligatoires, dont
-  `mannequin-fabric-rack` et `atelier-drape-frame`;
-- `Observability Tower`: 9 placements GLB runtime obligatoires, dont
-  `telemetry-radar-mast` et `telemetry-screen-array`;
+- `Cloud Dock`: 10 placements GLB runtime obligatoires, dont
+  `server-cloud-node`, `cloud-circuit-bridge` et `cloud-energy-anchor`;
+- `Design Atelier`: 9 placements GLB runtime obligatoires, dont
+  `mannequin-fabric-rack`, `atelier-drape-frame` et
+  `atelier-pattern-wall`;
+- `Observability Tower`: 10 placements GLB runtime obligatoires, dont
+  `telemetry-radar-mast`, `telemetry-screen-array` et
+  `telemetry-trace-beacon`;
 - les nouveaux assets signature sont repartis en micro-clusters pour enrichir
   les silhouettes sans creer d'empilement visuel.
 - la page publique charge deja un noyau de signatures par lieu: au moins trois
   roles hero-location par zone dans la QA `external-asset-core-runtime`.
+- la couche `?assets=map` sert de banc d'inspection plus dense et exige
+  maintenant au moins 12 placements hero-location, dont trois roles signature
+  locaux par zone avant promotion dans le core public.
 
 Definition of done:
 
@@ -235,6 +240,9 @@ Le protocole doit prouver:
 - reconnaissance des trois hero locations sans texte;
 - presence d'une couche GLB `core` sur la page publique et d'une couche
   `?assets=map` plus dense pour l'inspection;
+- presence d'un mode `?assets=off` teste comme comparaison procedural-only;
+- verification des roles et minimums hero-location derivee du manifest, pas
+  recopiee a la main dans la QA;
 - absence de scintillement, z-fighting et assets casses;
 - budget renderer et scene graph preserve;
 - regression mobile et desktop couverte.

@@ -237,13 +237,85 @@ function createTelemetryScreenArray() {
   return group;
 }
 
+function createCloudEnergyAnchor() {
+  const group = new THREE.Group();
+  group.name = "itart-cloud-energy-anchor";
+
+  addBox(group, "anchor-service-pad", [1.54, 0.12, 1.02], [0, 0.06, 0], mats.techDeep);
+  addBox(group, "anchor-rack-left", [0.34, 1.08, 0.34], [-0.46, 0.62, 0.05], mats.ink);
+  addBox(group, "anchor-rack-right", [0.34, 1.08, 0.34], [0.46, 0.62, 0.05], mats.ink);
+  for (let index = 0; index < 4; index += 1) {
+    addBox(group, `anchor-server-slot-left-${index}`, [0.25, 0.035, 0.035], [-0.46, 0.28 + index * 0.18, -0.14], index % 2 ? mats.tech : mats.studio);
+    addBox(group, `anchor-server-slot-right-${index}`, [0.25, 0.035, 0.035], [0.46, 0.28 + index * 0.18, -0.14], index % 2 ? mats.studio : mats.tech);
+  }
+  addCylinder(group, "left-energy-coil", 0.2, 0.2, 0.16, [-0.46, 1.22, 0.05], mats.tech, [Math.PI * 0.5, 0, 0], 18);
+  addCylinder(group, "right-energy-coil", 0.2, 0.2, 0.16, [0.46, 1.22, 0.05], mats.warm, [Math.PI * 0.5, 0, 0], 18);
+  addTorus(group, "left-coil-ring", 0.28, 0.016, [-0.46, 1.22, 0.05], mats.tech, [Math.PI * 0.5, 0, 0]);
+  addTorus(group, "right-coil-ring", 0.28, 0.016, [0.46, 1.22, 0.05], mats.warm, [Math.PI * 0.5, 0, 0]);
+  addSphere(group, "anchor-cloud-core", 0.28, [0, 1.48, 0.02], mats.techGlass, [1.35, 0.74, 0.82]);
+  addSphere(group, "anchor-cloud-left", 0.2, [-0.34, 1.44, 0.04], mats.techGlass, [1.1, 0.7, 0.78]);
+  addSphere(group, "anchor-cloud-right", 0.2, [0.34, 1.44, 0.04], mats.techGlass, [1.1, 0.7, 0.78]);
+  addTube(group, "primary-electric-arc", [[-0.46, 1.28, -0.12], [-0.16, 1.62, -0.24], [0.16, 1.28, -0.2], [0.46, 1.56, -0.12]], 0.017, mats.tech);
+  addTube(group, "warm-electric-return", [[-0.36, 1.08, 0.22], [-0.08, 1.34, 0.28], [0.2, 1.1, 0.26], [0.5, 1.32, 0.22]], 0.014, mats.warm);
+  addCylinder(group, "ground-cable-a", 0.025, 0.025, 1.05, [-0.08, 0.18, 0.42], mats.graphite, [Math.PI * 0.5, 0, Math.PI * 0.5], 8);
+  addCylinder(group, "ground-cable-b", 0.022, 0.022, 0.92, [0.12, 0.18, -0.42], mats.graphite, [Math.PI * 0.5, 0, Math.PI * 0.5], 8);
+
+  return group;
+}
+
+function createAtelierPatternWall() {
+  const group = new THREE.Group();
+  group.name = "itart-atelier-pattern-wall";
+
+  addBox(group, "pattern-wall-base", [1.48, 0.1, 0.64], [0, 0.05, 0], mats.studio);
+  addBox(group, "pattern-wall-back", [1.34, 1.1, 0.08], [0, 0.68, 0.16], mats.artDeep);
+  addBox(group, "paper-sheet-left", [0.36, 0.68, 0.035], [-0.42, 0.74, 0.1], mats.studio, [0, -0.08, -0.03]);
+  addBox(group, "paper-sheet-center", [0.36, 0.82, 0.035], [0, 0.78, 0.09], mats.cloth, [0, 0.04, 0.02]);
+  addBox(group, "paper-sheet-right", [0.3, 0.62, 0.035], [0.43, 0.68, 0.1], mats.studio, [0, 0.1, 0.04]);
+  addTube(group, "pattern-curve-left", [[-0.55, 1.06, 0.045], [-0.38, 0.82, 0.025], [-0.52, 0.48, 0.04]], 0.012, mats.art);
+  addTube(group, "pattern-curve-center", [[-0.1, 1.14, 0.04], [0.08, 0.88, 0.02], [-0.02, 0.5, 0.04]], 0.012, mats.ink);
+  addTube(group, "pattern-curve-right", [[0.34, 1.0, 0.045], [0.5, 0.76, 0.025], [0.38, 0.42, 0.04]], 0.012, mats.warm);
+  addCylinder(group, "fabric-roll-coral", 0.075, 0.075, 0.96, [-0.32, 0.24, -0.22], mats.cloth, [0, 0, Math.PI * 0.5], 12);
+  addCylinder(group, "fabric-roll-cream", 0.065, 0.065, 0.82, [0.34, 0.23, -0.23], mats.studio, [0, 0, Math.PI * 0.5], 12);
+  addBox(group, "tailor-ruler-wall", [0.72, 0.035, 0.035], [0.1, 1.18, 0.07], mats.warm, [0, 0, -0.12]);
+  addSphere(group, "pin-left", 0.036, [-0.54, 1.16, 0.06], mats.warm);
+  addSphere(group, "pin-right", 0.034, [0.58, 1.02, 0.06], mats.art);
+
+  return group;
+}
+
+function createTelemetryTraceBeacon() {
+  const group = new THREE.Group();
+  group.name = "itart-telemetry-trace-beacon";
+
+  addBox(group, "trace-beacon-base", [1.02, 0.14, 0.88], [0, 0.07, 0], mats.ink);
+  addCylinder(group, "trace-beacon-spine", 0.045, 0.06, 1.74, [0, 0.94, 0], mats.graphite, [0, 0, 0], 12);
+  addBox(group, "log-panel-left", [0.34, 0.86, 0.05], [-0.36, 0.8, -0.18], mats.graphite, [0, -0.18, 0]);
+  addBox(group, "log-panel-right", [0.34, 0.86, 0.05], [0.36, 0.8, -0.18], mats.graphite, [0, 0.18, 0]);
+  for (let index = 0; index < 5; index += 1) {
+    addBox(group, `log-line-left-${index}`, [0.22, 0.024, 0.02], [-0.36, 0.48 + index * 0.12, -0.22], index % 2 ? mats.tech : mats.studio);
+    addBox(group, `log-line-right-${index}`, [0.22, 0.024, 0.02], [0.36, 0.5 + index * 0.12, -0.22], index % 2 ? mats.warm : mats.tech);
+  }
+  addTorus(group, "trace-scan-loop-low", 0.42, 0.012, [0, 0.82, 0.02], mats.tech, [Math.PI * 0.5, 0, 0]);
+  addTorus(group, "trace-scan-loop-high", 0.34, 0.012, [0, 1.34, 0.02], mats.warm, [Math.PI * 0.5, 0.2, 0]);
+  addTube(group, "trace-beam-main", [[-0.48, 0.32, 0.28], [-0.18, 0.86, 0.16], [0.08, 1.3, -0.06], [0.42, 1.68, -0.22]], 0.015, mats.tech);
+  addTube(group, "trace-beam-secondary", [[0.48, 0.34, 0.24], [0.12, 0.82, 0.2], [-0.08, 1.2, -0.06], [-0.38, 1.54, -0.2]], 0.013, mats.warm);
+  addSphere(group, "trace-beacon-head", 0.14, [0, 1.78, -0.12], mats.techGlass, [1, 0.8, 1]);
+  addBox(group, "metric-stack-bottom", [0.72, 0.08, 0.16], [0, 0.22, 0.28], mats.techDeep);
+
+  return group;
+}
+
 const assets = [
   ["server-cloud-node.glb", createServerCloudNode()],
   ["atelier-mannequin-rack.glb", createAtelierMannequinRack()],
   ["telemetry-radar-mast.glb", createTelemetryRadarMast()],
   ["cloud-circuit-bridge.glb", createCloudCircuitBridge()],
   ["atelier-drape-frame.glb", createAtelierDrapeFrame()],
-  ["telemetry-screen-array.glb", createTelemetryScreenArray()]
+  ["telemetry-screen-array.glb", createTelemetryScreenArray()],
+  ["cloud-energy-anchor.glb", createCloudEnergyAnchor()],
+  ["atelier-pattern-wall.glb", createAtelierPatternWall()],
+  ["telemetry-trace-beacon.glb", createTelemetryTraceBeacon()]
 ];
 
 fs.mkdirSync(outputDir, { recursive: true });

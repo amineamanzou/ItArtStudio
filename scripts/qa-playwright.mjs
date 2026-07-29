@@ -9,6 +9,7 @@ import Module from "node:module";
 
 const require = createRequire(import.meta.url);
 const root = process.cwd();
+const worldAssetManifest = JSON.parse(fs.readFileSync(path.join(root, "assets", "world-assets.manifest.json"), "utf8"));
 const startedAt = Date.now();
 const requestedPort = Number(process.env.QA_PORT ?? 4331);
 let port = requestedPort;
@@ -59,6 +60,24 @@ const screenshotsDir = path.join(outputRoot, "screenshots");
 const reportJsonPath = path.join(outputRoot, "report.json");
 const reportMdPath = path.join(outputRoot, "report.md");
 const premiumWorldObjectBudget = 940;
+const rendererCaps = {
+  calls: 390,
+  triangles: worldAssetManifest.budgets?.rendererTriangleCap ?? 110_000,
+  geometries: 340,
+  textures: worldAssetManifest.budgets?.rendererTextureCap ?? 24
+};
+const manifestHeroLocationIds = worldAssetManifest.heroLocations ?? Object.keys(worldAssetManifest.heroLocationCuration ?? {});
+const manifestHeroLocationCuration = worldAssetManifest.heroLocationCuration ?? {};
+const manifestHeroLocationMinimumPlacements = Object.fromEntries(
+  manifestHeroLocationIds.map((zoneId) => [zoneId, manifestHeroLocationCuration[zoneId]?.minRuntimePlacements ?? 3])
+);
+const manifestHeroLocationRequiredRoles = Object.fromEntries(
+  manifestHeroLocationIds.map((zoneId) => [zoneId, manifestHeroLocationCuration[zoneId]?.requiredVisualRoles ?? []])
+);
+const manifestHeroLocationMinimumTotal = Object.values(manifestHeroLocationMinimumPlacements).reduce(
+  (total, count) => total + count,
+  0
+);
 const qaWorldHalfExtent = 34;
 const qaInnerRoamExtent = 29.4;
 const qaBoundaryTargetExtent = qaWorldHalfExtent + 1.8;
@@ -127,6 +146,16 @@ function scenarioFail(name, message, details = {}) {
   scenarios.push(entry);
   fail(`${name}: ${message}`, details);
   console.log(`[qa] fail ${name}: ${message}`);
+}
+
+function rendererWithinCaps(renderer) {
+  return Boolean(
+    renderer &&
+      renderer.calls <= rendererCaps.calls &&
+      renderer.triangles <= rendererCaps.triangles &&
+      renderer.geometries <= rendererCaps.geometries &&
+      renderer.textures <= rendererCaps.textures
+  );
 }
 
 function attachPageDiagnostics(page, label) {
@@ -3450,13 +3479,7 @@ async function checkWorldRichness(page) {
     });
   }
   const renderer = snapshot?.renderer;
-  const rendererCaps = { calls: 390, triangles: 110_000, geometries: 340, textures: 24 };
-  const rendererBudgetOk =
-    renderer &&
-    renderer.calls <= rendererCaps.calls &&
-    renderer.triangles <= rendererCaps.triangles &&
-    renderer.geometries <= rendererCaps.geometries &&
-    renderer.textures <= rendererCaps.textures;
+  const rendererBudgetOk = rendererWithinCaps(renderer);
   if (rendererBudgetOk) {
     pass("renderer-budget", {
       renderer,
@@ -5162,6 +5185,57 @@ async function checkExternalAssetPreview(browser) {
   }
 }
 
+async function checkExternalAssetOffRuntime(browser) {
+  const offUrl = withSearchParam(baseUrl, "assets", "off");
+  const offPage = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+  attachPageDiagnostics(offPage, "external-asset-off");
+
+  try {
+    await offPage.goto(offUrl, { waitUntil: "domcontentloaded", timeout: 20_000 });
+    await offPage.waitForLoadState("load", { timeout: 15_000 }).catch(() => {});
+    await offPage.waitForFunction(
+      () =>
+        document.documentElement.classList.contains("game-ready") &&
+        window.__IT_ART_STUDIO_QA__?.ready === true &&
+        window.__IT_ART_STUDIO_QA__?.externalAssets?.mode === "off" &&
+        window.__IT_ART_STUDIO_QA__?.frameCount > 6,
+      { timeout: 20_000 }
+    );
+
+    const proof = await capture(offPage, "external-asset-off-runtime");
+    const externalAssets = proof.snapshot?.externalAssets;
+    const gate =
+      externalAssets?.enabled === false &&
+      externalAssets.mode === "off" &&
+      externalAssets.requested === 0 &&
+      externalAssets.loaded === 0 &&
+      externalAssets.failed === 0 &&
+      externalAssets.visible === 0 &&
+      externalAssets.files === 0 &&
+      externalAssets.placements === 0 &&
+      (externalAssets.errors?.length ?? 0) === 0 &&
+      proof.canvas.ok;
+
+    if (gate) {
+      pass("external-asset-off-runtime", {
+        externalAssets,
+        canvas: proof.canvas,
+        offUrl
+      });
+    } else {
+      scenarioFail("external-asset-off-runtime", "The procedural-only comparison mode did not disable GLB assets cleanly.", {
+        externalAssets,
+        canvas: proof.canvas,
+        offUrl
+      });
+    }
+  } finally {
+    if (!offPage.isClosed()) {
+      await offPage.close();
+    }
+  }
+}
+
 async function checkExternalAssetCoreRuntime(page) {
   await page.waitForFunction(
     () => {
@@ -5287,14 +5361,12 @@ async function checkExternalAssetMapComposition(browser) {
 
     const proof = await capture(mapPage, "external-asset-map-composition");
     const externalAssets = proof.snapshot?.externalAssets;
+    const mapRenderer = proof.snapshot?.renderer;
+    const mapRendererBudgetOk = rendererWithinCaps(mapRenderer);
     const requiredRoles = ["bridge", "relief", "road", "route-edge", "vegetation", "water"];
     const missingRoles = requiredRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
-    const requiredHeroLocationIds = ["cloud-dock", "design-atelier", "observability-tower"];
-    const requiredHeroLocationRoles = {
-      "cloud-dock": ["server-cloud-node", "cloud-circuit-bridge", "rack-core", "cable-trunk", "ops-screen"],
-      "design-atelier": ["mannequin-fabric-rack", "atelier-drape-frame", "cutting-table", "swatch-crate", "reference-screen"],
-      "observability-tower": ["telemetry-radar-mast", "telemetry-screen-array", "signal-pylon", "screen-wall", "trace-panel"]
-    };
+    const requiredHeroLocationIds = manifestHeroLocationIds;
+    const requiredHeroLocationRoles = manifestHeroLocationRequiredRoles;
     const requiredScreenRoles = ["road", "water", "relief", "vegetation"];
     const weakScreenRoles = requiredScreenRoles.filter((role) => {
       const rect = externalAssets?.roleScreenRects?.[role];
@@ -5303,9 +5375,10 @@ async function checkExternalAssetMapComposition(browser) {
     const heroLocationProofs = await collectExternalAssetHeroLocationProofs(mapPage, requiredHeroLocationIds);
     const weakHeroLocations = requiredHeroLocationIds.filter((zoneId) => {
       const placementCount = externalAssets?.heroLocationPlacementCounts?.[zoneId] ?? 0;
+      const minimumPlacements = manifestHeroLocationMinimumPlacements[zoneId] ?? 3;
       const roles = externalAssets?.heroLocationRoles?.[zoneId] ?? [];
       const missingHeroRoles = (requiredHeroLocationRoles[zoneId] ?? []).filter((role) => !roles.includes(role));
-      return placementCount < 3 || roles.length < 3 || missingHeroRoles.length > 0 || !heroLocationProofs.find((proof) => proof.zoneId === zoneId && proof.ok);
+      return placementCount < minimumPlacements || missingHeroRoles.length > 0 || !heroLocationProofs.find((proof) => proof.zoneId === zoneId && proof.ok);
     });
     const mapPathBase = new URL(mapUrl).pathname.replace(/\/$/u, "");
     const expectedAssetPathPrefixes = ["vendor", "local"].map((scope) =>
@@ -5340,7 +5413,7 @@ async function checkExternalAssetMapComposition(browser) {
       externalAssets.supportPlacements >= 12 &&
       externalAssets.contextPlacements >= 8 &&
       externalAssets.promotionCandidates >= 24 &&
-      externalAssets.heroLocationPlacements >= 9 &&
+      externalAssets.heroLocationPlacements >= manifestHeroLocationMinimumTotal &&
       requiredHeroLocationIds.every((zoneId) => externalAssets.heroLocationIds?.includes(zoneId)) &&
       (externalAssets.maxNonHeroClusterDensity ?? externalAssets.maxClusterDensity) <= 3 &&
       (externalAssets.maxHeroLocationClusterDensity ?? 0) <= 8 &&
@@ -5362,12 +5435,15 @@ async function checkExternalAssetMapComposition(browser) {
       weakHeroLocations.length === 0 &&
       unsafePaths.length === 0 &&
       (externalAssets.errors?.length ?? 0) === 0 &&
+      mapRendererBudgetOk &&
       proof.canvas.ok;
 
     if (gate) {
       pass("external-asset-map-composition", {
         externalAssets,
         heroLocationProofs,
+        renderer: mapRenderer,
+        caps: rendererCaps,
         canvas: proof.canvas,
         mapUrl
       });
@@ -5381,6 +5457,10 @@ async function checkExternalAssetMapComposition(browser) {
         weakScreenRoles,
         weakHeroLocations,
         requiredHeroLocationRoles,
+        minRuntimePlacements: manifestHeroLocationMinimumPlacements,
+        renderer: mapRenderer,
+        caps: rendererCaps,
+        mapRendererBudgetOk,
         unsafePaths,
         expectedAssetPathPrefixes
       });
@@ -9260,6 +9340,7 @@ async function writeReport() {
   const worldScenario = scenarios.find((scenario) => scenario.name === "world-richness");
   const rendererBudgetScenario = scenarios.find((scenario) => scenario.name === "renderer-budget");
   const mapTextureRuntimeScenario = scenarios.find((scenario) => scenario.name === "map-texture-runtime");
+  const externalAssetOffScenario = scenarios.find((scenario) => scenario.name === "external-asset-off-runtime");
   const externalAssetCoreScenario = scenarios.find((scenario) => scenario.name === "external-asset-core-runtime");
   const externalAssetPreviewScenario = scenarios.find((scenario) => scenario.name === "external-asset-preview-runtime");
   const externalAssetMapScenario = scenarios.find((scenario) => scenario.name === "external-asset-map-composition");
@@ -9375,6 +9456,11 @@ async function writeReport() {
         ? `${rendererBudgetScenario.status}, calls ${rendererBudgetScenario.details.renderer.calls}/${rendererBudgetScenario.details.caps.calls}, triangles ${rendererBudgetScenario.details.renderer.triangles}/${rendererBudgetScenario.details.caps.triangles}, geometries ${rendererBudgetScenario.details.renderer.geometries}/${rendererBudgetScenario.details.caps.geometries}, textures ${rendererBudgetScenario.details.renderer.textures}/${rendererBudgetScenario.details.caps.textures}`
         : (rendererBudgetScenario?.status ?? "n/a")
     }`,
+    `- External asset off runtime: ${
+      externalAssetOffScenario?.details?.externalAssets
+        ? `${externalAssetOffScenario.status}, mode ${externalAssetOffScenario.details.externalAssets.mode}, requested ${externalAssetOffScenario.details.externalAssets.requested}, loaded ${externalAssetOffScenario.details.externalAssets.loaded}`
+        : (externalAssetOffScenario?.status ?? "n/a")
+    }`,
     `- External asset preview: ${
       externalAssetPreviewScenario?.details?.externalAssets
         ? `${externalAssetPreviewScenario.status}, files ${externalAssetPreviewScenario.details.externalAssets.loaded}/${externalAssetPreviewScenario.details.externalAssets.requested}, roles ${externalAssetPreviewScenario.details.externalAssets.terrainRoles.join("/")}`
@@ -9388,6 +9474,11 @@ async function writeReport() {
     `- External asset map: ${
       externalAssetMapScenario?.details?.externalAssets
         ? `${externalAssetMapScenario.status}, placements ${externalAssetMapScenario.details.externalAssets.placements}, unique files ${externalAssetMapScenario.details.externalAssets.uniqueFiles}, clusters ${externalAssetMapScenario.details.externalAssets.clusters}, cluster density non-hero/hero ${externalAssetMapScenario.details.externalAssets.maxNonHeroClusterDensity ?? "n/a"}/${externalAssetMapScenario.details.externalAssets.maxHeroLocationClusterDensity ?? "n/a"}, primary/support/context ${externalAssetMapScenario.details.externalAssets.primaryPlacements}/${externalAssetMapScenario.details.externalAssets.supportPlacements}/${externalAssetMapScenario.details.externalAssets.contextPlacements}, promotion ${externalAssetMapScenario.details.externalAssets.promotionCandidates}, actual clearance ${externalAssetMapScenario.details.externalAssets.actualMinGroundClearance}, screen roles ${Object.keys(externalAssetMapScenario.details.externalAssets.roleScreenRects ?? {}).join("/")}, coverage ${externalAssetMapScenario.details.externalAssets.mapCoverageWidth}x${externalAssetMapScenario.details.externalAssets.mapCoverageDepth}`
+        : (externalAssetMapScenario?.status ?? "n/a")
+    }`,
+    `- External asset map renderer budget: ${
+      externalAssetMapScenario?.details?.renderer
+        ? `${externalAssetMapScenario.status}, calls ${externalAssetMapScenario.details.renderer.calls}/${externalAssetMapScenario.details.caps.calls}, triangles ${externalAssetMapScenario.details.renderer.triangles}/${externalAssetMapScenario.details.caps.triangles}, geometries ${externalAssetMapScenario.details.renderer.geometries}/${externalAssetMapScenario.details.caps.geometries}, textures ${externalAssetMapScenario.details.renderer.textures}/${externalAssetMapScenario.details.caps.textures}`
         : (externalAssetMapScenario?.status ?? "n/a")
     }`,
     `- External asset hero locations: ${
@@ -9765,6 +9856,7 @@ async function main() {
         scenarioFail("static-dist-canvas-nonblank", "Static dist canvas did not render enough non-dark sampled pixels.", home.canvas);
       }
       await checkWorldRichness(page);
+      await checkExternalAssetOffRuntime(browser);
       await checkExternalAssetCoreRuntime(page);
       await checkExternalAssetPreview(browser);
       await checkExternalAssetMapComposition(browser);
@@ -9807,6 +9899,7 @@ async function main() {
       scenarioFail("canvas-color-families", "Canvas did not expose the tech/art/studio color families.", home.canvas);
     }
     await checkWorldRichness(page);
+    await checkExternalAssetOffRuntime(browser);
     await checkExternalAssetCoreRuntime(page);
     await checkExternalAssetPreview(browser);
     await checkExternalAssetMapComposition(browser);
