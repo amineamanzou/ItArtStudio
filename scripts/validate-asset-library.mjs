@@ -191,6 +191,7 @@ const heroLocations = new Set(asArray(manifest.heroLocations));
 const heroLocationCuration = manifest.heroLocationCuration ?? {};
 const terrainRoles = new Set(asArray(manifest.terrainRoles));
 const mapExpansionKits = asArray(manifest.mapExpansionKits);
+const terrainAssetSourcingBacklog = asArray(manifest.terrainAssetSourcingBacklog);
 const corePromotion = manifest.corePromotion ?? null;
 const publicTerrainCore = manifest.publicTerrainCore ?? null;
 const terrainShell = manifest.terrainShell ?? null;
@@ -200,6 +201,139 @@ const terrainTransitionWave = manifest.terrainTransitionWave ?? null;
 const productionLicenseAssets = [];
 const declaredRuntimeModels = new Set();
 const declaredRuntimeTextures = new Set();
+
+const allowedSourcingBacklogStatuses = new Set(["research", "candidate", "accepted", "rejected"]);
+const terrainSourcingBacklogIds = new Set();
+for (const item of terrainAssetSourcingBacklog) {
+  if (!item.id || terrainSourcingBacklogIds.has(item.id)) {
+    fail("Terrain asset sourcing backlog ids must be present and unique.", { id: item.id });
+  }
+  terrainSourcingBacklogIds.add(item.id);
+
+  if (!allowedSourcingBacklogStatuses.has(item.status)) {
+    fail("Terrain asset sourcing backlog item has an unknown status.", { id: item.id, status: item.status });
+  }
+  if (!sourceIds.has(item.sourceId)) {
+    fail("Terrain asset sourcing backlog item sourceId must match a declared source.", {
+      id: item.id,
+      sourceId: item.sourceId
+    });
+  }
+  if (!isHttpUrl(item.sourceUrl)) {
+    fail("Terrain asset sourcing backlog item must declare a valid sourceUrl.", { id: item.id, sourceUrl: item.sourceUrl });
+  }
+  for (const key of ["assetPageUrl", "downloadUrl", "licenseUrl"]) {
+    if (!isHttpUrl(item[key])) {
+      fail("Terrain asset sourcing backlog item must declare a valid URL field.", { id: item.id, key, value: item[key] });
+    }
+  }
+  if (!["CC0-1.0", "CC-BY-4.0", "MIT"].includes(item.license)) {
+    fail("Terrain asset sourcing backlog item uses a disallowed license.", { id: item.id, license: item.license });
+  }
+  const source = sources.find((sourceItem) => sourceItem.id === item.sourceId);
+  if (source && item.license !== source.license) {
+    fail("Terrain asset sourcing backlog license must match its declared source.", {
+      id: item.id,
+      sourceId: item.sourceId,
+      backlogLicense: item.license,
+      sourceLicense: source.license
+    });
+  }
+  if (item.license !== "CC0-1.0") {
+    fail("Terrain asset sourcing backlog must stay CC0 until attribution UI exists.", { id: item.id, license: item.license });
+  }
+  if (item.commercialUse !== true) {
+    fail("Terrain asset sourcing backlog item must explicitly allow commercial use.", { id: item.id });
+  }
+  if (item.attributionRequired !== false) {
+    fail("Terrain asset sourcing backlog item must remain attribution-free until attribution UI exists.", {
+      id: item.id,
+      attributionRequired: item.attributionRequired
+    });
+  }
+  if (typeof item.retrievedAt !== "string" || !/^\d{4}-\d{2}-\d{2}$/u.test(item.retrievedAt)) {
+    fail("Terrain asset sourcing backlog item must declare a YYYY-MM-DD retrievedAt date.", {
+      id: item.id,
+      retrievedAt: item.retrievedAt
+    });
+  }
+  if (asArray(item.terrainRoles).length === 0) {
+    fail("Terrain asset sourcing backlog item must target at least one terrain role.", { id: item.id });
+  }
+  for (const role of asArray(item.terrainRoles)) {
+    if (!terrainRoles.has(role)) {
+      fail("Terrain asset sourcing backlog item targets an unknown terrain role.", {
+        id: item.id,
+        role,
+        terrainRoles: [...terrainRoles].sort()
+      });
+    }
+  }
+  if (asArray(item.assetClasses).length === 0) {
+    fail("Terrain asset sourcing backlog item must declare assetClasses.", { id: item.id });
+  }
+  if (asArray(item.formats).length === 0) {
+    fail("Terrain asset sourcing backlog item must declare formats.", { id: item.id });
+  }
+  if (!Number.isInteger(item.priority) || item.priority < 1 || item.priority > 5) {
+    fail("Terrain asset sourcing backlog priority must be an integer from 1 to 5.", {
+      id: item.id,
+      priority: item.priority
+    });
+  }
+  if (!item.targetUse || item.targetUse.length < 48) {
+    fail("Terrain asset sourcing backlog item must describe a concrete targetUse.", { id: item.id });
+  }
+  if (!item.targetLayer || item.targetLayer.length < 12) {
+    fail("Terrain asset sourcing backlog item must bind to a concrete targetLayer.", { id: item.id, targetLayer: item.targetLayer });
+  }
+  if (!item.acceptanceGate || item.acceptanceGate.length < 48) {
+    fail("Terrain asset sourcing backlog item must define a concrete acceptanceGate.", { id: item.id });
+  }
+  if (asArray(item.rejectIf).length < 3) {
+    fail("Terrain asset sourcing backlog item must declare at least three rejectIf conditions.", {
+      id: item.id,
+      rejectIf: item.rejectIf
+    });
+  }
+  if (!item.fallbackPolicy || item.fallbackPolicy.length < 48) {
+    fail("Terrain asset sourcing backlog item must define a public fallbackPolicy.", { id: item.id });
+  }
+  if (/(draw|generate|generated|procedural).*(cone|disk|disc|sphere|rectangle|plate|halo|marker|blob|primitive|pattern)/iu.test(item.fallbackPolicy)) {
+    fail("Terrain asset sourcing backlog fallbackPolicy cannot permit generated placeholder substitutes.", {
+      id: item.id,
+      fallbackPolicy: item.fallbackPolicy
+    });
+  }
+  if (!item.nextAction || item.nextAction.length < 48) {
+    fail("Terrain asset sourcing backlog item must keep a concrete nextAction.", { id: item.id });
+  }
+  if (!item.qaGate) {
+    fail("Terrain asset sourcing backlog item must bind to a QA gate.", { id: item.id });
+  }
+  const budget = item.budget ?? {};
+  if (!isPositiveNumber(budget.maxKb)) {
+    fail("Terrain asset sourcing backlog item must declare a positive maxKb budget.", { id: item.id, budget });
+  }
+  if (!isPositiveNumber(budget.targetFiles)) {
+    fail("Terrain asset sourcing backlog item must declare a positive targetFiles budget.", { id: item.id, budget });
+  }
+  if (asArray(item.formats).some((format) => ["glTF", "GLB", "FBX", "OBJ", "Blend"].includes(format))) {
+    if (!isPositiveNumber(budget.targetTriangles)) {
+      fail("Terrain model sourcing backlog item must declare a targetTriangles budget.", { id: item.id, budget });
+    }
+  }
+  if (asArray(item.formats).includes("textures") && !isPositiveNumber(budget.targetResolution)) {
+    fail("Terrain texture sourcing backlog item must declare a targetResolution budget.", { id: item.id, budget });
+  }
+}
+
+if (terrainAssetSourcingBacklog.length < 5) {
+  fail("Terrain-first work must keep a broad sourcing backlog before enlarging the map.", {
+    count: terrainAssetSourcingBacklog.length,
+    required: 5
+  });
+}
 
 for (const asset of assets) {
   if (!asset.id || assetIds.has(asset.id)) {
@@ -834,6 +968,15 @@ for (const kit of mapExpansionKits) {
   if (!kit.fallback || kit.fallback.length < 48) {
     fail("Map expansion kits must declare a runtime fallback.", { kitId: kit.id, fallback: kit.fallback });
   }
+  if (!/^Public fallback /u.test(kit.fallback)) {
+    fail("Map expansion kit fallback must define the public fallback first.", { kitId: kit.id, fallback: kit.fallback });
+  }
+  if (/procedural/iu.test(kit.fallback) && !/(legacy|QA-only)/u.test(kit.fallback)) {
+    fail("Map expansion kit fallback may mention procedural systems only when confined to legacy or QA-only modes.", {
+      kitId: kit.id,
+      fallback: kit.fallback
+    });
+  }
   if (!kit.nextAction || kit.nextAction.length < 48) {
     fail("Map expansion kits must declare a concrete nextAction.", { kitId: kit.id, nextAction: kit.nextAction });
   }
@@ -1398,6 +1541,21 @@ const summary = {
   ),
   heroLocations: [...heroLocations],
   terrainRoles: [...terrainRoles],
+  terrainAssetSourcingBacklog: {
+    count: terrainAssetSourcingBacklog.length,
+    roles: [...new Set(terrainAssetSourcingBacklog.flatMap((item) => asArray(item.terrainRoles)))].sort(),
+    priorities: Object.fromEntries(
+      terrainAssetSourcingBacklog.map((item) => [
+        item.id,
+        {
+          priority: item.priority,
+          status: item.status,
+          sourceId: item.sourceId,
+          qaGate: item.qaGate
+        }
+      ])
+    )
+  },
   mapExpansionKits: {
     count: mapExpansionKits.length,
     roles: [...mapExpansionKitRoles].sort(),

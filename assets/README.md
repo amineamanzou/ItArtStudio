@@ -85,6 +85,28 @@ Map expansion kits:
   textures, runtime fallback behavior, placement/coverage thresholds and a
   noise budget. This keeps the expansion asset-first instead of prop-first.
 
+Terrain sourcing backlog:
+
+- `terrainAssetSourcingBacklog` is the pre-download queue for the terrain-first
+  phase. It must stay ahead of map expansion so new terrain work begins from
+  public libraries and explicit visual roles, not from generated placeholders.
+- Each backlog item must name a declared source, CC0 license,
+  source/page/download/license URLs, commercial-use and attribution flags,
+  retrieval date, terrain roles, asset classes, formats, target layer,
+  file/triangle or texture budgets, target use, rejection rules, public fallback
+  policy, acceptance gate, QA gate and next action.
+- A backlog item is not accepted runtime material. New files still need a
+  quarantine import, local weight/triangle inventory, selected file list,
+  public path, fallback, and QA proof before the world can render them.
+- Public fallback means omit the failing placement or reuse an accepted
+  downloaded asset/texture. It must not draw generated trees, cones, disks,
+  route ribbons, water blobs, plates, halos, markers or synthetic patterns.
+- Priority 1 currently targets `kenney-mini-forest` for non-conic vegetation
+  and `kenney-modular-cave-kit` for authored relief. Poly Haven and ambientCG
+  are the texture upgrade path for removing grey/tire-like ground impressions.
+  Quaternius remains a conversion lab only until FBX/OBJ assets become traced
+  GLB files with preserved provenance.
+
 Public terrain-first runtime:
 
 - `publicTerrainCore` is the stricter public contract for `?world=asset-only`.
