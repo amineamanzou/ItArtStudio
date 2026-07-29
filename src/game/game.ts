@@ -888,6 +888,12 @@ type QaSnapshot = {
     rotationY: number;
     meshCount: number;
     wheelCount: number;
+    asset: {
+      mode: "vendor-glb" | "procedural";
+      status: "not-requested" | "loading" | "loaded" | "failed";
+      name: string | null;
+      path: string | null;
+    };
     bounds: BoundsQa;
   };
   trail: { totalMarks: number; activeMarks: number; maxOpacity: number };
@@ -1049,6 +1055,10 @@ class StudioGame {
   private routeEncounterMinPartsPerGate = 0;
   private motionRoleCount = 0;
   private playerPartCount = 0;
+  private playerAssetMode: "vendor-glb" | "procedural" = "procedural";
+  private playerAssetStatus: "not-requested" | "loading" | "loaded" | "failed" = "not-requested";
+  private playerAssetName: string | null = null;
+  private playerAssetPath: string | null = null;
   private readonly renderedVisualSpecIds = new Set<string>();
   private readonly materialVariantIds = new Set<string>();
   private readonly surfaceSignatureIds = new Set<string>();
@@ -1328,6 +1338,12 @@ class StudioGame {
       rotationY: 0,
       meshCount: 0,
       wheelCount: 0,
+      asset: {
+        mode: "procedural",
+        status: "not-requested",
+        name: null,
+        path: null
+      },
       bounds: { width: 0, height: 0, depth: 0 }
     },
     trail: { totalMarks: 0, activeMarks: 0, maxOpacity: 0 },
@@ -2483,6 +2499,11 @@ class StudioGame {
       return;
     }
 
+    this.playerAssetMode = "procedural";
+    this.playerAssetStatus = "loaded";
+    this.playerAssetName = "legacy-procedural-rover";
+    this.playerAssetPath = null;
+
     const bodyMaterial = new THREE.MeshStandardMaterial({
       color: 0xfff2b0,
       roughness: 0.45,
@@ -2601,6 +2622,10 @@ class StudioGame {
   }
 
   private setAssetOnlyPlayer() {
+    this.playerAssetMode = "vendor-glb";
+    this.playerAssetStatus = "loading";
+    this.playerAssetName = "vendor-player:sedan-sports";
+    this.playerAssetPath = assetOnlyPlayerPath;
     this.player.rotation.y = Math.PI;
     this.player.position.copy(this.playerPosition);
     this.scene.add(this.player);
@@ -2630,9 +2655,11 @@ class StudioGame {
           }
         });
         this.player.add(visual);
+        this.playerAssetStatus = "loaded";
       },
       undefined,
       (error) => {
+        this.playerAssetStatus = "failed";
         console.warn("Unable to load vendor player asset", error);
       }
     );
@@ -4422,6 +4449,12 @@ class StudioGame {
       rotationY: Number(this.player.rotation.y.toFixed(3)),
       meshCount: this.playerPartCount,
       wheelCount: this.wheelParts.length,
+      asset: {
+        mode: this.playerAssetMode,
+        status: this.playerAssetStatus,
+        name: this.playerAssetName,
+        path: this.playerAssetPath
+      },
       bounds: playerBounds
     };
     const activeTrailMarks = this.trailMarks.filter((mark) => mark.mesh.visible && mark.mesh.material.opacity > 0.02);

@@ -3628,6 +3628,63 @@ async function checkProductionRuntimeLightweight(browser) {
   }
 }
 
+async function checkPublicAssetOnlyPlayer(browser) {
+  const assetOnlyUrl = withSearchParam(baseUrl, "world", "asset-only");
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+  attachPageDiagnostics(page, "public-asset-only-player");
+
+  try {
+    await page.goto(assetOnlyUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.waitForFunction(
+      () =>
+        document.documentElement.dataset.gameState === "ready" &&
+        window.__IT_ART_STUDIO_QA__?.ready === true &&
+        ["loaded", "failed"].includes(window.__IT_ART_STUDIO_QA__?.player?.asset?.status),
+      { timeout: 24_000 }
+    );
+    await page.waitForTimeout(400);
+    const proof = await capture(page, "public-asset-only-player-car", {
+      skipPremiumWorldDistribution: true
+    });
+    const snapshot = proof.snapshot ?? (await getQaSnapshot(page));
+    const player = snapshot?.player;
+    const asset = player?.asset;
+    const ok =
+      asset?.mode === "vendor-glb" &&
+      asset.status === "loaded" &&
+      asset.name === "vendor-player:sedan-sports" &&
+      asset.path === "assets/models/vendor/kenney/car-kit/vehicles/sedan-sports.glb" &&
+      player.meshCount >= 1 &&
+      player.wheelCount === 0 &&
+      player.bounds?.width >= 0.55 &&
+      player.bounds?.height >= 0.3 &&
+      player.bounds?.depth >= 0.85 &&
+      proof.canvas.ok;
+
+    if (ok) {
+      pass("public-asset-only-player", {
+        player,
+        canvas: proof.canvas,
+        capture: proof.relativePath
+      });
+    } else {
+      scenarioFail("public-asset-only-player", "Public asset-only runtime did not prove the downloaded car GLB player.", {
+        player,
+        canvas: proof.canvas,
+        capture: proof.relativePath,
+        expectedPath: "assets/models/vendor/kenney/car-kit/vehicles/sedan-sports.glb"
+      });
+    }
+  } catch (error) {
+    scenarioFail("public-asset-only-player", "Public asset-only player runtime did not reach a verifiable state.", {
+      url: assetOnlyUrl,
+      message: error instanceof Error ? error.message : String(error)
+    });
+  } finally {
+    await page.close();
+  }
+}
+
 async function checkRealKeyboardInput(page) {
   const before = await getQaSnapshot(page);
   let after = before;
@@ -9895,13 +9952,13 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
       radius: 1.25,
       timeoutMs: 14_000,
       route: [
-        { id: "static-art-gate-jump", miniMapZoneId: "studio-gate", timeoutMs: 10_000, pauseMs: 240 },
-        { id: "static-art-gate-approach", position: { x: 2.15, z: -1.6 }, radius: 1.5, timeoutMs: 12_000, overshootBrake: true },
+        { id: "static-art-design-jump", miniMapZoneId: "design-atelier", timeoutMs: 10_000, pauseMs: 260 },
+        { id: "static-art-design-approach", position: { x: 10.2, z: -7.6 }, radius: 1.7, timeoutMs: 14_000, overshootBrake: true },
         {
           id: "static-art-gate-design",
           position: { x: 4.22, z: -3.15 },
-          radius: 1.45,
-          timeoutMs: 16_000,
+          radius: 1.7,
+          timeoutMs: 18_000,
           overshootBrake: true,
           skipPostReachSamples: false
         }
@@ -10208,6 +10265,7 @@ async function writeReport() {
   const externalAssetCorePremiumScenario = scenarios.find((scenario) => scenario.name === "external-asset-core-vendor-anchor-runtime");
   const externalAssetPreviewScenario = scenarios.find((scenario) => scenario.name === "external-asset-preview-runtime");
   const externalAssetMapScenario = scenarios.find((scenario) => scenario.name === "external-asset-map-composition");
+  const publicAssetOnlyPlayerScenario = scenarios.find((scenario) => scenario.name === "public-asset-only-player");
   const heroLocationVisualOnlyScenarios = scenarios.filter((scenario) => scenario.name.startsWith("hero-location-visual-only:"));
   const heroLocationVisualOnlyHiddenLabels = heroLocationVisualOnlyScenarios
     .map((scenario) => scenario.details?.hiddenSceneLabels)
@@ -10479,6 +10537,11 @@ async function writeReport() {
       localMotionBehaviorTypes.length > 0 ? localMotionBehaviorTypes.join(", ") : "n/a"
     }`,
     `- Player parts: ${player?.meshCount ?? "n/a"} (${player?.wheelCount ?? "n/a"} wheels)`,
+    `- Public asset-only player: ${
+      publicAssetOnlyPlayerScenario?.details?.player
+        ? `${publicAssetOnlyPlayerScenario.status}, ${publicAssetOnlyPlayerScenario.details.player.asset?.name ?? "n/a"}, ${publicAssetOnlyPlayerScenario.details.player.asset?.path ?? "n/a"}, meshes ${publicAssetOnlyPlayerScenario.details.player.meshCount}, capture ${publicAssetOnlyPlayerScenario.details.capture ?? "n/a"}`
+        : (publicAssetOnlyPlayerScenario?.status ?? "n/a")
+    }`,
     `- Rover trail: ${trail?.activeMarks ?? "n/a"}/${trail?.totalMarks ?? "n/a"} active, max opacity ${
       trail?.maxOpacity ?? "n/a"
     }`,
@@ -10774,6 +10837,7 @@ async function main() {
       await checkWorldRichness(page);
       checkMapExpansionKitsManifest();
       checkCorePromotionManifest();
+      await checkPublicAssetOnlyPlayer(browser);
       if (staticSmokeOnly) {
         pass("static-dist-smoke-profile", {
           scope: staticProofScope,
@@ -10827,6 +10891,7 @@ async function main() {
     await checkWorldRichness(page);
     checkMapExpansionKitsManifest();
     checkCorePromotionManifest();
+    await checkPublicAssetOnlyPlayer(browser);
     await checkTerrainShellRuntime(page);
     await checkExternalAssetOffRuntime(browser);
     await checkExternalAssetCoreRuntime(page);
