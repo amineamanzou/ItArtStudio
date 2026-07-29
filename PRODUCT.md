@@ -26,10 +26,11 @@ La direction de production active est figee dans
 
 Objectif court:
 
-> Construire une carte jouable premium d'IT Art Studio en partant d'abord d'une
-> bibliotheque d'assets GLB/glTF et de textures web-ready, puis agrandir le
-> monde a partir de ce vocabulaire visuel, composer trois hero locations
-> memorables et valider chaque iteration par une QA visuelle jouee au clavier.
+> Faire de IT Art Studio un mini-monde web jouable de qualite vitrine premium,
+> construit par la carte et les assets avant d'etre construit par le gameplay:
+> bibliotheque GLB/glTF + textures web-ready, terrain agrandi, eau, relief,
+> verdure, routes, trois hero locations reconnaissables sans texte et QA clavier
+> avec captures.
 
 Cette phase privilegie les assets, la map, les textures, le relief, l'eau et la
 lisibilite des lieux. Le gameplay vehicule reste secondaire: il doit soutenir

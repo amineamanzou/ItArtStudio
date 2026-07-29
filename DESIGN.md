@@ -42,12 +42,16 @@ boucle agentic doit respecter l'ordre suivant: bibliotheque d'assets et textures
 pipeline GLB/glTF, map vide agrandie, trois hero locations, reduction du bruit,
 puis QA visuelle et performance.
 
-Objectif fige:
+Objectif fige V9:
 
-> Construire une carte jouable premium pour IT Art Studio en partant d'abord
-> d'une bibliotheque d'assets GLB/glTF et de textures web-ready, puis agrandir
-> le monde a partir de ce vocabulaire visuel, composer trois hero locations
-> memorables et valider chaque iteration par une QA visuelle jouee au clavier.
+> Construire la fondation asset-first de la carte IT Art Studio: collecter,
+> curer et integrer une bibliotheque GLB/glTF + textures web-ready; stabiliser
+> le manifest et les validations runtime; preparer une carte agrandie avec
+> routes, eau, relief, verdure et respirations; composer trois hero locations
+> premium, `Cloud Dock`, `Design Atelier` et `Observability Tower`, de sorte
+> qu'elles soient reconnaissables en screenshot sans lire les panneaux HTML;
+> reduire le bruit procedural; prouver le resultat par une QA clavier avec
+> captures desktop et budgets renderer.
 
 Sequence de livraison:
 

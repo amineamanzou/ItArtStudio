@@ -1,14 +1,16 @@
-# Objectif Fige - Asset Library First
+# Objectif Fige - V9 Asset Library First
 
 Statut: fige le 2026-07-29. Ce document devient la source de verite pour les
 prochaines boucles agentic du site IT Art Studio.
 
 ## Objectif Canonique
 
-Construire une carte jouable premium pour IT Art Studio en partant d'abord d'une
-bibliotheque d'assets GLB/glTF et de textures web-ready, puis agrandir le monde
-a partir de ce vocabulaire visuel, composer trois hero locations memorables et
-valider chaque iteration par une QA visuelle jouee au clavier.
+Faire de IT Art Studio un mini-monde web jouable de qualite vitrine premium,
+construit par la carte et les assets avant d'etre construit par le gameplay.
+La prochaine phase doit partir d'une bibliotheque d'assets GLB/glTF et de
+textures web-ready, puis utiliser ce vocabulaire visuel pour agrandir le terrain,
+poser l'eau, le relief, la verdure, les routes et composer trois lieux signatures
+reconnaissables sans texte.
 
 La reference de qualite reste l'esprit Bruno Simon: un monde web jouable,
 lisible, curieux, ou le contenu devient un lieu a explorer. L'objectif n'est pas
@@ -17,13 +19,22 @@ niveau d'exigence percue: assets propres, carte respirante, lieux
 reconnaissables, interactions fiables et captures QA capables de juger le
 livrable comme une vraie experience.
 
-## Nouvel Objectif De Boucle
+## Nouvel Objectif Agentic
 
-Construire la prochaine version premium du monde IT Art Studio avec une
-strategie asset-first: collecter et curer une bibliotheque GLB/glTF + textures
-web-ready, fiabiliser leur pipeline runtime, puis agrandir une carte volontairement
-respirante avant de composer trois lieux signatures reconnaissables sans texte:
-`Cloud Dock`, `Design Atelier` et `Observability Tower`.
+Lancer une boucle agentic V9 orientee assets et cartographie dont le livrable
+principal est une carte plus grande, plus lisible et plus incarnable par des
+assets 3D, pas une conduite plus sophistiquee.
+
+Objectif a donner aux agents:
+
+> Construire la fondation asset-first de la carte IT Art Studio: collecter,
+> curer et integrer une bibliotheque GLB/glTF + textures web-ready; stabiliser
+> le manifest et les validations runtime; preparer une carte agrandie avec
+> routes, eau, relief, verdure et respirations; composer trois hero locations
+> premium, `Cloud Dock`, `Design Atelier` et `Observability Tower`, de sorte
+> qu'elles soient reconnaissables en screenshot sans lire les panneaux HTML;
+> reduire le bruit procedural; prouver le resultat par une QA clavier avec
+> captures desktop et budgets renderer.
 
 La boucle doit prioriser les assets, les textures, l'eau, le relief, la verdure,
 les routes et la lisibilite des lieux. Le gameplay vehicule reste secondaire:
@@ -38,7 +49,7 @@ par une QA jouee au clavier, avec captures desktop, verification des budgets
 renderer, absence de scintillement evident et reconnaissance visuelle des trois
 hero locations sans dependance aux panneaux HTML.
 
-## Plan Fige
+## Plan Fige Et Non Negociable
 
 Le plan de production est maintenant verrouille dans cet ordre:
 
@@ -53,6 +64,27 @@ Le plan de production est maintenant verrouille dans cet ordre:
 Ce plan remplace l'approche "agrandir d'abord puis habiller ensuite".
 L'ordre est volontaire: la bibliotheque cree le langage visuel, la map s'etend
 avec ce langage, puis les lieux deviennent memorables.
+
+Toute boucle qui saute directement a l'agrandissement, au gameplay, a de
+nouveaux effets ou a des proceduraux generiques doit etre consideree hors plan,
+sauf si elle demontre qu'elle debloque directement l'un des jalons asset-first.
+
+## Jalon V9 Attendu
+
+Le prochain jalon doit livrer une preuve concrete de cartographie premium:
+
+- une bibliotheque d'assets et textures triee par source, licence, poids, role,
+  zone cible et niveau de confiance;
+- une couche runtime GLB/glTF chargeable sur GitHub Pages, avec fallback
+  procedural controle;
+- une carte agrandie qui semble preparee pour l'exploration avant meme d'etre
+  dense: routes, berges, reliefs, vegetation, vides assumee et reperes lointains;
+- trois hero locations composees avec des assets identifiables, chacune lisible
+  en silhouette eloignee et en detail rapproche;
+- une diminution visible des proceduraux generiques et des objets repetitifs;
+- un protocole QA qui joue au clavier, attend le chargement, traverse les zones
+  clefs, capture les lieux et refuse les scintillements, assets casses, budgets
+  renderer depasses ou lieux illisibles.
 
 ## Priorite Figee
 
