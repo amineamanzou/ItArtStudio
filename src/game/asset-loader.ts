@@ -591,7 +591,7 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
     const isPondSurface = spec.preferredFile.startsWith("pond-");
     const isRock = spec.preferredFile.startsWith("rock-");
     const styleRole = isPondSurface ? "water-surface-textured" : isRock ? "water-bank-rock" : "water-plant";
-    const materialColor = isPondSurface ? 0x1f5d68 : isRock ? 0x8b806f : 0x4f7f55;
+    const materialColor = isPondSurface ? 0x17414a : isRock ? 0x8b806f : 0x4f7f55;
     const emissiveColor = isPondSurface ? 0x0b3139 : 0x000000;
 
     wrapper.traverse((object) => {
@@ -601,11 +601,15 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
       object.material = new THREE.MeshStandardMaterial({
         color: materialColor,
         map: isPondSurface ? getPublicWaterEdgeTexture() : null,
-        roughness: isPondSurface ? 0.36 : 0.82,
-        metalness: isPondSurface ? 0.06 : 0,
+        roughness: isPondSurface ? 0.22 : 0.82,
+        metalness: isPondSurface ? 0.02 : 0,
+        transparent: isPondSurface,
+        opacity: isPondSurface ? 0.78 : 1,
+        depthWrite: !isPondSurface,
         emissive: emissiveColor,
-        emissiveIntensity: isPondSurface ? 0.1 : 0
+        emissiveIntensity: isPondSurface ? 0.06 : 0
       });
+      object.renderOrder = isPondSurface ? -1 : object.renderOrder;
       object.userData.externalAssetMaterialStyleRole = styleRole;
     });
     tagMaterialStyle(wrapper, styleRole);
@@ -1846,7 +1850,7 @@ function getRoleGroundClearance(terrainRole: string, curation: MapPlacementSpec[
     "route-edge": 0.36,
     bridge: 0.48,
     rail: 0.34,
-    water: 0.22,
+    water: 0.08,
     relief: 0.3,
     vegetation: 0.34
   };

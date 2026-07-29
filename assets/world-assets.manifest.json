@@ -66,9 +66,9 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v130",
+    "id": "public-terrain-core-v131",
     "phase": "public-terrain-first-runtime",
-    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor brown-mud-leaf/stony-dirt-path/relief/water-edge textures and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles, visible map-edge voids or hero/factory clutter.",
+    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor brown-mud-leaf/stony-dirt-path/relief/water-edge textures, lower integrated pond surfaces and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles, visible map-edge voids or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
     "requiredPlayerAssetId": "accepted-car-vehicle-core",
     "requiredPlayerFile": "race.glb",
@@ -408,7 +408,7 @@
     "maximumHeroLocationPlacements": 0,
     "allowedGeneratedSubstrate": "single extended terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief/water-edge material; visible public decor must come from downloaded vendor GLB/glTF.",
     "fallback": "If a terrain GLB fails, omit that placement and keep the public world sparse rather than replacing it with a generated rectangle, cone, halo, plate or abstract primitive.",
-    "nextAction": "Review the v130 north/south/east/west terrain-only screenshots for the stony-dirt-path route material, then decide whether forest_ground_04 or rocky_trail should become secondary biome layers before densifying Cloud Dock, Design Atelier or Observability Tower."
+    "nextAction": "Review the v131 north/south/east/west terrain-only screenshots for integrated pond surfaces and shoreline readability before densifying Cloud Dock, Design Atelier or Observability Tower."
   },
   "publicTerrainMaterialCore": {
     "id": "polyhaven-terrain-material-v112",
@@ -1170,8 +1170,9 @@
       ],
       "budget": { "maxKb": 260, "targetTriangles": 2200 },
       "styleFit": "medium",
+      "qaProof": "qa/artifacts/2026-07-29T19-43-09-162Z/report.md#public-asset-only-terrain-core",
       "proceduralFallback": "If the converted pond GLB assets fail, the public core omits the pond rather than drawing a generated water blob or rectangular substitute.",
-      "nextAction": "Use one pond plus a few aquatic plants as a central water proof, then evaluate if the converted material styling needs a richer texture pass."
+      "nextAction": "Validate v131 screenshots to confirm the lowered semi-transparent pond styling reads as integrated water rather than blue plates."
     },
     {
       "id": "accepted-polyhaven-rock-09-core",
