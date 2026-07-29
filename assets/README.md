@@ -106,6 +106,13 @@ Public terrain-first runtime:
   QA records material coverage ratios for field, path, water and relief so a
   public map cannot pass by merely loading textures without a spatially readable
   terrain.
+- V13.10 removes the Kenney pine variants from the public terrain core and
+  raises the proof to 193 downloaded GLB/glTF placements by promoting three
+  stone bridge crossings instead. The pine files remain documented vendor files,
+  but the public contract now forbids
+  `tree_pineGroundA.glb`, `tree_pineRoundC.glb` and `tree_pineTallA.glb`
+  because their silhouette reads too close to cone primitives in distant
+  screenshots.
 
 Core promotion:
 
