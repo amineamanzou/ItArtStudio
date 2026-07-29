@@ -66,15 +66,16 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v115",
+    "id": "public-terrain-core-v116",
     "phase": "public-terrain-first-runtime",
-    "purpose": "Prove the public asset-only world as terrain before bases: downloaded car, vendor field/path/relief/water-edge textures and GLB roles for bridge, rail, water, relief and vegetation with no generated decorative primitives or hero/factory clutter.",
+    "purpose": "Prove the public asset-only world as terrain before bases: downloaded car, vendor field/path/relief/water-edge textures and GLB shoreline/crossing roles for bridge, rail, water, relief and vegetation with no generated decorative primitives or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
     "requiredPlayerAssetId": "accepted-car-vehicle-core",
     "requiredPlayerFile": "sedan-sports.glb",
     "requiredTerrainRoles": ["bridge", "rail", "relief", "path", "vegetation", "water"],
     "requiredAssetIds": [
       "accepted-assetquest-pond-water-core",
+      "accepted-nature-water-core",
       "accepted-nature-relief-core",
       "accepted-nature-stone-bridge-core",
       "accepted-nature-vegetation-core",
@@ -85,6 +86,8 @@
     "requiredFiles": [
       "bridge_stoneRoundNarrow.glb",
       "pond-2.glb",
+      "cliff_waterfall_rock.glb",
+      "lily_large.glb",
       "rock_09_1k.gltf",
       "rock_largeE.glb",
       "sedan-sports.glb",
@@ -113,11 +116,11 @@
       "top-large-checkerboard.glb",
       "tree_cone.glb"
     ],
-    "minimumPlacements": 36,
-    "minimumUniqueFiles": 29,
+    "minimumPlacements": 39,
+    "minimumUniqueFiles": 31,
     "minimumRolePlacements": {
       "route": 4,
-      "water": 6,
+      "water": 9,
       "relief": 8,
       "vegetation": 12
     },
@@ -845,7 +848,7 @@
     },
     {
       "id": "accepted-nature-water-core",
-      "status": "accepted",
+      "status": "integrated",
       "sourceId": "kenney-nature-kit",
       "kind": "model-collection",
       "target": "map",
@@ -868,8 +871,9 @@
       ],
       "budget": { "maxKb": 400, "targetTriangles": 1000 },
       "styleFit": "high",
+      "qaProof": "qa/artifacts/2026-07-29T13-46-57-161Z/report.md#public-terrain-core",
       "proceduralFallback": "src/game/world-materials.ts keeps procedural water surfaces and FX until water GLB edges are QA-visible.",
-      "nextAction": "Test against existing water surfaces and keep the style low-poly rather than photorealistic."
+      "nextAction": "Keep only the lily and waterfall-rock pieces in the public core until stronger shoreline packs are sourced; avoid rectangular ground_river tiles in public."
     },
     {
       "id": "accepted-assetquest-pond-water-core",

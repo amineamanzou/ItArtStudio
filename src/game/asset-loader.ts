@@ -607,6 +607,21 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
     return;
   }
 
+  if (spec.assetId === "accepted-nature-water-core") {
+    const materialColor = spec.preferredFile.startsWith("lily_") ? 0x4f7a4f : 0x6d7167;
+    wrapper.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) {
+        return;
+      }
+      object.material = new THREE.MeshStandardMaterial({
+        color: materialColor,
+        roughness: 0.86,
+        metalness: 0
+      });
+    });
+    return;
+  }
+
   if (spec.assetId === "accepted-nature-path-core") {
     const remapPathMaterial = (material: THREE.Material) => {
       const name = material.name.toLowerCase();
@@ -801,6 +816,15 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     }),
     createPlacement("terrain-core:pond-lily-leaf", "terrain-core:central-water-plants", "water", "support", true, "water", "water-lily-leaf-1.glb", [-3.1, 5.35], 0.46, -0.12, {
       assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:nature-lily-large", "terrain-core:central-water-plants", "water", "support", true, "water", "lily_large.glb", [-4.1, 5.95], 0.48, 0.28, {
+      assetId: "accepted-nature-water-core"
+    }),
+    createPlacement("terrain-core:nature-lily-small-bank", "terrain-core:central-water-east", "water", "support", true, "water", "lily_small.glb", [-1.15, 4.75], 0.44, -0.32, {
+      assetId: "accepted-nature-water-core"
+    }),
+    createPlacement("terrain-core:shore-waterfall-rock", "terrain-core:central-water-edge", "water", "support", true, "water", "cliff_waterfall_rock.glb", [-8.95, 5.95], 0.74, 0.42, {
+      assetId: "accepted-nature-water-core"
     }),
     createPlacement("terrain-core:bridge-crossing", "terrain-core:central-crossing", "route", "primary", true, "bridge", "bridge_stoneRoundNarrow.glb", [-2.5, 3.6], 1.62, Math.PI * 0.42, {
       assetId: "accepted-nature-stone-bridge-core"
