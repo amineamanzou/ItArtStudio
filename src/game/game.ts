@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import type { ExternalAssetPreviewTelemetry } from "./asset-loader";
 import { createZoneLandmark } from "./procedural-assets";
 import {
@@ -36,11 +37,14 @@ const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 const searchParams = new URLSearchParams(window.location.search);
 const qaMode = searchParams.has("qa");
 const realKeyboardQaMode = searchParams.has("realKeys");
-const externalAssetPreviewMode = searchParams.get("assets") === "preview";
-const externalAssetMapMode = searchParams.get("assets") === "map";
-const externalAssetDisabledMode = searchParams.get("assets") === "off";
+const assetOnlyWorld = searchParams.get("world") === "asset-only" || (!qaMode && searchParams.get("world") !== "legacy");
+const requestedAssetMode = searchParams.get("assets");
+const externalAssetPreviewMode = requestedAssetMode === "preview";
+const externalAssetDisabledMode = requestedAssetMode === "off";
+const externalAssetMapMode = requestedAssetMode === "map";
 const externalAssetCoreMode = !externalAssetDisabledMode && !externalAssetPreviewMode && !externalAssetMapMode;
 const externalAssetRuntimeMode = !externalAssetDisabledMode;
+const assetOnlyPlayerPath = "assets/models/vendor/kenney/factory-kit/industrial/machine-fortified.glb";
 const playerMaxForwardSpeed = qaMode ? 12.8 : 10.5;
 const playerMaxReverseSpeed = qaMode ? 6.4 : 4.2;
 const playerAcceleration = qaMode ? 38 : 24;
@@ -285,7 +289,7 @@ const surfaceFxProfiles: Record<
   }
 };
 
-const worldTexture = createWorldTexture(colors.ground, 9);
+const worldTexture = assetOnlyWorld ? null : createWorldTexture(colors.ground, 9);
 
 type DriveKey = "up" | "down" | "left" | "right";
 
@@ -1662,8 +1666,10 @@ class StudioGame {
     this.setScene();
     this.setWorld();
     this.setPlayer();
-    this.setPlayerTrail();
-    this.setSurfaceFx();
+    if (!assetOnlyWorld) {
+      this.setPlayerTrail();
+      this.setSurfaceFx();
+    }
     this.setEvents();
     this.resize();
     this.updatePanel(defaultZone);
@@ -1696,12 +1702,14 @@ class StudioGame {
 
   private setWorld() {
     const ground = new THREE.Mesh(
-      new THREE.CircleGeometry(worldGroundRadius, 48),
+      assetOnlyWorld
+        ? new THREE.PlaneGeometry(worldSize * 1.18, worldSize * 1.18, 1, 1)
+        : new THREE.CircleGeometry(worldGroundRadius, 48),
       new THREE.MeshStandardMaterial({
-        color: 0xffffff,
+        color: assetOnlyWorld ? 0x1d3f2e : 0xffffff,
         map: worldTexture,
-        roughness: 0.86,
-        metalness: 0.05
+        roughness: assetOnlyWorld ? 0.94 : 0.86,
+        metalness: assetOnlyWorld ? 0.01 : 0.05
       })
     );
     ground.rotation.x = -Math.PI * 0.5;
@@ -1711,13 +1719,15 @@ class StudioGame {
     ground.receiveShadow = true;
     this.scene.add(ground);
 
-    this.addDistrictPlates();
-    this.addVisibleWorldBoundary();
-    this.addWorldScenery();
-    this.addRoads();
-    this.addRouteGuidance();
-    this.addLightingPools();
-    this.addWorldProps();
+    if (!assetOnlyWorld) {
+      this.addDistrictPlates();
+      this.addVisibleWorldBoundary();
+      this.addWorldScenery();
+      this.addRoads();
+      this.addRouteGuidance();
+      this.addLightingPools();
+      this.addWorldProps();
+    }
     this.addExternalAssetLayer();
 
     for (const zone of zones) {
@@ -2142,6 +2152,12 @@ class StudioGame {
     group.position.set(zone.position[0], 0, zone.position[1]);
     group.userData.zoneId = zone.id;
 
+    if (assetOnlyWorld) {
+      this.zoneMeshes.set(zone.id, group);
+      this.scene.add(group);
+      return;
+    }
+
     const accent = colors[zone.kind];
     const base = new THREE.Mesh(
       new THREE.CylinderGeometry(zone.radius, zone.radius * 1.08, 0.22, zone.kind === "studio" ? 10 : 7),
@@ -2404,6 +2420,11 @@ class StudioGame {
   }
 
   private setPlayer() {
+    if (assetOnlyWorld) {
+      this.setAssetOnlyPlayer();
+      return;
+    }
+
     const bodyMaterial = new THREE.MeshStandardMaterial({
       color: 0xfff2b0,
       roughness: 0.45,
@@ -2519,6 +2540,44 @@ class StudioGame {
     this.player.rotation.y = Math.PI;
     this.player.position.copy(this.playerPosition);
     this.scene.add(this.player);
+  }
+
+  private setAssetOnlyPlayer() {
+    this.player.rotation.y = Math.PI;
+    this.player.position.copy(this.playerPosition);
+    this.scene.add(this.player);
+
+    const loader = new GLTFLoader();
+    const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+    loader.load(
+      `${base}${assetOnlyPlayerPath}`,
+      (gltf) => {
+        const visual = gltf.scene;
+        visual.name = "vendor-player:machine-fortified";
+        const box = new THREE.Box3().setFromObject(visual);
+        const center = new THREE.Vector3();
+        const size = new THREE.Vector3();
+        box.getCenter(center);
+        box.getSize(size);
+        const maxSize = Math.max(size.x, size.y, size.z, 0.001);
+        visual.position.sub(center);
+        visual.position.y += 0.5;
+        visual.scale.setScalar(1.18 / maxSize);
+        visual.traverse((child) => {
+          child.userData.playerPart = true;
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            this.playerPartCount += 1;
+          }
+        });
+        this.player.add(visual);
+      },
+      undefined,
+      (error) => {
+        console.warn("Unable to load vendor player asset", error);
+      }
+    );
   }
 
   private setPlayerTrail() {
@@ -3501,6 +3560,9 @@ class StudioGame {
   }
 
   private emitTrail(previousPosition: THREE.Vector3, travel: THREE.Vector3) {
+    if (assetOnlyWorld || this.trailMarks.length === 0) {
+      return;
+    }
     const distance = travel.length();
     if (distance <= 0.001) {
       return;
@@ -3540,6 +3602,9 @@ class StudioGame {
   }
 
   private emitSurfaceFx(position: THREE.Vector3, material: WorldMaterialSample, speed: number) {
+    if (assetOnlyWorld || this.surfaceFxMarks.length === 0) {
+      return;
+    }
     if (material.kind !== "water" && material.kind !== "ramp") {
       return;
     }

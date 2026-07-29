@@ -599,10 +599,25 @@ function createCorePlacementSpecs(): MapPlacementSpec[] {
   const corePlacementIds = new Set([
     "route:studio-crossing-road-proof",
     "route:spine-contact-gate:bridge",
+    "route:outer-north-canal-road",
+    "route:outer-south-mail-road",
     "route:outer-east-art-edge",
     "water:tech-harbor",
+    "water:studio-crossing-proof",
+    "water:art-lagoon",
+    "water:studio-canal",
+    "water:east-material-pond",
     "relief:tech-ridge",
+    "relief:studio-crossing-proof",
+    "relief:art-mound",
+    "relief:harbor-cut",
     "vegetation:studio-oak",
+    "vegetation:studio-crossing-proof",
+    "vegetation:tech-tree",
+    "vegetation:art-palm",
+    "vegetation:foundry-tree",
+    "vegetation:north-tree",
+    "vegetation:outer-east-reflection-palm",
     "hero:cloud-dock:control-machine",
     "hero:cloud-dock:pipe-spine",
     "hero:cloud-dock:rack-core",
@@ -610,22 +625,34 @@ function createCorePlacementSpecs(): MapPlacementSpec[] {
     "hero:design-atelier:atelier-floor",
     "hero:design-atelier:cloth-line",
     "hero:design-atelier:cutting-table",
-    "hero:design-atelier:swatch-crate",
+    "hero:design-atelier:fabric-crane",
+    "hero:design-atelier:reference-screen",
     "hero:observability-tower:structure-window",
     "hero:observability-tower:metric-console",
     "hero:observability-tower:signal-pylon",
-    "hero:observability-tower:screen-wall"
+    "hero:observability-tower:screen-wall",
+    "hero:observability-tower:data-pipe"
   ]);
   for (const placementId of manifest.corePromotion?.requiredPlacementIds ?? []) {
     corePlacementIds.add(placementId);
   }
 
-  return createMapPlacementSpecs().filter((spec) => corePlacementIds.has(spec.id));
+  return createMapPlacementSpecs()
+    .filter((spec) => corePlacementIds.has(spec.id))
+    .map((spec) =>
+      spec.curation === "context"
+        ? {
+            ...spec,
+            curation: "support",
+            promotionCandidate: true
+          }
+        : spec
+    );
 }
 
 function createRoutePlacementSpecs(): MapPlacementSpec[] {
   const roadFiles = ["road-straight.glb", "road-curve.glb", "road-intersection.glb", "road-roundabout.glb", "road-split.glb"];
-  const edgeFiles = ["light-square.glb", "light-curved.glb", "construction-cone.glb", "construction-barrier.glb"];
+  const edgeFiles = ["light-square.glb", "light-curved.glb", "bridge-pillar.glb", "tile-slant.glb"];
   const bridgeFiles = ["bridge_wood.glb", "path_wood.glb"];
 
   return [
@@ -980,6 +1007,11 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "cloud-dock",
       heroRole: "data-conveyor"
+    }),
+    createPlacement("hero:cloud-dock:connection-pipe", "hero:cloud-dock:connection-pipe", "route", "context", false, "hero-location", "machine-connection-pipe.glb", [-13.95, -25.35], 1.16, Math.PI * 0.2, {
+      assetId: "accepted-factory-industrial-core",
+      heroLocation: "cloud-dock",
+      heroRole: "connection-pipe"
     }),
     createPlacement("hero:design-atelier:atelier-floor", "hero:design-atelier", "route", "primary", true, "hero-location", "floor-large.glb", [20.35, -9.05], 1.8, Math.PI * 0.58, {
       assetId: "accepted-factory-industrial-core",

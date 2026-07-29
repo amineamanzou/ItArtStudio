@@ -8,7 +8,7 @@
     "acceptedTextureMaxKb": 4096,
     "heroLocationModelBudget": 16,
     "heroLocationTextureBudget": 10,
-    "rendererTextureCap": 32,
+    "rendererTextureCap": 34,
     "rendererTriangleCap": 110000,
     "acceptedModelTriangleTarget": 8000
   },

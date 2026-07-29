@@ -239,9 +239,9 @@ Baseline actuelle:
   kit local IT Art Studio;
 - modeles runtime acceptes: routes, route-edge, ponts, eau, relief,
   vegetation;
-- collection signature locale IT Art Studio: 15 GLB custom pour les lieux hero,
-  soit 1025.3 KB / 25 508 triangles repartis entre 9 ancres signature, 3
-  pieces d'environnement et 3 silhouettes premium V9.3;
+- les anciennes collections GLB locales generees pour les signatures et les
+  coutures terrain sont retirees du runtime et du depot; elles ne doivent pas
+  revenir comme raccourci de production;
 - textures runtime acceptees et promues: route, vegetation/open-field, eau,
   relief et pads distinctifs pour les trois hero locations;
 - runtime public: couche GLB `core` curatee par defaut, avec `?assets=off` pour
@@ -259,6 +259,9 @@ Baseline actuelle:
   verifier la continuite terrain sans dependance au HUD;
 - chaque fichier runtime doit rester declare dans le manifest et passer
   `npm run assets:validate`.
+- depuis V10.3, le chemin public sans `?qa` est asset-only strict: pas de
+  plaques/halos/routes/props proceduraux visibles, pas de traces au sol
+  generees, et un joueur public charge depuis un GLB vendor existant.
 
 ## Phase 2 - Pipeline GLB/glTF
 
@@ -313,6 +316,9 @@ Baseline actuelle:
   generees par six pieces Kenney Nature Kit deja telechargees; le seuil courant
   est 128 placements map, 68 fichiers uniques et un plafond renderer maintenu a
   `110000` triangles, sans augmenter `worldSize`.
+- V10.3 retire le rendu procedural de la page publique par defaut. La prochaine
+  boucle doit donc enrichir la carte par collecte de vraies textures et assets,
+  pas en reactiver les formes generees.
 
 ## Phase 4 - Trois Hero Locations
 
@@ -350,6 +356,9 @@ Definition of done:
 - chaque lieu garde un plan clair en vue rapprochee;
 - les assets proceduraux generiques sont remplaces ou reduits;
 - chaque lieu passe une capture QA dediee.
+- le prochain asset prioritaire cote gameplay est un vrai vehicule GLB/glTF
+  CC0 ou licence simple; aucun vehicule assemble en primitives Three.js ne doit
+  etre promu comme rendu public.
 
 ## Phase 5 - Reduction Du Bruit
 

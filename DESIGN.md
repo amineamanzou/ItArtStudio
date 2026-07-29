@@ -1539,6 +1539,23 @@ Gates V10.2:
   retrouver une base saine: bibliotheque telechargee, textures/GLB licencies,
   QA bloquante, puis prochaine boucle de collecte d'assets premium.
 
+Gates V10.3:
+
+- le runtime public sans `?qa` bascule en mode `asset-only`: les plaques de
+  zones, routes procedurales, props proceduraux, halos, marqueurs, traces au sol
+  et FX de surface sont retires du chemin visible par defaut;
+- le sol public n'utilise plus la texture canvas generee qui ressemblait a des
+  traces de pneus; il redevient une base mate et neutre en attendant de vraies
+  textures terrain telechargees;
+- le joueur public n'est plus une carrosserie construite en `BoxGeometry`,
+  `CylinderGeometry` et `ConeGeometry`; il charge un GLB vendor existant tant
+  qu'un vrai pack vehicule CC0 n'est pas integre;
+- les cones et barrieres Kenney restent disponibles dans la bibliotheque mais
+  ne sont plus selectionnes dans les placements runtime;
+- le mode legacy/procedural reste accessible via `?qa` ou `?world=legacy`
+  uniquement pour les comparaisons et les gates historiques, pas comme rendu
+  public de reference.
+
 ## Components
 
 - `game-site`: surface principale.
