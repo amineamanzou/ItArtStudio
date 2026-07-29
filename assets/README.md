@@ -90,6 +90,9 @@ Public terrain-first runtime:
   It must prove a downloaded GLB vehicle, downloaded terrain textures, visible
   center wetland assets, four outer edge screenshots, and zero generated
   runtime scenery counters.
+- The public vehicle proof is semantic, not only dimensional: `race.glb` must
+  expose the downloaded Kenney mesh names `body` plus four `wheel-*` meshes in
+  the runtime QA snapshot.
 - V13.5 expands the playable shell to 112 units and proves 167 public
   placements across roughly 105x105 units of coverage. The edge placements
   deliberately avoid road/path plates and block-like cliff chunks; downloaded

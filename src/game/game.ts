@@ -1109,6 +1109,8 @@ type QaSnapshot = {
     rotationY: number;
     meshCount: number;
     wheelCount: number;
+    vendorWheelMeshCount: number;
+    vehicleMeshNames: string[];
     asset: {
       mode: "vendor-glb" | "procedural";
       status: "not-requested" | "loading" | "loaded" | "failed";
@@ -1279,6 +1281,8 @@ class StudioGame {
   private routeEncounterMinPartsPerGate = 0;
   private motionRoleCount = 0;
   private playerPartCount = 0;
+  private playerVendorWheelMeshCount = 0;
+  private playerVehicleMeshNames: string[] = [];
   private playerAssetMode: "vendor-glb" | "procedural" = "procedural";
   private playerAssetStatus: "not-requested" | "loading" | "loaded" | "failed" = "not-requested";
   private playerAssetName: string | null = null;
@@ -1564,6 +1568,8 @@ class StudioGame {
       rotationY: 0,
       meshCount: 0,
       wheelCount: 0,
+      vendorWheelMeshCount: 0,
+      vehicleMeshNames: [],
       asset: {
         mode: "procedural",
         status: "not-requested",
@@ -2746,6 +2752,8 @@ class StudioGame {
     this.playerAssetStatus = "loaded";
     this.playerAssetName = "legacy-procedural-rover";
     this.playerAssetPath = null;
+    this.playerVendorWheelMeshCount = 0;
+    this.playerVehicleMeshNames = [];
 
     const bodyMaterial = new THREE.MeshStandardMaterial({
       color: 0xfff2b0,
@@ -2869,6 +2877,8 @@ class StudioGame {
     this.playerAssetStatus = "loading";
     this.playerAssetName = assetOnlyPlayerName;
     this.playerAssetPath = assetOnlyPlayerPath;
+    this.playerVendorWheelMeshCount = 0;
+    this.playerVehicleMeshNames = [];
     this.player.rotation.y = Math.PI;
     this.player.position.copy(this.playerPosition);
     this.scene.add(this.player);
@@ -2889,14 +2899,23 @@ class StudioGame {
         visual.position.sub(center);
         visual.position.y += 0.5;
         visual.scale.setScalar(1.42 / maxSize);
+        const vehicleMeshNames = new Set<string>();
+        let vendorWheelMeshCount = 0;
         visual.traverse((child) => {
           child.userData.playerPart = true;
           if (child instanceof THREE.Mesh) {
             child.castShadow = true;
             child.receiveShadow = true;
             this.playerPartCount += 1;
+            const meshName = child.name || child.parent?.name || "unnamed-vehicle-mesh";
+            vehicleMeshNames.add(meshName);
+            if (/wheel/iu.test(meshName)) {
+              vendorWheelMeshCount += 1;
+            }
           }
         });
+        this.playerVehicleMeshNames = [...vehicleMeshNames].sort();
+        this.playerVendorWheelMeshCount = vendorWheelMeshCount;
         this.player.add(visual);
         this.playerAssetStatus = "loaded";
       },
@@ -4717,6 +4736,8 @@ class StudioGame {
       rotationY: Number(this.player.rotation.y.toFixed(3)),
       meshCount: this.playerPartCount,
       wheelCount: this.wheelParts.length,
+      vendorWheelMeshCount: this.playerVendorWheelMeshCount,
+      vehicleMeshNames: this.playerVehicleMeshNames,
       asset: {
         mode: this.playerAssetMode,
         status: this.playerAssetStatus,

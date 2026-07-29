@@ -72,6 +72,9 @@
     "qaGate": "public-asset-only-terrain-core",
     "requiredPlayerAssetId": "accepted-car-vehicle-core",
     "requiredPlayerFile": "race.glb",
+    "requiredPlayerMeshNames": ["body", "wheel-back-left", "wheel-back-right", "wheel-front-left", "wheel-front-right"],
+    "minimumPlayerMeshes": 5,
+    "minimumPlayerVendorWheelMeshes": 4,
     "requiredTerrainRoles": ["bridge", "rail", "relief", "path", "vegetation", "water"],
     "requiredAssetIds": [
       "accepted-assetquest-pond-water-core",

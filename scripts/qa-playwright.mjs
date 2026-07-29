@@ -4091,12 +4091,18 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const expectedPlayerFile = manifestPublicTerrainCore.requiredPlayerFile ?? "race.glb";
     const expectedPlayerName = `vendor-player:${expectedPlayerFile.replace(/\.glb$/u, "")}`;
     const expectedPlayerPath = `assets/models/vendor/kenney/car-kit/vehicles/${expectedPlayerFile}`;
+    const requiredPlayerMeshNames = manifestPublicTerrainCore.requiredPlayerMeshNames ?? [];
+    const missingPlayerMeshNames = requiredPlayerMeshNames.filter((meshName) => !(player?.vehicleMeshNames ?? []).includes(meshName));
+    const minimumPlayerMeshes = manifestPublicTerrainCore.minimumPlayerMeshes ?? 1;
+    const minimumPlayerVendorWheelMeshes = manifestPublicTerrainCore.minimumPlayerVendorWheelMeshes ?? 0;
     const vehicleOk =
       asset?.mode === "vendor-glb" &&
       asset.status === "loaded" &&
       asset.name === expectedPlayerName &&
       asset.path === expectedPlayerPath &&
-      player.meshCount >= 1 &&
+      player.meshCount >= minimumPlayerMeshes &&
+      (player.vendorWheelMeshCount ?? 0) >= minimumPlayerVendorWheelMeshes &&
+      missingPlayerMeshNames.length === 0 &&
       player.wheelCount === 0 &&
       player.bounds?.width >= 0.55 &&
       player.bounds?.height >= 0.3 &&
@@ -4159,6 +4165,14 @@ async function checkPublicAssetOnlyPlayer(browser) {
       pass("public-asset-only-player", {
         player,
         externalAssets,
+        vehicleProof: {
+          requiredPlayerMeshNames,
+          missingPlayerMeshNames,
+          minimumPlayerMeshes,
+          minimumPlayerVendorWheelMeshes,
+          vendorWheelMeshCount: player?.vendorWheelMeshCount ?? 0,
+          vehicleMeshNames: player?.vehicleMeshNames ?? []
+        },
         canvas: proof.canvas,
         capture: proof.relativePath
       });
@@ -4195,6 +4209,14 @@ async function checkPublicAssetOnlyPlayer(browser) {
         vehicleOk,
         terrainCoreOk,
         player,
+        vehicleProof: {
+          requiredPlayerMeshNames,
+          missingPlayerMeshNames,
+          minimumPlayerMeshes,
+          minimumPlayerVendorWheelMeshes,
+          vendorWheelMeshCount: player?.vendorWheelMeshCount ?? 0,
+          vehicleMeshNames: player?.vehicleMeshNames ?? []
+        },
         externalAssets,
         canvas: proof.canvas,
         capture: proof.relativePath,
@@ -11498,7 +11520,7 @@ async function writeReport() {
     `- Player parts: ${player?.meshCount ?? "n/a"} (${player?.wheelCount ?? "n/a"} wheels)`,
     `- Public asset-only player: ${
       publicAssetOnlyPlayerScenario?.details?.player
-        ? `${publicAssetOnlyPlayerScenario.status}, ${publicAssetOnlyPlayerScenario.details.player.asset?.name ?? "n/a"}, ${publicAssetOnlyPlayerScenario.details.player.asset?.path ?? "n/a"}, meshes ${publicAssetOnlyPlayerScenario.details.player.meshCount}, capture ${publicAssetOnlyPlayerScenario.details.capture ?? "n/a"}`
+        ? `${publicAssetOnlyPlayerScenario.status}, ${publicAssetOnlyPlayerScenario.details.player.asset?.name ?? "n/a"}, ${publicAssetOnlyPlayerScenario.details.player.asset?.path ?? "n/a"}, meshes ${publicAssetOnlyPlayerScenario.details.player.meshCount}, vendor wheels ${publicAssetOnlyPlayerScenario.details.player.vendorWheelMeshCount ?? "n/a"}, names ${(publicAssetOnlyPlayerScenario.details.player.vehicleMeshNames ?? []).join("/") || "n/a"}, capture ${publicAssetOnlyPlayerScenario.details.capture ?? "n/a"}`
         : (publicAssetOnlyPlayerScenario?.status ?? "n/a")
     }`,
     `- Public terrain core: ${
