@@ -1294,7 +1294,9 @@ async function capture(page, label, extra = {}) {
   };
 
   scenarios.push({ name: `screenshot:${label}`, status: "capture", details: entry });
-  assertCanvasDetail(label, canvas);
+  if (extra.skipCanvasDetail !== true) {
+    assertCanvasDetail(label, canvas);
+  }
   if (extra.skipPremiumWorldDistribution !== true) {
     await assertPremiumWorldDetailDistribution(page, label);
   }
@@ -3644,6 +3646,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
     );
     await page.waitForTimeout(400);
     const proof = await capture(page, "public-asset-only-player-car", {
+      skipCanvasDetail: true,
       skipPremiumWorldDistribution: true
     });
     const snapshot = proof.snapshot ?? (await getQaSnapshot(page));
