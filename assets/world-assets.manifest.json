@@ -66,15 +66,16 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v116",
+    "id": "public-terrain-core-v117",
     "phase": "public-terrain-first-runtime",
-    "purpose": "Prove the public asset-only world as terrain before bases: downloaded car, vendor field/path/relief/water-edge textures and GLB shoreline/crossing roles for bridge, rail, water, relief and vegetation with no generated decorative primitives or hero/factory clutter.",
+    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor field/path/relief/water-edge textures and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
     "requiredPlayerAssetId": "accepted-car-vehicle-core",
     "requiredPlayerFile": "sedan-sports.glb",
     "requiredTerrainRoles": ["bridge", "rail", "relief", "path", "vegetation", "water"],
     "requiredAssetIds": [
       "accepted-assetquest-pond-water-core",
+      "accepted-nature-bridge-core",
       "accepted-nature-water-core",
       "accepted-nature-relief-core",
       "accepted-nature-stone-bridge-core",
@@ -85,14 +86,31 @@
     ],
     "requiredFiles": [
       "bridge_stoneRoundNarrow.glb",
+      "bridge_wood.glb",
+      "bridge_woodNarrow.glb",
       "pond-2.glb",
+      "pond-3.glb",
+      "pond-4.glb",
+      "cattail-1.glb",
+      "water-hyacinth-1.glb",
       "cliff_waterfall_rock.glb",
       "lily_large.glb",
+      "lily_small.glb",
       "rock_09_1k.gltf",
+      "cliff_half_rock.glb",
+      "cliff_blockSlope_rock.glb",
+      "rock_largeC.glb",
       "rock_largeE.glb",
+      "rock_tallA.glb",
       "sedan-sports.glb",
       "fern_02_1k.gltf",
       "track-detailed.glb",
+      "track-rail.glb",
+      "track.glb",
+      "plant_bushLarge.glb",
+      "tree_detailed.glb",
+      "tree_palm.glb",
+      "log.glb",
       "tree_oak.glb"
     ],
     "forbiddenFiles": [
@@ -116,15 +134,15 @@
       "top-large-checkerboard.glb",
       "tree_cone.glb"
     ],
-    "minimumPlacements": 39,
-    "minimumUniqueFiles": 31,
+    "minimumPlacements": 62,
+    "minimumUniqueFiles": 42,
     "minimumRolePlacements": {
-      "route": 4,
-      "water": 9,
-      "relief": 8,
-      "vegetation": 12
+      "route": 9,
+      "water": 16,
+      "relief": 13,
+      "vegetation": 19
     },
-    "minimumCoverage": { "width": 18, "depth": 12 },
+    "minimumCoverage": { "width": 78, "depth": 78 },
     "requiredTerrainMaterialRoles": ["field", "path", "relief", "water"],
     "requiredTerrainTextureFiles": [
       "assets/textures/vendor/polyhaven/forrest_ground_01/forrest_ground_01_diff_1k.jpg",
@@ -139,7 +157,7 @@
     "maximumHeroLocationPlacements": 0,
     "allowedGeneratedSubstrate": "single terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief/water-edge material; visible public decor must come from downloaded vendor GLB/glTF.",
     "fallback": "If a terrain GLB fails, omit that placement and keep the public world sparse rather than replacing it with a generated rectangle, cone, halo, plate or abstract primitive.",
-    "nextAction": "Source stronger terrain packs before expanding the public map beyond this proof core; do not densify Cloud Dock, Design Atelier or Observability Tower until this terrain gate stays green."
+    "nextAction": "Review the wider public terrain screenshots for asset readability, then source stronger terrain packs for roads, shoreline and authored relief before densifying Cloud Dock, Design Atelier or Observability Tower."
   },
   "publicTerrainMaterialCore": {
     "id": "polyhaven-terrain-material-v112",

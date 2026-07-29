@@ -864,7 +864,79 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     createPlacement("terrain-core:south-rock", "terrain-core:south-marker", "relief", "support", true, "relief", "rock_largeD.glb", [4.55, 8.85], 0.88, -0.36),
     createPlacement("terrain-core:north-bush", "terrain-core:north-marker", "vegetation", "support", true, "vegetation", "plant_bushLarge.glb", [10.6, 8.35], 0.98, 0.12),
     createPlacement("terrain-core:north-tree-detailed", "terrain-core:north-marker", "vegetation", "support", true, "vegetation", "tree_detailed.glb", [12.35, 6.4], 1.18, -0.22),
-    createPlacement("terrain-core:north-rock", "terrain-core:north-marker", "relief", "support", true, "relief", "rock_largeE.glb", [12.1, 10.2], 0.86, 0.24)
+    createPlacement("terrain-core:north-rock", "terrain-core:north-marker", "relief", "support", true, "relief", "rock_largeE.glb", [12.1, 10.2], 0.86, 0.24),
+    createPlacement("terrain-core:outer-rail-cloud-edge", "terrain-core:outer-rail-cloud", "route", "support", true, "rail", "track-segment.glb", [-28.2, -18.2], 1.1, -0.16, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("terrain-core:outer-rail-art-edge", "terrain-core:outer-rail-art", "route", "support", true, "rail", "track-rail.glb", [28.8, 18.0], 1.08, Math.PI * 0.68, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("terrain-core:outer-rail-north-marker", "terrain-core:outer-rail-north", "route", "support", true, "rail", "track.glb", [1.8, 39.8], 1.06, Math.PI * 0.12, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("terrain-core:outer-water-west-pond", "terrain-core:outer-water-west", "water", "support", true, "water", "pond-3.glb", [-37.2, 30.4], 2.15, 0.22, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:outer-water-west-cattail", "terrain-core:outer-water-west", "water", "support", true, "water", "cattail-1.glb", [-35.8, 32.0], 0.66, -0.34, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:outer-water-west-lily", "terrain-core:outer-water-west", "water", "support", true, "water", "water-lily-leaf-1.glb", [-38.4, 31.35], 0.46, 0.12, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:outer-water-east-pond", "terrain-core:outer-water-east", "water", "support", true, "water", "pond-4.glb", [36.8, -35.2], 2.0, -0.18, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:outer-water-east-hyacinth", "terrain-core:outer-water-east", "water", "support", true, "water", "water-hyacinth-1.glb", [38.2, -33.8], 0.54, 0.28, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:far-west-waterfall-rock", "terrain-core:far-west-water", "water", "support", true, "water", "cliff_waterfall_rock.glb", [-43.6, -7.8], 1.12, Math.PI * 0.5, {
+      assetId: "accepted-nature-water-core"
+    }),
+    createPlacement("terrain-core:far-east-lily-marker", "terrain-core:far-east-water", "water", "support", true, "water", "lily_small.glb", [43.2, 13.5], 0.92, -0.2, {
+      assetId: "accepted-nature-water-core"
+    }),
+    createPlacement("terrain-core:outer-bridge-west-crossing", "terrain-core:outer-bridge-west", "route", "support", true, "bridge", "bridge_wood.glb", [-35.4, 28.4], 1.4, Math.PI * 0.38, {
+      assetId: "accepted-nature-bridge-core"
+    }),
+    createPlacement("terrain-core:outer-bridge-east-crossing", "terrain-core:outer-bridge-east", "route", "support", true, "bridge", "bridge_woodNarrow.glb", [34.6, -33.4], 1.28, Math.PI * 0.6, {
+      assetId: "accepted-nature-bridge-core"
+    }),
+    createPlacement("terrain-core:far-north-relief-half", "terrain-core:far-north-relief", "relief", "support", true, "relief", "cliff_half_rock.glb", [-6.6, 44.4], 1.18, -0.1, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:far-south-relief-large", "terrain-core:far-south-relief", "relief", "support", true, "relief", "rock_largeC.glb", [7.8, -44.0], 1.16, 0.14, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:far-west-relief-corner", "terrain-core:far-west-relief", "relief", "support", true, "relief", "cliff_corner_rock.glb", [-44.2, -10.8], 1.14, 0.1, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:far-east-relief-slope", "terrain-core:far-east-relief", "relief", "support", true, "relief", "cliff_blockSlope_rock.glb", [44.2, 12.4], 1.16, -0.18, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:outer-east-relief-tall", "terrain-core:outer-east-relief", "relief", "support", true, "relief", "rock_tallA.glb", [36.4, 23.7], 1.18, -0.16, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:far-north-oak", "terrain-core:far-north-vegetation", "vegetation", "support", true, "vegetation", "tree_oak.glb", [-2.8, 43.6], 1.22, -0.18, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:far-south-grass", "terrain-core:far-south-vegetation", "vegetation", "support", true, "vegetation", "grass_large.glb", [12.4, -43.4], 1.14, 0.12, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:outer-west-bush", "terrain-core:outer-west-vegetation", "vegetation", "support", true, "vegetation", "plant_bushLarge.glb", [-35.8, -24.4], 1.1, -0.1, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:outer-east-palm", "terrain-core:outer-east-vegetation", "vegetation", "support", true, "vegetation", "tree_palm.glb", [35.6, 27.6], 1.22, 0.32, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:outer-south-log", "terrain-core:outer-south-vegetation", "vegetation", "support", true, "vegetation", "log.glb", [-21.4, -35.6], 1.0, Math.PI * 0.24, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:outer-north-tree-detailed", "terrain-core:outer-north-vegetation", "vegetation", "support", true, "vegetation", "tree_detailed.glb", [18.8, 35.7], 1.2, -0.28, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:outer-west-fern", "terrain-core:outer-west-vegetation", "vegetation", "support", true, "vegetation", "fern_02_1k.gltf", [-33.4, -22.4], 0.76, 0.18, {
+      assetId: "accepted-polyhaven-fern-core"
+    })
   ];
 }
 
