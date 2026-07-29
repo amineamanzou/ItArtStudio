@@ -1234,6 +1234,46 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     }),
     createPlacement("terrain-core:bank-southeast-grass", "terrain-core:bank-southeast", "vegetation", "support", true, "vegetation", "grass_large.glb", [35.0, -41.4], 0.86, -0.12, {
       assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:north-meadow-boardwalk-corner", "terrain-core:north-meadow-wayfinding", "route", "support", true, "bridge", "path_woodCorner.glb", [8.4, 36.8], 1.04, Math.PI * 0.14, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.58
+    }),
+    createPlacement("terrain-core:north-meadow-rail-tie", "terrain-core:north-meadow-wayfinding", "route", "support", true, "rail", "track-single-detailed.glb", [11.4, 37.4], 0.98, Math.PI * 0.12, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("terrain-core:north-meadow-bush", "terrain-core:north-meadow-bank", "vegetation", "support", true, "vegetation", "plant_bushDetailed.glb", [7.2, 38.8], 0.86, 0.18, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:south-runoff-bridge-side", "terrain-core:south-runoff-wayfinding", "route", "support", true, "bridge", "bridge_side_wood.glb", [-21.8, -38.8], 0.92, Math.PI * 0.66, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.56
+    }),
+    createPlacement("terrain-core:south-runoff-rail-detailed", "terrain-core:south-runoff-wayfinding", "route", "support", true, "rail", "track-detailed.glb", [-18.6, -39.8], 1.0, Math.PI * 0.64, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("terrain-core:south-runoff-cliff-step", "terrain-core:south-runoff-relief", "relief", "support", true, "relief", "cliff_steps_rock.glb", [-16.8, -37.2], 0.92, -0.24, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:west-wetland-pond-four", "terrain-core:west-wetland-wayfinding", "water", "support", true, "water", "pond-4.glb", [-40.6, 25.2], 1.34, 0.2, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:west-wetland-boardwalk-corner", "terrain-core:west-wetland-wayfinding", "route", "support", true, "bridge", "path_woodCorner.glb", [-38.8, 25.0], 0.92, Math.PI * 0.4, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.58
+    }),
+    createPlacement("terrain-core:west-wetland-hanging-moss", "terrain-core:west-wetland-bank", "vegetation", "support", true, "vegetation", "hanging_moss.glb", [-35.8, 26.4], 0.72, -0.18, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:east-ridge-stone-bridge", "terrain-core:east-ridge-wayfinding", "route", "support", true, "bridge", "bridge_stoneRoundNarrow.glb", [38.4, -29.6], 1.08, Math.PI * 0.58, {
+      assetId: "accepted-nature-stone-bridge-core",
+      groundClearance: 0.56
+    }),
+    createPlacement("terrain-core:east-ridge-water-lily", "terrain-core:east-ridge-water", "water", "support", true, "water", "lily_small.glb", [40.2, -30.7], 0.48, 0.24, {
+      assetId: "accepted-nature-water-core"
+    }),
+    createPlacement("terrain-core:east-ridge-cliff-top", "terrain-core:east-ridge-relief", "relief", "support", true, "relief", "cliff_top_rock.glb", [42.8, -29.4], 0.9, -0.18, {
+      assetId: "accepted-nature-relief-core"
     })
   ];
 }
