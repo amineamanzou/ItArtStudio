@@ -3696,15 +3696,18 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const requiredFiles = (manifestPublicTerrainCore.requiredFiles ?? []).filter(
       (file) => file !== (manifestPublicTerrainCore.requiredPlayerFile ?? "sedan-sports.glb")
     );
+    const requiredPlacementIds = manifestPublicTerrainCore.requiredPlacementIds ?? [];
     const forbiddenFiles = manifestPublicTerrainCore.forbiddenFiles ?? [];
     const minimumRolePlacements = manifestPublicTerrainCore.minimumRolePlacements ?? {};
     const minimumCoverage = manifestPublicTerrainCore.minimumCoverage ?? { width: 0, depth: 0 };
+    const minimumCoverageArea = manifestPublicTerrainCore.minimumCoverageArea ?? 0;
     const requiredTerrainMaterialRoles = manifestPublicTerrainCore.requiredTerrainMaterialRoles ?? [];
     const requiredTerrainTextureFiles = manifestPublicTerrainCore.requiredTerrainTextureFiles ?? [];
     const availableTerrainRoles = new Set([...(externalAssets?.terrainRoles ?? []), ...(snapshot?.world?.mapTextureRoles ?? [])]);
     const missingTerrainRoles = requiredTerrainRoles.filter((role) => !availableTerrainRoles.has(role));
     const missingAssetIds = requiredAssetIds.filter((assetId) => !externalAssets?.assetIds?.includes(assetId));
     const missingFiles = requiredFiles.filter((file) => !externalAssets?.placementFiles?.includes(file));
+    const missingPlacementIds = requiredPlacementIds.filter((placementId) => !externalAssets?.placementIds?.includes(placementId));
     const missingTerrainMaterialRoles = requiredTerrainMaterialRoles.filter((role) => !snapshot?.world?.mapTextureRoles?.includes(role));
     const missingTerrainTextureFiles = requiredTerrainTextureFiles.filter(
       (file) => !snapshot?.world?.mapTextureUrls?.some((url) => url.endsWith(file))
@@ -3759,6 +3762,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
       missingTerrainRoles.length === 0 &&
       missingAssetIds.length === 0 &&
       missingFiles.length === 0 &&
+      missingPlacementIds.length === 0 &&
       forbiddenPlacementFiles.length === 0 &&
       forbiddenPublicPaths.length === 0 &&
       missingRolePlacementCounts.length === 0 &&
@@ -3773,6 +3777,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
       externalAssets.actualCoplanarRiskPlacements === 0 &&
       externalAssets.mapCoverageWidth >= minimumCoverage.width &&
       externalAssets.mapCoverageDepth >= minimumCoverage.depth &&
+      externalAssets.mapCoverageArea >= minimumCoverageArea &&
       terrainShellOk &&
       (externalAssets.errors?.length ?? 0) === 0;
     const ok = vehicleOk && terrainCoreOk;
@@ -3790,6 +3795,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
         requiredTerrainRoles,
         requiredAssetIds,
         requiredFiles,
+        requiredPlacementIds,
         forbiddenFiles,
         terrainShell: {
           terrainLayers: snapshot?.world?.terrainLayers,
@@ -3823,6 +3829,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
           missingTerrainRoles,
           missingAssetIds,
           missingFiles,
+          missingPlacementIds,
           missingTerrainMaterialRoles,
           missingTerrainTextureFiles,
           forbiddenPlacementFiles,

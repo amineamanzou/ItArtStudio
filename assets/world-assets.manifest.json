@@ -113,6 +113,28 @@
       "log.glb",
       "tree_oak.glb"
     ],
+    "requiredPlacementIds": [
+      "terrain-core:outer-rail-cloud-edge",
+      "terrain-core:outer-rail-art-edge",
+      "terrain-core:outer-rail-north-marker",
+      "terrain-core:outer-water-west-pond",
+      "terrain-core:outer-water-west-cattail",
+      "terrain-core:outer-water-east-pond",
+      "terrain-core:outer-water-east-hyacinth",
+      "terrain-core:far-west-waterfall-rock",
+      "terrain-core:far-east-lily-marker",
+      "terrain-core:outer-bridge-west-crossing",
+      "terrain-core:outer-bridge-east-crossing",
+      "terrain-core:far-north-relief-half",
+      "terrain-core:far-south-relief-large",
+      "terrain-core:far-west-relief-corner",
+      "terrain-core:far-east-relief-slope",
+      "terrain-core:far-north-oak",
+      "terrain-core:far-south-grass",
+      "terrain-core:outer-west-bush",
+      "terrain-core:outer-east-palm",
+      "terrain-core:outer-north-tree-detailed"
+    ],
     "forbiddenFiles": [
       "box-long.glb",
       "box-wide.glb",
@@ -143,6 +165,7 @@
       "vegetation": 19
     },
     "minimumCoverage": { "width": 78, "depth": 78 },
+    "minimumCoverageArea": 6500,
     "requiredTerrainMaterialRoles": ["field", "path", "relief", "water"],
     "requiredTerrainTextureFiles": [
       "assets/textures/vendor/polyhaven/forrest_ground_01/forrest_ground_01_diff_1k.jpg",
