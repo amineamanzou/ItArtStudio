@@ -65,6 +65,56 @@
     "fallback": "If any vendor anchor fails or disappears in QA, keep the rest of the downloaded vendor core and demote the failing placement until a better library asset is sourced.",
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
+  "publicTerrainCore": {
+    "id": "public-terrain-core-v111",
+    "phase": "public-terrain-first-runtime",
+    "purpose": "Prove the public asset-only world as terrain before bases: downloaded car, vendor ground texture and GLB roles for road, bridge, rail, water, relief and vegetation with no generated decorative primitives or hero/factory clutter.",
+    "qaGate": "public-asset-only-terrain-core",
+    "requiredPlayerAssetId": "accepted-car-vehicle-core",
+    "requiredPlayerFile": "sedan-sports.glb",
+    "requiredTerrainRoles": ["bridge", "rail", "relief", "road", "vegetation", "water"],
+    "requiredAssetIds": [
+      "accepted-assetquest-pond-water-core",
+      "accepted-city-road-core",
+      "accepted-nature-relief-core",
+      "accepted-nature-stone-bridge-core",
+      "accepted-nature-vegetation-core",
+      "accepted-train-rail-core"
+    ],
+    "requiredFiles": [
+      "bridge_stoneRoundNarrow.glb",
+      "pond-2.glb",
+      "road-curve.glb",
+      "road-straight.glb",
+      "rock_largeE.glb",
+      "sedan-sports.glb",
+      "track-detailed.glb",
+      "tree_oak.glb"
+    ],
+    "forbiddenFiles": [
+      "box-long.glb",
+      "box-wide.glb",
+      "construction-cone.glb",
+      "floor-large.glb",
+      "top-large.glb",
+      "top-large-checkerboard.glb",
+      "tree_cone.glb"
+    ],
+    "minimumPlacements": 32,
+    "minimumUniqueFiles": 24,
+    "minimumRolePlacements": {
+      "route": 7,
+      "water": 6,
+      "relief": 8,
+      "vegetation": 12
+    },
+    "minimumCoverage": { "width": 18, "depth": 12 },
+    "maximumNonHeroClusterDensity": 4,
+    "maximumHeroLocationPlacements": 0,
+    "allowedGeneratedSubstrate": "single textured ground mesh only; visible public decor must come from downloaded vendor GLB/glTF or downloaded vendor textures.",
+    "fallback": "If a terrain GLB fails, omit that placement and keep the public world sparse rather than replacing it with a generated rectangle, cone, halo, plate or abstract primitive.",
+    "nextAction": "Source stronger terrain packs before expanding the public map beyond this proof core; do not densify Cloud Dock, Design Atelier or Observability Tower until this terrain gate stays green."
+  },
   "terrainShell": {
     "id": "expanded-empty-map-shell-v97",
     "phase": "map-shell-expansion",

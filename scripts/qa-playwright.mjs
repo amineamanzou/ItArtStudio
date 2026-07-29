@@ -93,6 +93,7 @@ const manifestAssetDetailRequiredPlacementIds = manifestAssetDetailWave.required
 const manifestTerrainTransitionWave = worldAssetManifest.terrainTransitionWave ?? {};
 const manifestTerrainTransitionRequiredFiles = manifestTerrainTransitionWave.requiredFiles ?? [];
 const manifestTerrainTransitionRequiredPlacementIds = manifestTerrainTransitionWave.requiredPlacementIds ?? [];
+const manifestPublicTerrainCore = worldAssetManifest.publicTerrainCore ?? {};
 const forbiddenGeneratedAssetPathSegment = "/assets/models/local/itart-signature-kit/";
 const manifestMapExpansionKitRoles = [
   ...new Set(manifestMapExpansionKits.flatMap((kit) => kit.requiredTerrainRoles ?? []))
@@ -3667,7 +3668,11 @@ async function checkPublicAssetOnlyPlayer(browser) {
       () =>
         document.documentElement.dataset.gameState === "ready" &&
         window.__IT_ART_STUDIO_QA__?.ready === true &&
-        ["loaded", "failed"].includes(window.__IT_ART_STUDIO_QA__?.player?.asset?.status),
+        ["loaded", "failed"].includes(window.__IT_ART_STUDIO_QA__?.player?.asset?.status) &&
+        window.__IT_ART_STUDIO_QA__?.externalAssets?.enabled === true &&
+        window.__IT_ART_STUDIO_QA__?.externalAssets?.mode === "core" &&
+        window.__IT_ART_STUDIO_QA__?.externalAssets?.requested > 0 &&
+        window.__IT_ART_STUDIO_QA__?.externalAssets?.loaded >= window.__IT_ART_STUDIO_QA__?.externalAssets?.requested,
       { timeout: 24_000 }
     );
     await page.waitForTimeout(400);
@@ -3678,7 +3683,39 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const snapshot = proof.snapshot ?? (await getQaSnapshot(page));
     const player = snapshot?.player;
     const asset = player?.asset;
-    const ok =
+    const externalAssets = snapshot?.externalAssets;
+    const requiredTerrainRoles = manifestPublicTerrainCore.requiredTerrainRoles ?? [
+      "bridge",
+      "rail",
+      "relief",
+      "road",
+      "vegetation",
+      "water"
+    ];
+    const requiredAssetIds = manifestPublicTerrainCore.requiredAssetIds ?? [];
+    const requiredFiles = (manifestPublicTerrainCore.requiredFiles ?? []).filter(
+      (file) => file !== (manifestPublicTerrainCore.requiredPlayerFile ?? "sedan-sports.glb")
+    );
+    const forbiddenFiles = manifestPublicTerrainCore.forbiddenFiles ?? [];
+    const minimumRolePlacements = manifestPublicTerrainCore.minimumRolePlacements ?? {};
+    const minimumCoverage = manifestPublicTerrainCore.minimumCoverage ?? { width: 0, depth: 0 };
+    const missingTerrainRoles = requiredTerrainRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
+    const missingAssetIds = requiredAssetIds.filter((assetId) => !externalAssets?.assetIds?.includes(assetId));
+    const missingFiles = requiredFiles.filter((file) => !externalAssets?.placementFiles?.includes(file));
+    const forbiddenPlacementFiles = forbiddenFiles.filter((file) => externalAssets?.placementFiles?.includes(file));
+    const forbiddenPublicPaths = (externalAssets?.publicPaths ?? []).filter((publicPath) => {
+      const normalized = publicPath.toLowerCase();
+      return (
+        normalized.includes(forbiddenGeneratedAssetPathSegment) ||
+        normalized.includes("/local/") ||
+        forbiddenFiles.some((file) => normalized.endsWith(`/${file.toLowerCase()}`))
+      );
+    });
+    const missingRolePlacementCounts = Object.entries(minimumRolePlacements).filter(
+      ([role, minimum]) => (externalAssets?.[`${role}LinkedPlacements`] ?? 0) < minimum
+    );
+    const forbiddenHeroPlacements = externalAssets?.heroLocationPlacements ?? 0;
+    const vehicleOk =
       asset?.mode === "vendor-glb" &&
       asset.status === "loaded" &&
       asset.name === "vendor-player:sedan-sports" &&
@@ -3689,19 +3726,70 @@ async function checkPublicAssetOnlyPlayer(browser) {
       player.bounds?.height >= 0.3 &&
       player.bounds?.depth >= 0.85 &&
       proof.canvas.ok;
+    const terrainCoreOk =
+      externalAssets?.enabled === true &&
+      externalAssets.mode === "core" &&
+      externalAssets.requested >= (manifestPublicTerrainCore.minimumPlacements ?? 0) &&
+      externalAssets.loaded >= externalAssets.requested &&
+      externalAssets.failed === 0 &&
+      externalAssets.visible >= externalAssets.requested &&
+      externalAssets.placements >= (manifestPublicTerrainCore.minimumPlacements ?? 0) &&
+      externalAssets.uniqueFiles >= (manifestPublicTerrainCore.minimumUniqueFiles ?? 0) &&
+      externalAssets.collections >= requiredAssetIds.length &&
+      missingTerrainRoles.length === 0 &&
+      missingAssetIds.length === 0 &&
+      missingFiles.length === 0 &&
+      forbiddenPlacementFiles.length === 0 &&
+      forbiddenPublicPaths.length === 0 &&
+      missingRolePlacementCounts.length === 0 &&
+      forbiddenHeroPlacements <= (manifestPublicTerrainCore.maximumHeroLocationPlacements ?? 0) &&
+      externalAssets.routeLinkedPlacements >= (minimumRolePlacements.route ?? 0) &&
+      externalAssets.waterLinkedPlacements >= (minimumRolePlacements.water ?? 0) &&
+      externalAssets.reliefLinkedPlacements >= (minimumRolePlacements.relief ?? 0) &&
+      externalAssets.vegetationLinkedPlacements >= (minimumRolePlacements.vegetation ?? 0) &&
+      (externalAssets.maxNonHeroClusterDensity ?? externalAssets.maxClusterDensity ?? 0) <=
+        (manifestPublicTerrainCore.maximumNonHeroClusterDensity ?? 4) &&
+      externalAssets.actualCoplanarRiskPlacements === 0 &&
+      externalAssets.mapCoverageWidth >= minimumCoverage.width &&
+      externalAssets.mapCoverageDepth >= minimumCoverage.depth &&
+      (externalAssets.errors?.length ?? 0) === 0;
+    const ok = vehicleOk && terrainCoreOk;
 
     if (ok) {
       pass("public-asset-only-player", {
         player,
+        externalAssets,
         canvas: proof.canvas,
         capture: proof.relativePath
       });
+      pass("public-asset-only-terrain-core", {
+        contract: manifestPublicTerrainCore,
+        externalAssets,
+        requiredTerrainRoles,
+        requiredAssetIds,
+        requiredFiles,
+        forbiddenFiles,
+        capture: proof.relativePath
+      });
     } else {
-      scenarioFail("public-asset-only-player", "Public asset-only runtime did not prove the downloaded car GLB player.", {
+      scenarioFail("public-asset-only-player", "Public asset-only runtime did not prove the downloaded car GLB player and terrain core.", {
+        vehicleOk,
+        terrainCoreOk,
         player,
+        externalAssets,
         canvas: proof.canvas,
         capture: proof.relativePath,
-        expectedPath: "assets/models/vendor/kenney/car-kit/vehicles/sedan-sports.glb"
+        expectedPath: "assets/models/vendor/kenney/car-kit/vehicles/sedan-sports.glb",
+        terrainCoreDiagnostics: {
+          contract: manifestPublicTerrainCore,
+          missingTerrainRoles,
+          missingAssetIds,
+          missingFiles,
+          forbiddenPlacementFiles,
+          forbiddenPublicPaths,
+          missingRolePlacementCounts,
+          forbiddenHeroPlacements
+        }
       });
     }
   } catch (error) {
@@ -10295,6 +10383,7 @@ async function writeReport() {
   const externalAssetPreviewScenario = scenarios.find((scenario) => scenario.name === "external-asset-preview-runtime");
   const externalAssetMapScenario = scenarios.find((scenario) => scenario.name === "external-asset-map-composition");
   const publicAssetOnlyPlayerScenario = scenarios.find((scenario) => scenario.name === "public-asset-only-player");
+  const publicTerrainCoreScenario = scenarios.find((scenario) => scenario.name === "public-asset-only-terrain-core");
   const publicNoQaAssetOnlyScenario = scenarios.find((scenario) => scenario.name === "public-noqa-asset-only-runtime");
   const heroLocationVisualOnlyScenarios = scenarios.filter((scenario) => scenario.name.startsWith("hero-location-visual-only:"));
   const heroLocationVisualOnlyHiddenLabels = heroLocationVisualOnlyScenarios
@@ -10573,6 +10662,11 @@ async function writeReport() {
       publicAssetOnlyPlayerScenario?.details?.player
         ? `${publicAssetOnlyPlayerScenario.status}, ${publicAssetOnlyPlayerScenario.details.player.asset?.name ?? "n/a"}, ${publicAssetOnlyPlayerScenario.details.player.asset?.path ?? "n/a"}, meshes ${publicAssetOnlyPlayerScenario.details.player.meshCount}, capture ${publicAssetOnlyPlayerScenario.details.capture ?? "n/a"}`
         : (publicAssetOnlyPlayerScenario?.status ?? "n/a")
+    }`,
+    `- Public terrain core: ${
+      publicTerrainCoreScenario?.details?.externalAssets
+        ? `${publicTerrainCoreScenario.status}, placements ${publicTerrainCoreScenario.details.externalAssets.placements}, unique files ${publicTerrainCoreScenario.details.externalAssets.uniqueFiles}, roles ${publicTerrainCoreScenario.details.externalAssets.terrainRoles.join("/")}, hero placements ${publicTerrainCoreScenario.details.externalAssets.heroLocationPlacements}, cluster density ${publicTerrainCoreScenario.details.externalAssets.maxNonHeroClusterDensity}, coverage ${publicTerrainCoreScenario.details.externalAssets.mapCoverageWidth}x${publicTerrainCoreScenario.details.externalAssets.mapCoverageDepth}, capture ${publicTerrainCoreScenario.details.capture ?? "n/a"}`
+        : (publicTerrainCoreScenario?.status ?? "n/a")
     }`,
     `- Public no-QA runtime: ${
       publicNoQaAssetOnlyScenario?.details

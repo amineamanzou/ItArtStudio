@@ -697,6 +697,7 @@ function createCorePlacementSpecs(): MapPlacementSpec[] {
 
 function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
   const terrainPlacementIds = new Set([
+    "route:studio-crossing-road-proof",
     "relief:studio-crossing-proof",
     "relief:studio-spine",
     "vegetation:studio-crossing-proof",
@@ -714,47 +715,71 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
 
   return [
     ...curatedTerrain,
+    createPlacement("terrain-core:spawn-road-curve", "terrain-core:spawn-road", "route", "primary", true, "road", "road-curve.glb", [3.2, -2.6], 1.34, Math.PI * 0.18, {
+      assetId: "accepted-city-road-core"
+    }),
+    createPlacement("terrain-core:spawn-road-straight", "terrain-core:spawn-road", "route", "primary", true, "road", "road-straight.glb", [6.45, -1.0], 1.36, Math.PI * 0.5, {
+      assetId: "accepted-city-road-core"
+    }),
+    createPlacement("terrain-core:spawn-road-bend", "terrain-core:spawn-road", "route", "support", true, "road", "road-split.glb", [9.45, 0.45], 1.24, Math.PI * 0.34, {
+      assetId: "accepted-city-road-core"
+    }),
+    createPlacement("terrain-core:pond-road-approach", "terrain-core:pond-approach", "route", "support", true, "road", "road-straight-half.glb", [-0.95, 2.35], 1.18, Math.PI * 0.28, {
+      assetId: "accepted-city-road-core"
+    }),
     createPlacement("terrain-core:rail-spine-a", "terrain-core:rail-spine", "route", "primary", true, "rail", "track-detailed.glb", [5.7, 0.2], 1.38, Math.PI * 0.5, {
       assetId: "accepted-train-rail-core"
     }),
     createPlacement("terrain-core:rail-spine-b", "terrain-core:rail-spine", "route", "support", true, "rail", "track-single-detailed.glb", [7.15, 0.2], 1.28, Math.PI * 0.5, {
       assetId: "accepted-train-rail-core"
     }),
+    createPlacement("terrain-core:rail-spine-c", "terrain-core:rail-spine", "route", "support", true, "rail", "track-segment.glb", [8.6, 0.2], 1.16, Math.PI * 0.5, {
+      assetId: "accepted-train-rail-core"
+    }),
     createPlacement("terrain-core:pond-basin", "terrain-core:central-water", "water", "primary", true, "water", "pond-2.glb", [-4.85, 3.05], 3.35, -0.18, {
       assetId: "accepted-assetquest-pond-water-core"
     }),
-    createPlacement("terrain-core:pond-rock-a", "terrain-core:central-water", "water", "support", true, "water", "rock-1a.glb", [-6.6, 6.3], 0.78, 0.2, {
+    createPlacement("terrain-core:pond-secondary", "terrain-core:central-water-west", "water", "support", true, "water", "pond-1.glb", [-8.75, 4.8], 2.4, 0.24, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:pond-rock-a", "terrain-core:central-water-west", "water", "support", true, "water", "rock-1a.glb", [-6.6, 6.3], 0.78, 0.2, {
       assetId: "accepted-assetquest-pond-water-core"
     }),
     createPlacement("terrain-core:pond-rock-b", "terrain-core:central-water-east", "water", "support", true, "water", "rock-2a.glb", [-2.0, 4.0], 0.72, -0.24, {
       assetId: "accepted-assetquest-pond-water-core"
     }),
-    createPlacement("terrain-core:pond-cattail", "terrain-core:central-water", "water", "support", true, "water", "cattail-1.glb", [-1.55, 5.15], 0.7, -0.2, {
+    createPlacement("terrain-core:pond-cattail", "terrain-core:central-water-plants", "water", "support", true, "water", "cattail-1.glb", [-1.55, 5.15], 0.7, -0.2, {
       assetId: "accepted-assetquest-pond-water-core"
     }),
-    createPlacement("terrain-core:pond-hyacinth", "terrain-core:central-water", "water", "support", true, "water", "water-hyacinth-1.glb", [-2.35, 4.65], 0.54, 0.36, {
+    createPlacement("terrain-core:pond-hyacinth", "terrain-core:central-water-plants", "water", "support", true, "water", "water-hyacinth-1.glb", [-2.35, 4.65], 0.54, 0.36, {
       assetId: "accepted-assetquest-pond-water-core"
     }),
-    createPlacement("terrain-core:pond-lily-leaf", "terrain-core:central-water", "water", "support", true, "water", "water-lily-leaf-1.glb", [-3.1, 5.35], 0.46, -0.12, {
+    createPlacement("terrain-core:pond-lily-leaf", "terrain-core:central-water-plants", "water", "support", true, "water", "water-lily-leaf-1.glb", [-3.1, 5.35], 0.46, -0.12, {
       assetId: "accepted-assetquest-pond-water-core"
     }),
     createPlacement("terrain-core:bridge-crossing", "terrain-core:central-crossing", "route", "primary", true, "bridge", "bridge_stoneRoundNarrow.glb", [-2.5, 3.6], 1.62, Math.PI * 0.42, {
+      assetId: "accepted-nature-stone-bridge-core"
+    }),
+    createPlacement("terrain-core:bridge-bank", "terrain-core:central-crossing-bank", "water", "support", true, "bridge", "bridge_side_stone.glb", [-6.35, 3.4], 1.08, Math.PI * 0.44, {
       assetId: "accepted-nature-stone-bridge-core"
     }),
     createPlacement("terrain-core:relief-slope", "terrain-core:central-relief", "relief", "primary", true, "relief", "rock_largeE.glb", [4.8, 6.55], 1.2, -0.2),
     createPlacement("terrain-core:relief-top", "terrain-core:central-relief", "relief", "support", true, "relief", "rock_largeA.glb", [2.3, 7.6], 1.02, 0.16),
     createPlacement("terrain-core:relief-rock", "terrain-core:central-relief", "relief", "support", true, "relief", "rock_largeD.glb", [1.1, 6.6], 1.0, 0.32),
     createPlacement("terrain-core:relief-flat-east", "terrain-core:central-relief-east", "relief", "support", true, "relief", "rock_smallFlatC.glb", [9.65, 6.55], 0.92, 0.18),
-    createPlacement("terrain-core:grass-left", "terrain-core:central-field", "vegetation", "support", true, "vegetation", "grass_leafsLarge.glb", [-8.8, 9.35], 1.08, 0.1),
+    createPlacement("terrain-core:relief-steps-north", "terrain-core:central-relief", "relief", "support", true, "relief", "cliff_steps_rock.glb", [6.55, 8.45], 1.05, -0.34),
+    createPlacement("terrain-core:relief-corner-east", "terrain-core:central-relief-east", "relief", "support", true, "relief", "cliff_corner_rock.glb", [12.15, 7.8], 0.94, 0.42),
+    createPlacement("terrain-core:grass-left", "terrain-core:central-field-west", "vegetation", "support", true, "vegetation", "grass_leafsLarge.glb", [-8.8, 9.35], 1.08, 0.1),
     createPlacement("terrain-core:tree-left", "terrain-core:central-field", "vegetation", "primary", true, "vegetation", "tree_oak.glb", [-7.2, 7.0], 1.5, -0.16),
     createPlacement("terrain-core:tree-right", "terrain-core:central-field", "vegetation", "support", true, "vegetation", "tree_fat.glb", [7.1, 5.5], 1.34, 0.22),
-    createPlacement("terrain-core:field-log", "terrain-core:central-field", "vegetation", "support", true, "vegetation", "log_stack.glb", [-4.15, 7.35], 0.92, -0.34),
+    createPlacement("terrain-core:pine-right", "terrain-core:central-field-east", "vegetation", "support", true, "vegetation", "tree_pineTallA.glb", [10.35, 4.95], 1.22, -0.3),
+    createPlacement("terrain-core:field-log", "terrain-core:central-field-west", "vegetation", "support", true, "vegetation", "log_stack.glb", [-4.15, 7.35], 0.92, -0.34),
     createPlacement("terrain-core:spawn-rock-flat", "terrain-core:spawn-clearing-east", "relief", "support", true, "relief", "rock_smallFlatC.glb", [9.9, 1.8], 0.9, -0.28),
     createPlacement("terrain-core:spawn-bush-west", "terrain-core:spawn-clearing-east", "vegetation", "support", true, "vegetation", "plant_bushDetailed.glb", [5.65, 2.75], 1.02, 0.16),
-    createPlacement("terrain-core:spawn-grass-west", "terrain-core:spawn-clearing-east", "vegetation", "support", true, "vegetation", "grass_leafsLarge.glb", [4.85, 1.05], 0.9, 0.42),
-    createPlacement("terrain-core:spawn-rock-east", "terrain-core:spawn-clearing-east", "relief", "support", true, "relief", "rock_largeE.glb", [10.9, 4.25], 1.08, 0.24),
-    createPlacement("terrain-core:spawn-stump-east", "terrain-core:spawn-clearing-east", "vegetation", "support", true, "vegetation", "stump_roundDetailed.glb", [8.45, 3.9], 0.78, -0.2),
-    createPlacement("terrain-core:spawn-grass-east", "terrain-core:spawn-clearing-east", "vegetation", "support", true, "vegetation", "grass_large.glb", [7.75, 1.65], 0.92, 0.08),
+    createPlacement("terrain-core:spawn-grass-west", "terrain-core:spawn-clearing-west", "vegetation", "support", true, "vegetation", "grass_leafsLarge.glb", [4.85, 1.05], 0.9, 0.42),
+    createPlacement("terrain-core:spawn-rock-east", "terrain-core:spawn-clearing-north", "relief", "support", true, "relief", "rock_largeE.glb", [10.9, 4.25], 1.08, 0.24),
+    createPlacement("terrain-core:spawn-stump-east", "terrain-core:spawn-clearing-north", "vegetation", "support", true, "vegetation", "stump_roundDetailed.glb", [8.45, 3.9], 0.78, -0.2),
+    createPlacement("terrain-core:spawn-grass-east", "terrain-core:spawn-clearing-south", "vegetation", "support", true, "vegetation", "grass_large.glb", [7.75, 1.65], 0.92, 0.08),
     createPlacement("terrain-core:spawn-tree-ground", "terrain-core:spawn-clearing-west", "vegetation", "support", true, "vegetation", "tree_default.glb", [4.95, 5.05], 1.18, 0.22),
     createPlacement("terrain-core:pond-bank-log", "terrain-core:pond-bank", "vegetation", "support", true, "vegetation", "log.glb", [-8.0, 2.2], 0.92, Math.PI * 0.34),
     createPlacement("terrain-core:pond-bank-bush", "terrain-core:pond-bank", "vegetation", "support", true, "vegetation", "plant_bushDetailed.glb", [-7.35, 7.05], 0.82, -0.18),
