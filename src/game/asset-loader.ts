@@ -1094,6 +1094,56 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     }),
     createPlacement("terrain-core:ridge-hanging-moss", "terrain-core:moss-vegetation-ridge", "vegetation", "support", true, "vegetation", "hanging_moss.glb", [25.8, 24.4], 0.82, -0.18, {
       assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:outer-north-oak-secondary", "terrain-core:outer-north-grove-a", "vegetation", "support", true, "vegetation", "tree_oak.glb", [-9.4, 41.2], 1.08, 0.2, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:outer-north-flat-rock", "terrain-core:outer-north-relief-a", "relief", "support", true, "relief", "rock_smallFlatC.glb", [-4.4, 39.2], 0.84, -0.34, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:outer-north-flower-edge", "terrain-core:outer-north-meadow-a", "vegetation", "support", true, "vegetation", "flower_yellowA.glb", [-0.6, 36.7], 0.7, 0.18, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:outer-north-rail-side", "terrain-core:outer-north-rail-side", "route", "support", true, "rail", "track-rail.glb", [5.8, 39.0], 1.0, Math.PI * 0.1, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("terrain-core:outer-south-pine-pair", "terrain-core:outer-south-grove-a", "vegetation", "support", true, "vegetation", "tree_pineGroundA.glb", [15.8, -41.0], 1.02, -0.2, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:outer-south-log-fallen", "terrain-core:outer-south-deadwood-a", "vegetation", "support", true, "vegetation", "log.glb", [9.6, -39.7], 0.92, Math.PI * 0.28, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:outer-south-boulder", "terrain-core:outer-south-relief-a", "relief", "support", true, "relief", "rock_largeD.glb", [5.1, -40.6], 0.88, 0.28, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:outer-south-grass-line", "terrain-core:outer-south-meadow-a", "vegetation", "support", true, "vegetation", "grass_large.glb", [13.2, -38.2], 0.92, -0.12, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:outer-west-bank-rock", "terrain-core:outer-west-bank-a", "relief", "support", true, "relief", "rock_largeA.glb", [-39.6, 28.4], 0.86, -0.2, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:outer-west-bank-tree", "terrain-core:outer-west-grove-a", "vegetation", "support", true, "vegetation", "tree_detailed.glb", [-33.0, 29.2], 1.08, 0.24, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:outer-west-boardwalk-side", "terrain-core:outer-west-boardwalk-a", "route", "support", true, "bridge", "path_wood.glb", [-36.8, 26.8], 1.12, Math.PI * 0.42, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.58
+    }),
+    createPlacement("terrain-core:outer-west-lily-large", "terrain-core:outer-west-water-a", "water", "support", true, "water", "lily_large.glb", [-38.5, 29.7], 0.5, -0.14, {
+      assetId: "accepted-nature-water-core"
+    }),
+    createPlacement("terrain-core:outer-east-bank-rock", "terrain-core:outer-east-bank-a", "relief", "support", true, "relief", "rock_largeE.glb", [39.0, -36.4], 0.88, 0.18, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:outer-east-bank-palm", "terrain-core:outer-east-grove-a", "vegetation", "support", true, "vegetation", "tree_palm.glb", [33.0, -36.5], 1.08, -0.24, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:outer-east-bridge-side", "terrain-core:outer-east-boardwalk-a", "route", "support", true, "bridge", "bridge_side_wood.glb", [35.8, -31.8], 0.86, Math.PI * 0.6, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.56
+    }),
+    createPlacement("terrain-core:outer-east-lily-small", "terrain-core:outer-east-water-a", "water", "support", true, "water", "lily_small.glb", [37.2, -36.9], 0.48, 0.24, {
+      assetId: "accepted-nature-water-core"
     })
   ];
 }

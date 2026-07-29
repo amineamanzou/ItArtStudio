@@ -66,7 +66,7 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v118",
+    "id": "public-terrain-core-v119",
     "phase": "public-terrain-first-runtime",
     "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor field/grass-path/relief/water-edge textures and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
@@ -118,6 +118,7 @@
       "track-detailed.glb",
       "track-rail.glb",
       "track.glb",
+      "grass_large.glb",
       "plant_bushLarge.glb",
       "tree_detailed.glb",
       "tree_pineGroundA.glb",
@@ -166,7 +167,23 @@
       "terrain-core:pine-ground-south",
       "terrain-core:pine-round-east",
       "terrain-core:field-flower-edge",
-      "terrain-core:ridge-hanging-moss"
+      "terrain-core:ridge-hanging-moss",
+      "terrain-core:outer-north-oak-secondary",
+      "terrain-core:outer-north-flat-rock",
+      "terrain-core:outer-north-flower-edge",
+      "terrain-core:outer-north-rail-side",
+      "terrain-core:outer-south-pine-pair",
+      "terrain-core:outer-south-log-fallen",
+      "terrain-core:outer-south-boulder",
+      "terrain-core:outer-south-grass-line",
+      "terrain-core:outer-west-bank-rock",
+      "terrain-core:outer-west-bank-tree",
+      "terrain-core:outer-west-boardwalk-side",
+      "terrain-core:outer-west-lily-large",
+      "terrain-core:outer-east-bank-rock",
+      "terrain-core:outer-east-bank-palm",
+      "terrain-core:outer-east-bridge-side",
+      "terrain-core:outer-east-lily-small"
     ],
     "forbiddenFiles": [
       "box-long.glb",
@@ -189,13 +206,13 @@
       "top-large-checkerboard.glb",
       "tree_cone.glb"
     ],
-    "minimumPlacements": 88,
+    "minimumPlacements": 104,
     "minimumUniqueFiles": 59,
     "minimumRolePlacements": {
-      "route": 15,
-      "water": 16,
-      "relief": 21,
-      "vegetation": 23
+      "route": 18,
+      "water": 18,
+      "relief": 25,
+      "vegetation": 30
     },
     "minimumCoverage": { "width": 78, "depth": 78 },
     "minimumCoverageArea": 6500,
@@ -256,9 +273,13 @@
           "terrain-core:outer-rail-north-marker",
           "terrain-core:far-north-relief-half",
           "terrain-core:far-north-oak",
-          "terrain-core:outer-north-tree-detailed"
+          "terrain-core:outer-north-tree-detailed",
+          "terrain-core:outer-north-oak-secondary",
+          "terrain-core:outer-north-flat-rock",
+          "terrain-core:outer-north-flower-edge",
+          "terrain-core:outer-north-rail-side"
         ],
-        "minimumVisiblePlacements": 2
+        "minimumVisiblePlacements": 4
       },
       {
         "id": "south",
@@ -266,9 +287,13 @@
         "requiredPlacementIds": [
           "terrain-core:far-south-relief-large",
           "terrain-core:far-south-grass",
-          "terrain-core:pine-ground-south"
+          "terrain-core:pine-ground-south",
+          "terrain-core:outer-south-pine-pair",
+          "terrain-core:outer-south-log-fallen",
+          "terrain-core:outer-south-boulder",
+          "terrain-core:outer-south-grass-line"
         ],
-        "minimumVisiblePlacements": 2
+        "minimumVisiblePlacements": 4
       },
       {
         "id": "west",
@@ -278,9 +303,13 @@
           "terrain-core:outer-water-west-cattail",
           "terrain-core:outer-bridge-west-crossing",
           "terrain-core:outer-west-bush",
-          "terrain-core:far-west-relief-corner"
+          "terrain-core:far-west-relief-corner",
+          "terrain-core:outer-west-bank-rock",
+          "terrain-core:outer-west-bank-tree",
+          "terrain-core:outer-west-boardwalk-side",
+          "terrain-core:outer-west-lily-large"
         ],
-        "minimumVisiblePlacements": 3
+        "minimumVisiblePlacements": 5
       },
       {
         "id": "east",
@@ -290,9 +319,13 @@
           "terrain-core:outer-water-east-hyacinth",
           "terrain-core:outer-bridge-east-crossing",
           "terrain-core:far-east-relief-slope",
-          "terrain-core:outer-east-palm"
+          "terrain-core:outer-east-palm",
+          "terrain-core:outer-east-bank-rock",
+          "terrain-core:outer-east-bank-palm",
+          "terrain-core:outer-east-bridge-side",
+          "terrain-core:outer-east-lily-small"
         ],
-        "minimumVisiblePlacements": 3
+        "minimumVisiblePlacements": 5
       }
     ],
     "minimumOuterBandClippedArea": 160,
@@ -301,7 +334,7 @@
     "maximumHeroLocationPlacements": 0,
     "allowedGeneratedSubstrate": "single terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief/water-edge material; visible public decor must come from downloaded vendor GLB/glTF.",
     "fallback": "If a terrain GLB fails, omit that placement and keep the public world sparse rather than replacing it with a generated rectangle, cone, halo, plate or abstract primitive.",
-    "nextAction": "Review the wider public terrain screenshots for asset readability, then source stronger shoreline and authored relief packs before densifying Cloud Dock, Design Atelier or Observability Tower."
+    "nextAction": "Review the denser north/south/east/west terrain-only screenshots for asset readability, then source stronger shoreline and authored relief packs before densifying Cloud Dock, Design Atelier or Observability Tower."
   },
   "publicTerrainMaterialCore": {
     "id": "polyhaven-terrain-material-v112",
