@@ -65,6 +65,31 @@
     "fallback": "If any premium anchor fails or disappears in QA, keep the existing core layer and demote the failing anchor back to map-only preview.",
     "nextAction": "Use the promoted premium anchors as the first authored silhouettes before enlarging the terrain shell around the three hero locations."
   },
+  "terrainShell": {
+    "id": "expanded-empty-map-shell-v97",
+    "phase": "map-shell-expansion",
+    "purpose": "Scale the playable terrain from a compact scene into a larger sparse shell with outer water, relief, road-edge and vegetation vocabulary before adding new dense hero-location detail.",
+    "worldSize": 96,
+    "minimumInnerRoamExtent": 43,
+    "minimumGroundRadius": 51,
+    "requiredOuterBands": ["north", "south", "west", "east"],
+    "minimumWaterRegions": 16,
+    "minimumRampRegions": 18,
+    "minimumTerrainFeatures": 25,
+    "minimumMapCoverage": { "width": 86, "depth": 86 },
+    "minimumMapPlacements": 126,
+    "minimumContextPlacements": 40,
+    "minimumRolePlacements": {
+      "route": 38,
+      "water": 16,
+      "relief": 20,
+      "vegetation": 28
+    },
+    "maximumNonHeroClusterDensity": 3,
+    "maximumRendererTriangles": 110000,
+    "fallback": "Keep the existing 76-unit map shell and central hero locations if the larger shell fails renderer budget, boundary QA or role coverage.",
+    "nextAction": "Use this sparse outer shell as the terrain canvas for authored road continuity, water crossings and biome transitions before adding another object-dense asset wave."
+  },
   "terrainRoles": ["road", "water", "relief", "vegetation", "route-edge", "bridge", "hero-location"],
   "mapExpansionKits": [
     {

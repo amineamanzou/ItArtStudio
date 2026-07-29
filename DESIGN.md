@@ -1385,6 +1385,26 @@ Gates V9.6:
   trois fichiers premium, leurs placements, leurs roles hero location, leurs
   chemins publics et leur presence ecran sont prouves dans le runtime public.
 
+Gates V9.7:
+
+- la carte jouable passe de `76x76` a `96x96`; le roam QA interieur passe a
+  `+-43`, toujours avec le vehicule comme simple support d'exploration;
+- `world-materials` ajoute un shell exterieur plus sparse: 16 regions d'eau,
+  18 rampes et 25 features terrain liees a des routes ou zones, afin que
+  l'agrandissement soit coherent avant densification;
+- `world-assets.manifest.json` declare `terrainShell` comme contrat source:
+  taille monde, couverture GLB minimale `86x86`, placements minimums par role,
+  densite non-hero plafonnee et budget renderer maximum;
+- `?assets=map` doit maintenant prouver au moins 126 placements, 40 context
+  placements, 38 routes, 16 eaux, 20 reliefs et 28 vegetations, avec une
+  couverture visuelle proche du nouveau terrain;
+- les anneaux d'eau, contours, markers et route lights sont repasses en
+  low-poly volontaire pour garder le budget `110000` triangles tout en
+  conservant le vocabulaire terrain/eau/relief;
+- la QA ajoute `terrain-shell-runtime` et derive les bornes monde depuis
+  `src/game/world-config.ts`, pour eviter les constantes 76/33 recopiees dans
+  le runner.
+
 ## Components
 
 - `game-site`: surface principale.

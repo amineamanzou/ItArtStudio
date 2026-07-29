@@ -97,13 +97,13 @@ const box = (size: readonly [number, number, number], mat: THREE.Material, posit
 };
 
 const sphere = (radius: number, mat: THREE.Material, position: readonly [number, number, number]) => {
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 12, 8), mat);
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 10, 7), mat);
   mesh.position.set(position[0], position[1], position[2]);
   return mesh;
 };
 
 const torus = (radius: number, tube: number, mat: THREE.Material, position: readonly [number, number, number]) => {
-  const mesh = new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 8, 56), mat);
+  const mesh = new THREE.Mesh(new THREE.TorusGeometry(radius, tube, 6, 36), mat);
   mesh.position.set(position[0], position[1], position[2]);
   mesh.rotation.x = Math.PI * 0.5;
   return mesh;
@@ -306,14 +306,14 @@ function addTerrainFeatureMarkers(
   const markers = new THREE.Group();
   markers.name = "terrain-feature-marker-instances";
 
-  const footprints = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.012, 5, 72), instancedColorMaterial(roadMat), featureCount);
+  const footprints = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.012, 4, 40), instancedColorMaterial(roadMat), featureCount);
   const strata = new THREE.InstancedMesh(
     new THREE.BoxGeometry(0.82, 0.032, 0.072),
     instancedColorMaterial(studioMat),
     featureCount * strataPerFeature
   );
   const pins = new THREE.InstancedMesh(
-    new THREE.CylinderGeometry(0.022, 0.034, 0.42, 7),
+    new THREE.CylinderGeometry(0.022, 0.034, 0.42, 6),
     instancedColorMaterial(inkMat),
     featureCount * pinsPerFeature
   );
@@ -505,8 +505,8 @@ function addWaterBodies(
   ] as const);
   const water = new THREE.Group();
   water.name = "water-body-instances";
-  const surfaces = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 42), waterMat, basins.length);
-  const rims = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.022, 8, 64), studioMat, basins.length);
+  const surfaces = new THREE.InstancedMesh(new THREE.CircleGeometry(1, 28), waterMat, basins.length);
+  const rims = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.022, 6, 36), studioMat, basins.length);
   const matrix = new THREE.Matrix4();
   const quaternion = new THREE.Quaternion();
   const scale = new THREE.Vector3();
@@ -744,7 +744,11 @@ function addSurfaceDetails(
     "studio-canal": { id: "canal-longitudinal", foam: [1.18, 0.58], pinAngle: -0.12, pinLift: 0.08, foamColor: 0xffd85c, pinColor: 0x54d8f2 },
     "foundry-cooling-pool": { id: "cooling-tight-rings", foam: [0.88, 0.55], pinAngle: 0.42, pinLift: 0.04, foamColor: 0x83f4ff, pinColor: 0xff7a97 },
     "north-reflection-cut": { id: "north-reflection", foam: [1.04, 0.6], pinAngle: -0.32, pinLift: 0.05, foamColor: 0x7ef7ff, pinColor: 0xf6c95b },
-    "south-postal-basin": { id: "postal-basin", foam: [0.92, 0.64], pinAngle: 0.22, pinLift: 0.035, foamColor: 0x66e6ff, pinColor: 0xfff0b8 }
+    "south-postal-basin": { id: "postal-basin", foam: [0.92, 0.64], pinAngle: 0.22, pinLift: 0.035, foamColor: 0x66e6ff, pinColor: 0xfff0b8 },
+    "far-north-canal": { id: "far-north-silver-cut", foam: [1.16, 0.54], pinAngle: -0.18, pinLift: 0.045, foamColor: 0x9cf6ff, pinColor: 0xffd85c },
+    "far-south-mailwater": { id: "far-south-postal-wash", foam: [0.98, 0.68], pinAngle: 0.28, pinLift: 0.04, foamColor: 0x68e8ff, pinColor: 0xfff2b0 },
+    "far-west-cloud-marsh": { id: "far-west-cloud-marsh", foam: [0.86, 0.7], pinAngle: 0.08, pinLift: 0.055, foamColor: 0x54d8f2, pinColor: 0xf6c95b },
+    "far-east-art-ponds": { id: "far-east-pigment-ponds", foam: [0.9, 0.74], pinAngle: -0.1, pinLift: 0.035, foamColor: 0xff7a97, pinColor: 0x83f4ff }
   };
   const rampProfiles: Record<string, { id: string; offset: number; scale: number; color: number; lift: number }> = {
     "tech-delta": { id: "delta-blue-steps", offset: 0.04, scale: 1.06, color: 0x42d9ff, lift: 0.02 },
@@ -754,14 +758,18 @@ function addSurfaceDetails(
     "mail-bank": { id: "mail-bank-folds", offset: 0.02, scale: 0.96, color: 0xfff2b0, lift: 0.035 },
     "foundry-roll": { id: "foundry-roll-cuts", offset: -0.14, scale: 1.08, color: 0x4fdff6, lift: 0.025 },
     "north-shelf": { id: "north-shelf-strata", offset: 0.08, scale: 1.02, color: 0xffd85c, lift: 0.02 },
-    "south-shelf": { id: "south-shelf-folds", offset: -0.04, scale: 0.98, color: 0x7ef7ff, lift: 0.025 }
+    "south-shelf": { id: "south-shelf-folds", offset: -0.04, scale: 0.98, color: 0x7ef7ff, lift: 0.025 },
+    "far-north-canal-ramp": { id: "far-north-canal-steps", offset: 0.06, scale: 1.04, color: 0x9cf6ff, lift: 0.02 },
+    "far-south-mail-ramp": { id: "far-south-mail-folds", offset: -0.05, scale: 1.0, color: 0xfff2b0, lift: 0.026 },
+    "far-west-cloud-ramp": { id: "far-west-cloud-strata", offset: 0.04, scale: 0.96, color: 0x54d8f2, lift: 0.03 },
+    "far-east-art-ramp": { id: "far-east-art-steps", offset: -0.06, scale: 1.06, color: 0xff7a97, lift: 0.024 }
   };
 
-  const waterFoam = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.012, 6, 72), instancedColorMaterial(roadMat), waterFoamCount);
-  const shorePins = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.026, 0.038, 0.34, 7), instancedColorMaterial(studioMat), shorePinCount);
+  const waterFoam = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.012, 5, 36), instancedColorMaterial(roadMat), waterFoamCount);
+  const shorePins = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.026, 0.038, 0.34, 6), instancedColorMaterial(studioMat), shorePinCount);
   const waterCrossings = new THREE.InstancedMesh(new THREE.BoxGeometry(0.58, 0.045, 0.14), instancedColorMaterial(roadMat), waterCrossingCount);
   const rampChevrons = new THREE.InstancedMesh(new THREE.BoxGeometry(0.42, 0.036, 0.085), instancedColorMaterial(roadMat), rampChevronCount);
-  const terrainContours = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.009, 5, 84), instancedColorMaterial(inkMat), contourCount);
+  const terrainContours = new THREE.InstancedMesh(new THREE.TorusGeometry(1, 0.009, 4, 48), instancedColorMaterial(inkMat), contourCount);
   const matrix = new THREE.Matrix4();
   const quaternion = new THREE.Quaternion();
   const scale = new THREE.Vector3();
@@ -1012,9 +1020,9 @@ function addFashionTerrainWeave(
   const stitchCount = 64;
   const pinCount = 24;
   const shadowCount = bandCount;
-  const aiTraceCount = 36;
+  const aiTraceCount = 28;
   const aiNodeCount = 42;
-  const aiShadowCount = 18;
+  const aiShadowCount = 10;
   const weave = new THREE.InstancedMesh(
     new THREE.BoxGeometry(1, 1, 1),
     new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }),
@@ -1086,10 +1094,10 @@ function addFashionTerrainWeave(
     const z = aiCenter[1] + side * (3.2 + (index % 6) * 0.28);
     const rotation = 0.72 + side * 0.18 + (index % 5) * 0.026;
     quaternion.setFromEuler(new THREE.Euler(0, rotation, 0));
-    scale.set(3.1 + (index % 4) * 0.48, 0.05, 0.16);
+    scale.set(2.5 + (index % 4) * 0.34, 0.044, 0.13);
     matrix.compose(new THREE.Vector3(x, 0.188 + (index % 3) * 0.004, z), quaternion, scale);
     weave.setMatrixAt(instanceIndex, matrix);
-    weave.setColorAt(instanceIndex, color.setHex(index % 3 === 0 ? 0xffe38a : (roadMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0xdfe6ce));
+    weave.setColorAt(instanceIndex, color.setHex(index % 4 === 0 ? 0xffe38a : index % 2 === 0 ? 0x17d2ff : 0x2d6f7a));
     instanceIndex += 1;
     signatures.push(`ai-lab-circuit:trace:${index}`);
   }
@@ -1116,10 +1124,10 @@ function addFashionTerrainWeave(
     const x = aiCenter[0] - 6.0 + t * 12.0;
     const z = aiCenter[1] + side * (4.55 + Math.sin(t * Math.PI * 2) * 0.42);
     quaternion.setFromEuler(new THREE.Euler(0, 0.74 + side * 0.12, 0));
-    scale.set(3.2 + (index % 4) * 0.42, 0.026, 0.15);
+    scale.set(2.25 + (index % 4) * 0.28, 0.02, 0.11);
     matrix.compose(new THREE.Vector3(x, 0.14, z), quaternion, scale);
     weave.setMatrixAt(instanceIndex, matrix);
-    weave.setColorAt(instanceIndex, color.setHex((inkMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0x070a0d));
+    weave.setColorAt(instanceIndex, color.setHex(0x2a4a48));
     instanceIndex += 1;
     signatures.push(`ai-lab-circuit:shadow:${index}`);
   }
@@ -1310,7 +1318,7 @@ function addRouteLights(
   }
   const lights = new THREE.Group();
   lights.name = "route-light-instances";
-  const posts = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.078, 0.034, 0.66, 10), roadMat, markers.length);
+  const posts = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.078, 0.034, 0.66, 7), roadMat, markers.length);
   const matrix = new THREE.Matrix4();
   const quaternion = new THREE.Quaternion();
 

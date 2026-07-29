@@ -682,6 +682,54 @@ function createRoutePlacementSpecs(): MapPlacementSpec[] {
       [0.6, 4.8],
       1.42,
       -0.18
+    ),
+    createPlacement(
+      "route:outer-north-canal-road",
+      "route:outer-north-shell",
+      "route",
+      "support",
+      true,
+      "road",
+      "road-curve.glb",
+      [-5.0, 42.8],
+      1.38,
+      -0.12
+    ),
+    createPlacement(
+      "route:outer-south-mail-road",
+      "route:outer-south-shell",
+      "route",
+      "support",
+      true,
+      "road",
+      "road-split.glb",
+      [8.2, -42.2],
+      1.36,
+      0.16
+    ),
+    createPlacement(
+      "route:outer-west-cloud-edge",
+      "route:outer-west-shell",
+      "route",
+      "support",
+      true,
+      "route-edge",
+      "light-curved.glb",
+      [-42.0, -10.4],
+      1.16,
+      Math.PI * 0.5
+    ),
+    createPlacement(
+      "route:outer-east-art-edge",
+      "route:outer-east-shell",
+      "route",
+      "support",
+      true,
+      "route-edge",
+      "light-square.glb",
+      [42.2, 12.2],
+      1.12,
+      -Math.PI * 0.5
     )
   ];
 }
@@ -713,6 +761,10 @@ function createReliefPlacementSpecs(): MapPlacementSpec[] {
     createPlacement("relief:outer-south-runoff-cut", "relief:outer-south-runoff-cut", "relief", "context", false, "relief", "rock_largeA.glb", [-18.7, -36.2], 1.16, 0.18),
     createPlacement("relief:outer-west-cloud-shelf", "relief:outer-west-cloud-shelf", "relief", "context", false, "relief", "cliff_corner_rock.glb", [-36.6, -20.8], 1.14, 0.08),
     createPlacement("relief:outer-east-art-shelf", "relief:outer-east-art-shelf", "relief", "context", false, "relief", "rock_tallA.glb", [36.4, 23.7], 1.18, -0.16),
+    createPlacement("relief:far-north-values-canal", "relief:far-north-shell", "relief", "context", false, "relief", "cliff_half_rock.glb", [-6.6, 44.4], 1.18, -0.1),
+    createPlacement("relief:far-south-contact-runoff", "relief:far-south-shell", "relief", "context", false, "relief", "rock_largeC.glb", [7.8, -44.0], 1.16, 0.14),
+    createPlacement("relief:far-west-cloud-marsh", "relief:far-west-shell", "relief", "context", false, "relief", "cliff_corner_rock.glb", [-44.2, -10.8], 1.14, 0.1),
+    createPlacement("relief:far-east-art-gallery", "relief:far-east-shell", "relief", "context", false, "relief", "cliff_blockSlope_rock.glb", [44.2, 12.4], 1.16, -0.18),
     createPlacement("relief:studio-crossing-proof", "relief:studio-crossing-proof", "relief", "support", true, "relief", "rock_largeC.glb", [2.8, 6.5], 1.18, -0.12)
   ];
 }
@@ -741,6 +793,10 @@ function createVegetationPlacementSpecs(): MapPlacementSpec[] {
     createPlacement("vegetation:outer-south-runoff-grass", "vegetation:outer-south-runoff", "vegetation", "context", false, "vegetation", "grass_large.glb", [-21.4, -35.6], 1.16, 0.16),
     createPlacement("vegetation:outer-west-wetland-bush", "vegetation:outer-west-wetland", "vegetation", "context", false, "vegetation", "plant_bushLarge.glb", [-35.8, -24.4], 1.1, -0.1),
     createPlacement("vegetation:outer-east-reflection-palm", "vegetation:outer-east-reflection", "vegetation", "context", false, "vegetation", "tree_palm.glb", [35.6, 27.6], 1.22, 0.32),
+    createPlacement("vegetation:far-north-values-oak", "vegetation:far-north-shell", "vegetation", "context", false, "vegetation", "tree_oak.glb", [-2.8, 43.6], 1.22, -0.18),
+    createPlacement("vegetation:far-south-mail-grass", "vegetation:far-south-shell", "vegetation", "context", false, "vegetation", "grass_large.glb", [12.4, -43.4], 1.14, 0.12),
+    createPlacement("vegetation:far-west-cloud-tree", "vegetation:far-west-shell", "vegetation", "context", false, "vegetation", "tree_cone.glb", [-43.4, -14.2], 1.28, 0.2),
+    createPlacement("vegetation:far-east-art-palm", "vegetation:far-east-shell", "vegetation", "context", false, "vegetation", "tree_palm.glb", [43.2, 16.4], 1.26, -0.28),
     createPlacement("vegetation:studio-crossing-proof", "vegetation:studio-crossing-proof", "vegetation", "support", true, "vegetation", "tree_oak.glb", [-3.2, 6.8], 1.32, 0.14)
   ];
 }

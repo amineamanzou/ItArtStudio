@@ -10,6 +10,11 @@ import Module from "node:module";
 const require = createRequire(import.meta.url);
 const root = process.cwd();
 const worldAssetManifest = JSON.parse(fs.readFileSync(path.join(root, "assets", "world-assets.manifest.json"), "utf8"));
+const worldConfigSource = fs.readFileSync(path.join(root, "src", "game", "world-config.ts"), "utf8");
+const readWorldConfigNumber = (name, fallback) => {
+  const match = worldConfigSource.match(new RegExp(`export const ${name} = ([0-9.]+)`));
+  return match ? Number(match[1]) : fallback;
+};
 const startedAt = Date.now();
 const requestedPort = Number(process.env.QA_PORT ?? 4331);
 let port = requestedPort;
@@ -77,6 +82,7 @@ const manifestCorePromotion = worldAssetManifest.corePromotion ?? {};
 const manifestCorePromotionRequiredFiles = manifestCorePromotion.requiredFiles ?? [];
 const manifestCorePromotionRequiredPlacementIds = manifestCorePromotion.requiredPlacementIds ?? [];
 const manifestCorePromotionRequiredHeroRoles = manifestCorePromotion.requiredHeroRoles ?? {};
+const manifestTerrainShell = worldAssetManifest.terrainShell ?? {};
 const manifestMapExpansionKitRoles = [
   ...new Set(manifestMapExpansionKits.flatMap((kit) => kit.requiredTerrainRoles ?? []))
 ].sort();
@@ -105,8 +111,9 @@ const manifestHeroLocationMinimumTotal = Object.values(manifestHeroLocationMinim
   (total, count) => total + count,
   0
 );
-const qaWorldHalfExtent = 38;
-const qaInnerRoamExtent = 33;
+const qaWorldSize = readWorldConfigNumber("worldSize", manifestTerrainShell.worldSize ?? 76);
+const qaWorldHalfExtent = qaWorldSize / 2;
+const qaInnerRoamExtent = readWorldConfigNumber("worldInnerRoamExtent", manifestTerrainShell.minimumInnerRoamExtent ?? 33);
 const qaBoundaryTargetExtent = qaWorldHalfExtent + 1.8;
 
 const scenarios = [];
@@ -344,6 +351,76 @@ function checkCorePromotionManifest() {
       missingFiles,
       missingHeroLocations,
       missingPlacementLocations
+    });
+  }
+}
+
+async function checkTerrainShellRuntime(page) {
+  const snapshot = await getQaSnapshot(page, { refresh: true });
+  const world = snapshot?.world;
+  const material = snapshot?.drive?.material;
+  const boundary = snapshot?.drive?.boundary;
+  const renderer = snapshot?.renderer;
+  const contractOk =
+    manifestTerrainShell.phase === "map-shell-expansion" &&
+    manifestTerrainShell.worldSize === qaWorldSize &&
+    (manifestTerrainShell.minimumMapCoverage?.width ?? 0) >= qaWorldSize * 0.86 &&
+    (manifestTerrainShell.minimumMapCoverage?.depth ?? 0) >= qaWorldSize * 0.86;
+  const runtimeOk =
+    world &&
+    material &&
+    boundary &&
+    boundary.worldHalfExtent >= qaWorldHalfExtent &&
+    material.waterRegionCount >= (manifestTerrainShell.minimumWaterRegions ?? 0) &&
+    material.rampRegionCount >= (manifestTerrainShell.minimumRampRegions ?? 0) &&
+    material.terrainFeatureCount >= (manifestTerrainShell.minimumTerrainFeatures ?? 0) &&
+    world.terrainFeatureCount >= (manifestTerrainShell.minimumTerrainFeatures ?? 0) &&
+    world.terrainFeaturesLinkedToRoutesOrZones >= world.terrainFeatureCount &&
+    (world.orphanTerrainFeatureIds?.length ?? 0) === 0 &&
+    world.terrainHeightRange >= 0.45 &&
+    world.terrainGradeMax >= 0.03 &&
+    world.terrainGradeMax <= 0.22 &&
+    world.sceneryRoleCounts?.["water-body"] >= (manifestTerrainShell.minimumWaterRegions ?? 0) &&
+    world.sceneryRoleCounts?.["relief-ramp"] >= (manifestTerrainShell.minimumRampRegions ?? 0) &&
+    world.sceneryRoleCounts?.["terrain-feature-marker"] >= (manifestTerrainShell.minimumTerrainFeatures ?? 0) &&
+    rendererWithinCaps(renderer) &&
+    (renderer?.triangles ?? Number.POSITIVE_INFINITY) <= (manifestTerrainShell.maximumRendererTriangles ?? rendererCaps.triangles);
+
+  if (contractOk && runtimeOk) {
+    pass("terrain-shell-runtime", {
+      worldSize: qaWorldSize,
+      worldHalfExtent: boundary.worldHalfExtent,
+      innerRoamExtent: qaInnerRoamExtent,
+      waterRegionCount: material.waterRegionCount,
+      rampRegionCount: material.rampRegionCount,
+      terrainFeatureCount: world.terrainFeatureCount,
+      terrainHeightRange: world.terrainHeightRange,
+      terrainGradeMax: world.terrainGradeMax,
+      sceneryRoleCounts: {
+        water: world.sceneryRoleCounts["water-body"],
+        relief: world.sceneryRoleCounts["relief-ramp"],
+        terrainFeatureMarker: world.sceneryRoleCounts["terrain-feature-marker"]
+      },
+      renderer,
+      contract: manifestTerrainShell
+    });
+  } else {
+    scenarioFail("terrain-shell-runtime", "The larger sparse map shell is not materialized coherently in runtime QA.", {
+      contractOk,
+      runtimeOk,
+      worldSize: qaWorldSize,
+      worldHalfExtent: boundary?.worldHalfExtent,
+      innerRoamExtent: qaInnerRoamExtent,
+      waterRegionCount: material?.waterRegionCount,
+      rampRegionCount: material?.rampRegionCount,
+      terrainFeatureCount: world?.terrainFeatureCount,
+      terrainFeaturesLinkedToRoutesOrZones: world?.terrainFeaturesLinkedToRoutesOrZones,
+      orphanTerrainFeatureIds: world?.orphanTerrainFeatureIds,
+      terrainHeightRange: world?.terrainHeightRange,
+      terrainGradeMax: world?.terrainGradeMax,
+      sceneryRoleCounts: world?.sceneryRoleCounts,
+      renderer,
+      contract: manifestTerrainShell
     });
   }
 }
@@ -5612,19 +5689,23 @@ async function checkExternalAssetMapComposition(browser) {
   try {
     await mapPage.goto(mapUrl, { waitUntil: "domcontentloaded", timeout: assetModeNavigationTimeoutMs });
     await mapPage.waitForLoadState("load", { timeout: assetModeLoadTimeoutMs }).catch(() => {});
+    const minimumMapPlacements = manifestTerrainShell.minimumMapPlacements ?? manifestMapExpansionMinimumPlacements;
+    const minimumMapCoverage = manifestTerrainShell.minimumMapCoverage ?? manifestMapExpansionMinimumCoverage;
+    const minimumRolePlacements = manifestTerrainShell.minimumRolePlacements ?? {};
     await mapPage.waitForFunction(
-      () => {
+      (minimumMapPlacements) => {
         const assets = window.__IT_ART_STUDIO_QA__?.externalAssets;
         return Boolean(
           document.documentElement.classList.contains("game-ready") &&
             window.__IT_ART_STUDIO_QA__?.ready === true &&
             assets?.enabled &&
             assets.mode === "map" &&
-            assets.requested >= 32 &&
+            assets.requested >= minimumMapPlacements &&
             assets.loaded + assets.failed >= assets.requested &&
             window.__IT_ART_STUDIO_QA__?.frameCount > 6
         );
       },
+      minimumMapPlacements,
       { timeout: assetModeReadyTimeoutMs }
     );
 
@@ -5676,17 +5757,17 @@ async function checkExternalAssetMapComposition(browser) {
       externalAssets.uniqueFiles >= 18 &&
       externalAssets.uniqueFiles >= manifestMapExpansionMinimumUniqueFiles &&
       externalAssets.collections >= 6 &&
-      externalAssets.placements >= 32 &&
+      externalAssets.placements >= minimumMapPlacements &&
       externalAssets.placements >= manifestMapExpansionMinimumPlacements &&
       externalAssets.clusters >= 8 &&
       externalAssets.placementGroups >= 4 &&
-      externalAssets.routeLinkedPlacements >= 11 &&
-      externalAssets.waterLinkedPlacements >= 8 &&
-      externalAssets.reliefLinkedPlacements >= 9 &&
-      externalAssets.vegetationLinkedPlacements >= 16 &&
+      externalAssets.routeLinkedPlacements >= (minimumRolePlacements.route ?? 11) &&
+      externalAssets.waterLinkedPlacements >= (minimumRolePlacements.water ?? 8) &&
+      externalAssets.reliefLinkedPlacements >= (minimumRolePlacements.relief ?? 9) &&
+      externalAssets.vegetationLinkedPlacements >= (minimumRolePlacements.vegetation ?? 16) &&
       externalAssets.primaryPlacements >= 18 &&
       externalAssets.supportPlacements >= 12 &&
-      externalAssets.contextPlacements >= 8 &&
+      externalAssets.contextPlacements >= (manifestTerrainShell.minimumContextPlacements ?? 8) &&
       externalAssets.promotionCandidates >= 24 &&
       externalAssets.heroLocationPlacements >= manifestHeroLocationMinimumTotal &&
       requiredHeroLocationIds.every((zoneId) => externalAssets.heroLocationIds?.includes(zoneId)) &&
@@ -5696,16 +5777,18 @@ async function checkExternalAssetMapComposition(browser) {
       externalAssets.coplanarRiskPlacements === 0 &&
       externalAssets.actualMinGroundClearance >= 0.08 &&
       externalAssets.actualCoplanarRiskPlacements === 0 &&
-      externalAssets.waterPlacements >= 8 &&
-      externalAssets.reliefPlacements >= 9 &&
-      externalAssets.vegetationPlacements >= 16 &&
+      externalAssets.waterPlacements >= (minimumRolePlacements.water ?? 8) &&
+      externalAssets.reliefPlacements >= (minimumRolePlacements.relief ?? 9) &&
+      externalAssets.vegetationPlacements >= (minimumRolePlacements.vegetation ?? 16) &&
       externalAssets.mapCoverageWidth >= 70 &&
       externalAssets.mapCoverageDepth >= 70 &&
       externalAssets.mapCoverageArea >= 4900 &&
       externalAssets.mapCoverageWidth >= manifestMapExpansionMinimumCoverage.width &&
       externalAssets.mapCoverageDepth >= manifestMapExpansionMinimumCoverage.depth &&
-      externalAssets.bounds.width >= 70 &&
-      externalAssets.bounds.depth >= 70 &&
+      externalAssets.mapCoverageWidth >= minimumMapCoverage.width &&
+      externalAssets.mapCoverageDepth >= minimumMapCoverage.depth &&
+      externalAssets.bounds.width >= minimumMapCoverage.width &&
+      externalAssets.bounds.depth >= minimumMapCoverage.depth &&
       externalAssets.bounds.height >= 1 &&
       missingRoles.length === 0 &&
       missingKitRoles.length === 0 &&
@@ -9710,6 +9793,7 @@ async function writeReport() {
   const rendererBudgetScenario = scenarios.find((scenario) => scenario.name === "renderer-budget");
   const mapExpansionKitsScenario = scenarios.find((scenario) => scenario.name === "map-expansion-kits-manifest");
   const corePromotionContractScenario = scenarios.find((scenario) => scenario.name === "core-promotion-contract");
+  const terrainShellScenario = scenarios.find((scenario) => scenario.name === "terrain-shell-runtime");
   const mapTextureRuntimeScenario = scenarios.find((scenario) => scenario.name === "map-texture-runtime");
   const externalAssetOffScenario = scenarios.find((scenario) => scenario.name === "external-asset-off-runtime");
   const externalAssetCoreScenario = scenarios.find((scenario) => scenario.name === "external-asset-core-runtime");
@@ -9837,6 +9921,11 @@ async function writeReport() {
       corePromotionContractScenario?.details
         ? `${corePromotionContractScenario.status}, asset ${corePromotionContractScenario.details.assetId}, files ${(corePromotionContractScenario.details.requiredFiles ?? []).join("/")}, placements ${(corePromotionContractScenario.details.requiredPlacementIds ?? []).join("/")}`
         : (corePromotionContractScenario?.status ?? "n/a")
+    }`,
+    `- Terrain shell runtime: ${
+      terrainShellScenario?.details
+        ? `${terrainShellScenario.status}, world ${terrainShellScenario.details.worldSize}x${terrainShellScenario.details.worldSize}, roam +-${terrainShellScenario.details.innerRoamExtent}, water/ramp/features ${terrainShellScenario.details.waterRegionCount}/${terrainShellScenario.details.rampRegionCount}/${terrainShellScenario.details.terrainFeatureCount}, triangles ${terrainShellScenario.details.renderer?.triangles ?? "n/a"}/${terrainShellScenario.details.contract?.maximumRendererTriangles ?? "n/a"}`
+        : (terrainShellScenario?.status ?? "n/a")
     }`,
     `- External asset off runtime: ${
       externalAssetOffScenario?.details?.externalAssets
@@ -10245,6 +10334,7 @@ async function main() {
       await checkWorldRichness(page);
       checkMapExpansionKitsManifest();
       checkCorePromotionManifest();
+      await checkTerrainShellRuntime(page);
       await checkExternalAssetOffRuntime(browser);
       await checkExternalAssetCoreRuntime(page);
       await checkExternalAssetPreview(browser);
@@ -10290,6 +10380,7 @@ async function main() {
     await checkWorldRichness(page);
     checkMapExpansionKitsManifest();
     checkCorePromotionManifest();
+    await checkTerrainShellRuntime(page);
     await checkExternalAssetOffRuntime(browser);
     await checkExternalAssetCoreRuntime(page);
     await checkExternalAssetPreview(browser);

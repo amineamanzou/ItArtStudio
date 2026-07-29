@@ -544,6 +544,13 @@ Accepted runtime paths may come from `assets/models/vendor/` or
 `assets/models/local/`; both must remain GitHub Pages-safe and must never point
 through `public/`.
 
+`terrain-shell-runtime` protects the V9.7 empty-map expansion. The runner reads
+the world size and roam extent from `src/game/world-config.ts`, then checks the
+manifest `terrainShell` contract against runtime telemetry: larger boundary,
+water regions, ramps, linked terrain features, scenery roles, heightfield
+range, grade and renderer caps. This keeps future map expansion tied to the
+asset-first plan instead of hidden QA constants.
+
 ## Next Gates
 
 - Add production preview mode.

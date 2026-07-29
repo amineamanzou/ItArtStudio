@@ -227,13 +227,16 @@ Principes:
 
 Baseline actuelle:
 
-- monde jouable: `76x76`;
-- roam QA interieur: `+-33`;
-- terrain: 19 features physiques reparties au centre, en peripherie et sur le
+- monde jouable: `96x96`;
+- roam QA interieur: `+-43`;
+- terrain: 25 features physiques reparties au centre, en peripherie et sur le
   nouvel anneau exterieur, chacune liee a au moins une route ou zone;
-- eau: 12 regions, dont quatre respirations supplementaires de bord;
-- rampes: 14 transitions, sans collision bloquante;
-- GLB opt-in `?assets=map`: couverture attendue au moins `70x70`.
+- eau: 16 regions, dont huit respirations supplementaires de bord;
+- rampes: 18 transitions, sans collision bloquante;
+- GLB opt-in `?assets=map`: couverture attendue au moins `86x86`;
+- contrat manifeste `terrainShell`: placements minimums route/eau/relief/
+  vegetation, densite non-hero plafonnee et budget renderer conserve a
+  `110000` triangles.
 
 ## Phase 4 - Trois Hero Locations
 
@@ -302,6 +305,9 @@ Le protocole doit prouver:
 - presence d'un mode `?assets=off` teste comme comparaison procedural-only;
 - verification des roles et minimums hero-location derivee du manifest, pas
   recopiee a la main dans la QA;
+- verification du contrat `terrainShell` derivee du manifest: taille monde,
+  roam interieur, eau, rampes, features liees, couverture GLB et budget
+  renderer;
 - absence de scintillement, z-fighting et assets casses;
 - budget renderer et scene graph preserve;
 - regression mobile et desktop couverte.

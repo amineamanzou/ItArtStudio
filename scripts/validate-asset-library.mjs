@@ -176,6 +176,7 @@ const heroLocationCuration = manifest.heroLocationCuration ?? {};
 const terrainRoles = new Set(asArray(manifest.terrainRoles));
 const mapExpansionKits = asArray(manifest.mapExpansionKits);
 const corePromotion = manifest.corePromotion ?? null;
+const terrainShell = manifest.terrainShell ?? null;
 const productionLicenseAssets = [];
 const declaredRuntimeGlbs = new Set();
 const declaredRuntimeTextures = new Set();
@@ -748,6 +749,76 @@ if (!corePromotion) {
   }
 }
 
+if (!terrainShell) {
+  fail("Terrain shell contract is required before scaling the map beyond the first compact layout.");
+} else {
+  if (terrainShell.phase !== "map-shell-expansion") {
+    fail("Terrain shell must declare phase map-shell-expansion.", { phase: terrainShell.phase });
+  }
+  if (!terrainShell.id || terrainShell.id.length < 8) {
+    fail("Terrain shell must declare a stable id.", { id: terrainShell.id });
+  }
+  if (!terrainShell.purpose || terrainShell.purpose.length < 120) {
+    fail("Terrain shell must explain the sparse expansion purpose.", { purpose: terrainShell.purpose });
+  }
+  if (!terrainShell.fallback || terrainShell.fallback.length < 72) {
+    fail("Terrain shell must declare a rollback fallback.", { fallback: terrainShell.fallback });
+  }
+  if (!terrainShell.nextAction || terrainShell.nextAction.length < 96) {
+    fail("Terrain shell must declare the next terrain-first action.", { nextAction: terrainShell.nextAction });
+  }
+  if (!Number.isInteger(terrainShell.worldSize) || terrainShell.worldSize < 96) {
+    fail("Terrain shell must declare the larger worldSize target.", { worldSize: terrainShell.worldSize });
+  }
+  if (!Number.isInteger(terrainShell.minimumInnerRoamExtent) || terrainShell.minimumInnerRoamExtent < 40) {
+    fail("Terrain shell must declare a larger inner roam extent.", {
+      minimumInnerRoamExtent: terrainShell.minimumInnerRoamExtent
+    });
+  }
+  if (!isPositiveNumber(terrainShell.minimumGroundRadius) || terrainShell.minimumGroundRadius < 50) {
+    fail("Terrain shell must declare a larger ground radius.", {
+      minimumGroundRadius: terrainShell.minimumGroundRadius
+    });
+  }
+  for (const band of ["north", "south", "west", "east"]) {
+    if (!asArray(terrainShell.requiredOuterBands).includes(band)) {
+      fail("Terrain shell must cover every outer band.", {
+        band,
+        requiredOuterBands: terrainShell.requiredOuterBands
+      });
+    }
+  }
+  for (const key of ["minimumWaterRegions", "minimumRampRegions", "minimumTerrainFeatures", "minimumMapPlacements", "minimumContextPlacements"]) {
+    if (!Number.isInteger(terrainShell[key]) || terrainShell[key] < 1) {
+      fail("Terrain shell minimum must be a positive integer.", { key, value: terrainShell[key] });
+    }
+  }
+  if (!isPositiveNumber(terrainShell.minimumMapCoverage?.width) || !isPositiveNumber(terrainShell.minimumMapCoverage?.depth)) {
+    fail("Terrain shell must declare positive minimumMapCoverage width/depth.", {
+      minimumMapCoverage: terrainShell.minimumMapCoverage
+    });
+  }
+  for (const role of ["route", "water", "relief", "vegetation"]) {
+    if (!Number.isInteger(terrainShell.minimumRolePlacements?.[role]) || terrainShell.minimumRolePlacements[role] < 1) {
+      fail("Terrain shell must declare role placement minimums.", {
+        role,
+        minimumRolePlacements: terrainShell.minimumRolePlacements
+      });
+    }
+  }
+  if (!Number.isInteger(terrainShell.maximumNonHeroClusterDensity) || terrainShell.maximumNonHeroClusterDensity < 1 || terrainShell.maximumNonHeroClusterDensity > 3) {
+    fail("Terrain shell must keep sparse non-hero cluster density.", {
+      maximumNonHeroClusterDensity: terrainShell.maximumNonHeroClusterDensity
+    });
+  }
+  if (!Number.isInteger(terrainShell.maximumRendererTriangles) || terrainShell.maximumRendererTriangles > budgets.rendererTriangleCap) {
+    fail("Terrain shell renderer triangle ceiling must stay inside the global renderer cap.", {
+      maximumRendererTriangles: terrainShell.maximumRendererTriangles,
+      rendererTriangleCap: budgets.rendererTriangleCap
+    });
+  }
+}
+
 const ccByProductionAssets = productionLicenseAssets.filter((asset) => {
   const source = sources.find((item) => item.id === asset.sourceId);
   return source?.kind !== "pipeline-reference";
@@ -787,6 +858,15 @@ const summary = {
         requiredFiles: asArray(corePromotion.requiredFiles).length,
         requiredPlacementIds: asArray(corePromotion.requiredPlacementIds).length,
         qaGate: corePromotion.qaGate
+      }
+    : null,
+  terrainShell: terrainShell
+    ? {
+        id: terrainShell.id,
+        worldSize: terrainShell.worldSize,
+        minimumMapCoverage: terrainShell.minimumMapCoverage,
+        minimumMapPlacements: terrainShell.minimumMapPlacements,
+        minimumRolePlacements: terrainShell.minimumRolePlacements
       }
     : null,
   warnings,
