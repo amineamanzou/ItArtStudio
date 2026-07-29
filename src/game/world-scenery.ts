@@ -901,7 +901,7 @@ function addFashionTerrainWeave(
   const aiShadowCount = 18;
   const weave = new THREE.InstancedMesh(
     new THREE.BoxGeometry(1, 1, 1),
-    instancedColorMaterial(artMat),
+    new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }),
     bandCount + stitchCount + pinCount + shadowCount + aiTraceCount + aiNodeCount + aiShadowCount
   );
   weave.name = "fashion-room-terrain-weave";
@@ -966,11 +966,11 @@ function addFashionTerrainWeave(
   for (let index = 0; index < aiTraceCount; index += 1) {
     const lane = index - (aiTraceCount - 1) / 2;
     const side = index % 2 === 0 ? -1 : 1;
-    const x = aiCenter[0] + lane * 0.26;
-    const z = aiCenter[1] + side * (2.55 + (index % 6) * 0.16);
+    const x = aiCenter[0] + lane * 0.36;
+    const z = aiCenter[1] + side * (3.2 + (index % 6) * 0.28);
     const rotation = 0.72 + side * 0.18 + (index % 5) * 0.026;
     quaternion.setFromEuler(new THREE.Euler(0, rotation, 0));
-    scale.set(1.45 + (index % 4) * 0.28, 0.028, 0.038);
+    scale.set(3.1 + (index % 4) * 0.48, 0.05, 0.16);
     matrix.compose(new THREE.Vector3(x, 0.188 + (index % 3) * 0.004, z), quaternion, scale);
     weave.setMatrixAt(instanceIndex, matrix);
     weave.setColorAt(instanceIndex, color.setHex(index % 3 === 0 ? 0xffe38a : (roadMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0xdfe6ce));
@@ -981,12 +981,12 @@ function addFashionTerrainWeave(
   for (let index = 0; index < aiNodeCount; index += 1) {
     const ring = index % 3;
     const angle = (index / aiNodeCount) * Math.PI * 2.0 + ring * 0.28;
-    const radius = 2.65 + ring * 0.78 + (index % 4) * 0.05;
-    const x = aiCenter[0] + Math.cos(angle) * radius * 1.18;
-    const z = aiCenter[1] + Math.sin(angle) * radius * 0.72;
+    const radius = 3.25 + ring * 1.04 + (index % 4) * 0.08;
+    const x = aiCenter[0] + Math.cos(angle) * radius * 1.34;
+    const z = aiCenter[1] + Math.sin(angle) * radius * 0.86;
     quaternion.setFromEuler(new THREE.Euler(0, angle, 0));
-    const nodeScale = 0.08 + (index % 5) * 0.012;
-    scale.set(nodeScale, 0.05, nodeScale);
+    const nodeScale = 0.14 + (index % 5) * 0.018;
+    scale.set(nodeScale, 0.075, nodeScale);
     matrix.compose(new THREE.Vector3(x, 0.226 + ring * 0.012, z), quaternion, scale);
     weave.setMatrixAt(instanceIndex, matrix);
     weave.setColorAt(instanceIndex, color.setHex(index % 4 === 0 ? 0xff6f7d : 0x17d2ff));
@@ -997,10 +997,10 @@ function addFashionTerrainWeave(
   for (let index = 0; index < aiShadowCount; index += 1) {
     const t = index / Math.max(1, aiShadowCount - 1);
     const side = index % 2 === 0 ? -1 : 1;
-    const x = aiCenter[0] - 4.4 + t * 8.8;
-    const z = aiCenter[1] + side * (3.15 + Math.sin(t * Math.PI * 2) * 0.24);
+    const x = aiCenter[0] - 6.0 + t * 12.0;
+    const z = aiCenter[1] + side * (4.55 + Math.sin(t * Math.PI * 2) * 0.42);
     quaternion.setFromEuler(new THREE.Euler(0, 0.74 + side * 0.12, 0));
-    scale.set(1.22 + (index % 4) * 0.22, 0.018, 0.05);
+    scale.set(3.2 + (index % 4) * 0.42, 0.026, 0.15);
     matrix.compose(new THREE.Vector3(x, 0.14, z), quaternion, scale);
     weave.setMatrixAt(instanceIndex, matrix);
     weave.setColorAt(instanceIndex, color.setHex((inkMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0x070a0d));
