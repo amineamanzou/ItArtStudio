@@ -591,6 +591,67 @@ function createFieldMarkerGrove() {
   return group;
 }
 
+function createRoadVegetationVerge() {
+  const group = new THREE.Group();
+  group.name = "itart-road-vegetation-verge";
+
+  addBox(group, "verge-road-bed", [2.24, 0.1, 0.7], [0, 0.07, 0], mats.graphite);
+  addBox(group, "verge-road-surface", [2.0, 0.036, 0.5], [0, 0.15, 0], mats.ink);
+  addBox(group, "verge-lane-line-a", [0.48, 0.024, 0.028], [-0.58, 0.19, 0], mats.studio);
+  addBox(group, "verge-lane-line-b", [0.48, 0.024, 0.028], [0.58, 0.19, 0], mats.studio);
+  addBox(group, "grass-bank-left", [2.16, 0.07, 0.38], [0, 0.08, -0.54], mats.techDeep, [0, 0.04, 0]);
+  addBox(group, "grass-bank-right", [2.16, 0.07, 0.38], [0, 0.08, 0.54], mats.techDeep, [0, -0.04, 0]);
+  for (let index = 0; index < 6; index += 1) {
+    const x = -0.86 + index * 0.34;
+    const z = index % 2 ? 0.57 : -0.57;
+    addCylinder(group, `verge-stem-${index}`, 0.014, 0.022, 0.3 + index * 0.018, [x, 0.27, z], mats.ink, [0, 0, 0], 6);
+    addSphere(group, `verge-crown-${index}`, 0.105, [x, 0.46 + index * 0.012, z], index % 2 ? mats.tech : mats.warm, [0.95, 0.68, 0.9]);
+  }
+  addTube(group, "verge-root-thread-left", [[-0.94, 0.13, -0.38], [-0.42, 0.18, -0.5], [0.18, 0.13, -0.44], [0.92, 0.18, -0.52]], 0.012, mats.tech);
+  addTube(group, "verge-root-thread-right", [[-0.92, 0.13, 0.4], [-0.3, 0.18, 0.5], [0.28, 0.14, 0.42], [0.9, 0.18, 0.52]], 0.012, mats.warm);
+
+  return group;
+}
+
+function createWaterReliefSpillway() {
+  const group = new THREE.Group();
+  group.name = "itart-water-relief-spillway";
+
+  addBox(group, "spillway-water-tray", [1.86, 0.05, 1.08], [0, 0.04, 0], mats.techGlass);
+  addBox(group, "spillway-upper-rock", [1.42, 0.24, 0.48], [-0.18, 0.26, -0.34], mats.graphite, [0, 0.14, 0]);
+  addBox(group, "spillway-lower-rock", [1.28, 0.18, 0.42], [0.24, 0.16, 0.32], mats.ink, [0, -0.1, 0]);
+  addBox(group, "spillway-foam-lip", [1.38, 0.03, 0.045], [-0.12, 0.42, -0.08], mats.tech, [0, 0.1, 0]);
+  addBox(group, "spillway-fall-plane", [0.36, 0.52, 0.035], [0.02, 0.25, -0.04], mats.techGlass, [0.12, 0.04, 0]);
+  addTube(group, "spillway-contour-a", [[-0.72, 0.36, -0.48], [-0.26, 0.5, -0.28], [0.24, 0.4, -0.4], [0.72, 0.48, -0.24]], 0.012, mats.studio);
+  addTube(group, "spillway-current-a", [[-0.7, 0.11, 0.18], [-0.24, 0.12, 0.32], [0.22, 0.1, 0.18], [0.68, 0.12, 0.34]], 0.014, mats.tech);
+  addTube(group, "spillway-current-b", [[-0.62, 0.11, -0.08], [-0.12, 0.12, 0.05], [0.38, 0.1, -0.04], [0.78, 0.12, 0.12]], 0.012, mats.warm);
+  addCylinder(group, "spillway-marker-post", 0.024, 0.034, 0.64, [-0.68, 0.42, 0.34], mats.ink, [0, 0, 0], 7);
+  addSphere(group, "spillway-marker-light", 0.08, [-0.68, 0.78, 0.34], mats.warm, [1, 0.78, 1]);
+
+  return group;
+}
+
+function createFieldRoadThreshold() {
+  const group = new THREE.Group();
+  group.name = "itart-field-road-threshold";
+
+  addBox(group, "threshold-field-pad", [1.94, 0.045, 1.24], [0, 0.035, 0], mats.techDeep, [0, -0.18, 0]);
+  addBox(group, "threshold-road-entry", [0.82, 0.09, 1.38], [-0.48, 0.09, 0.04], mats.graphite, [0, -0.18, 0]);
+  addBox(group, "threshold-crosswalk-a", [0.58, 0.024, 0.035], [-0.38, 0.16, -0.34], mats.studio, [0, -0.18, 0]);
+  addBox(group, "threshold-crosswalk-b", [0.58, 0.024, 0.035], [-0.28, 0.16, 0.0], mats.studio, [0, -0.18, 0]);
+  addBox(group, "threshold-crosswalk-c", [0.58, 0.024, 0.035], [-0.18, 0.16, 0.34], mats.studio, [0, -0.18, 0]);
+  addCylinder(group, "threshold-post-left", 0.024, 0.034, 0.58, [0.42, 0.36, -0.42], mats.ink, [0, 0, 0], 7);
+  addCylinder(group, "threshold-post-right", 0.024, 0.034, 0.58, [0.6, 0.36, 0.38], mats.ink, [0, 0, 0], 7);
+  addBox(group, "threshold-sign-bar", [0.66, 0.045, 0.05], [0.52, 0.66, -0.02], mats.warm, [0, -0.1, 0]);
+  for (let index = 0; index < 4; index += 1) {
+    const z = -0.46 + index * 0.3;
+    addSphere(group, `threshold-field-marker-${index}`, 0.1, [0.82, 0.2 + index * 0.018, z], index % 2 ? mats.art : mats.tech, [1, 0.72, 0.92]);
+  }
+  addTube(group, "threshold-desire-line", [[-0.74, 0.11, -0.5], [-0.32, 0.13, -0.18], [0.12, 0.11, 0.12], [0.7, 0.13, 0.42]], 0.012, mats.studio);
+
+  return group;
+}
+
 const assets = [
   { outputDir: heroOutputDir, fileName: "server-cloud-node.glb", scene: createServerCloudNode() },
   { outputDir: heroOutputDir, fileName: "atelier-mannequin-rack.glb", scene: createAtelierMannequinRack() },
@@ -612,7 +673,10 @@ const assets = [
   { outputDir: detailOutputDir, fileName: "observability-log-totem.glb", scene: createObservabilityLogTotem() },
   { outputDir: terrainOutputDir, fileName: "road-water-causeway.glb", scene: createRoadWaterCauseway() },
   { outputDir: terrainOutputDir, fileName: "relief-road-terrace.glb", scene: createReliefRoadTerrace() },
-  { outputDir: terrainOutputDir, fileName: "field-marker-grove.glb", scene: createFieldMarkerGrove() }
+  { outputDir: terrainOutputDir, fileName: "field-marker-grove.glb", scene: createFieldMarkerGrove() },
+  { outputDir: terrainOutputDir, fileName: "road-vegetation-verge.glb", scene: createRoadVegetationVerge() },
+  { outputDir: terrainOutputDir, fileName: "water-relief-spillway.glb", scene: createWaterReliefSpillway() },
+  { outputDir: terrainOutputDir, fileName: "field-road-threshold.glb", scene: createFieldRoadThreshold() }
 ];
 
 fs.mkdirSync(heroOutputDir, { recursive: true });

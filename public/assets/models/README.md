@@ -29,5 +29,6 @@ Current accepted local roots:
   held in `?assets=map` before any public core promotion.
 - `local/itart-signature-kit/detail`: project-authored V9.9 secondary detail
   pieces for the three hero locations.
-- `local/itart-signature-kit/terrain`: project-authored V10.0 transition
-  pieces for route/water, route/relief and field-marker map seams.
+- `local/itart-signature-kit/terrain`: project-authored V10.1 transition
+  pieces for route/water, route/relief, field-marker, route/vegetation,
+  water/relief and field/road map seams.

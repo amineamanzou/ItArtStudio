@@ -159,26 +159,32 @@
     "nextAction": "Use zone screenshots to decide whether these detail pieces should be promoted into the public core after the premium anchors."
   },
   "terrainTransitionWave": {
-    "id": "terrain-transition-v100",
+    "id": "terrain-transition-v101",
     "phase": "terrain-transition-library",
-    "purpose": "Add a first local GLB transition kit for road-water, road-relief and field-marker seams so the next map expansion can be composed from reusable terrain vocabulary instead of isolated vendor props.",
+    "purpose": "Extend the local GLB transition kit into a compact terrain continuity grammar for road-water, road-relief, field-marker, road-vegetation, water-relief and field-road seams before any larger map expansion.",
     "assetId": "accepted-itart-signature-terrain-v100",
     "requiredFiles": [
       "road-water-causeway.glb",
       "relief-road-terrace.glb",
-      "field-marker-grove.glb"
+      "field-marker-grove.glb",
+      "road-vegetation-verge.glb",
+      "water-relief-spillway.glb",
+      "field-road-threshold.glb"
     ],
     "requiredPlacementIds": [
       "terrain:road-water-causeway:cloud-harbor",
       "terrain:relief-road-terrace:design-shelf",
-      "terrain:field-marker-grove:observability-field"
+      "terrain:field-marker-grove:observability-field",
+      "terrain:road-vegetation-verge:values-approach",
+      "terrain:water-relief-spillway:cloud-runoff",
+      "terrain:field-road-threshold:design-entry"
     ],
-    "minimumMapPlacements": 149,
-    "minimumUniqueFiles": 83,
+    "minimumMapPlacements": 152,
+    "minimumUniqueFiles": 86,
     "maximumRendererTriangles": 110000,
     "qaGate": "terrain-transition-wave",
     "fallback": "If the transition kit causes visual noise or renderer pressure, keep the GLB files accepted in the library but remove their map inspection placements before any public core promotion.",
-    "nextAction": "Use the terrain transition screenshots to decide which seams should become the grammar for the next larger sparse terrain shell."
+    "nextAction": "Use the terrain transition screenshots to decide which continuity seams should become authored corridors in the next larger sparse terrain shell."
   },
   "terrainRoles": ["road", "water", "relief", "vegetation", "route-edge", "bridge", "hero-location"],
   "mapExpansionKits": [
@@ -941,17 +947,20 @@
       "preferredFormat": "GLB",
       "localPath": "public/assets/models/local/itart-signature-kit/terrain",
       "publicPath": "assets/models/local/itart-signature-kit/terrain",
-      "fileKb": 129.7,
-      "triangles": 2616,
+      "fileKb": 312.6,
+      "triangles": 7116,
       "selectedFiles": [
         "field-marker-grove.glb",
+        "field-road-threshold.glb",
         "relief-road-terrace.glb",
-        "road-water-causeway.glb"
+        "road-vegetation-verge.glb",
+        "road-water-causeway.glb",
+        "water-relief-spillway.glb"
       ],
-      "budget": { "maxKb": 180, "targetTriangles": 3200 },
+      "budget": { "maxKb": 360, "targetTriangles": 7200 },
       "styleFit": "high",
       "proceduralFallback": "src/game/world-scenery.ts keeps route ribbons, water pads, relief contours and field markers visible if the terrain transition GLB set fails to load.",
-      "nextAction": "Inspect these transition pieces in ?assets=map before using them as the grammar for the next sparse map expansion."
+      "nextAction": "Inspect these transition pieces in ?assets=map before turning the strongest seams into terrain continuity corridors."
     },
     {
       "id": "cloud-dock-skybridge-spaceport",

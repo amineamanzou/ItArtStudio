@@ -1504,6 +1504,23 @@ Gates V10.0:
   les preuves QA sans promouvoir automatiquement plus d'objets dans le runtime
   public `core`.
 
+Gates V10.1:
+
+- `terrain-transition-wave` devient `terrain-transition-v101` et etend la
+  grammaire locale de coutures terrain de trois a six fichiers GLB;
+- les nouvelles pieces `road-vegetation-verge.glb`,
+  `water-relief-spillway.glb` et `field-road-threshold.glb` ajoutent des
+  transitions route/vegetation, eau/relief et champ/route sans agrandir encore
+  `worldSize`;
+- la collection `accepted-itart-signature-terrain-v100` passe a 312.6 KB et
+  7 116 triangles, toujours sous le plafond local `360 KB / 7 200 triangles`;
+- le gate exige maintenant six fichiers, six placements d'inspection, au moins
+  152 placements map, 86 fichiers uniques et le plafond renderer global
+  `110000` triangles;
+- chaque preuve `terrain-transition-visible:*` produit aussi une capture
+  visual-only sans HUD afin de juger la couture dans la scene, pas seulement la
+  presence d'un objet sous l'interface.
+
 ## Components
 
 - `game-site`: surface principale.

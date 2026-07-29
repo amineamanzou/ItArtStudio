@@ -815,6 +815,19 @@ function createRoutePlacementSpecs(): MapPlacementSpec[] {
       1.66,
       Math.PI * 0.42,
       { assetId: "accepted-itart-signature-terrain-v100" }
+    ),
+    createPlacement(
+      "terrain:road-vegetation-verge:values-approach",
+      "terrain-transition:values-approach",
+      "route",
+      "support",
+      true,
+      "bridge",
+      "road-vegetation-verge.glb",
+      [3.4, 31.8],
+      1.52,
+      Math.PI * 0.08,
+      { assetId: "accepted-itart-signature-terrain-v100" }
     )
   ];
 }
@@ -827,7 +840,10 @@ function createWaterPlacementSpecs(): MapPlacementSpec[] {
     ),
     createPlacement("water:studio-crossing-proof", "water:studio-crossing-proof", "water", "support", true, "water", "ground_riverStraight.glb", [-0.8, 5.9], 1.46, -0.18),
     createPlacement("water:far-west-waterfall-utilization", "water:far-west-waterfall-utilization", "water", "context", false, "water", "cliff_waterfall_rock.glb", [-43.6, -7.8], 1.12, Math.PI * 0.5),
-    createPlacement("water:far-east-lily-utilization", "water:far-east-lily-utilization", "water", "context", false, "water", "lily_small.glb", [43.2, 13.5], 0.92, -0.2)
+    createPlacement("water:far-east-lily-utilization", "water:far-east-lily-utilization", "water", "context", false, "water", "lily_small.glb", [43.2, 13.5], 0.92, -0.2),
+    createPlacement("terrain:water-relief-spillway:cloud-runoff", "terrain-transition:cloud-runoff", "water", "support", true, "bridge", "water-relief-spillway.glb", [-15.4, -27.6], 1.46, Math.PI * 0.36, {
+      assetId: "accepted-itart-signature-terrain-v100"
+    })
   ];
 }
 
@@ -889,6 +905,9 @@ function createVegetationPlacementSpecs(): MapPlacementSpec[] {
     createPlacement("vegetation:far-west-cloud-tree", "vegetation:far-west-shell", "vegetation", "context", false, "vegetation", "tree_cone.glb", [-43.4, -14.2], 1.28, 0.2),
     createPlacement("vegetation:far-east-art-palm", "vegetation:far-east-shell", "vegetation", "context", false, "vegetation", "tree_palm.glb", [43.2, 16.4], 1.26, -0.28),
     createPlacement("vegetation:studio-crossing-proof", "vegetation:studio-crossing-proof", "vegetation", "support", true, "vegetation", "tree_oak.glb", [-3.2, 6.8], 1.32, 0.14),
+    createPlacement("terrain:field-road-threshold:design-entry", "terrain-transition:design-entry", "vegetation", "support", true, "bridge", "field-road-threshold.glb", [14.2, -5.8], 1.66, Math.PI * 0.34, {
+      assetId: "accepted-itart-signature-terrain-v100"
+    }),
     createPlacement("terrain:field-marker-grove:observability-field", "terrain-transition:observability-field", "vegetation", "support", true, "vegetation", "field-marker-grove.glb", [-27.6, 12.8], 1.28, 0.18, {
       assetId: "accepted-itart-signature-terrain-v100"
     })

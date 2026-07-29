@@ -254,6 +254,9 @@ Baseline actuelle:
 - vague terrain V10.0: trois pieces GLB locales de transition
   route/eau, route/relief et champ/repere constituent maintenant la premiere
   grammaire de coutures pour agrandir la map sans filler procedural;
+- extension terrain V10.1: cette grammaire passe a six pieces GLB en ajoutant
+  route/vegetation, eau/relief et champ/route, avec captures visual-only pour
+  verifier la continuite terrain sans dependance au HUD;
 - chaque fichier runtime doit rester declare dans le manifest et passer
   `npm run assets:validate`.
 
@@ -306,9 +309,11 @@ Baseline actuelle:
 - contrat manifeste `terrainShell`: placements minimums route/eau/relief/
   vegetation, densite non-hero plafonnee et budget renderer conserve a
   `110000` triangles.
-- contrat manifeste `terrainTransitionWave`: trois assets de transition visibles
-  en QA, au moins 149 placements map, 83 fichiers uniques et un plafond renderer
-  maintenu a `110000` triangles avant toute extension plus large.
+- contrat manifeste `terrainTransitionWave`: V10.0 exigeait trois assets de
+  transition visibles en QA; V10.1 etend ce contrat a six assets et six
+  placements de couture, avec un seuil de 152 placements map, 86 fichiers
+  uniques et un plafond renderer maintenu a `110000` triangles, sans augmenter
+  `worldSize`.
 
 ## Phase 4 - Trois Hero Locations
 

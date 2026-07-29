@@ -1028,8 +1028,8 @@ if (!terrainTransitionWave) {
       }
     }
   }
-  if (requiredFiles.length < 3 || new Set(requiredFiles).size !== requiredFiles.length) {
-    fail("Terrain transition wave must require at least three unique terrain files.", { requiredFiles });
+  if (requiredFiles.length < 6 || new Set(requiredFiles).size !== requiredFiles.length) {
+    fail("Terrain transition wave must require at least six unique terrain files.", { requiredFiles });
   }
   if (requiredPlacementIds.length !== requiredFiles.length || new Set(requiredPlacementIds).size !== requiredPlacementIds.length) {
     fail("Terrain transition wave must bind one unique placement per required file.", {
@@ -1043,12 +1043,12 @@ if (!terrainTransitionWave) {
   if (!terrainTransitionWave.nextAction || terrainTransitionWave.nextAction.length < 96) {
     fail("Terrain transition wave must declare the next terrain curation action.", { nextAction: terrainTransitionWave.nextAction });
   }
-  if (!Number.isInteger(terrainTransitionWave.minimumMapPlacements) || terrainTransitionWave.minimumMapPlacements < 149) {
+  if (!Number.isInteger(terrainTransitionWave.minimumMapPlacements) || terrainTransitionWave.minimumMapPlacements < 152) {
     fail("Terrain transition wave must raise the map placement proof after asset-detail-wave.", {
       minimumMapPlacements: terrainTransitionWave.minimumMapPlacements
     });
   }
-  if (!Number.isInteger(terrainTransitionWave.minimumUniqueFiles) || terrainTransitionWave.minimumUniqueFiles < 83) {
+  if (!Number.isInteger(terrainTransitionWave.minimumUniqueFiles) || terrainTransitionWave.minimumUniqueFiles < 86) {
     fail("Terrain transition wave must raise the unique-file proof after asset-detail-wave.", {
       minimumUniqueFiles: terrainTransitionWave.minimumUniqueFiles
     });

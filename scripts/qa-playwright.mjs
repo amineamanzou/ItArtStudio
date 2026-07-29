@@ -6120,6 +6120,24 @@ async function collectTerrainTransitionProofs(page) {
       file: "field-marker-grove.glb",
       zoneId: "observability-tower",
       role: "field-marker"
+    },
+    {
+      placementId: "terrain:road-vegetation-verge:values-approach",
+      file: "road-vegetation-verge.glb",
+      zoneId: "values-plaza",
+      role: "road-vegetation"
+    },
+    {
+      placementId: "terrain:water-relief-spillway:cloud-runoff",
+      file: "water-relief-spillway.glb",
+      zoneId: "cloud-dock",
+      role: "water-relief"
+    },
+    {
+      placementId: "terrain:field-road-threshold:design-entry",
+      file: "field-road-threshold.glb",
+      zoneId: "design-atelier",
+      role: "field-road"
     }
   ].filter((target) => manifestTerrainTransitionRequiredPlacementIds.includes(target.placementId));
   const proofs = [];
@@ -6150,23 +6168,34 @@ async function collectTerrainTransitionProofs(page) {
     const captureEntry = await capture(page, `terrain-transition-${target.role}`, {
       skipPremiumWorldDistribution: true
     });
+    const visualOnlyCaptureEntry = await captureVisualOnly(page, `terrain-transition-${target.role}-visual-only`);
     const snapshot = captureEntry.snapshot;
     const externalAssets = snapshot?.externalAssets;
     const placementRect = externalAssets?.placementScreenRects?.[target.placementId];
     const fileRect = externalAssets?.fileScreenRects?.[target.file];
     const placementOk = placementRect?.visible === true && placementRect.clippedArea >= 160 && placementRect.visibleRatio >= 0.004;
     const fileOk = fileRect?.visible === true && fileRect.clippedArea >= 160 && fileRect.visibleRatio >= 0.004;
-    const ok = snapshot?.activeZoneId === target.zoneId && placementOk && fileOk && captureEntry.canvas.ok;
+    const visualOnlyOk =
+      visualOnlyCaptureEntry.snapshot?.activeZoneId === target.zoneId &&
+      visualOnlyCaptureEntry.qaVisualOnly?.enabled === true &&
+      visualOnlyCaptureEntry.qaVisualOnly?.visibleElementCount === 0 &&
+      visualOnlyCaptureEntry.canvas.ok &&
+      visualOnlyCaptureEntry.canvas.edgeTransitions >= 68 &&
+      visualOnlyCaptureEntry.canvas.colorBuckets >= 35;
+    const ok = snapshot?.activeZoneId === target.zoneId && placementOk && fileOk && captureEntry.canvas.ok && visualOnlyOk;
     const proof = {
       ...target,
       ok,
       activeZoneId: snapshot?.activeZoneId ?? null,
       placementOk,
       fileOk,
+      visualOnlyOk,
       placementRect,
       fileRect,
       capture: captureEntry.relativePath,
+      visualOnlyCapture: visualOnlyCaptureEntry.relativePath,
       canvas: captureEntry.canvas,
+      visualOnlyCanvas: visualOnlyCaptureEntry.canvas,
       actionability
     };
     proofs.push(proof);
