@@ -3959,13 +3959,8 @@ async function checkPublicAssetOnlyPlayer(browser) {
       ([role, minimum]) => (externalAssets?.[`${role}LinkedPlacements`] ?? 0) < minimum
     );
     const forbiddenHeroPlacements = externalAssets?.heroLocationPlacements ?? 0;
-    const publicGeneratedRuntimeOk =
-      (snapshot?.world?.decorativeObjects ?? 0) === 0 &&
-      (snapshot?.world?.roadSegments ?? 0) === 0 &&
-      (snapshot?.world?.routeSurfaceObjects ?? 0) === 0 &&
-      (snapshot?.trail?.totalMarks ?? 0) === 0 &&
-      (snapshot?.trail?.activeMarks ?? 0) === 0 &&
-      (snapshot?.material?.surfaceFxObjectCapacity ?? 0) === 0;
+    const publicGeneratedRuntime = publicAssetOnlyGeneratedRuntime(snapshot);
+    const publicGeneratedRuntimeOk = isPublicAssetOnlyGeneratedRuntimeClean(publicGeneratedRuntime);
     const vehicleOk =
       asset?.mode === "vendor-glb" &&
       asset.status === "loaded" &&
@@ -4055,13 +4050,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
           mapTextureUrls: snapshot?.world?.mapTextureUrls
         },
         availableTerrainRoles: [...availableTerrainRoles].sort(),
-        publicGeneratedRuntime: {
-          decorativeObjects: snapshot?.world?.decorativeObjects,
-          roadSegments: snapshot?.world?.roadSegments,
-          routeSurfaceObjects: snapshot?.world?.routeSurfaceObjects,
-          trail: snapshot?.trail,
-          surfaceFxObjectCapacity: snapshot?.material?.surfaceFxObjectCapacity
-        },
+        publicGeneratedRuntime,
         capture: proof.relativePath
       });
     } else {
@@ -4091,13 +4080,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
           missingRolePlacementCounts,
           availableTerrainRoles: [...availableTerrainRoles].sort(),
           publicGeneratedRuntimeOk,
-          publicGeneratedRuntime: {
-            decorativeObjects: snapshot?.world?.decorativeObjects,
-            roadSegments: snapshot?.world?.roadSegments,
-            routeSurfaceObjects: snapshot?.world?.routeSurfaceObjects,
-            trail: snapshot?.trail,
-            surfaceFxObjectCapacity: snapshot?.material?.surfaceFxObjectCapacity
-          },
+          publicGeneratedRuntime,
           forbiddenHeroPlacements
         }
       });
@@ -4241,15 +4224,40 @@ async function checkPublicAssetOnlyOuterBands(browser) {
 }
 
 function isPublicAssetOnlySnapshotClean(snapshot) {
+  return snapshot?.externalAssets?.enabled === true && isPublicAssetOnlyGeneratedRuntimeClean(publicAssetOnlyGeneratedRuntime(snapshot));
+}
+
+function publicAssetOnlyGeneratedRuntime(snapshot) {
+  return {
+    externalAssetMode: snapshot?.externalAssets?.mode,
+    heroLocationPlacements: snapshot?.externalAssets?.heroLocationPlacements ?? 0,
+    decorativeObjects: snapshot?.world?.decorativeObjects ?? 0,
+    roadSegments: snapshot?.world?.roadSegments ?? 0,
+    routeSurfaceObjects: snapshot?.world?.routeSurfaceObjects ?? 0,
+    routeSurfaceDetailParts: snapshot?.world?.routeSurfaceDetailParts ?? 0,
+    visualSpecs: snapshot?.world?.visualSpecs ?? 0,
+    visualDecals: snapshot?.world?.visualDecals ?? 0,
+    propObjects: snapshot?.world?.propObjects ?? 0,
+    instancedPropObjects: snapshot?.world?.instancedPropObjects ?? 0,
+    surfaceObjects: snapshot?.world?.surfaceObjects ?? 0,
+    setDressingObjects: snapshot?.world?.setDressingObjects ?? 0,
+    placeArchitectureObjects: snapshot?.world?.placeArchitectureObjects ?? 0,
+    signatureArtifactObjects: snapshot?.world?.signatureArtifactObjects ?? 0,
+    projectArtifactObjects: snapshot?.world?.projectArtifactObjects ?? 0,
+    sceneryObjects: snapshot?.world?.sceneryObjects ?? 0,
+    terrainFeatureMarkerObjects: snapshot?.world?.terrainFeatureMarkerObjects ?? 0,
+    trailTotalMarks: snapshot?.trail?.totalMarks ?? 0,
+    trailActiveMarks: snapshot?.trail?.activeMarks ?? 0,
+    surfaceFxObjectCapacity: snapshot?.material?.surfaceFxObjectCapacity ?? 0
+  };
+}
+
+function isPublicAssetOnlyGeneratedRuntimeClean(generatedRuntime) {
   return (
-    snapshot?.externalAssets?.enabled === true &&
-    snapshot?.externalAssets?.mode === "core" &&
-    (snapshot?.externalAssets?.heroLocationPlacements ?? 0) === 0 &&
-    (snapshot?.world?.decorativeObjects ?? 0) === 0 &&
-    (snapshot?.world?.roadSegments ?? 0) === 0 &&
-    (snapshot?.world?.routeSurfaceObjects ?? 0) === 0 &&
-    (snapshot?.trail?.totalMarks ?? 0) === 0 &&
-    (snapshot?.material?.surfaceFxObjectCapacity ?? 0) === 0
+    generatedRuntime.externalAssetMode === "core" &&
+    Object.entries(generatedRuntime)
+      .filter(([key]) => key !== "externalAssetMode")
+      .every(([, count]) => count === 0)
   );
 }
 

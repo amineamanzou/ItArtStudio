@@ -47,7 +47,7 @@ const externalAssetRuntimeMode = !externalAssetDisabledMode;
 const assetOnlyPlayerPath = "assets/models/vendor/kenney/car-kit/vehicles/sedan-sports.glb";
 const assetOnlyGroundTexturePath = "assets/textures/vendor/polyhaven/forrest_ground_01/forrest_ground_01_diff_1k.jpg";
 const assetOnlyReliefTexturePath = "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg";
-const assetOnlyPathTexturePath = "assets/textures/vendor/polyhaven/grass_path_2/grass_path_2_diff_1k.jpg";
+const assetOnlyPathTexturePath = "assets/textures/vendor/polyhaven/stony_dirt_path/stony_dirt_path_diff_1k.jpg";
 const assetOnlyWaterTexturePath = "assets/textures/vendor/polyhaven/low_tide_rocks/low_tide_rocks_diff_1k.jpg";
 const terrainZoneById = new Map(zones.map((zone) => [zone.id, zone]));
 const playerMaxForwardSpeed = qaMode ? 12.8 : 10.5;
@@ -322,10 +322,10 @@ type AssetOnlyTerrainMetrics = {
 };
 
 function createAssetOnlyTerrainMaterial() {
-  const fieldMap = createDownloadedTexture(assetOnlyGroundTexturePath, 8);
-  const reliefMap = createDownloadedTexture(assetOnlyReliefTexturePath, 5);
-  const pathMap = createDownloadedTexture(assetOnlyPathTexturePath, 7);
-  const waterMap = createDownloadedTexture(assetOnlyWaterTexturePath, 6);
+  const fieldMap = createDownloadedTexture(assetOnlyGroundTexturePath);
+  const reliefMap = createDownloadedTexture(assetOnlyReliefTexturePath);
+  const pathMap = createDownloadedTexture(assetOnlyPathTexturePath);
+  const waterMap = createDownloadedTexture(assetOnlyWaterTexturePath);
 
   const material = new THREE.ShaderMaterial({
     uniforms: {
@@ -377,16 +377,19 @@ function createAssetOnlyTerrainMaterial() {
       varying float vShadeBias;
 
       void main() {
-        vec3 fieldTex = texture2D(fieldMap, vUv * 8.0).rgb * vec3(0.58, 0.73, 0.54);
-        vec3 reliefTex = texture2D(reliefMap, vUv * 5.2).rgb * vec3(0.72, 0.70, 0.63);
-        vec3 pathTex = texture2D(pathMap, vUv * 7.0).rgb * vec3(0.82, 0.66, 0.50);
-        vec3 waterTex = texture2D(waterMap, vUv * 6.0).rgb;
-        float relief = smoothstep(0.16, 0.82, vReliefMask) * (1.0 - vPathMask * 0.45);
-        float path = smoothstep(0.10, 0.92, vPathMask);
+        vec3 fieldTex = texture2D(fieldMap, vUv * 5.6).rgb * vec3(0.62, 0.78, 0.58);
+        vec3 reliefTex = texture2D(reliefMap, vUv * 4.1).rgb * vec3(0.74, 0.72, 0.65);
+        vec3 pathRaw = texture2D(pathMap, vUv * 4.6).rgb;
+        vec3 pathTex = mix(vec3(0.50, 0.38, 0.24), pathRaw * vec3(0.92, 0.80, 0.62) + vec3(0.14, 0.11, 0.07), 0.62);
+        vec3 waterTex = texture2D(waterMap, vUv * 4.2).rgb;
+        float relief = smoothstep(0.12, 0.72, vReliefMask) * (1.0 - vPathMask * 0.5);
+        float path = smoothstep(0.08, 0.72, vPathMask);
         float water = smoothstep(0.44, 0.92, vWaterMask);
         float shallow = 1.0 - smoothstep(0.72, 1.0, vWaterMask);
+        vec3 pathShoulder = mix(fieldTex, pathTex, 0.52);
         vec3 land = mix(fieldTex, reliefTex, relief);
-        land = mix(land, pathTex, path);
+        land = mix(land, pathShoulder, smoothstep(0.02, 0.42, vPathMask) * 0.3);
+        land = mix(land, pathTex, path * 0.72);
         vec3 wetStone = waterTex * vec3(0.48, 0.68, 0.66);
         vec3 waterCol = mix(waterDeep, waterShallow, clamp(vWaterMask, 0.0, 1.0));
         waterCol = mix(waterCol, wetStone, 0.34 + shallow * 0.28);
@@ -448,8 +451,8 @@ function sampleOrganicPathMask(position: THREE.Vector3) {
     Math.sin(position.x * 0.61 + position.z * 0.37) * 0.16 +
     Math.sin(position.x * 1.17 - position.z * 0.53) * 0.1 +
     Math.cos(position.x * 0.29 + position.z * 0.91) * 0.08;
-  const width = 1.12 + grain - zoneSuppression * 0.36;
-  const feather = 0.44 + Math.abs(grain) * 0.36;
+  const width = 1.32 + grain * 0.62 - zoneSuppression * 0.24;
+  const feather = 0.72 + Math.abs(grain) * 0.42;
   return 1 - smoothstep(width, width + feather, routeDistance);
 }
 
