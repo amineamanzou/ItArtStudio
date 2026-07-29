@@ -5133,7 +5133,7 @@ async function checkExternalAssetPreview(browser) {
           document.documentElement.classList.contains("game-ready") &&
             window.__IT_ART_STUDIO_QA__?.ready === true &&
             assets?.enabled &&
-            assets.requested >= 6 &&
+            assets.requested >= 9 &&
             assets.loaded + assets.failed >= assets.requested &&
             window.__IT_ART_STUDIO_QA__?.frameCount > 6
         );
@@ -5143,31 +5143,40 @@ async function checkExternalAssetPreview(browser) {
 
     const preview = await capture(previewPage, "external-asset-preview");
     const externalAssets = preview.snapshot?.externalAssets;
-    const requiredRoles = ["bridge", "relief", "road", "route-edge", "vegetation", "water"];
+    const requiredRoles = ["bridge", "hero-location", "relief", "road", "route-edge", "vegetation", "water"];
     const missingRoles = requiredRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
+    const requiredPremiumFiles = ["atelier-garment-loom.glb", "cloud-infra-gateway.glb", "observability-signal-spire.glb"];
+    const missingPremiumFiles = requiredPremiumFiles.filter(
+      (fileName) => !(externalAssets?.publicPaths ?? []).some((publicPath) => publicPath.endsWith(`/${fileName}`))
+    );
     const previewPathBase = new URL(previewUrl).pathname.replace(/\/$/u, "");
-    const expectedAssetPathPrefix = `${previewPathBase}/assets/models/vendor/`.replace(/^\/\//u, "/");
+    const expectedAssetPathPrefixes = ["vendor", "local"].map((scope) =>
+      `${previewPathBase}/assets/models/${scope}/`.replace(/^\/\//u, "/")
+    );
     const unsafePaths = (externalAssets?.publicPaths ?? []).filter((publicPath) => {
       try {
         const parsed = new URL(publicPath, previewUrl);
-        return parsed.pathname.includes("/public/") || !parsed.pathname.startsWith(expectedAssetPathPrefix);
+        return parsed.pathname.includes("/public/") || !expectedAssetPathPrefixes.some((prefix) => parsed.pathname.startsWith(prefix));
       } catch {
         return true;
       }
     });
     const gate =
       externalAssets?.enabled === true &&
-      externalAssets.requested >= 6 &&
-      externalAssets.loaded >= 6 &&
+      externalAssets.requested >= 9 &&
+      externalAssets.loaded >= 9 &&
       externalAssets.failed === 0 &&
-      externalAssets.visible >= 6 &&
-      externalAssets.files >= 6 &&
-      externalAssets.collections >= 6 &&
-      externalAssets.sceneObjects >= 12 &&
+      externalAssets.visible >= 9 &&
+      externalAssets.files >= 9 &&
+      externalAssets.uniqueFiles >= 9 &&
+      externalAssets.collections >= 7 &&
+      externalAssets.assetIds?.includes("accepted-itart-signature-premium-v93") &&
+      externalAssets.sceneObjects >= 18 &&
       externalAssets.bounds.width >= 10 &&
-      externalAssets.bounds.height >= 0.5 &&
-      externalAssets.bounds.depth >= 0.5 &&
+      externalAssets.bounds.height >= 0.8 &&
+      externalAssets.bounds.depth >= 3 &&
       missingRoles.length === 0 &&
+      missingPremiumFiles.length === 0 &&
       unsafePaths.length === 0 &&
       (externalAssets.errors?.length ?? 0) === 0 &&
       preview.canvas.ok;
@@ -5184,8 +5193,9 @@ async function checkExternalAssetPreview(browser) {
         canvas: preview.canvas,
         previewUrl,
         missingRoles,
+        missingPremiumFiles,
         unsafePaths,
-        expectedAssetPathPrefix
+        expectedAssetPathPrefixes
       });
     }
   } finally {

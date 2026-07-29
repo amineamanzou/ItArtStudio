@@ -84,3 +84,6 @@ Hero-location curation:
   declared in the manifest like any other accepted runtime collection. Future
   Blender assets should replace these generated silhouettes once their visual
   direction is proven.
+- `?assets=preview` must load both the terrain/vendor specimens and the local
+  premium silhouettes, so accepted models are proven as a library before they
+  are judged inside the full map composition.

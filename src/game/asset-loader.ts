@@ -73,6 +73,7 @@ export type ExternalAssetPreviewTelemetry = {
 };
 
 type PreviewSpec = {
+  assetId?: string;
   terrainRole: string;
   preferredFile: string;
   position: [number, number, number];
@@ -133,6 +134,30 @@ const previewSpecs: PreviewSpec[] = [
     preferredFile: "tree_oak.glb",
     position: [5.65, 0.24, -1.8],
     targetSize: 1.55
+  },
+  {
+    assetId: "accepted-itart-signature-premium-v93",
+    terrainRole: "hero-location",
+    preferredFile: "cloud-infra-gateway.glb",
+    position: [-2.7, 0.28, 1.9],
+    targetSize: 1.75,
+    rotationY: -0.28
+  },
+  {
+    assetId: "accepted-itart-signature-premium-v93",
+    terrainRole: "hero-location",
+    preferredFile: "atelier-garment-loom.glb",
+    position: [0, 0.28, 1.9],
+    targetSize: 1.7,
+    rotationY: 0.18
+  },
+  {
+    assetId: "accepted-itart-signature-premium-v93",
+    terrainRole: "hero-location",
+    preferredFile: "observability-signal-spire.glb",
+    position: [2.7, 0.28, 1.9],
+    targetSize: 1.72,
+    rotationY: 0.32
   }
 ];
 
@@ -200,8 +225,10 @@ export async function createExternalAssetPreview() {
 
   const jobs = previewSpecs
     .map((spec) => {
-      const asset = acceptedAssets.find(
-        (item) => item.terrainRole === spec.terrainRole && item.selectedFiles?.includes(spec.preferredFile)
+      const asset = acceptedAssets.find((item) =>
+        spec.assetId
+          ? item.id === spec.assetId && item.selectedFiles?.includes(spec.preferredFile)
+          : item.terrainRole === spec.terrainRole && item.selectedFiles?.includes(spec.preferredFile)
       );
       return asset ? { asset, spec } : null;
     })

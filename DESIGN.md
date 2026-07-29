@@ -1341,6 +1341,19 @@ Gates V9.3:
   moins 12 placements Cloud Dock, 11 Design Atelier et 12 Observability Tower,
   avec les roles premium V9.3 obligatoires.
 
+Gates V9.4:
+
+- `?assets=preview` devient une planche de bibliotheque GLB en deux rangs:
+  six specimens terrain/vendor et trois silhouettes premium locales;
+- la preview charge explicitement `cloud-infra-gateway.glb`,
+  `atelier-garment-loom.glb` et `observability-signal-spire.glb` depuis
+  `assets/models/local/itart-signature-kit/premium`;
+- `external-asset-preview-runtime` exige maintenant le role `hero-location`,
+  neuf fichiers uniques, sept collections et des chemins publics autorisant
+  `vendor/` comme `local/`, sans prefixe `public/`;
+- cette preuve reste opt-in et ne promeut aucun asset premium dans le runtime
+  public `core`.
+
 ## Components
 
 - `game-site`: surface principale.
