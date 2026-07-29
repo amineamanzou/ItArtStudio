@@ -3699,9 +3699,15 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const forbiddenFiles = manifestPublicTerrainCore.forbiddenFiles ?? [];
     const minimumRolePlacements = manifestPublicTerrainCore.minimumRolePlacements ?? {};
     const minimumCoverage = manifestPublicTerrainCore.minimumCoverage ?? { width: 0, depth: 0 };
+    const requiredTerrainMaterialRoles = manifestPublicTerrainCore.requiredTerrainMaterialRoles ?? [];
+    const requiredTerrainTextureFiles = manifestPublicTerrainCore.requiredTerrainTextureFiles ?? [];
     const missingTerrainRoles = requiredTerrainRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
     const missingAssetIds = requiredAssetIds.filter((assetId) => !externalAssets?.assetIds?.includes(assetId));
     const missingFiles = requiredFiles.filter((file) => !externalAssets?.placementFiles?.includes(file));
+    const missingTerrainMaterialRoles = requiredTerrainMaterialRoles.filter((role) => !snapshot?.world?.mapTextureRoles?.includes(role));
+    const missingTerrainTextureFiles = requiredTerrainTextureFiles.filter(
+      (file) => !snapshot?.world?.mapTextureUrls?.some((url) => url.endsWith(file))
+    );
     const forbiddenPlacementFiles = forbiddenFiles.filter((file) => externalAssets?.placementFiles?.includes(file));
     const forbiddenPublicPaths = (externalAssets?.publicPaths ?? []).filter((publicPath) => {
       const normalized = publicPath.toLowerCase();
@@ -3726,6 +3732,12 @@ async function checkPublicAssetOnlyPlayer(browser) {
       player.bounds?.height >= 0.3 &&
       player.bounds?.depth >= 0.85 &&
       proof.canvas.ok;
+    const terrainShellOk =
+      (snapshot?.world?.terrainLayers ?? 0) >= (manifestPublicTerrainCore.minimumTerrainLayers ?? 0) &&
+      (snapshot?.world?.terrainHeightRange ?? 0) >= (manifestPublicTerrainCore.minimumTerrainHeightRange ?? 0) &&
+      (snapshot?.world?.terrainVertexCount ?? 0) >= (manifestPublicTerrainCore.minimumTerrainVertexCount ?? 0) &&
+      missingTerrainMaterialRoles.length === 0 &&
+      missingTerrainTextureFiles.length === 0;
     const terrainCoreOk =
       externalAssets?.enabled === true &&
       externalAssets.mode === "core" &&
@@ -3752,6 +3764,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
       externalAssets.actualCoplanarRiskPlacements === 0 &&
       externalAssets.mapCoverageWidth >= minimumCoverage.width &&
       externalAssets.mapCoverageDepth >= minimumCoverage.depth &&
+      terrainShellOk &&
       (externalAssets.errors?.length ?? 0) === 0;
     const ok = vehicleOk && terrainCoreOk;
 
@@ -3769,6 +3782,13 @@ async function checkPublicAssetOnlyPlayer(browser) {
         requiredAssetIds,
         requiredFiles,
         forbiddenFiles,
+        terrainShell: {
+          terrainLayers: snapshot?.world?.terrainLayers,
+          terrainHeightRange: snapshot?.world?.terrainHeightRange,
+          terrainVertexCount: snapshot?.world?.terrainVertexCount,
+          mapTextureRoles: snapshot?.world?.mapTextureRoles,
+          mapTextureUrls: snapshot?.world?.mapTextureUrls
+        },
         capture: proof.relativePath
       });
     } else {
@@ -3782,9 +3802,12 @@ async function checkPublicAssetOnlyPlayer(browser) {
         expectedPath: "assets/models/vendor/kenney/car-kit/vehicles/sedan-sports.glb",
         terrainCoreDiagnostics: {
           contract: manifestPublicTerrainCore,
+          terrainShellOk,
           missingTerrainRoles,
           missingAssetIds,
           missingFiles,
+          missingTerrainMaterialRoles,
+          missingTerrainTextureFiles,
           forbiddenPlacementFiles,
           forbiddenPublicPaths,
           missingRolePlacementCounts,
@@ -10665,7 +10688,7 @@ async function writeReport() {
     }`,
     `- Public terrain core: ${
       publicTerrainCoreScenario?.details?.externalAssets
-        ? `${publicTerrainCoreScenario.status}, placements ${publicTerrainCoreScenario.details.externalAssets.placements}, unique files ${publicTerrainCoreScenario.details.externalAssets.uniqueFiles}, roles ${publicTerrainCoreScenario.details.externalAssets.terrainRoles.join("/")}, hero placements ${publicTerrainCoreScenario.details.externalAssets.heroLocationPlacements}, cluster density ${publicTerrainCoreScenario.details.externalAssets.maxNonHeroClusterDensity}, coverage ${publicTerrainCoreScenario.details.externalAssets.mapCoverageWidth}x${publicTerrainCoreScenario.details.externalAssets.mapCoverageDepth}, capture ${publicTerrainCoreScenario.details.capture ?? "n/a"}`
+        ? `${publicTerrainCoreScenario.status}, placements ${publicTerrainCoreScenario.details.externalAssets.placements}, unique files ${publicTerrainCoreScenario.details.externalAssets.uniqueFiles}, roles ${publicTerrainCoreScenario.details.externalAssets.terrainRoles.join("/")}, terrain layers ${publicTerrainCoreScenario.details.terrainShell?.terrainLayers ?? "n/a"}, height ${publicTerrainCoreScenario.details.terrainShell?.terrainHeightRange ?? "n/a"}, hero placements ${publicTerrainCoreScenario.details.externalAssets.heroLocationPlacements}, cluster density ${publicTerrainCoreScenario.details.externalAssets.maxNonHeroClusterDensity}, coverage ${publicTerrainCoreScenario.details.externalAssets.mapCoverageWidth}x${publicTerrainCoreScenario.details.externalAssets.mapCoverageDepth}, capture ${publicTerrainCoreScenario.details.capture ?? "n/a"}`
         : (publicTerrainCoreScenario?.status ?? "n/a")
     }`,
     `- Public no-QA runtime: ${

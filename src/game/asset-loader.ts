@@ -595,6 +595,10 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
     return;
   }
 
+  if (spec.assetId?.startsWith("accepted-polyhaven-")) {
+    return;
+  }
+
   if (spec.terrainRole !== "vegetation" && spec.terrainRole !== "relief") {
     return;
   }
@@ -764,6 +768,9 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
       assetId: "accepted-nature-stone-bridge-core"
     }),
     createPlacement("terrain-core:relief-slope", "terrain-core:central-relief", "relief", "primary", true, "relief", "rock_largeE.glb", [4.8, 6.55], 1.2, -0.2),
+    createPlacement("terrain-core:polyhaven-rock-shore", "terrain-core:premium-relief-shore", "relief", "support", true, "relief", "rock_09_1k.gltf", [-0.35, 7.85], 1.26, -0.16, {
+      assetId: "accepted-polyhaven-rock-09-core"
+    }),
     createPlacement("terrain-core:relief-top", "terrain-core:central-relief", "relief", "support", true, "relief", "rock_largeA.glb", [2.3, 7.6], 1.02, 0.16),
     createPlacement("terrain-core:relief-rock", "terrain-core:central-relief", "relief", "support", true, "relief", "rock_largeD.glb", [1.1, 6.6], 1.0, 0.32),
     createPlacement("terrain-core:relief-flat-east", "terrain-core:central-relief-east", "relief", "support", true, "relief", "rock_smallFlatC.glb", [9.65, 6.55], 0.92, 0.18),
@@ -783,6 +790,9 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     createPlacement("terrain-core:spawn-tree-ground", "terrain-core:spawn-clearing-west", "vegetation", "support", true, "vegetation", "tree_default.glb", [4.95, 5.05], 1.18, 0.22),
     createPlacement("terrain-core:pond-bank-log", "terrain-core:pond-bank", "vegetation", "support", true, "vegetation", "log.glb", [-8.0, 2.2], 0.92, Math.PI * 0.34),
     createPlacement("terrain-core:pond-bank-bush", "terrain-core:pond-bank", "vegetation", "support", true, "vegetation", "plant_bushDetailed.glb", [-7.35, 7.05], 0.82, -0.18),
+    createPlacement("terrain-core:polyhaven-fern-bank", "terrain-core:premium-vegetation-bank", "vegetation", "support", true, "vegetation", "fern_02_1k.gltf", [-5.85, 8.2], 0.82, 0.32, {
+      assetId: "accepted-polyhaven-fern-core"
+    }),
     createPlacement("terrain-core:pond-bank-rock", "terrain-core:pond-bank", "relief", "support", true, "relief", "rock_smallFlatC.glb", [-2.1, 1.25], 0.76, 0.22),
     createPlacement("terrain-core:south-tree-detailed", "terrain-core:south-marker", "vegetation", "support", true, "vegetation", "tree_detailed.glb", [2.8, 9.25], 1.18, -0.1),
     createPlacement("terrain-core:south-grass", "terrain-core:south-marker", "vegetation", "support", true, "vegetation", "grass_large.glb", [0.8, 9.8], 0.88, 0.34),

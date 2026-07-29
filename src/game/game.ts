@@ -46,6 +46,8 @@ const externalAssetCoreMode = !externalAssetDisabledMode && !externalAssetPrevie
 const externalAssetRuntimeMode = !externalAssetDisabledMode;
 const assetOnlyPlayerPath = "assets/models/vendor/kenney/car-kit/vehicles/sedan-sports.glb";
 const assetOnlyGroundTexturePath = "assets/textures/vendor/polyhaven/forrest_ground_01/forrest_ground_01_diff_1k.jpg";
+const assetOnlyReliefTexturePath = "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg";
+const assetOnlyRoadTexturePath = "assets/textures/vendor/polyhaven/aerial_ground_rock/aerial_ground_rock_diff_1k.jpg";
 const playerMaxForwardSpeed = qaMode ? 12.8 : 10.5;
 const playerMaxReverseSpeed = qaMode ? 6.4 : 4.2;
 const playerAcceleration = qaMode ? 38 : 24;
@@ -303,14 +305,169 @@ function createDownloadedTexture(path: string, repeat = 1) {
   return texture;
 }
 
-function createAssetOnlyGroundMaterial() {
-  const grassMap = createDownloadedTexture(assetOnlyGroundTexturePath, 7);
-  return new THREE.MeshStandardMaterial({
-    color: 0x4e6548,
-    map: grassMap,
-    roughness: 0.96,
-    metalness: 0.01
-  });
+type AssetOnlyTerrainKind = "field" | "road" | "water" | "relief";
+
+type AssetOnlyTerrainMetrics = {
+  heightRange: number;
+  minHeight: number;
+  maxHeight: number;
+  gradeMax: number;
+  vertexCount: number;
+  materialRoles: AssetOnlyTerrainKind[];
+  textureUrls: string[];
+};
+
+function createAssetOnlyTerrainMaterials(): Record<AssetOnlyTerrainKind, THREE.MeshStandardMaterial> {
+  const fieldMap = createDownloadedTexture(assetOnlyGroundTexturePath, 8);
+  const reliefMap = createDownloadedTexture(assetOnlyReliefTexturePath, 5);
+  const roadMap = createDownloadedTexture(assetOnlyRoadTexturePath, 6);
+
+  return {
+    field: new THREE.MeshStandardMaterial({
+      color: 0x55704f,
+      map: fieldMap,
+      vertexColors: true,
+      roughness: 0.98,
+      metalness: 0.01
+    }),
+    road: new THREE.MeshStandardMaterial({
+      color: 0x8d9086,
+      map: roadMap,
+      vertexColors: true,
+      roughness: 0.92,
+      metalness: 0.02
+    }),
+    relief: new THREE.MeshStandardMaterial({
+      color: 0x625f52,
+      map: reliefMap,
+      vertexColors: true,
+      roughness: 0.96,
+      metalness: 0.02
+    }),
+    water: new THREE.MeshStandardMaterial({
+      color: 0x2d7c88,
+      vertexColors: true,
+      roughness: 0.24,
+      metalness: 0.02,
+      emissive: 0x0b5966,
+      emissiveIntensity: 0.08
+    })
+  };
+}
+
+function classifyAssetOnlyTerrainCell(position: THREE.Vector3): AssetOnlyTerrainKind {
+  const route = sampleDriveSurface(position);
+  const worldMaterial = sampleWorldMaterial(position, route.onRoute);
+  const terrain = sampleTerrain(position);
+  if (worldMaterial.kind === "water") {
+    return "water";
+  }
+  if (route.distance <= driveSurfaceConfig.routeWidth * 0.86) {
+    return "road";
+  }
+  if (terrain.dominantFeatureId && Math.abs(terrain.height) >= 0.12) {
+    return "relief";
+  }
+  return "field";
+}
+
+function colorForAssetOnlyTerrain(kind: AssetOnlyTerrainKind, terrain: TerrainSample) {
+  const heightT = clamp((terrain.height + 0.22) / 0.64, 0, 1);
+  const gradeT = clamp(terrain.grade * 6, 0, 1);
+  const color =
+    kind === "water"
+      ? new THREE.Color(0x236b73).lerp(new THREE.Color(0x6ca7a2), clamp(terrain.wetness, 0.18, 0.82))
+      : kind === "road"
+        ? new THREE.Color(0x777b72).lerp(new THREE.Color(0xb2aea0), heightT * 0.52)
+        : kind === "relief"
+          ? new THREE.Color(0x4f5045).lerp(new THREE.Color(0x8a806c), Math.max(heightT, gradeT * 0.72))
+          : new THREE.Color(0x2f513e).lerp(new THREE.Color(0x678264), heightT * 0.78);
+  if (kind !== "water") {
+    color.lerp(new THREE.Color(0x161d19), gradeT * 0.18);
+  }
+  return color;
+}
+
+function createAssetOnlyTerrainShell() {
+  const materials = createAssetOnlyTerrainMaterials();
+  const segments = 128;
+  const size = worldSize * 1.04;
+  const half = size / 2;
+  const buckets: Record<AssetOnlyTerrainKind, { positions: number[]; uvs: number[]; colors: number[] }> = {
+    field: { positions: [], uvs: [], colors: [] },
+    road: { positions: [], uvs: [], colors: [] },
+    water: { positions: [], uvs: [], colors: [] },
+    relief: { positions: [], uvs: [], colors: [] }
+  };
+  const group = new THREE.Group();
+  group.name = "asset-only-terrain-shell";
+  let minHeight = Number.POSITIVE_INFINITY;
+  let maxHeight = Number.NEGATIVE_INFINITY;
+  let gradeMax = 0;
+  let vertexCount = 0;
+
+  const pushVertex = (kind: AssetOnlyTerrainKind, x: number, z: number) => {
+    const terrain = sampleTerrain(new THREE.Vector3(x, 0, z));
+    const y = kind === "water" ? Math.min(terrain.height, -0.055) + 0.022 : terrain.height - 0.018;
+    const color = colorForAssetOnlyTerrain(kind, terrain);
+    buckets[kind].positions.push(x, y, z);
+    buckets[kind].uvs.push((x + half) / size, (z + half) / size);
+    buckets[kind].colors.push(color.r, color.g, color.b);
+    minHeight = Math.min(minHeight, y);
+    maxHeight = Math.max(maxHeight, y);
+    gradeMax = Math.max(gradeMax, terrain.grade);
+    vertexCount += 1;
+  };
+
+  for (let zIndex = 0; zIndex < segments; zIndex += 1) {
+    const z0 = -half + (zIndex / segments) * size;
+    const z1 = -half + ((zIndex + 1) / segments) * size;
+    for (let xIndex = 0; xIndex < segments; xIndex += 1) {
+      const x0 = -half + (xIndex / segments) * size;
+      const x1 = -half + ((xIndex + 1) / segments) * size;
+      const center = new THREE.Vector3((x0 + x1) * 0.5, 0, (z0 + z1) * 0.5);
+      const kind = classifyAssetOnlyTerrainCell(center);
+      pushVertex(kind, x0, z0);
+      pushVertex(kind, x0, z1);
+      pushVertex(kind, x1, z0);
+      pushVertex(kind, x1, z0);
+      pushVertex(kind, x0, z1);
+      pushVertex(kind, x1, z1);
+    }
+  }
+
+  const materialRoles: AssetOnlyTerrainKind[] = [];
+  for (const kind of ["field", "road", "water", "relief"] as const) {
+    const bucket = buckets[kind];
+    if (bucket.positions.length === 0) {
+      continue;
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(bucket.positions, 3));
+    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(bucket.uvs, 2));
+    geometry.setAttribute("color", new THREE.Float32BufferAttribute(bucket.colors, 3));
+    geometry.computeVertexNormals();
+    const mesh = new THREE.Mesh(geometry, materials[kind]);
+    mesh.name = `asset-only-terrain-${kind}`;
+    mesh.receiveShadow = true;
+    mesh.renderOrder = kind === "water" ? -1 : -4;
+    mesh.userData.assetOnlyTerrainRole = kind;
+    mesh.userData.assetOnlyTerrainVertexCount = bucket.positions.length / 3;
+    group.add(mesh);
+    materialRoles.push(kind);
+  }
+
+  const metrics: AssetOnlyTerrainMetrics = {
+    heightRange: Number((maxHeight - minHeight).toFixed(3)),
+    minHeight: Number(minHeight.toFixed(3)),
+    maxHeight: Number(maxHeight.toFixed(3)),
+    gradeMax: Number(gradeMax.toFixed(3)),
+    vertexCount,
+    materialRoles,
+    textureUrls: [assetOnlyGroundTexturePath, assetOnlyReliefTexturePath, assetOnlyRoadTexturePath]
+  };
+
+  return { group, metrics };
 }
 
 type DriveKey = "up" | "down" | "left" | "right";
@@ -1739,25 +1896,25 @@ class StudioGame {
   }
 
   private setWorld() {
-    const ground = new THREE.Mesh(
-      assetOnlyWorld
-        ? new THREE.PlaneGeometry(worldSize * 1.18, worldSize * 1.18, 1, 1)
-        : new THREE.CircleGeometry(worldGroundRadius, 48),
-      assetOnlyWorld
-        ? createAssetOnlyGroundMaterial()
-        : new THREE.MeshStandardMaterial({
-            color: 0xffffff,
-            map: worldTexture,
-            roughness: 0.86,
-            metalness: 0.05
-          })
-    );
-    ground.rotation.x = -Math.PI * 0.5;
-    ground.rotation.z = Math.PI * 0.06;
-    ground.scale.set(1.12, 1, 0.88);
-    ground.renderOrder = -4;
-    ground.receiveShadow = true;
-    this.scene.add(ground);
+    if (assetOnlyWorld) {
+      this.addAssetOnlyTerrainShell();
+    } else {
+      const ground = new THREE.Mesh(
+        new THREE.CircleGeometry(worldGroundRadius, 48),
+        new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          map: worldTexture,
+          roughness: 0.86,
+          metalness: 0.05
+        })
+      );
+      ground.rotation.x = -Math.PI * 0.5;
+      ground.rotation.z = Math.PI * 0.06;
+      ground.scale.set(1.12, 1, 0.88);
+      ground.renderOrder = -4;
+      ground.receiveShadow = true;
+      this.scene.add(ground);
+    }
 
     if (!assetOnlyWorld) {
       this.addDistrictPlates();
@@ -1926,6 +2083,21 @@ class StudioGame {
     for (const signature of rendered.signatures) {
       this.scenerySignatureIds.add(signature);
     }
+  }
+
+  private addAssetOnlyTerrainShell() {
+    const { group, metrics } = createAssetOnlyTerrainShell();
+    this.scene.add(group);
+    this.terrainLayerCount += metrics.materialRoles.length;
+    this.terrainHeightRange = metrics.heightRange;
+    this.terrainMinHeight = metrics.minHeight;
+    this.terrainMaxHeight = metrics.maxHeight;
+    this.terrainVertexCount = metrics.vertexCount;
+    this.terrainGradeMax = metrics.gradeMax;
+    this.terrainFeatureCount = terrainConfig.featureCount;
+    this.mapTextureRoles = metrics.materialRoles;
+    this.mapTextureUrls = metrics.textureUrls;
+    this.mapTextureMaterialCount = metrics.textureUrls.length;
   }
 
   private addRouteGuidance() {

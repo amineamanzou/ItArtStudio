@@ -14,6 +14,7 @@ const isHttpUrl = (value) => typeof value === "string" && /^https?:\/\//.test(va
 const isPositiveNumber = (value) => typeof value === "number" && Number.isFinite(value) && value > 0;
 const roundTenth = (value) => Math.round(value * 10) / 10;
 const isTextureFile = (file) => /\.(avif|jpe?g|png|svg|webp)$/iu.test(file);
+const isModelFile = (file) => /\.(glb|gltf)$/iu.test(file);
 
 const listFiles = (entryPath) => {
   const stat = fs.statSync(entryPath);
@@ -44,8 +45,15 @@ const readGlbJsonChunk = (filePath) => {
   return JSON.parse(buffer.toString("utf8", 20, 20 + jsonLength).replace(/[\0\s]+$/u, ""));
 };
 
-const countGlbTriangles = (filePath) => {
-  const gltf = readGlbJsonChunk(filePath);
+const readModelJson = (filePath) => {
+  if (filePath.endsWith(".glb")) {
+    return readGlbJsonChunk(filePath);
+  }
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+};
+
+const countModelTriangles = (filePath) => {
+  const gltf = readModelJson(filePath);
   if (!gltf) {
     return 0;
   }
@@ -68,50 +76,56 @@ const countGlbTriangles = (filePath) => {
   return Math.round(triangles);
 };
 
-const validateGlbImageReferences = (filePath) => {
-  const gltf = readGlbJsonChunk(filePath);
+const validateModelExternalReferences = (filePath) => {
+  const gltf = readModelJson(filePath);
   if (!gltf) {
     return;
   }
 
-  for (const image of asArray(gltf.images)) {
-    const uri = image?.uri;
+  const validateUri = (uri, kind) => {
     if (typeof uri !== "string" || uri.startsWith("data:")) {
-      continue;
+      return;
     }
 
     if (uri.startsWith("/") || uri.startsWith("public/") || uri.split(/[\\/]/u).includes("..")) {
-      fail("GLB image URI must stay relative to the model folder.", { filePath, uri });
-      continue;
+      fail(`Model ${kind} URI must stay relative to the model folder.`, { filePath, uri });
+      return;
     }
 
-    const imagePath = path.join(path.dirname(filePath), uri);
-    if (!fs.existsSync(imagePath)) {
-      fail("GLB image URI does not resolve to a local texture.", {
+    const referencedPath = path.join(path.dirname(filePath), uri);
+    if (!fs.existsSync(referencedPath)) {
+      fail(`Model ${kind} URI does not resolve to a local file.`, {
         filePath,
         uri,
-        expectedPath: path.relative(root, imagePath)
+        expectedPath: path.relative(root, referencedPath)
       });
     }
+  };
+
+  for (const image of asArray(gltf.images)) {
+    validateUri(image?.uri, "image");
+  }
+  for (const buffer of asArray(gltf.buffers)) {
+    validateUri(buffer?.uri, "buffer");
   }
 };
 
 const analyzeLocalAsset = (assetId, localPath) => {
   const absolutePath = path.join(root, localPath);
   const files = listFiles(absolutePath);
-  const glbFiles = files.filter((file) => file.endsWith(".glb"));
+  const modelFiles = files.filter(isModelFile);
   const textureFiles = files.filter(isTextureFile);
   const fileKb = roundTenth(files.reduce((total, file) => total + fs.statSync(file).size / 1024, 0));
-  const triangles = glbFiles.reduce((total, file) => total + countGlbTriangles(file), 0);
-  glbFiles.forEach(validateGlbImageReferences);
+  const triangles = modelFiles.reduce((total, file) => total + countModelTriangles(file), 0);
+  modelFiles.forEach(validateModelExternalReferences);
 
   return {
     assetId,
     fileKb,
     triangles,
-    modelFiles: glbFiles.length,
+    modelFiles: modelFiles.length,
     textureFiles: textureFiles.length,
-    modelFileNames: glbFiles.map((file) => path.basename(file)),
+    modelFileNames: modelFiles.map((file) => path.basename(file)),
     textureFileNames: textureFiles.map((file) => path.basename(file)),
     files: files.length
   };
@@ -181,7 +195,7 @@ const assetUtilizationWave = manifest.assetUtilizationWave ?? null;
 const assetDetailWave = manifest.assetDetailWave ?? null;
 const terrainTransitionWave = manifest.terrainTransitionWave ?? null;
 const productionLicenseAssets = [];
-const declaredRuntimeGlbs = new Set();
+const declaredRuntimeModels = new Set();
 const declaredRuntimeTextures = new Set();
 
 for (const asset of assets) {
@@ -271,7 +285,7 @@ for (const asset of assets) {
       }
       if (asset.kind.includes("model")) {
         if (localAnalysis.modelFiles === 0) {
-          fail("Accepted or integrated model assets must include at least one GLB file.", {
+          fail("Accepted or integrated model assets must include at least one GLB or glTF file.", {
             assetId: asset.id,
             localPath: asset.localPath
           });
@@ -327,24 +341,24 @@ for (const asset of assets) {
             modelFiles: localAnalysis.modelFiles
           });
         }
-        const localGlbFiles = listFiles(path.join(root, asset.localPath)).filter((file) => file.endsWith(".glb"));
-        const localGlbNames = new Set(localGlbFiles.map((file) => path.basename(file)));
+        const localModelFiles = listFiles(path.join(root, asset.localPath)).filter(isModelFile);
+        const localModelNames = new Set(localModelFiles.map((file) => path.basename(file)));
         for (const selectedFile of asArray(asset.selectedFiles)) {
-          if (typeof selectedFile !== "string" || !localGlbNames.has(selectedFile)) {
-            fail("Accepted model selectedFiles must name an existing local GLB.", {
+          if (typeof selectedFile !== "string" || !localModelNames.has(selectedFile)) {
+            fail("Accepted model selectedFiles must name an existing local GLB or glTF.", {
               assetId: asset.id,
               selectedFile
             });
           }
         }
-        for (const glbFile of localGlbFiles) {
-          if (Array.isArray(asset.selectedFiles) && !asset.selectedFiles.includes(path.basename(glbFile))) {
-            fail("Accepted local GLB must be listed in selectedFiles.", {
+        for (const modelFile of localModelFiles) {
+          if (Array.isArray(asset.selectedFiles) && !asset.selectedFiles.includes(path.basename(modelFile))) {
+            fail("Accepted local model file must be listed in selectedFiles.", {
               assetId: asset.id,
-              glbFile: path.relative(root, glbFile)
+              modelFile: path.relative(root, modelFile)
             });
           }
-          declaredRuntimeGlbs.add(path.relative(root, glbFile));
+          declaredRuntimeModels.add(path.relative(root, modelFile));
         }
       }
       if (asset.kind === "texture-set") {
@@ -384,25 +398,25 @@ for (const asset of assets) {
 
 const vendorModelsPath = path.join(root, "public", "assets", "models", "vendor");
 if (fs.existsSync(vendorModelsPath)) {
-  const orphanGlbs = listFiles(vendorModelsPath)
-    .filter((file) => file.endsWith(".glb"))
+  const orphanModels = listFiles(vendorModelsPath)
+    .filter(isModelFile)
     .map((file) => path.relative(root, file))
-    .filter((file) => !declaredRuntimeGlbs.has(file));
+    .filter((file) => !declaredRuntimeModels.has(file));
 
-  if (orphanGlbs.length > 0) {
-    fail("Runtime vendor GLB files must be declared by accepted or integrated manifest entries.", { orphanGlbs });
+  if (orphanModels.length > 0) {
+    fail("Runtime vendor model files must be declared by accepted or integrated manifest entries.", { orphanModels });
   }
 }
 
 const localModelsPath = path.join(root, "public", "assets", "models", "local");
 if (fs.existsSync(localModelsPath)) {
-  const orphanGlbs = listFiles(localModelsPath)
-    .filter((file) => file.endsWith(".glb"))
+  const orphanModels = listFiles(localModelsPath)
+    .filter(isModelFile)
     .map((file) => path.relative(root, file))
-    .filter((file) => !declaredRuntimeGlbs.has(file));
+    .filter((file) => !declaredRuntimeModels.has(file));
 
-  if (orphanGlbs.length > 0) {
-    fail("Runtime local GLB files must be declared by accepted or integrated manifest entries.", { orphanGlbs });
+  if (orphanModels.length > 0) {
+    fail("Runtime local model files must be declared by accepted or integrated manifest entries.", { orphanModels });
   }
 }
 

@@ -4,7 +4,7 @@
   "strategy": "asset-first",
   "statusModel": ["candidate", "accepted", "integrated", "rejected"],
   "budgets": {
-    "acceptedModelMaxKb": 1800,
+    "acceptedModelMaxKb": 2200,
     "acceptedTextureMaxKb": 4096,
     "heroLocationModelBudget": 16,
     "heroLocationTextureBudget": 10,
@@ -66,7 +66,7 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v111",
+    "id": "public-terrain-core-v112",
     "phase": "public-terrain-first-runtime",
     "purpose": "Prove the public asset-only world as terrain before bases: downloaded car, vendor ground texture and GLB roles for road, bridge, rail, water, relief and vegetation with no generated decorative primitives or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
@@ -79,6 +79,8 @@
       "accepted-nature-relief-core",
       "accepted-nature-stone-bridge-core",
       "accepted-nature-vegetation-core",
+      "accepted-polyhaven-fern-core",
+      "accepted-polyhaven-rock-09-core",
       "accepted-train-rail-core"
     ],
     "requiredFiles": [
@@ -86,8 +88,10 @@
       "pond-2.glb",
       "road-curve.glb",
       "road-straight.glb",
+      "rock_09_1k.gltf",
       "rock_largeE.glb",
       "sedan-sports.glb",
+      "fern_02_1k.gltf",
       "track-detailed.glb",
       "tree_oak.glb"
     ],
@@ -101,7 +105,7 @@
       "tree_cone.glb"
     ],
     "minimumPlacements": 32,
-    "minimumUniqueFiles": 24,
+    "minimumUniqueFiles": 26,
     "minimumRolePlacements": {
       "route": 7,
       "water": 6,
@@ -109,11 +113,32 @@
       "vegetation": 12
     },
     "minimumCoverage": { "width": 18, "depth": 12 },
+    "requiredTerrainMaterialRoles": ["field", "relief", "road", "water"],
+    "requiredTerrainTextureFiles": [
+      "assets/textures/vendor/polyhaven/forrest_ground_01/forrest_ground_01_diff_1k.jpg",
+      "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg",
+      "assets/textures/vendor/polyhaven/aerial_ground_rock/aerial_ground_rock_diff_1k.jpg"
+    ],
+    "minimumTerrainLayers": 4,
+    "minimumTerrainHeightRange": 0.5,
+    "minimumTerrainVertexCount": 90000,
     "maximumNonHeroClusterDensity": 4,
     "maximumHeroLocationPlacements": 0,
-    "allowedGeneratedSubstrate": "single textured ground mesh only; visible public decor must come from downloaded vendor GLB/glTF or downloaded vendor textures.",
+    "allowedGeneratedSubstrate": "multi-material terrain heightfield only, using downloaded vendor textures and vertex colors for field/relief/road/water; visible public decor must come from downloaded vendor GLB/glTF.",
     "fallback": "If a terrain GLB fails, omit that placement and keep the public world sparse rather than replacing it with a generated rectangle, cone, halo, plate or abstract primitive.",
     "nextAction": "Source stronger terrain packs before expanding the public map beyond this proof core; do not densify Cloud Dock, Design Atelier or Observability Tower until this terrain gate stays green."
+  },
+  "publicTerrainMaterialCore": {
+    "id": "polyhaven-terrain-material-v112",
+    "phase": "public-terrain-material-upgrade",
+    "qaGate": "public-asset-only-terrain-core",
+    "purpose": "Introduce a tiny offline Poly Haven CC0 glTF tranche to raise terrain material fidelity before expanding the map or densifying hero bases.",
+    "requiredAssetIds": ["accepted-polyhaven-rock-09-core", "accepted-polyhaven-fern-core"],
+    "requiredFiles": ["rock_09_1k.gltf", "fern_02_1k.gltf"],
+    "runtimePolicy": "No runtime network fetches. Poly Haven files are downloaded into public/assets/models/vendor/polyhaven with local .bin and texture references preserved.",
+    "maximumAssetKb": 2200,
+    "maximumRuntimePlacements": 4,
+    "nextAction": "Evaluate screenshot fit against the Kenney terrain vocabulary; if the scanned assets look pasted-on, color-grade/downsample or demote them before sourcing another batch."
   },
   "terrainShell": {
     "id": "expanded-empty-map-shell-v97",
@@ -862,6 +887,60 @@
       "styleFit": "medium",
       "proceduralFallback": "If the converted pond GLB assets fail, the public core omits the pond rather than drawing a generated water blob or rectangular substitute.",
       "nextAction": "Use one pond plus a few aquatic plants as a central water proof, then evaluate if the converted material styling needs a richer texture pass."
+    },
+    {
+      "id": "accepted-polyhaven-rock-09-core",
+      "status": "accepted",
+      "sourceId": "polyhaven",
+      "kind": "model-collection",
+      "target": "map",
+      "terrainRole": "relief",
+      "narrativeRole": "Offline CC0 scanned rock relief used as a higher-fidelity terrain accent so the public terrain reads less like low-poly placeholder scatter.",
+      "preferredFormat": "glTF",
+      "assetPageUrl": "https://polyhaven.com/a/rock_09",
+      "downloadUrl": "https://api.polyhaven.com/files/rock_09",
+      "licenseUrl": "https://polyhaven.com/license",
+      "retrievedAt": "2026-07-29",
+      "sha256": "636e57eb0090889627da18edaec202ff9f65f83101b94f91b7da4d21dc080ab9",
+      "originalResolution": "1k glTF package from Poly Haven",
+      "runtimeResolution": "1k",
+      "transform": "none; local glTF package copied with relative bin and texture references",
+      "localPath": "public/assets/models/vendor/polyhaven/rock_09",
+      "publicPath": "assets/models/vendor/polyhaven/rock_09",
+      "fileKb": 1918.4,
+      "triangles": 12416,
+      "selectedFiles": ["rock_09_1k.gltf"],
+      "budget": { "maxKb": 2200, "targetTriangles": 13000 },
+      "styleFit": "medium",
+      "proceduralFallback": "If the scanned rock fails, omit it from the public terrain core rather than replacing it with generated primitive rocks.",
+      "nextAction": "Use at one or two relief/shoreline placements only, then validate in screenshot that it improves terrain fidelity without reading as a pasted photogrammetry object."
+    },
+    {
+      "id": "accepted-polyhaven-fern-core",
+      "status": "accepted",
+      "sourceId": "polyhaven",
+      "kind": "model-collection",
+      "target": "map",
+      "terrainRole": "vegetation",
+      "narrativeRole": "Offline CC0 fern vegetation accent used sparingly near water and relief to lift the terrain vocabulary beyond simple low-poly trees.",
+      "preferredFormat": "glTF",
+      "assetPageUrl": "https://polyhaven.com/a/fern_02",
+      "downloadUrl": "https://api.polyhaven.com/files/fern_02",
+      "licenseUrl": "https://polyhaven.com/license",
+      "retrievedAt": "2026-07-29",
+      "sha256": "33974295ee19670af4877705fc7d91f33f42d6302f0d44a625e072271223031f",
+      "originalResolution": "1k glTF package from Poly Haven",
+      "runtimeResolution": "1k",
+      "transform": "none; local glTF package copied with relative bin and texture references",
+      "localPath": "public/assets/models/vendor/polyhaven/fern_02",
+      "publicPath": "assets/models/vendor/polyhaven/fern_02",
+      "fileKb": 1119.5,
+      "triangles": 6232,
+      "selectedFiles": ["fern_02_1k.gltf"],
+      "budget": { "maxKb": 1400, "targetTriangles": 7000 },
+      "styleFit": "medium",
+      "proceduralFallback": "If the fern fails, omit it from the public terrain core rather than drawing generated grass or abstract vegetation markers.",
+      "nextAction": "Use as a rare wet-edge vegetation proof, then decide if scanned plants harmonize with the rest of the authored map."
     },
     {
       "id": "texture-ground-grass-pbr",
