@@ -4040,7 +4040,23 @@ async function checkPublicAssetOnlyPlayer(browser) {
     );
     const forbiddenHeroPlacements = externalAssets?.heroLocationPlacements ?? 0;
     const publicGeneratedRuntime = publicAssetOnlyGeneratedRuntime(snapshot);
-    const publicGeneratedRuntimeOk = isPublicAssetOnlyGeneratedRuntimeClean(publicGeneratedRuntime);
+    const publicGeneratedRuntimeCaps = manifestPublicTerrainCore.maximumGeneratedRuntimeCounts ?? {};
+    const publicGeneratedRuntimeOk = isPublicAssetOnlyGeneratedRuntimeClean(publicGeneratedRuntime, publicGeneratedRuntimeCaps);
+    if (publicGeneratedRuntimeOk) {
+      pass("public-asset-only-generated-runtime-clean", {
+        publicGeneratedRuntime,
+        caps: publicGeneratedRuntimeCaps
+      });
+    } else {
+      scenarioFail(
+        "public-asset-only-generated-runtime-clean",
+        "Public asset-only runtime contains generated/procedural scene objects.",
+        {
+          publicGeneratedRuntime,
+          caps: publicGeneratedRuntimeCaps
+        }
+      );
+    }
     const expectedPlayerFile = manifestPublicTerrainCore.requiredPlayerFile ?? "race.glb";
     const expectedPlayerName = `vendor-player:${expectedPlayerFile.replace(/\.glb$/u, "")}`;
     const expectedPlayerPath = `assets/models/vendor/kenney/car-kit/vehicles/${expectedPlayerFile}`;
@@ -4347,16 +4363,16 @@ function publicAssetOnlyGeneratedRuntime(snapshot) {
     terrainFeatureMarkerObjects: snapshot?.world?.terrainFeatureMarkerObjects ?? 0,
     trailTotalMarks: snapshot?.trail?.totalMarks ?? 0,
     trailActiveMarks: snapshot?.trail?.activeMarks ?? 0,
-    surfaceFxObjectCapacity: snapshot?.material?.surfaceFxObjectCapacity ?? 0
+    surfaceFxObjectCapacity: snapshot?.drive?.material?.surfaceFxObjectCapacity ?? 0
   };
 }
 
-function isPublicAssetOnlyGeneratedRuntimeClean(generatedRuntime) {
+function isPublicAssetOnlyGeneratedRuntimeClean(generatedRuntime, caps = {}) {
   return (
     generatedRuntime.externalAssetMode === "core" &&
     Object.entries(generatedRuntime)
       .filter(([key]) => key !== "externalAssetMode")
-      .every(([, count]) => count === 0)
+      .every(([key, count]) => count <= (caps[key] ?? 0))
   );
 }
 
@@ -11166,6 +11182,9 @@ async function writeReport() {
   const externalAssetMapScenario = scenarios.find((scenario) => scenario.name === "external-asset-map-composition");
   const publicAssetOnlyPlayerScenario = scenarios.find((scenario) => scenario.name === "public-asset-only-player");
   const publicTerrainCoreScenario = scenarios.find((scenario) => scenario.name === "public-asset-only-terrain-core");
+  const publicGeneratedRuntimeCleanScenario = scenarios.find(
+    (scenario) => scenario.name === "public-asset-only-generated-runtime-clean"
+  );
   const publicNoQaAssetOnlyScenario = scenarios.find((scenario) => scenario.name === "public-noqa-asset-only-runtime");
   const publicAssetOnlyMobileScenario = scenarios.find((scenario) => scenario.name === "public-asset-only-mobile");
   const publicAssetOnlyKeyboardScenario = scenarios.find((scenario) => scenario.name === "public-asset-only-keyboard-route");
@@ -11451,6 +11470,14 @@ async function writeReport() {
       publicTerrainCoreScenario?.details?.externalAssets
         ? `${publicTerrainCoreScenario.status}, placements ${publicTerrainCoreScenario.details.externalAssets.placements}, unique files ${publicTerrainCoreScenario.details.externalAssets.uniqueFiles}, roles ${publicTerrainCoreScenario.details.externalAssets.terrainRoles.join("/")}, terrain roles ${(publicTerrainCoreScenario.details.availableTerrainRoles ?? []).join("/")}, terrain layers ${publicTerrainCoreScenario.details.terrainShell?.terrainLayers ?? "n/a"}, height ${publicTerrainCoreScenario.details.terrainShell?.terrainHeightRange ?? "n/a"}, hero placements ${publicTerrainCoreScenario.details.externalAssets.heroLocationPlacements}, cluster density ${publicTerrainCoreScenario.details.externalAssets.maxNonHeroClusterDensity}, coverage ${publicTerrainCoreScenario.details.externalAssets.mapCoverageWidth}x${publicTerrainCoreScenario.details.externalAssets.mapCoverageDepth}, capture ${publicTerrainCoreScenario.details.capture ?? "n/a"}`
         : (publicTerrainCoreScenario?.status ?? "n/a")
+    }`,
+    `- Public asset-only generated runtime clean: ${
+      publicGeneratedRuntimeCleanScenario?.details?.publicGeneratedRuntime
+        ? `${publicGeneratedRuntimeCleanScenario.status}, counts ${Object.entries(publicGeneratedRuntimeCleanScenario.details.publicGeneratedRuntime)
+            .filter(([key]) => key !== "externalAssetMode")
+            .map(([key, count]) => `${key}:${count}`)
+            .join(", ")}`
+        : (publicGeneratedRuntimeCleanScenario?.status ?? "n/a")
     }`,
     `- Public no-QA runtime: ${
       publicNoQaAssetOnlyScenario?.details
