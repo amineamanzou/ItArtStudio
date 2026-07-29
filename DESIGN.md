@@ -1354,6 +1354,22 @@ Gates V9.4:
 - cette preuve reste opt-in et ne promeut aucun asset premium dans le runtime
   public `core`.
 
+Gates V9.5:
+
+- `world-assets.manifest.json` declare quatre `mapExpansionKits`: routes,
+  eau/relief, vegetation/champs et anchors de hero locations;
+- chaque kit relie des roles terrain, des collections GLB acceptees, des
+  textures runtime, un fallback, un budget anti-bruit, une couverture minimale
+  et une prochaine action exploitable avant l'agrandissement de la carte;
+- `assets:validate` refuse maintenant un kit dont les roles, `acceptedAssetIds`,
+  `textureAssetIds`, minimums de placements, couverture ou budgets sont
+  incoherents;
+- la QA Playwright ajoute `map-expansion-kits-manifest` et fait deriver
+  `external-asset-map-composition` des seuils du manifeste: au moins 83
+  placements, 18 fichiers uniques, les sept roles `bridge/hero-location/relief/
+  road/route-edge/vegetation/water`, et une couverture minimale 60x60 avant les
+  gates historiques 70x70.
+
 ## Components
 
 - `game-site`: surface principale.

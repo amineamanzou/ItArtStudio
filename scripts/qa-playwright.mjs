@@ -72,6 +72,25 @@ const rendererCaps = {
 };
 const manifestHeroLocationIds = worldAssetManifest.heroLocations ?? Object.keys(worldAssetManifest.heroLocationCuration ?? {});
 const manifestHeroLocationCuration = worldAssetManifest.heroLocationCuration ?? {};
+const manifestMapExpansionKits = worldAssetManifest.mapExpansionKits ?? [];
+const manifestMapExpansionKitRoles = [
+  ...new Set(manifestMapExpansionKits.flatMap((kit) => kit.requiredTerrainRoles ?? []))
+].sort();
+const manifestMapExpansionMinimumPlacements = manifestMapExpansionKits.reduce(
+  (total, kit) => total + (kit.minimumRuntimePlacements ?? 0),
+  0
+);
+const manifestMapExpansionMinimumUniqueFiles = Math.max(
+  ...manifestMapExpansionKits.map((kit) => kit.minimumUniqueFiles ?? 0),
+  0
+);
+const manifestMapExpansionMinimumCoverage = manifestMapExpansionKits.reduce(
+  (coverage, kit) => ({
+    width: Math.max(coverage.width, kit.minimumCoverage?.width ?? 0),
+    depth: Math.max(coverage.depth, kit.minimumCoverage?.depth ?? 0)
+  }),
+  { width: 0, depth: 0 }
+);
 const manifestHeroLocationMinimumPlacements = Object.fromEntries(
   manifestHeroLocationIds.map((zoneId) => [zoneId, manifestHeroLocationCuration[zoneId]?.minRuntimePlacements ?? 3])
 );
@@ -160,6 +179,110 @@ function rendererWithinCaps(renderer) {
       renderer.geometries <= rendererCaps.geometries &&
       renderer.textures <= rendererCaps.textures
   );
+}
+
+function checkMapExpansionKitsManifest() {
+  const acceptedAssets = new Map(
+    worldAssetManifest.assets
+      ?.filter((asset) => asset.status === "accepted" || asset.status === "integrated")
+      .map((asset) => [asset.id, asset]) ?? []
+  );
+  const acceptedMapTextures = new Map(
+    [...acceptedAssets.values()].filter((asset) => asset.kind === "texture-set" && asset.target === "map").map((asset) => [asset.id, asset])
+  );
+  const terrainRoles = new Set(worldAssetManifest.terrainRoles ?? []);
+  const requiredRoles = ["bridge", "hero-location", "relief", "road", "route-edge", "vegetation", "water"];
+  const kitProofs = manifestMapExpansionKits.map((kit) => {
+    const missingRoles = (kit.requiredTerrainRoles ?? []).filter((role) => !terrainRoles.has(role));
+    const missingAssets = (kit.acceptedAssetIds ?? []).filter((assetId) => !acceptedAssets.has(assetId));
+    const nonModelAssets = (kit.acceptedAssetIds ?? []).filter((assetId) => {
+      const asset = acceptedAssets.get(assetId);
+      return asset && !asset.kind?.includes("model");
+    });
+    const missingRoleAssets = (kit.requiredTerrainRoles ?? []).filter(
+      (role) => !(kit.acceptedAssetIds ?? []).some((assetId) => acceptedAssets.get(assetId)?.terrainRole === role)
+    );
+    const missingTextures = (kit.textureAssetIds ?? []).filter((assetId) => !acceptedMapTextures.has(assetId));
+    const missingHeroLocations = Array.isArray(kit.requiredHeroLocations)
+      ? manifestHeroLocationIds.filter((zoneId) => !kit.requiredHeroLocations.includes(zoneId))
+      : [];
+    const missingHeroMinimums = Array.isArray(kit.requiredHeroLocations)
+      ? manifestHeroLocationIds.filter((zoneId) => !Number.isInteger(kit.minPerHeroLocation?.[zoneId]))
+      : [];
+    const ok =
+      kit.phase === "map-expansion" &&
+      (kit.purpose?.length ?? 0) >= 72 &&
+      (kit.fallback?.length ?? 0) >= 48 &&
+      (kit.nextAction?.length ?? 0) >= 48 &&
+      (kit.requiredTerrainRoles?.length ?? 0) > 0 &&
+      (kit.acceptedAssetIds?.length ?? 0) > 0 &&
+      (kit.textureAssetIds?.length ?? 0) > 0 &&
+      Number.isInteger(kit.minimumRuntimePlacements) &&
+      kit.minimumRuntimePlacements > 0 &&
+      Number.isInteger(kit.minimumUniqueFiles) &&
+      kit.minimumUniqueFiles > 0 &&
+      (kit.minimumCoverage?.width ?? 0) > 0 &&
+      (kit.minimumCoverage?.depth ?? 0) > 0 &&
+      (kit.noiseBudget?.maxClusterDensity ?? 0) > 0 &&
+      (kit.noiseBudget?.maxContextShare ?? 0) > 0 &&
+      missingRoles.length === 0 &&
+      missingAssets.length === 0 &&
+      nonModelAssets.length === 0 &&
+      missingRoleAssets.length === 0 &&
+      missingTextures.length === 0 &&
+      missingHeroLocations.length === 0 &&
+      missingHeroMinimums.length === 0;
+
+    return {
+      id: kit.id,
+      ok,
+      roles: kit.requiredTerrainRoles ?? [],
+      acceptedAssetIds: kit.acceptedAssetIds ?? [],
+      textureAssetIds: kit.textureAssetIds ?? [],
+      minimumRuntimePlacements: kit.minimumRuntimePlacements ?? 0,
+      minimumUniqueFiles: kit.minimumUniqueFiles ?? 0,
+      minimumCoverage: kit.minimumCoverage ?? null,
+      noiseBudget: kit.noiseBudget ?? null,
+      missingRoles,
+      missingAssets,
+      nonModelAssets,
+      missingRoleAssets,
+      missingTextures,
+      missingHeroLocations,
+      missingHeroMinimums
+    };
+  });
+  const missingCoreRoles = requiredRoles.filter((role) => !manifestMapExpansionKitRoles.includes(role));
+  const ok =
+    manifestMapExpansionKits.length >= 4 &&
+    kitProofs.every((proof) => proof.ok) &&
+    missingCoreRoles.length === 0 &&
+    manifestMapExpansionMinimumPlacements >= 80 &&
+    manifestMapExpansionMinimumUniqueFiles >= 18 &&
+    manifestMapExpansionMinimumCoverage.width >= 60 &&
+    manifestMapExpansionMinimumCoverage.depth >= 60;
+
+  if (ok) {
+    pass("map-expansion-kits-manifest", {
+      kits: kitProofs.length,
+      roles: manifestMapExpansionKitRoles,
+      minimumRuntimePlacements: manifestMapExpansionMinimumPlacements,
+      minimumUniqueFiles: manifestMapExpansionMinimumUniqueFiles,
+      minimumCoverage: manifestMapExpansionMinimumCoverage,
+      kitProofs
+    });
+  } else {
+    scenarioFail("map-expansion-kits-manifest", "Asset-first map expansion kits are missing or too weak for the next map scale-up.", {
+      kits: kitProofs.length,
+      roles: manifestMapExpansionKitRoles,
+      missingCoreRoles,
+      minimumRuntimePlacements: manifestMapExpansionMinimumPlacements,
+      minimumUniqueFiles: manifestMapExpansionMinimumUniqueFiles,
+      minimumCoverage: manifestMapExpansionMinimumCoverage,
+      failingKits: kitProofs.filter((proof) => !proof.ok),
+      kitProofs
+    });
+  }
 }
 
 function attachPageDiagnostics(page, label) {
@@ -5383,8 +5506,12 @@ async function checkExternalAssetMapComposition(browser) {
     const externalAssets = proof.snapshot?.externalAssets;
     const mapRenderer = proof.snapshot?.renderer;
     const mapRendererBudgetOk = rendererWithinCaps(mapRenderer);
-    const requiredRoles = ["bridge", "relief", "road", "route-edge", "vegetation", "water"];
+    const requiredRoles = ["bridge", "hero-location", "relief", "road", "route-edge", "vegetation", "water"];
     const missingRoles = requiredRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
+    const missingKitRoles = manifestMapExpansionKitRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
+    const missingKitAssetIds = [
+      ...new Set(manifestMapExpansionKits.flatMap((kit) => kit.acceptedAssetIds ?? []))
+    ].filter((assetId) => !externalAssets?.assetIds?.includes(assetId));
     const requiredHeroLocationIds = manifestHeroLocationIds;
     const requiredHeroLocationRoles = manifestHeroLocationRequiredRoles;
     const requiredScreenRoles = ["road", "water", "relief", "vegetation"];
@@ -5421,8 +5548,10 @@ async function checkExternalAssetMapComposition(browser) {
       externalAssets.visible >= externalAssets.requested &&
       externalAssets.files >= externalAssets.requested &&
       externalAssets.uniqueFiles >= 18 &&
+      externalAssets.uniqueFiles >= manifestMapExpansionMinimumUniqueFiles &&
       externalAssets.collections >= 6 &&
       externalAssets.placements >= 32 &&
+      externalAssets.placements >= manifestMapExpansionMinimumPlacements &&
       externalAssets.clusters >= 8 &&
       externalAssets.placementGroups >= 4 &&
       externalAssets.routeLinkedPlacements >= 11 &&
@@ -5447,10 +5576,15 @@ async function checkExternalAssetMapComposition(browser) {
       externalAssets.mapCoverageWidth >= 70 &&
       externalAssets.mapCoverageDepth >= 70 &&
       externalAssets.mapCoverageArea >= 4900 &&
+      externalAssets.mapCoverageWidth >= manifestMapExpansionMinimumCoverage.width &&
+      externalAssets.mapCoverageDepth >= manifestMapExpansionMinimumCoverage.depth &&
       externalAssets.bounds.width >= 70 &&
       externalAssets.bounds.depth >= 70 &&
       externalAssets.bounds.height >= 1 &&
       missingRoles.length === 0 &&
+      missingKitRoles.length === 0 &&
+      missingKitAssetIds.length === 0 &&
+      manifestMapExpansionKits.length >= 4 &&
       weakScreenRoles.length === 0 &&
       weakHeroLocations.length === 0 &&
       unsafePaths.length === 0 &&
@@ -5462,6 +5596,13 @@ async function checkExternalAssetMapComposition(browser) {
       pass("external-asset-map-composition", {
         externalAssets,
         heroLocationProofs,
+        mapExpansionKits: manifestMapExpansionKits.map((kit) => ({
+          id: kit.id,
+          roles: kit.requiredTerrainRoles ?? [],
+          minimumRuntimePlacements: kit.minimumRuntimePlacements,
+          minimumUniqueFiles: kit.minimumUniqueFiles,
+          minimumCoverage: kit.minimumCoverage
+        })),
         renderer: mapRenderer,
         caps: rendererCaps,
         canvas: proof.canvas,
@@ -5474,6 +5615,9 @@ async function checkExternalAssetMapComposition(browser) {
         canvas: proof.canvas,
         mapUrl,
         missingRoles,
+        missingKitRoles,
+        missingKitAssetIds,
+        mapExpansionKits: manifestMapExpansionKits,
         weakScreenRoles,
         weakHeroLocations,
         requiredHeroLocationRoles,
@@ -9358,6 +9502,7 @@ async function writeReport() {
   });
   const worldScenario = scenarios.find((scenario) => scenario.name === "world-richness");
   const rendererBudgetScenario = scenarios.find((scenario) => scenario.name === "renderer-budget");
+  const mapExpansionKitsScenario = scenarios.find((scenario) => scenario.name === "map-expansion-kits-manifest");
   const mapTextureRuntimeScenario = scenarios.find((scenario) => scenario.name === "map-texture-runtime");
   const externalAssetOffScenario = scenarios.find((scenario) => scenario.name === "external-asset-off-runtime");
   const externalAssetCoreScenario = scenarios.find((scenario) => scenario.name === "external-asset-core-runtime");
@@ -9474,6 +9619,11 @@ async function writeReport() {
       rendererBudgetScenario?.details?.renderer
         ? `${rendererBudgetScenario.status}, calls ${rendererBudgetScenario.details.renderer.calls}/${rendererBudgetScenario.details.caps.calls}, triangles ${rendererBudgetScenario.details.renderer.triangles}/${rendererBudgetScenario.details.caps.triangles}, geometries ${rendererBudgetScenario.details.renderer.geometries}/${rendererBudgetScenario.details.caps.geometries}, textures ${rendererBudgetScenario.details.renderer.textures}/${rendererBudgetScenario.details.caps.textures}`
         : (rendererBudgetScenario?.status ?? "n/a")
+    }`,
+    `- Map expansion kits: ${
+      mapExpansionKitsScenario?.details
+        ? `${mapExpansionKitsScenario.status}, kits ${mapExpansionKitsScenario.details.kits}, roles ${(mapExpansionKitsScenario.details.roles ?? []).join("/")}, runtime placements ${mapExpansionKitsScenario.details.minimumRuntimePlacements}, unique files ${mapExpansionKitsScenario.details.minimumUniqueFiles}, coverage ${mapExpansionKitsScenario.details.minimumCoverage?.width ?? "n/a"}x${mapExpansionKitsScenario.details.minimumCoverage?.depth ?? "n/a"}`
+        : (mapExpansionKitsScenario?.status ?? "n/a")
     }`,
     `- External asset off runtime: ${
       externalAssetOffScenario?.details?.externalAssets
@@ -9875,6 +10025,7 @@ async function main() {
         scenarioFail("static-dist-canvas-nonblank", "Static dist canvas did not render enough non-dark sampled pixels.", home.canvas);
       }
       await checkWorldRichness(page);
+      checkMapExpansionKitsManifest();
       await checkExternalAssetOffRuntime(browser);
       await checkExternalAssetCoreRuntime(page);
       await checkExternalAssetPreview(browser);
@@ -9918,6 +10069,7 @@ async function main() {
       scenarioFail("canvas-color-families", "Canvas did not expose the tech/art/studio color families.", home.canvas);
     }
     await checkWorldRichness(page);
+    checkMapExpansionKitsManifest();
     await checkExternalAssetOffRuntime(browser);
     await checkExternalAssetCoreRuntime(page);
     await checkExternalAssetPreview(browser);

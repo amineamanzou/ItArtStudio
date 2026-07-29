@@ -36,7 +36,76 @@
       "nextCustomAsset": "Upgrade the generated mast, trace station, signal spire and trace beacon into a taller Blender-authored observability beacon with animated scan arcs and trace-beam anchors."
     }
   },
-  "terrainRoles": ["road", "water", "relief", "vegetation", "route-edge", "bridge"],
+  "terrainRoles": ["road", "water", "relief", "vegetation", "route-edge", "bridge", "hero-location"],
+  "mapExpansionKits": [
+    {
+      "id": "route-network-kit",
+      "phase": "map-expansion",
+      "purpose": "Road, bridge and edge vocabulary for scaling the playable map with readable routes before adding more landmarks.",
+      "requiredTerrainRoles": ["road", "route-edge", "bridge"],
+      "acceptedAssetIds": ["accepted-city-road-core", "accepted-city-route-edge-core", "accepted-nature-bridge-core"],
+      "textureAssetIds": ["accepted-map-road-texture-studio"],
+      "linkedRuntimeLayers": ["worldRoutes", "road-ribbons", "route-guidance"],
+      "minimumRuntimePlacements": 14,
+      "minimumUniqueFiles": 10,
+      "minimumCoverage": { "width": 42, "depth": 42 },
+      "noiseBudget": { "maxClusterDensity": 3, "maxContextShare": 0.3 },
+      "fallback": "Keep procedural road ribbons active until modular GLB roads prove route readability across the larger map.",
+      "nextAction": "Use this kit as the first grammar when expanding the road network outward from the current districts."
+    },
+    {
+      "id": "water-relief-biome-kit",
+      "phase": "map-expansion",
+      "purpose": "Water, rocks, cliffs and crossing pieces for making the larger map feel authored rather than flat.",
+      "requiredTerrainRoles": ["water", "relief", "bridge"],
+      "acceptedAssetIds": ["accepted-nature-water-core", "accepted-nature-relief-core", "accepted-nature-bridge-core"],
+      "textureAssetIds": ["accepted-map-water-texture-studio", "accepted-map-relief-texture-studio"],
+      "linkedRuntimeLayers": ["worldMaterialRegions.water", "terrainConfig.features", "surface-details"],
+      "minimumRuntimePlacements": 18,
+      "minimumUniqueFiles": 12,
+      "minimumCoverage": { "width": 60, "depth": 60 },
+      "noiseBudget": { "maxClusterDensity": 3, "maxContextShare": 0.42 },
+      "fallback": "Keep procedural water surfaces, foam and terrain heightfield visible under GLB accents if a model fails.",
+      "nextAction": "Lay out water and relief islands before increasing prop density so the map expansion has visible geography."
+    },
+    {
+      "id": "vegetation-field-biome-kit",
+      "phase": "map-expansion",
+      "purpose": "Trees, bushes, grass and field texture vocabulary for open areas between hero locations.",
+      "requiredTerrainRoles": ["vegetation"],
+      "acceptedAssetIds": ["accepted-nature-vegetation-core"],
+      "textureAssetIds": ["accepted-map-field-texture-studio"],
+      "linkedRuntimeLayers": ["world-scenery", "terrain-feature-markers"],
+      "minimumRuntimePlacements": 16,
+      "minimumUniqueFiles": 8,
+      "minimumCoverage": { "width": 60, "depth": 60 },
+      "noiseBudget": { "maxClusterDensity": 3, "maxContextShare": 0.7 },
+      "fallback": "Keep instanced procedural field markers and vertex-colored terrain if GLB vegetation is not available.",
+      "nextAction": "Use vegetation as sparse spatial punctuation, not filler, while the larger terrain shell is being composed."
+    },
+    {
+      "id": "hero-location-anchor-kit",
+      "phase": "map-expansion",
+      "purpose": "Signature local GLB anchors and industrial support pieces that make Cloud Dock, Design Atelier and Observability Tower recognizable without labels.",
+      "requiredTerrainRoles": ["hero-location"],
+      "acceptedAssetIds": [
+        "accepted-itart-signature-hero-core",
+        "accepted-itart-signature-environment-core",
+        "accepted-itart-signature-premium-v93",
+        "accepted-factory-industrial-core"
+      ],
+      "textureAssetIds": ["accepted-map-hero-location-texture-studio"],
+      "linkedRuntimeLayers": ["heroLocationCuration", "external-asset-map", "zone-place-architecture"],
+      "requiredHeroLocations": ["cloud-dock", "design-atelier", "observability-tower"],
+      "minPerHeroLocation": { "cloud-dock": 12, "design-atelier": 11, "observability-tower": 12 },
+      "minimumRuntimePlacements": 35,
+      "minimumUniqueFiles": 18,
+      "minimumCoverage": { "width": 18, "depth": 18 },
+      "noiseBudget": { "maxClusterDensity": 8, "maxContextShare": 0.2 },
+      "fallback": "Keep procedural landmark silhouettes and hero-location pads if a premium GLB anchor fails to load.",
+      "nextAction": "Promote the strongest anchor per hero location only after screenshots prove the place reads without UI text."
+    }
+  ],
   "sources": [
     {
       "id": "kenney-city-kit-roads",

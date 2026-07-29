@@ -142,19 +142,27 @@ The runner:
 - Every screenshot capture must pass visible detail gates.
 - World richness must report at least 10 zones, 18 road segments, 45 decorative
   objects, 225 scene objects, and 135 landmark objects.
-- `external-asset-preview-runtime` must load six accepted GLB specimens, one per
-  terrain role, with GitHub Pages-safe URLs.
+- `external-asset-preview-runtime` must load nine accepted GLB specimens: six
+  terrain/vendor files plus the three local premium hero-location silhouettes,
+  with GitHub Pages-safe `vendor/` and `local/` URLs.
+- `map-expansion-kits-manifest` must prove that the manifest declares route,
+  water/relief, vegetation/field, and hero-location kits before the map grows.
+  Together the kits must cover `bridge`, `hero-location`, `relief`, `road`,
+  `route-edge`, `vegetation`, and `water`, with at least 83 planned runtime
+  placements, 18 unique files, accepted texture bindings, fallbacks, coverage
+  thresholds, and noise budgets.
 - `external-asset-map-composition` must load an opt-in map layer with at least
-  32 placements, 18 unique GLB files, 8 clusters, all six terrain roles, route,
-  water, relief and vegetation linkage, primary/support/context curation,
-  promotion candidates, bounded cluster density, measured bounding-box ground
-  clearance, no coplanar placement risk, visible screen-space role rectangles
-  for route/water/relief/vegetation, and a wide non-flat canvas proof covering
-  at least a `56x56` map vocabulary footprint.
+  the manifest kit placement budget, 18 unique GLB files, 8 clusters, all seven
+  visual terrain roles, route, water, relief and vegetation linkage,
+  primary/support/context curation, promotion candidates, bounded cluster
+  density, measured bounding-box ground clearance, no coplanar placement risk,
+  visible screen-space role rectangles for route/water/relief/vegetation, and a
+  wide non-flat canvas proof covering at least a `70x70` map vocabulary
+  footprint.
 - The same opt-in map layer must also prove the first hero-location GLB
   composition pass: `cloud-dock`, `design-atelier`, and
-  `observability-tower` each need at least three runtime placements, three
-  narrative roles, and a dedicated mini-map screenshot where the GLB cluster is
+  `observability-tower` each need manifest-derived runtime placements, required
+  visual roles, and a dedicated mini-map screenshot where the GLB cluster is
   screen-visible.
 - `assets:validate` must also prove accepted runtime texture coverage for the
   core enlarged-map material roles: road, water, relief, and vegetation/field.

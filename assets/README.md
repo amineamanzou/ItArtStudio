@@ -87,3 +87,12 @@ Hero-location curation:
 - `?assets=preview` must load both the terrain/vendor specimens and the local
   premium silhouettes, so accepted models are proven as a library before they
   are judged inside the full map composition.
+
+Map expansion kits:
+
+- `mapExpansionKits` are the contract between the library and the next larger
+  map. New GLB/glTF or texture work should enrich one of these kits before it is
+  placed in the world.
+- Each kit must bind terrain roles to accepted model collections, accepted map
+  textures, runtime fallback behavior, placement/coverage thresholds and a
+  noise budget. This keeps the expansion asset-first instead of prop-first.

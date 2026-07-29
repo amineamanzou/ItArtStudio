@@ -174,6 +174,7 @@ const assetIds = new Set();
 const heroLocations = new Set(asArray(manifest.heroLocations));
 const heroLocationCuration = manifest.heroLocationCuration ?? {};
 const terrainRoles = new Set(asArray(manifest.terrainRoles));
+const mapExpansionKits = asArray(manifest.mapExpansionKits);
 const productionLicenseAssets = [];
 const declaredRuntimeGlbs = new Set();
 const declaredRuntimeTextures = new Set();
@@ -487,6 +488,159 @@ for (const role of ["road", "water", "relief", "vegetation"]) {
   }
 }
 
+const acceptedRuntimeAssets = new Map(
+  assets.filter((asset) => asset.status === "accepted" || asset.status === "integrated").map((asset) => [asset.id, asset])
+);
+const acceptedRuntimeTextures = new Map(
+  [...acceptedRuntimeAssets.values()].filter((asset) => asset.kind === "texture-set" && asset.target === "map").map((asset) => [asset.id, asset])
+);
+const mapExpansionKitIds = new Set();
+const mapExpansionKitRoles = new Set();
+let mapExpansionRuntimePlacementBudget = 0;
+let mapExpansionUniqueFileBudget = 0;
+
+if (mapExpansionKits.length < 4) {
+  fail("Map expansion requires explicit asset kits before enlarging the map.", {
+    kitCount: mapExpansionKits.length,
+    required: 4
+  });
+}
+
+for (const kit of mapExpansionKits) {
+  if (!kit.id || mapExpansionKitIds.has(kit.id)) {
+    fail("Map expansion kit ids must be present and unique.", { kitId: kit.id });
+  }
+  mapExpansionKitIds.add(kit.id);
+
+  if (kit.phase !== "map-expansion") {
+    fail("Map expansion kits must declare phase map-expansion.", { kitId: kit.id, phase: kit.phase });
+  }
+  if (!kit.purpose || kit.purpose.length < 72) {
+    fail("Map expansion kits need a concrete visual purpose.", { kitId: kit.id, purpose: kit.purpose });
+  }
+  if (!kit.fallback || kit.fallback.length < 48) {
+    fail("Map expansion kits must declare a runtime fallback.", { kitId: kit.id, fallback: kit.fallback });
+  }
+  if (!kit.nextAction || kit.nextAction.length < 48) {
+    fail("Map expansion kits must declare a concrete nextAction.", { kitId: kit.id, nextAction: kit.nextAction });
+  }
+
+  const requiredRoles = asArray(kit.requiredTerrainRoles);
+  if (requiredRoles.length === 0) {
+    fail("Map expansion kits must declare required terrain roles.", { kitId: kit.id });
+  }
+  for (const role of requiredRoles) {
+    mapExpansionKitRoles.add(role);
+    if (!terrainRoles.has(role)) {
+      fail("Map expansion kit references an unknown terrain role.", {
+        kitId: kit.id,
+        role,
+        terrainRoles: [...terrainRoles].sort()
+      });
+    }
+  }
+
+  const acceptedAssetIds = asArray(kit.acceptedAssetIds);
+  if (acceptedAssetIds.length === 0) {
+    fail("Map expansion kits must bind to accepted model assets.", { kitId: kit.id });
+  }
+  const acceptedKitAssets = acceptedAssetIds.map((assetId) => acceptedRuntimeAssets.get(assetId));
+  for (const [index, asset] of acceptedKitAssets.entries()) {
+    if (!asset) {
+      fail("Map expansion kit acceptedAssetIds must point to accepted or integrated assets.", {
+        kitId: kit.id,
+        assetId: acceptedAssetIds[index]
+      });
+    } else if (!asset.kind.includes("model")) {
+      fail("Map expansion kit acceptedAssetIds must point to model assets.", {
+        kitId: kit.id,
+        assetId: asset.id,
+        kind: asset.kind
+      });
+    }
+  }
+  for (const role of requiredRoles) {
+    if (!acceptedKitAssets.some((asset) => asset?.terrainRole === role)) {
+      fail("Map expansion kit must include an accepted model asset for each required terrain role.", {
+        kitId: kit.id,
+        role,
+        acceptedAssetIds
+      });
+    }
+  }
+
+  const textureAssetIds = asArray(kit.textureAssetIds);
+  if (textureAssetIds.length === 0) {
+    fail("Map expansion kits must bind to accepted map textures.", { kitId: kit.id });
+  }
+  for (const textureId of textureAssetIds) {
+    if (!acceptedRuntimeTextures.has(textureId)) {
+      fail("Map expansion kit textureAssetIds must point to accepted map texture assets.", {
+        kitId: kit.id,
+        textureId
+      });
+    }
+  }
+
+  if (!Number.isInteger(kit.minimumRuntimePlacements) || kit.minimumRuntimePlacements < 1) {
+    fail("Map expansion kits must declare a positive minimumRuntimePlacements.", {
+      kitId: kit.id,
+      minimumRuntimePlacements: kit.minimumRuntimePlacements
+    });
+  } else {
+    mapExpansionRuntimePlacementBudget += kit.minimumRuntimePlacements;
+  }
+  if (!Number.isInteger(kit.minimumUniqueFiles) || kit.minimumUniqueFiles < 1) {
+    fail("Map expansion kits must declare a positive minimumUniqueFiles.", {
+      kitId: kit.id,
+      minimumUniqueFiles: kit.minimumUniqueFiles
+    });
+  } else {
+    mapExpansionUniqueFileBudget = Math.max(mapExpansionUniqueFileBudget, kit.minimumUniqueFiles);
+  }
+  if (!isPositiveNumber(kit.minimumCoverage?.width) || !isPositiveNumber(kit.minimumCoverage?.depth)) {
+    fail("Map expansion kits must declare positive minimumCoverage width/depth.", {
+      kitId: kit.id,
+      minimumCoverage: kit.minimumCoverage
+    });
+  }
+  if (!isPositiveNumber(kit.noiseBudget?.maxClusterDensity) || !isPositiveNumber(kit.noiseBudget?.maxContextShare)) {
+    fail("Map expansion kits must declare a positive noiseBudget.", {
+      kitId: kit.id,
+      noiseBudget: kit.noiseBudget
+    });
+  }
+
+  if (Array.isArray(kit.requiredHeroLocations)) {
+    for (const zoneId of heroLocations) {
+      if (!kit.requiredHeroLocations.includes(zoneId)) {
+        fail("Hero-location map expansion kit must cover every required hero location.", {
+          kitId: kit.id,
+          missingHeroLocation: zoneId,
+          requiredHeroLocations: kit.requiredHeroLocations
+        });
+      }
+      const minPerHeroLocation = kit.minPerHeroLocation?.[zoneId];
+      if (!Number.isInteger(minPerHeroLocation) || minPerHeroLocation < 3) {
+        fail("Hero-location map expansion kit must declare minPerHeroLocation for each hero location.", {
+          kitId: kit.id,
+          zoneId,
+          minPerHeroLocation
+        });
+      }
+    }
+  }
+}
+
+for (const requiredRole of ["road", "water", "relief", "vegetation", "route-edge", "bridge", "hero-location"]) {
+  if (!mapExpansionKitRoles.has(requiredRole)) {
+    fail("Map expansion kits must cover every core visual terrain role.", {
+      requiredRole,
+      mapExpansionKitRoles: [...mapExpansionKitRoles].sort()
+    });
+  }
+}
+
 const ccByProductionAssets = productionLicenseAssets.filter((asset) => {
   const source = sources.find((item) => item.id === asset.sourceId);
   return source?.kind !== "pipeline-reference";
@@ -513,6 +667,12 @@ const summary = {
   ),
   heroLocations: [...heroLocations],
   terrainRoles: [...terrainRoles],
+  mapExpansionKits: {
+    count: mapExpansionKits.length,
+    roles: [...mapExpansionKitRoles].sort(),
+    minimumRuntimePlacements: mapExpansionRuntimePlacementBudget,
+    minimumUniqueFiles: mapExpansionUniqueFileBudget
+  },
   warnings,
   failures
 };
