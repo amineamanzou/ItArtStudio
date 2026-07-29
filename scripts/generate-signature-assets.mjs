@@ -7,6 +7,7 @@ const root = process.cwd();
 const heroOutputDir = path.join(root, "public", "assets", "models", "local", "itart-signature-kit", "hero");
 const environmentOutputDir = path.join(root, "public", "assets", "models", "local", "itart-signature-kit", "environment");
 const premiumOutputDir = path.join(root, "public", "assets", "models", "local", "itart-signature-kit", "premium");
+const detailOutputDir = path.join(root, "public", "assets", "models", "local", "itart-signature-kit", "detail");
 
 if (!globalThis.FileReader) {
   globalThis.FileReader = class NodeFileReader {
@@ -450,6 +451,82 @@ function createObservabilitySignalSpire() {
   return group;
 }
 
+function createCloudCableManifold() {
+  const group = new THREE.Group();
+  group.name = "itart-cloud-cable-manifold";
+
+  addBox(group, "manifold-service-slab", [1.72, 0.1, 1.04], [0, 0.05, 0], mats.techDeep);
+  addBox(group, "manifold-rack-left", [0.36, 0.78, 0.32], [-0.54, 0.48, -0.08], mats.ink);
+  addBox(group, "manifold-rack-right", [0.36, 0.78, 0.32], [0.54, 0.48, -0.08], mats.ink);
+  addBox(group, "manifold-switch-core", [0.62, 0.28, 0.38], [0, 0.38, -0.08], mats.graphite);
+  for (let index = 0; index < 5; index += 1) {
+    const x = -0.26 + index * 0.13;
+    addBox(group, `switch-port-${index}`, [0.055, 0.038, 0.03], [x, 0.44, -0.29], index % 2 ? mats.studio : mats.tech);
+  }
+  addTube(group, "fiber-bundle-main", [[-0.62, 0.34, 0.14], [-0.38, 0.72, 0.42], [0.0, 0.48, 0.56], [0.48, 0.86, 0.28]], 0.022, mats.tech);
+  addTube(group, "fiber-bundle-return", [[0.62, 0.3, 0.16], [0.26, 0.62, 0.48], [-0.12, 0.5, 0.5], [-0.52, 0.78, 0.22]], 0.018, mats.warm);
+  addTube(group, "fiber-bundle-low", [[-0.68, 0.2, -0.34], [-0.2, 0.3, -0.54], [0.22, 0.22, -0.48], [0.68, 0.38, -0.34]], 0.017, mats.tech);
+  addSphere(group, "manifold-cloud-left", 0.18, [-0.46, 1.02, 0.2], mats.techGlass, [1.3, 0.72, 0.78]);
+  addSphere(group, "manifold-cloud-mid", 0.24, [0.0, 1.1, 0.24], mats.techGlass, [1.48, 0.74, 0.82]);
+  addSphere(group, "manifold-cloud-right", 0.18, [0.46, 1.02, 0.2], mats.techGlass, [1.18, 0.7, 0.76]);
+  addCylinder(group, "manifold-uplink-pin", 0.035, 0.048, 0.7, [0, 0.76, -0.34], mats.graphite, [0, 0, 0], 10);
+  addSphere(group, "manifold-uplink-glow", 0.075, [0, 1.14, -0.34], mats.tech);
+
+  return group;
+}
+
+function createAtelierSwatchStand() {
+  const group = new THREE.Group();
+  group.name = "itart-atelier-swatch-stand";
+
+  addBox(group, "swatch-stand-base", [1.52, 0.08, 0.88], [0, 0.04, 0], mats.studio);
+  addCylinder(group, "stand-left-post", 0.026, 0.034, 1.06, [-0.58, 0.6, 0.04], mats.ink, [0, 0, 0], 8);
+  addCylinder(group, "stand-right-post", 0.026, 0.034, 1.06, [0.58, 0.6, 0.04], mats.ink, [0, 0, 0], 8);
+  addCylinder(group, "stand-top-bar", 0.024, 0.024, 1.2, [0, 1.13, 0.04], mats.ink, [0, 0, Math.PI * 0.5], 8);
+  const swatches = [
+    { name: "coral", x: -0.42, mat: mats.cloth, angle: -0.08, height: 0.54 },
+    { name: "cream", x: -0.14, mat: mats.studio, angle: 0.04, height: 0.62 },
+    { name: "deep", x: 0.14, mat: mats.artDeep, angle: -0.03, height: 0.5 },
+    { name: "signal", x: 0.42, mat: mats.art, angle: 0.08, height: 0.58 }
+  ];
+  for (const swatch of swatches) {
+    addBox(group, `hanging-swatch-${swatch.name}`, [0.22, swatch.height, 0.035], [swatch.x, 0.82, 0.05], swatch.mat, [0, 0, swatch.angle]);
+    addCylinder(group, `swatch-pin-${swatch.name}`, 0.022, 0.022, 0.3, [swatch.x, 1.13, 0.02], mats.warm, [Math.PI * 0.5, 0, 0], 8);
+  }
+  addBox(group, "sample-ledger-board", [0.76, 0.38, 0.045], [0, 0.34, -0.28], mats.ink, [0, 0.08, 0]);
+  for (let index = 0; index < 4; index += 1) {
+    addBox(group, `sample-ledger-line-${index}`, [0.18 + index * 0.08, 0.022, 0.018], [-0.22 + index * 0.12, 0.28 + index * 0.055, -0.315], index % 2 ? mats.warm : mats.art);
+  }
+  addCylinder(group, "rolled-cloth-low", 0.07, 0.07, 0.92, [0.0, 0.2, 0.34], mats.cloth, [0, 0, Math.PI * 0.5], 12);
+  addTube(group, "chalk-silhouette-thread", [[-0.56, 0.24, -0.16], [-0.24, 0.42, -0.22], [0.18, 0.3, -0.18], [0.56, 0.5, -0.22]], 0.011, mats.studio);
+
+  return group;
+}
+
+function createObservabilityLogTotem() {
+  const group = new THREE.Group();
+  group.name = "itart-observability-log-totem";
+
+  addBox(group, "log-totem-pad", [1.22, 0.1, 0.92], [0, 0.05, 0], mats.ink);
+  addBox(group, "log-totem-spine", [0.24, 1.42, 0.24], [0, 0.78, 0], mats.graphite);
+  for (let index = 0; index < 4; index += 1) {
+    const y = 0.38 + index * 0.28;
+    const side = index % 2 === 0 ? -1 : 1;
+    addBox(group, `log-screen-${index}`, [0.58, 0.18, 0.045], [side * 0.38, y, -0.18], index % 2 ? mats.techDeep : mats.graphite, [0, side * 0.18, 0]);
+    addBox(group, `log-screen-line-${index}-a`, [0.3, 0.022, 0.018], [side * 0.38, y + 0.03, -0.215], index % 2 ? mats.warm : mats.tech, [0, side * 0.18, 0]);
+    addBox(group, `log-screen-line-${index}-b`, [0.2, 0.018, 0.018], [side * 0.34, y - 0.04, -0.215], index % 2 ? mats.tech : mats.studio, [0, side * 0.18, 0]);
+  }
+  addTorus(group, "totem-low-orbit", 0.48, 0.012, [0, 0.68, 0.02], mats.tech, [Math.PI * 0.5, 0.12, 0]);
+  addTorus(group, "totem-high-orbit", 0.34, 0.011, [0, 1.32, 0.02], mats.warm, [Math.PI * 0.5, -0.18, 0]);
+  addTube(group, "totem-trace-ladder-a", [[-0.48, 0.22, 0.28], [-0.22, 0.72, 0.12], [0.08, 1.12, -0.08], [0.38, 1.54, -0.24]], 0.014, mats.tech);
+  addTube(group, "totem-trace-ladder-b", [[0.5, 0.22, 0.24], [0.18, 0.68, 0.18], [-0.06, 1.04, -0.06], [-0.32, 1.42, -0.2]], 0.012, mats.warm);
+  addCylinder(group, "totem-alert-pin", 0.026, 0.04, 0.46, [0, 1.62, -0.08], mats.graphite, [0, 0, 0], 8);
+  addSphere(group, "totem-alert-node", 0.09, [0, 1.9, -0.08], mats.warm);
+  addSphere(group, "totem-correlation-node", 0.07, [0.42, 1.02, 0.18], mats.tech);
+
+  return group;
+}
+
 const assets = [
   { outputDir: heroOutputDir, fileName: "server-cloud-node.glb", scene: createServerCloudNode() },
   { outputDir: heroOutputDir, fileName: "atelier-mannequin-rack.glb", scene: createAtelierMannequinRack() },
@@ -465,12 +542,16 @@ const assets = [
   { outputDir: environmentOutputDir, fileName: "observability-trace-station.glb", scene: createObservabilityTraceStation() },
   { outputDir: premiumOutputDir, fileName: "cloud-infra-gateway.glb", scene: createCloudInfraGateway() },
   { outputDir: premiumOutputDir, fileName: "atelier-garment-loom.glb", scene: createAtelierGarmentLoom() },
-  { outputDir: premiumOutputDir, fileName: "observability-signal-spire.glb", scene: createObservabilitySignalSpire() }
+  { outputDir: premiumOutputDir, fileName: "observability-signal-spire.glb", scene: createObservabilitySignalSpire() },
+  { outputDir: detailOutputDir, fileName: "cloud-cable-manifold.glb", scene: createCloudCableManifold() },
+  { outputDir: detailOutputDir, fileName: "atelier-swatch-stand.glb", scene: createAtelierSwatchStand() },
+  { outputDir: detailOutputDir, fileName: "observability-log-totem.glb", scene: createObservabilityLogTotem() }
 ];
 
 fs.mkdirSync(heroOutputDir, { recursive: true });
 fs.mkdirSync(environmentOutputDir, { recursive: true });
 fs.mkdirSync(premiumOutputDir, { recursive: true });
+fs.mkdirSync(detailOutputDir, { recursive: true });
 const exporter = new GLTFExporter();
 const results = [];
 

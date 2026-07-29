@@ -87,6 +87,9 @@ const manifestTerrainShell = worldAssetManifest.terrainShell ?? {};
 const manifestAssetUtilizationWave = worldAssetManifest.assetUtilizationWave ?? {};
 const manifestAssetUtilizationRequiredFiles = manifestAssetUtilizationWave.requiredFiles ?? [];
 const manifestAssetUtilizationRequiredPlacementIds = manifestAssetUtilizationWave.requiredPlacementIds ?? [];
+const manifestAssetDetailWave = worldAssetManifest.assetDetailWave ?? {};
+const manifestAssetDetailRequiredFiles = manifestAssetDetailWave.requiredFiles ?? [];
+const manifestAssetDetailRequiredPlacementIds = manifestAssetDetailWave.requiredPlacementIds ?? [];
 const manifestMapExpansionKitRoles = [
   ...new Set(manifestMapExpansionKits.flatMap((kit) => kit.requiredTerrainRoles ?? []))
 ].sort();
@@ -5746,6 +5749,10 @@ async function checkExternalAssetMapComposition(browser) {
     const missingUtilizationPlacementIds = manifestAssetUtilizationRequiredPlacementIds.filter(
       (placementId) => !externalAssets?.placementIds?.includes(placementId)
     );
+    const missingDetailFiles = manifestAssetDetailRequiredFiles.filter((file) => !externalAssets?.placementFiles?.includes(file));
+    const missingDetailPlacementIds = manifestAssetDetailRequiredPlacementIds.filter(
+      (placementId) => !externalAssets?.placementIds?.includes(placementId)
+    );
     const utilizationWaveOk =
       manifestAssetUtilizationWave.phase === "asset-library-utilization" &&
       manifestAssetUtilizationWave.qaGate === "asset-utilization-wave" &&
@@ -5755,6 +5762,15 @@ async function checkExternalAssetMapComposition(browser) {
         (manifestAssetUtilizationWave.maximumRendererTriangles ?? rendererCaps.triangles) &&
       missingUtilizationFiles.length === 0 &&
       missingUtilizationPlacementIds.length === 0;
+    const detailWaveOk =
+      manifestAssetDetailWave.phase === "hero-location-detail" &&
+      manifestAssetDetailWave.qaGate === "asset-detail-wave" &&
+      externalAssets?.placements >= (manifestAssetDetailWave.minimumMapPlacements ?? 0) &&
+      externalAssets?.uniqueFiles >= (manifestAssetDetailWave.minimumUniqueFiles ?? 0) &&
+      (mapRenderer?.triangles ?? Number.POSITIVE_INFINITY) <=
+        (manifestAssetDetailWave.maximumRendererTriangles ?? rendererCaps.triangles) &&
+      missingDetailFiles.length === 0 &&
+      missingDetailPlacementIds.length === 0;
     const requiredScreenRoles = ["road", "water", "relief", "vegetation"];
     const weakScreenRoles = requiredScreenRoles.filter((role) => {
       const rect = externalAssets?.roleScreenRects?.[role];
@@ -5791,6 +5807,17 @@ async function checkExternalAssetMapComposition(browser) {
       renderer: mapRenderer,
       caps: rendererCaps
     };
+    const detailWaveDetails = {
+      contract: manifestAssetDetailWave,
+      requiredFiles: manifestAssetDetailRequiredFiles,
+      requiredPlacementIds: manifestAssetDetailRequiredPlacementIds,
+      missingDetailFiles,
+      missingDetailPlacementIds,
+      placements: externalAssets?.placements,
+      uniqueFiles: externalAssets?.uniqueFiles,
+      renderer: mapRenderer,
+      caps: rendererCaps
+    };
     if (utilizationWaveOk) {
       pass("asset-utilization-wave", utilizationDetails);
     } else {
@@ -5798,6 +5825,15 @@ async function checkExternalAssetMapComposition(browser) {
         "asset-utilization-wave",
         "Accepted GLB files selected for the utilization wave are not all visible in the map inspection layer.",
         utilizationDetails
+      );
+    }
+    if (detailWaveOk) {
+      pass("asset-detail-wave", detailWaveDetails);
+    } else {
+      scenarioFail(
+        "asset-detail-wave",
+        "Authored hero-location detail GLB files are not all visible in the map inspection layer.",
+        detailWaveDetails
       );
     }
     const gate =
@@ -9854,6 +9890,7 @@ async function writeReport() {
   const corePromotionContractScenario = scenarios.find((scenario) => scenario.name === "core-promotion-contract");
   const terrainShellScenario = scenarios.find((scenario) => scenario.name === "terrain-shell-runtime");
   const assetUtilizationWaveScenario = scenarios.find((scenario) => scenario.name === "asset-utilization-wave");
+  const assetDetailWaveScenario = scenarios.find((scenario) => scenario.name === "asset-detail-wave");
   const mapTextureRuntimeScenario = scenarios.find((scenario) => scenario.name === "map-texture-runtime");
   const externalAssetOffScenario = scenarios.find((scenario) => scenario.name === "external-asset-off-runtime");
   const externalAssetCoreScenario = scenarios.find((scenario) => scenario.name === "external-asset-core-runtime");
@@ -9991,6 +10028,11 @@ async function writeReport() {
       assetUtilizationWaveScenario?.details
         ? `${assetUtilizationWaveScenario.status}, files ${assetUtilizationWaveScenario.details.requiredFiles?.length ?? 0}, placements ${assetUtilizationWaveScenario.details.requiredPlacementIds?.length ?? 0}, map placements ${assetUtilizationWaveScenario.details.placements ?? "n/a"}, unique files ${assetUtilizationWaveScenario.details.uniqueFiles ?? "n/a"}, triangles ${assetUtilizationWaveScenario.details.renderer?.triangles ?? "n/a"}/${assetUtilizationWaveScenario.details.contract?.maximumRendererTriangles ?? "n/a"}`
         : (assetUtilizationWaveScenario?.status ?? "n/a")
+    }`,
+    `- Asset detail wave: ${
+      assetDetailWaveScenario?.details
+        ? `${assetDetailWaveScenario.status}, files ${assetDetailWaveScenario.details.requiredFiles?.length ?? 0}, placements ${assetDetailWaveScenario.details.requiredPlacementIds?.length ?? 0}, map placements ${assetDetailWaveScenario.details.placements ?? "n/a"}, unique files ${assetDetailWaveScenario.details.uniqueFiles ?? "n/a"}, triangles ${assetDetailWaveScenario.details.renderer?.triangles ?? "n/a"}/${assetDetailWaveScenario.details.contract?.maximumRendererTriangles ?? "n/a"}`
+        : (assetDetailWaveScenario?.status ?? "n/a")
     }`,
     `- External asset off runtime: ${
       externalAssetOffScenario?.details?.externalAssets

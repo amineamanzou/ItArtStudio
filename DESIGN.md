@@ -1437,6 +1437,24 @@ Gates V9.8:
   pour que l'agrandissement ne produise pas de grandes plaques plates entre les
   assets.
 
+Gates V9.9:
+
+- `scripts/generate-signature-assets.mjs` genere une quatrieme collection
+  locale `detail` pour ajouter une piece secondaire lisible a chaque hero
+  location: `cloud-cable-manifold.glb`, `atelier-swatch-stand.glb` et
+  `observability-log-totem.glb`;
+- la nouvelle collection `accepted-itart-signature-detail-v99` ajoute 219.1 KB
+  et 5 084 triangles de GLB custom, sans modifier le gameplay vehicule;
+- `Cloud Dock`, `Design Atelier` et `Observability Tower` exigent maintenant
+  chacun un role de detail custom dans leur contrat de curation:
+  `cloud-cable-manifold`, `atelier-swatch-stand` et
+  `observability-log-totem`;
+- `?assets=map` passe a au moins 146 placements et 80 fichiers uniques avec le
+  nouveau gate `asset-detail-wave`, tout en gardant le plafond renderer a
+  `110000` triangles;
+- cette vague doit ameliorer la reconnaissance des lieux par silhouettes
+  custom secondaires, pas par densification de petits props generiques.
+
 ## Components
 
 - `game-site`: surface principale.

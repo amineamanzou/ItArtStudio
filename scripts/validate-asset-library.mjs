@@ -178,6 +178,7 @@ const mapExpansionKits = asArray(manifest.mapExpansionKits);
 const corePromotion = manifest.corePromotion ?? null;
 const terrainShell = manifest.terrainShell ?? null;
 const assetUtilizationWave = manifest.assetUtilizationWave ?? null;
+const assetDetailWave = manifest.assetDetailWave ?? null;
 const productionLicenseAssets = [];
 const declaredRuntimeGlbs = new Set();
 const declaredRuntimeTextures = new Set();
@@ -889,6 +890,100 @@ if (!assetUtilizationWave) {
   }
 }
 
+if (!assetDetailWave) {
+  fail("Asset detail wave contract is required before adding another hero-location detail wave.");
+} else {
+  const requiredFiles = asArray(assetDetailWave.requiredFiles);
+  const requiredPlacementIds = asArray(assetDetailWave.requiredPlacementIds);
+  const requiredHeroRoles = assetDetailWave.requiredHeroRoles ?? {};
+  const detailAsset = acceptedRuntimeAssets.get(assetDetailWave.assetId);
+
+  if (assetDetailWave.phase !== "hero-location-detail") {
+    fail("Asset detail wave must declare phase hero-location-detail.", { phase: assetDetailWave.phase });
+  }
+  if (!assetDetailWave.id || assetDetailWave.id.length < 8) {
+    fail("Asset detail wave must declare a stable id.", { id: assetDetailWave.id });
+  }
+  if (!assetDetailWave.purpose || assetDetailWave.purpose.length < 120) {
+    fail("Asset detail wave must explain why the new details improve recognition without clutter.", {
+      purpose: assetDetailWave.purpose
+    });
+  }
+  if (!detailAsset || !detailAsset.kind.includes("model")) {
+    fail("Asset detail wave assetId must point to an accepted model asset.", {
+      assetId: assetDetailWave.assetId,
+      status: detailAsset?.status,
+      kind: detailAsset?.kind
+    });
+  }
+  if (!assetDetailWave.fallback || assetDetailWave.fallback.length < 96) {
+    fail("Asset detail wave must declare a rollback fallback.", { fallback: assetDetailWave.fallback });
+  }
+  if (!assetDetailWave.nextAction || assetDetailWave.nextAction.length < 96) {
+    fail("Asset detail wave must declare the next curation action.", { nextAction: assetDetailWave.nextAction });
+  }
+  if (requiredFiles.length !== heroLocations.size || new Set(requiredFiles).size !== requiredFiles.length) {
+    fail("Asset detail wave must require one unique file per hero location.", {
+      requiredFiles,
+      heroLocations: [...heroLocations]
+    });
+  }
+  if (requiredPlacementIds.length !== requiredFiles.length || new Set(requiredPlacementIds).size !== requiredPlacementIds.length) {
+    fail("Asset detail wave must bind one unique placement per required file.", {
+      requiredFiles,
+      requiredPlacementIds
+    });
+  }
+  const selectedFiles = new Set(asArray(detailAsset?.selectedFiles));
+  for (const file of requiredFiles) {
+    if (!selectedFiles.has(file)) {
+      fail("Asset detail wave requiredFiles must be selected by the detail model asset.", {
+        file,
+        assetId: assetDetailWave.assetId,
+        selectedFiles: [...selectedFiles].sort()
+      });
+    }
+  }
+  for (const zoneId of heroLocations) {
+    const roles = asArray(requiredHeroRoles[zoneId]);
+    if (roles.length !== 1) {
+      fail("Asset detail wave must declare exactly one required hero role per hero location.", {
+        zoneId,
+        roles
+      });
+    }
+    const curationRoles = new Set(asArray(heroLocationCuration[zoneId]?.requiredVisualRoles));
+    for (const role of roles) {
+      if (!curationRoles.has(role)) {
+        fail("Asset detail wave hero roles must be included in heroLocationCuration.requiredVisualRoles.", {
+          zoneId,
+          role,
+          curationRoles: [...curationRoles].sort()
+        });
+      }
+    }
+  }
+  if (!Number.isInteger(assetDetailWave.minimumMapPlacements) || assetDetailWave.minimumMapPlacements < 146) {
+    fail("Asset detail wave must raise the map placement floor after the utilization wave.", {
+      minimumMapPlacements: assetDetailWave.minimumMapPlacements
+    });
+  }
+  if (!Number.isInteger(assetDetailWave.minimumUniqueFiles) || assetDetailWave.minimumUniqueFiles < 80) {
+    fail("Asset detail wave must raise the unique-file floor after adding three custom detail files.", {
+      minimumUniqueFiles: assetDetailWave.minimumUniqueFiles
+    });
+  }
+  if (!Number.isInteger(assetDetailWave.maximumRendererTriangles) || assetDetailWave.maximumRendererTriangles > budgets.rendererTriangleCap) {
+    fail("Asset detail wave maximumRendererTriangles must stay inside the global renderer cap.", {
+      maximumRendererTriangles: assetDetailWave.maximumRendererTriangles,
+      rendererTriangleCap: budgets.rendererTriangleCap
+    });
+  }
+  if (assetDetailWave.qaGate !== "asset-detail-wave") {
+    fail("Asset detail wave must bind to the asset-detail-wave QA gate.", { qaGate: assetDetailWave.qaGate });
+  }
+}
+
 const ccByProductionAssets = productionLicenseAssets.filter((asset) => {
   const source = sources.find((item) => item.id === asset.sourceId);
   return source?.kind !== "pipeline-reference";
@@ -947,6 +1042,17 @@ const summary = {
         minimumMapPlacements: assetUtilizationWave.minimumMapPlacements,
         minimumUniqueFiles: assetUtilizationWave.minimumUniqueFiles,
         qaGate: assetUtilizationWave.qaGate
+      }
+    : null,
+  assetDetailWave: assetDetailWave
+    ? {
+        id: assetDetailWave.id,
+        assetId: assetDetailWave.assetId,
+        requiredFiles: asArray(assetDetailWave.requiredFiles).length,
+        requiredPlacementIds: asArray(assetDetailWave.requiredPlacementIds).length,
+        minimumMapPlacements: assetDetailWave.minimumMapPlacements,
+        minimumUniqueFiles: assetDetailWave.minimumUniqueFiles,
+        qaGate: assetDetailWave.qaGate
       }
     : null,
   warnings,

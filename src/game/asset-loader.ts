@@ -903,6 +903,11 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
       heroLocation: "cloud-dock",
       heroRole: "cloud-infra-gateway"
     }),
+    createPlacement("hero:cloud-dock:cloud-cable-manifold", "hero:cloud-dock:detail-manifold", "route", "support", true, "hero-location", "cloud-cable-manifold.glb", [-13.65, -24.15], 1.38, Math.PI * 0.18, {
+      assetId: "accepted-itart-signature-detail-v99",
+      heroLocation: "cloud-dock",
+      heroRole: "cloud-cable-manifold"
+    }),
     createPlacement("hero:cloud-dock:server-pylon", "hero:cloud-dock", "route", "primary", true, "route-edge", "bridge-pillar.glb", [-11.1, -23.3], 1.8, 0.08, {
       heroLocation: "cloud-dock",
       heroRole: "server-pylon"
@@ -965,6 +970,11 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
       heroLocation: "design-atelier",
       heroRole: "atelier-garment-loom"
     }),
+    createPlacement("hero:design-atelier:atelier-swatch-stand", "hero:design-atelier:detail-swatch", "route", "support", true, "hero-location", "atelier-swatch-stand.glb", [22.65, -9.75], 1.34, Math.PI * 0.36, {
+      assetId: "accepted-itart-signature-detail-v99",
+      heroLocation: "design-atelier",
+      heroRole: "atelier-swatch-stand"
+    }),
     createPlacement("hero:design-atelier:cutting-table", "hero:design-atelier", "route", "primary", true, "hero-location", "top-large-checkerboard.glb", [20.8, -9.4], 1.85, Math.PI * 0.5, {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "design-atelier",
@@ -1022,6 +1032,11 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
       assetId: "accepted-itart-signature-premium-v93",
       heroLocation: "observability-tower",
       heroRole: "observability-signal-spire"
+    }),
+    createPlacement("hero:observability-tower:observability-log-totem", "hero:observability-tower:detail-log-totem", "route", "support", true, "hero-location", "observability-log-totem.glb", [-22.15, 11.55], 1.34, 0.24, {
+      assetId: "accepted-itart-signature-detail-v99",
+      heroLocation: "observability-tower",
+      heroRole: "observability-log-totem"
     }),
     createPlacement("hero:observability-tower:signal-pylon", "hero:observability-tower", "route", "primary", true, "route-edge", "bridge-pillar.glb", [-22.8, 9.8], 2.2, 0, {
       heroLocation: "observability-tower",

@@ -16,23 +16,23 @@
   "heroLocationCuration": {
     "cloud-dock": {
       "visualSignature": "Infra dock: server-like machine blocks, service deck, cable trunks, screen panels, electric masts, a cloud circuit bridge and an infra gateway around the harbor edge.",
-      "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-itart-signature-environment-core", "accepted-itart-signature-premium-v93", "accepted-factory-industrial-core", "accepted-city-route-edge-core", "accepted-city-road-core"],
-      "requiredVisualRoles": ["server-cloud-node", "cloud-circuit-bridge", "cloud-energy-anchor", "cloud-server-pier", "cloud-infra-gateway", "rack-core", "cable-trunk", "service-deck", "ops-screen", "electric-mast", "platform-span"],
-      "minRuntimePlacements": 12,
+      "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-itart-signature-environment-core", "accepted-itart-signature-premium-v93", "accepted-itart-signature-detail-v99", "accepted-factory-industrial-core", "accepted-city-route-edge-core", "accepted-city-road-core"],
+      "requiredVisualRoles": ["server-cloud-node", "cloud-circuit-bridge", "cloud-energy-anchor", "cloud-server-pier", "cloud-infra-gateway", "cloud-cable-manifold", "rack-core", "cable-trunk", "service-deck", "ops-screen", "electric-mast", "platform-span"],
+      "minRuntimePlacements": 13,
       "nextCustomAsset": "Upgrade the generated node, pier, infra gateway and energy anchor into a richer Blender-authored server dock with cooling fins, visible cabling and cloud-energy anchors."
     },
     "design-atelier": {
       "visualSignature": "Fashion atelier: mannequin, drape frame, cutting table, worktop, garment loom, pattern corner, swatch crates, reference screen and softer art markers.",
-      "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-itart-signature-environment-core", "accepted-itart-signature-premium-v93", "accepted-factory-industrial-core", "accepted-nature-bridge-core", "accepted-nature-vegetation-core"],
-      "requiredVisualRoles": ["mannequin-fabric-rack", "atelier-drape-frame", "atelier-pattern-wall", "atelier-cutting-island", "atelier-garment-loom", "cutting-table", "worktop", "pattern-corner", "swatch-crate", "reference-screen", "swatch-marker"],
-      "minRuntimePlacements": 11,
+      "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-itart-signature-environment-core", "accepted-itart-signature-premium-v93", "accepted-itart-signature-detail-v99", "accepted-factory-industrial-core", "accepted-nature-bridge-core", "accepted-nature-vegetation-core"],
+      "requiredVisualRoles": ["mannequin-fabric-rack", "atelier-drape-frame", "atelier-pattern-wall", "atelier-cutting-island", "atelier-garment-loom", "atelier-swatch-stand", "cutting-table", "worktop", "pattern-corner", "swatch-crate", "reference-screen", "swatch-marker"],
+      "minRuntimePlacements": 12,
       "nextCustomAsset": "Upgrade the generated mannequin, cutting island, garment loom and pattern wall into a more premium atelier asset with garment drape, pins, pattern curves and a fabric rail."
     },
     "observability-tower": {
       "visualSignature": "Telemetry tower: high pylon, radar ring, screen array, signal spire, screen wall, trace panel, data pipe and service platform.",
-      "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-itart-signature-environment-core", "accepted-itart-signature-premium-v93", "accepted-factory-industrial-core", "accepted-city-route-edge-core", "accepted-city-road-core"],
-      "requiredVisualRoles": ["telemetry-radar-mast", "telemetry-screen-array", "telemetry-trace-beacon", "observability-trace-station", "observability-signal-spire", "signal-pylon", "radar-ring", "screen-wall", "trace-panel", "data-pipe", "service-platform"],
-      "minRuntimePlacements": 12,
+      "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-itart-signature-environment-core", "accepted-itart-signature-premium-v93", "accepted-itart-signature-detail-v99", "accepted-factory-industrial-core", "accepted-city-route-edge-core", "accepted-city-road-core"],
+      "requiredVisualRoles": ["telemetry-radar-mast", "telemetry-screen-array", "telemetry-trace-beacon", "observability-trace-station", "observability-signal-spire", "observability-log-totem", "signal-pylon", "radar-ring", "screen-wall", "trace-panel", "data-pipe", "service-platform"],
+      "minRuntimePlacements": 13,
       "nextCustomAsset": "Upgrade the generated mast, trace station, signal spire and trace beacon into a taller Blender-authored observability beacon with animated scan arcs and trace-beam anchors."
     }
   },
@@ -130,6 +130,33 @@
     "qaGate": "asset-utilization-wave",
     "fallback": "If this utilization wave makes the map noisy or exceeds renderer budget, keep the files accepted in the library but remove the new inspection placements before public core promotion.",
     "nextAction": "Use the visual QA captures to decide which utilized files deserve promotion into the public core and which should remain inspection-only."
+  },
+  "assetDetailWave": {
+    "id": "hero-location-detail-v99",
+    "phase": "hero-location-detail",
+    "purpose": "Add one authored secondary detail asset to each hero location so the map gains recognition from custom GLB silhouettes rather than from more generic factory or procedural props.",
+    "assetId": "accepted-itart-signature-detail-v99",
+    "requiredFiles": [
+      "cloud-cable-manifold.glb",
+      "atelier-swatch-stand.glb",
+      "observability-log-totem.glb"
+    ],
+    "requiredPlacementIds": [
+      "hero:cloud-dock:cloud-cable-manifold",
+      "hero:design-atelier:atelier-swatch-stand",
+      "hero:observability-tower:observability-log-totem"
+    ],
+    "requiredHeroRoles": {
+      "cloud-dock": ["cloud-cable-manifold"],
+      "design-atelier": ["atelier-swatch-stand"],
+      "observability-tower": ["observability-log-totem"]
+    },
+    "minimumMapPlacements": 146,
+    "minimumUniqueFiles": 80,
+    "maximumRendererTriangles": 110000,
+    "qaGate": "asset-detail-wave",
+    "fallback": "If the detail assets read as clutter or push the renderer over budget, keep the GLB files accepted but remove the map inspection placements before public core promotion.",
+    "nextAction": "Use zone screenshots to decide whether these detail pieces should be promoted into the public core after the premium anchors."
   },
   "terrainRoles": ["road", "water", "relief", "vegetation", "route-edge", "bridge", "hero-location"],
   "mapExpansionKits": [
@@ -857,6 +884,29 @@
       "styleFit": "high",
       "proceduralFallback": "src/game/world-scenery.ts keeps procedural hero-location silhouettes until the premium V9.3 GLB set is QA-visible.",
       "nextAction": "Keep these pieces in ?assets=map until screenshots prove one premium anchor per hero location deserves promotion into the public core runtime."
+    },
+    {
+      "id": "accepted-itart-signature-detail-v99",
+      "status": "accepted",
+      "sourceId": "itart-signature-kit",
+      "kind": "model-collection",
+      "target": "map",
+      "terrainRole": "hero-location",
+      "narrativeRole": "Accepted local detail GLB set for V9.9 that adds one authored secondary detail per hero location without increasing generic procedural clutter.",
+      "preferredFormat": "GLB",
+      "localPath": "public/assets/models/local/itart-signature-kit/detail",
+      "publicPath": "assets/models/local/itart-signature-kit/detail",
+      "fileKb": 219.1,
+      "triangles": 5084,
+      "selectedFiles": [
+        "atelier-swatch-stand.glb",
+        "cloud-cable-manifold.glb",
+        "observability-log-totem.glb"
+      ],
+      "budget": { "maxKb": 280, "targetTriangles": 6200 },
+      "styleFit": "high",
+      "proceduralFallback": "src/game/world-scenery.ts keeps procedural hero-location details visible if the V9.9 GLB detail set fails to load.",
+      "nextAction": "Inspect each detail asset in ?assets=map screenshots and promote only the pieces that improve recognition without adding noise."
     },
     {
       "id": "cloud-dock-skybridge-spaceport",
