@@ -53,8 +53,9 @@ Accepted runtime packs:
   industrial, screen, pipe, platform and work-surface pieces for Cloud Dock,
   Design Atelier and Observability Tower proofs.
 - `public/assets/textures/vendor/polyhaven`: CC0 terrain texture set used by
-  the public asset-only shader, including brown muddy leaf litter, stony dirt
-  path, grass path fallback, rocky relief and low-tide shore materials.
+  the public asset-only shader, including brown muddy leaf litter, grass-path
+  compacted earth, stony dirt fallback, rocky relief and low-tide shore
+  materials.
 - `public/assets/textures/map/hero`: 3 SVG runtime texture pads for Cloud Dock,
   Design Atelier and Observability Tower.
 
@@ -93,12 +94,15 @@ Public terrain-first runtime:
 - The public vehicle proof is semantic, not only dimensional: `race.glb` must
   expose the downloaded Kenney mesh names `body` plus four `wheel-*` meshes in
   the runtime QA snapshot.
-- V13.6 keeps the 112-unit shell and proves 174 public placements across
+- V13.7 keeps the 112-unit shell and proves 174 public placements across
   roughly 105x105 units of coverage. It adds a spawn clearing with an integrated
   terrain-water mask plus downloaded reeds, lily, boardwalk, rocks, grass and a
   tree so the first viewport reads as terrain rather than only textured ground.
-  The edge placements deliberately avoid road/path plates and block-like cliff
-  chunks; downloaded bridges are kept only where they read as water crossings.
+  The public terrain shader now uses the downloaded `grass_path_2` texture for
+  routes, tinted down into the dark theme, so paths read as compacted natural
+  ground instead of gray road plates or tire-like marks. The edge placements
+  deliberately avoid road/path plates and block-like cliff chunks; downloaded
+  bridges are kept only where they read as water crossings.
 
 Core promotion:
 

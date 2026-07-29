@@ -52,7 +52,7 @@ const assetOnlyPlayerName = `vendor-player:${assetOnlyPlayerFile.replace(/\.glb$
 const assetOnlyPlayerPath = `assets/models/vendor/kenney/car-kit/vehicles/${assetOnlyPlayerFile}`;
 const assetOnlyGroundTexturePath = "assets/textures/vendor/polyhaven/brown_mud_leaves_01/brown_mud_leaves_01_diff_1k.jpg";
 const assetOnlyReliefTexturePath = "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg";
-const assetOnlyPathTexturePath = "assets/textures/vendor/polyhaven/stony_dirt_path/stony_dirt_path_diff_1k.jpg";
+const assetOnlyPathTexturePath = "assets/textures/vendor/polyhaven/grass_path_2/grass_path_2_diff_1k.jpg";
 const assetOnlyWaterTexturePath = "assets/textures/vendor/polyhaven/river_small_rocks/river_small_rocks_diff_1k.jpg";
 const assetOnlyTerrainVisualScale = 1.62;
 const assetOnlyTerrainVisualSize = worldSize * assetOnlyTerrainVisualScale;
@@ -388,19 +388,21 @@ function createAssetOnlyTerrainMaterial() {
       varying float vShadeBias;
 
       void main() {
-        vec3 fieldTex = texture2D(fieldMap, vUv * 5.6 * textureScale).rgb * vec3(0.62, 0.78, 0.58);
-        vec3 reliefTex = texture2D(reliefMap, vUv * 4.1 * textureScale).rgb * vec3(0.74, 0.72, 0.65);
+        vec3 fieldTex = texture2D(fieldMap, vUv * 5.6 * textureScale).rgb * vec3(0.56, 0.76, 0.55);
+        vec3 reliefTex = texture2D(reliefMap, vUv * 4.1 * textureScale).rgb * vec3(0.70, 0.70, 0.64);
         vec3 pathRaw = texture2D(pathMap, vUv * 4.6 * textureScale).rgb;
-        vec3 pathTex = mix(vec3(0.50, 0.38, 0.24), pathRaw * vec3(0.92, 0.80, 0.62) + vec3(0.14, 0.11, 0.07), 0.62);
+        float pathValue = dot(pathRaw, vec3(0.30, 0.46, 0.24));
+        vec3 pathOrganic = mix(vec3(0.24, 0.20, 0.14), vec3(0.44, 0.39, 0.27), pathValue);
+        vec3 pathTex = mix(pathOrganic, pathRaw * vec3(0.54, 0.58, 0.40), 0.28);
         vec3 waterTex = texture2D(waterMap, vUv * 4.2 * textureScale).rgb;
         float relief = smoothstep(0.12, 0.72, vReliefMask) * (1.0 - vPathMask * 0.5);
         float path = smoothstep(0.08, 0.72, vPathMask);
         float water = smoothstep(0.5, 0.96, vWaterMask);
         float shallow = 1.0 - smoothstep(0.72, 1.0, vWaterMask);
-        vec3 pathShoulder = mix(fieldTex, pathTex, 0.52);
+        vec3 pathShoulder = mix(fieldTex, pathTex, 0.46);
         vec3 land = mix(fieldTex, reliefTex, relief);
-        land = mix(land, pathShoulder, smoothstep(0.02, 0.42, vPathMask) * 0.3);
-        land = mix(land, pathTex, path * 0.72);
+        land = mix(land, pathShoulder, smoothstep(0.02, 0.42, vPathMask) * 0.22);
+        land = mix(land, pathTex, path * 0.64);
         vec3 wetStone = waterTex * vec3(0.30, 0.39, 0.34);
         vec3 waterCol = mix(waterDeep, waterShallow, clamp(vWaterMask, 0.0, 1.0));
         waterCol = mix(waterCol, wetStone, 0.24 + shallow * 0.46);
