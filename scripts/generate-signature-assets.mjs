@@ -4,7 +4,8 @@ import * as THREE from "three";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 
 const root = process.cwd();
-const outputDir = path.join(root, "public", "assets", "models", "local", "itart-signature-kit", "hero");
+const heroOutputDir = path.join(root, "public", "assets", "models", "local", "itart-signature-kit", "hero");
+const environmentOutputDir = path.join(root, "public", "assets", "models", "local", "itart-signature-kit", "environment");
 
 if (!globalThis.FileReader) {
   globalThis.FileReader = class NodeFileReader {
@@ -306,23 +307,96 @@ function createTelemetryTraceBeacon() {
   return group;
 }
 
+function createCloudServerPier() {
+  const group = new THREE.Group();
+  group.name = "itart-cloud-server-pier";
+
+  addBox(group, "pier-deck", [2.1, 0.14, 0.74], [0, 0.07, 0], mats.techDeep);
+  addBox(group, "pier-edge-light-left", [1.92, 0.035, 0.035], [0, 0.18, -0.39], mats.tech);
+  addBox(group, "pier-edge-light-right", [1.92, 0.035, 0.035], [0, 0.18, 0.39], mats.warm);
+  for (let index = 0; index < 4; index += 1) {
+    const x = -0.72 + index * 0.48;
+    addBox(group, `micro-rack-${index}`, [0.26, 0.72 + (index % 2) * 0.18, 0.28], [x, 0.5 + (index % 2) * 0.09, -0.08], index % 2 ? mats.graphite : mats.ink);
+    addBox(group, `micro-rack-screen-${index}`, [0.19, 0.035, 0.035], [x, 0.58, -0.24], index % 2 ? mats.tech : mats.studio);
+  }
+  addTube(group, "pier-cable-a", [[-0.92, 0.22, 0.32], [-0.54, 0.38, 0.56], [0.08, 0.3, 0.48], [0.78, 0.48, 0.3]], 0.02, mats.tech);
+  addTube(group, "pier-cable-b", [[-0.78, 0.24, -0.28], [-0.24, 0.44, -0.54], [0.42, 0.34, -0.46], [0.94, 0.52, -0.24]], 0.018, mats.warm);
+  addSphere(group, "low-cloud-left", 0.22, [-0.82, 1.12, 0.1], mats.techGlass, [1.35, 0.7, 0.78]);
+  addSphere(group, "low-cloud-mid", 0.28, [-0.16, 1.2, 0.12], mats.techGlass, [1.5, 0.72, 0.82]);
+  addSphere(group, "low-cloud-right", 0.22, [0.56, 1.12, 0.08], mats.techGlass, [1.2, 0.68, 0.76]);
+  addCylinder(group, "pier-beacon", 0.035, 0.052, 0.86, [0.94, 0.58, 0.28], mats.graphite, [0, 0, 0], 10);
+  addSphere(group, "pier-beacon-head", 0.09, [0.94, 1.06, 0.28], mats.tech);
+
+  return group;
+}
+
+function createAtelierCuttingIsland() {
+  const group = new THREE.Group();
+  group.name = "itart-atelier-cutting-island";
+
+  addBox(group, "cutting-island-top", [1.86, 0.12, 1.04], [0, 0.64, 0], mats.studio);
+  addBox(group, "cutting-island-frame", [1.74, 0.12, 0.92], [0, 0.52, 0], mats.ink);
+  for (const x of [-0.72, 0.72]) {
+    for (const z of [-0.36, 0.36]) {
+      addCylinder(group, `table-leg-${x}-${z}`, 0.025, 0.032, 0.56, [x, 0.28, z], mats.ink, [0, 0, 0], 8);
+    }
+  }
+  addBox(group, "coral-fabric-yardage", [1.36, 0.06, 0.28], [-0.12, 0.74, -0.2], mats.cloth, [0, 0.08, -0.02]);
+  addBox(group, "cream-pattern-yardage", [1.1, 0.052, 0.24], [0.18, 0.8, 0.18], mats.studio, [0, -0.14, 0.02]);
+  addTube(group, "chalk-pattern-curve-a", [[-0.62, 0.86, -0.34], [-0.24, 0.91, -0.12], [0.2, 0.86, -0.28], [0.62, 0.92, -0.08]], 0.01, mats.art);
+  addTube(group, "chalk-pattern-curve-b", [[-0.58, 0.88, 0.28], [-0.18, 0.94, 0.08], [0.28, 0.9, 0.24], [0.66, 0.96, 0.02]], 0.01, mats.warm);
+  addBox(group, "long-tailor-ruler", [1.52, 0.035, 0.052], [0, 0.9, 0.42], mats.ink, [0, 0.18, 0]);
+  addCylinder(group, "fabric-roll-one", 0.072, 0.072, 0.72, [-0.62, 0.84, 0.12], mats.cloth, [0, 0, Math.PI * 0.5], 12);
+  addCylinder(group, "fabric-roll-two", 0.062, 0.062, 0.66, [0.58, 0.84, -0.36], mats.artDeep, [0, 0, Math.PI * 0.5], 12);
+  addSphere(group, "pin-cluster-a", 0.035, [0.58, 0.94, 0.34], mats.art);
+  addSphere(group, "pin-cluster-b", 0.03, [0.7, 0.92, 0.2], mats.warm);
+
+  return group;
+}
+
+function createObservabilityTraceStation() {
+  const group = new THREE.Group();
+  group.name = "itart-observability-trace-station";
+
+  addBox(group, "trace-station-pad", [1.74, 0.12, 0.96], [0, 0.06, 0], mats.ink);
+  addBox(group, "trace-console-base", [1.32, 0.36, 0.48], [0, 0.3, -0.08], mats.graphite);
+  addBox(group, "trace-console-screen", [1.14, 0.48, 0.06], [0, 0.74, -0.32], mats.techDeep, [-0.18, 0, 0]);
+  for (let index = 0; index < 5; index += 1) {
+    addBox(group, `trace-line-${index}`, [0.16 + index * 0.07, 0.024, 0.024], [-0.42 + index * 0.2, 0.76 + (index % 2) * 0.1, -0.37], index % 2 ? mats.warm : mats.tech);
+  }
+  addCylinder(group, "trace-station-antenna-left", 0.018, 0.026, 0.94, [-0.7, 0.88, 0.18], mats.tech, [0.16, 0, -0.1], 8);
+  addCylinder(group, "trace-station-antenna-right", 0.018, 0.026, 0.78, [0.7, 0.8, 0.18], mats.warm, [0.14, 0, 0.12], 8);
+  addTorus(group, "station-scan-ring", 0.46, 0.014, [0, 1.28, 0.08], mats.tech, [Math.PI * 0.5, 0.2, 0]);
+  addTorus(group, "station-alert-ring", 0.32, 0.012, [0, 1.02, 0.08], mats.warm, [Math.PI * 0.5, -0.18, 0]);
+  addTube(group, "station-trace-beam-a", [[-0.62, 0.32, 0.34], [-0.26, 0.82, 0.2], [0.12, 1.22, 0.04], [0.58, 1.5, -0.16]], 0.014, mats.tech);
+  addTube(group, "station-trace-beam-b", [[0.64, 0.28, 0.32], [0.24, 0.74, 0.24], [-0.08, 1.06, 0.02], [-0.46, 1.36, -0.14]], 0.012, mats.warm);
+  addSphere(group, "station-router-node-a", 0.085, [-0.54, 0.54, 0.32], mats.tech);
+  addSphere(group, "station-router-node-b", 0.075, [0.58, 0.48, 0.3], mats.warm);
+
+  return group;
+}
+
 const assets = [
-  ["server-cloud-node.glb", createServerCloudNode()],
-  ["atelier-mannequin-rack.glb", createAtelierMannequinRack()],
-  ["telemetry-radar-mast.glb", createTelemetryRadarMast()],
-  ["cloud-circuit-bridge.glb", createCloudCircuitBridge()],
-  ["atelier-drape-frame.glb", createAtelierDrapeFrame()],
-  ["telemetry-screen-array.glb", createTelemetryScreenArray()],
-  ["cloud-energy-anchor.glb", createCloudEnergyAnchor()],
-  ["atelier-pattern-wall.glb", createAtelierPatternWall()],
-  ["telemetry-trace-beacon.glb", createTelemetryTraceBeacon()]
+  { outputDir: heroOutputDir, fileName: "server-cloud-node.glb", scene: createServerCloudNode() },
+  { outputDir: heroOutputDir, fileName: "atelier-mannequin-rack.glb", scene: createAtelierMannequinRack() },
+  { outputDir: heroOutputDir, fileName: "telemetry-radar-mast.glb", scene: createTelemetryRadarMast() },
+  { outputDir: heroOutputDir, fileName: "cloud-circuit-bridge.glb", scene: createCloudCircuitBridge() },
+  { outputDir: heroOutputDir, fileName: "atelier-drape-frame.glb", scene: createAtelierDrapeFrame() },
+  { outputDir: heroOutputDir, fileName: "telemetry-screen-array.glb", scene: createTelemetryScreenArray() },
+  { outputDir: heroOutputDir, fileName: "cloud-energy-anchor.glb", scene: createCloudEnergyAnchor() },
+  { outputDir: heroOutputDir, fileName: "atelier-pattern-wall.glb", scene: createAtelierPatternWall() },
+  { outputDir: heroOutputDir, fileName: "telemetry-trace-beacon.glb", scene: createTelemetryTraceBeacon() },
+  { outputDir: environmentOutputDir, fileName: "cloud-server-pier.glb", scene: createCloudServerPier() },
+  { outputDir: environmentOutputDir, fileName: "atelier-cutting-island.glb", scene: createAtelierCuttingIsland() },
+  { outputDir: environmentOutputDir, fileName: "observability-trace-station.glb", scene: createObservabilityTraceStation() }
 ];
 
-fs.mkdirSync(outputDir, { recursive: true });
+fs.mkdirSync(heroOutputDir, { recursive: true });
+fs.mkdirSync(environmentOutputDir, { recursive: true });
 const exporter = new GLTFExporter();
 const results = [];
 
-for (const [fileName, scene] of assets) {
+for (const { outputDir, fileName, scene } of assets) {
   scene.traverse((object) => {
     if (object instanceof THREE.Mesh) {
       object.castShadow = false;
@@ -333,9 +407,10 @@ for (const [fileName, scene] of assets) {
   const outputPath = path.join(outputDir, fileName);
   fs.writeFileSync(outputPath, Buffer.from(glb));
   results.push({
+    outputDir: path.relative(root, outputDir),
     fileName,
     fileKb: Number((fs.statSync(outputPath).size / 1024).toFixed(1))
   });
 }
 
-console.log(JSON.stringify({ outputDir: path.relative(root, outputDir), assets: results }, null, 2));
+console.log(JSON.stringify({ assets: results }, null, 2));

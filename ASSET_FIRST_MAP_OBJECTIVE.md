@@ -177,8 +177,9 @@ Baseline actuelle:
   kit local IT Art Studio;
 - modeles runtime acceptes: routes, route-edge, ponts, eau, relief,
   vegetation;
-- collection signature locale IT Art Studio: 9 GLB custom pour les lieux hero,
-  soit 574.3 KB / 14 412 triangles;
+- collection signature locale IT Art Studio: 12 GLB custom pour les lieux hero,
+  soit 790.0 KB / 19 876 triangles repartis entre 9 ancres signature et 3
+  pieces d'environnement;
 - textures runtime acceptees et promues: route, vegetation/open-field, eau,
   relief;
 - runtime public: couche GLB `core` curatee par defaut, avec `?assets=off` pour

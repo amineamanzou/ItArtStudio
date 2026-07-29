@@ -23,3 +23,5 @@ Current accepted local roots:
 
 - `local/itart-signature-kit/hero`: project-authored GLB signatures for Cloud
   Dock, Design Atelier and Observability Tower.
+- `local/itart-signature-kit/environment`: project-authored GLB environment
+  furniture for the three hero locations.

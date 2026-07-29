@@ -52,9 +52,13 @@ Accepted runtime packs:
 - `public/assets/models/vendor/kenney/factory-kit/industrial`: 23 GLB
   industrial, screen, pipe, platform and work-surface pieces for Cloud Dock,
   Design Atelier and Observability Tower proofs.
-- `public/assets/models/local/itart-signature-kit/hero`: 3 generated GLB
-  signature pieces, one per hero location: server/cloud node, mannequin/fabric
-  rack, and telemetry radar mast.
+- `public/assets/models/local/itart-signature-kit/hero`: 9 generated GLB
+  signature anchors across the three hero locations: server/cloud node, cloud
+  bridge, energy anchor, mannequin/fabric rack, drape frame, pattern wall,
+  telemetry mast, screen array and trace beacon.
+- `public/assets/models/local/itart-signature-kit/environment`: 3 generated GLB
+  environment pieces, one per hero location: cloud server pier, atelier cutting
+  island and observability trace station.
 
 The validator derives local file weight and triangle counts from the GLB files
 and refuses accepted entries when the manifest drifts from the runtime folders.
@@ -68,7 +72,8 @@ Hero-location curation:
   gap.
 - The Factory Kit integration is an accelerator, not the final premium library.
   The local signature kit fills the first recognisable-silhouette gap enough for
-  visual QA: server/cloud node, mannequin/fabric rack, and telemetry radar mast.
+  visual QA: three anchors per hero location plus one authored environment
+  furniture piece per hero location.
 - The local kit is generated from `scripts/generate-signature-assets.mjs`, then
   declared in the manifest like any other accepted runtime collection. Future
   Blender assets should replace these generated silhouettes once their visual

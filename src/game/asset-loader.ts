@@ -700,6 +700,11 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
       heroLocation: "cloud-dock",
       heroRole: "cloud-energy-anchor"
     }),
+    createPlacement("hero:cloud-dock:cloud-server-pier", "hero:cloud-dock:server-pier", "route", "primary", true, "hero-location", "cloud-server-pier.glb", [-10.9, -25.7], 2.1, Math.PI * 0.44, {
+      assetId: "accepted-itart-signature-environment-core",
+      heroLocation: "cloud-dock",
+      heroRole: "cloud-server-pier"
+    }),
     createPlacement("hero:cloud-dock:server-pylon", "hero:cloud-dock", "route", "primary", true, "route-edge", "bridge-pillar.glb", [-11.1, -23.3], 1.8, 0.08, {
       heroLocation: "cloud-dock",
       heroRole: "server-pylon"
@@ -747,6 +752,11 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
       heroLocation: "design-atelier",
       heroRole: "atelier-pattern-wall"
     }),
+    createPlacement("hero:design-atelier:atelier-cutting-island", "hero:design-atelier:cutting-island", "route", "primary", true, "hero-location", "atelier-cutting-island.glb", [20.2, -10.25], 1.9, Math.PI * 0.46, {
+      assetId: "accepted-itart-signature-environment-core",
+      heroLocation: "design-atelier",
+      heroRole: "atelier-cutting-island"
+    }),
     createPlacement("hero:design-atelier:cutting-table", "hero:design-atelier", "route", "primary", true, "hero-location", "top-large-checkerboard.glb", [20.8, -9.4], 1.85, Math.PI * 0.5, {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "design-atelier",
@@ -789,6 +799,11 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
       assetId: "accepted-itart-signature-hero-core",
       heroLocation: "observability-tower",
       heroRole: "telemetry-trace-beacon"
+    }),
+    createPlacement("hero:observability-tower:observability-trace-station", "hero:observability-tower:trace-station", "route", "primary", true, "hero-location", "observability-trace-station.glb", [-21.95, 10.65], 1.76, 0.38, {
+      assetId: "accepted-itart-signature-environment-core",
+      heroLocation: "observability-tower",
+      heroRole: "observability-trace-station"
     }),
     createPlacement("hero:observability-tower:signal-pylon", "hero:observability-tower", "route", "primary", true, "route-edge", "bridge-pillar.glb", [-22.8, 9.8], 2.2, 0, {
       heroLocation: "observability-tower",

@@ -1290,6 +1290,23 @@ Gates V8.16:
   une route ou zone: la carte peut rester aerée, mais aucun relief ne doit etre
   gratuit.
 
+Gates V9.1:
+
+- `scripts/generate-signature-assets.mjs` genere maintenant une collection
+  locale en deux dossiers: `hero` pour les 9 ancres signatures et `environment`
+  pour 3 pieces de decor de lieu;
+- la nouvelle collection `accepted-itart-signature-environment-core` ajoute
+  `cloud-server-pier.glb`, `atelier-cutting-island.glb` et
+  `observability-trace-station.glb`, soit 215.7 KB et 5 464 triangles;
+- les contrats `heroLocationCuration` exigent maintenant un role
+  d'environnement par hero location: `cloud-server-pier`,
+  `atelier-cutting-island` et `observability-trace-station`;
+- ces pieces restent d'abord dans `?assets=map` pour enrichir le banc
+  d'inspection asset-first sans alourdir le runtime `core` public;
+- la baseline locale IT Art Studio passe a 12 GLB custom, 790.0 KB et
+  19 876 triangles, avec un objectif clair: remplacer progressivement les
+  props generiques par des assets narratifs plus reconnaissables.
+
 ## Components
 
 - `game-site`: surface principale.
