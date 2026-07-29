@@ -102,6 +102,10 @@
       "rock_largeC.glb",
       "rock_largeE.glb",
       "rock_tallA.glb",
+      "rock_tallH.glb",
+      "cliff_blockCave_rock.glb",
+      "cliff_top_rock.glb",
+      "cliff_waterfallTop_rock.glb",
       "sedan-sports.glb",
       "fern_02_1k.gltf",
       "track-detailed.glb",
@@ -109,7 +113,11 @@
       "track.glb",
       "plant_bushLarge.glb",
       "tree_detailed.glb",
+      "tree_pineGroundA.glb",
+      "tree_pineRoundC.glb",
       "tree_palm.glb",
+      "flower_yellowA.glb",
+      "hanging_moss.glb",
       "log.glb",
       "tree_oak.glb"
     ],
@@ -133,7 +141,15 @@
       "terrain-core:far-south-grass",
       "terrain-core:outer-west-bush",
       "terrain-core:outer-east-palm",
-      "terrain-core:outer-north-tree-detailed"
+      "terrain-core:outer-north-tree-detailed",
+      "terrain-core:shore-cliff-top",
+      "terrain-core:shore-cave-rock",
+      "terrain-core:shore-waterfall-top",
+      "terrain-core:ridge-tall-rock",
+      "terrain-core:pine-ground-south",
+      "terrain-core:pine-round-east",
+      "terrain-core:field-flower-edge",
+      "terrain-core:ridge-hanging-moss"
     ],
     "forbiddenFiles": [
       "box-long.glb",
@@ -156,13 +172,13 @@
       "top-large-checkerboard.glb",
       "tree_cone.glb"
     ],
-    "minimumPlacements": 62,
-    "minimumUniqueFiles": 42,
+    "minimumPlacements": 78,
+    "minimumUniqueFiles": 52,
     "minimumRolePlacements": {
       "route": 9,
       "water": 16,
-      "relief": 13,
-      "vegetation": 19
+      "relief": 17,
+      "vegetation": 23
     },
     "minimumCoverage": { "width": 78, "depth": 78 },
     "minimumCoverageArea": 6500,

@@ -528,6 +528,93 @@ const acceptedRuntimeTextures = new Map(
 if (!publicTerrainCore) {
   fail("Public terrain core contract is required for the asset-only public runtime.");
 } else {
+  const acceptedRuntimeModelAssets = [...acceptedRuntimeAssets.values()].filter((asset) => asset.kind.includes("model"));
+  const allowedPublicTerrainAssetIds = new Set([
+    ...asArray(publicTerrainCore.requiredAssetIds),
+    publicTerrainCore.requiredPlayerAssetId
+  ]);
+  const modelAssetsBySelectedFile = new Map();
+  for (const modelAsset of acceptedRuntimeModelAssets) {
+    for (const selectedFile of asArray(modelAsset.selectedFiles)) {
+      if (typeof selectedFile !== "string") {
+        continue;
+      }
+      modelAssetsBySelectedFile.set(selectedFile, [...(modelAssetsBySelectedFile.get(selectedFile) ?? []), modelAsset]);
+    }
+  }
+
+  for (const assetId of allowedPublicTerrainAssetIds) {
+    const asset = acceptedRuntimeAssets.get(assetId);
+    if (!asset || !asset.kind.includes("model")) {
+      fail("Public terrain core required model assets must point to accepted or integrated model assets.", {
+        assetId,
+        status: asset?.status,
+        kind: asset?.kind
+      });
+      continue;
+    }
+
+    const source = sources.find((item) => item.id === asset.sourceId);
+    if (source?.license !== "CC0-1.0") {
+      fail("Public terrain core required model assets must use a CC0 source.", {
+        assetId,
+        sourceId: asset.sourceId,
+        license: source?.license
+      });
+    }
+  }
+
+  const forbiddenPublicTerrainFiles = new Set(asArray(publicTerrainCore.forbiddenFiles));
+  for (const requiredFile of asArray(publicTerrainCore.requiredFiles)) {
+    if (typeof requiredFile !== "string" || requiredFile.length === 0 || !isModelFile(requiredFile)) {
+      fail("Public terrain core required model files must be non-empty GLB/glTF filenames.", { requiredFile });
+      continue;
+    }
+    if (requiredFile.includes("/") || requiredFile.includes("\\") || requiredFile.split(/[\\/]/u).includes("..")) {
+      fail("Public terrain core required model files must be bare filenames, not paths.", { requiredFile });
+      continue;
+    }
+    if (forbiddenPublicTerrainFiles.has(requiredFile)) {
+      fail("Public terrain core cannot require a model file that is also forbidden.", { requiredFile });
+      continue;
+    }
+
+    const candidateAssets = asArray(modelAssetsBySelectedFile.get(requiredFile)).filter((asset) =>
+      allowedPublicTerrainAssetIds.has(asset.id)
+    );
+    if (candidateAssets.length === 0) {
+      fail("Public terrain core required model file must belong to a required accepted/integrated asset.", {
+        requiredFile,
+        allowedAssetIds: [...allowedPublicTerrainAssetIds].filter(Boolean).sort()
+      });
+      continue;
+    }
+
+    for (const asset of candidateAssets) {
+      if (!asset.publicPath?.startsWith("assets/models/vendor/")) {
+        fail("Public terrain core required model files must come from downloaded vendor assets.", {
+          requiredFile,
+          assetId: asset.id,
+          publicPath: asset.publicPath
+        });
+      }
+      const localModelPath = path.join(root, "public", asset.publicPath ?? "", requiredFile);
+      if (!fs.existsSync(localModelPath)) {
+        fail("Public terrain core required model file does not exist locally.", {
+          requiredFile,
+          assetId: asset.id,
+          expectedPath: path.relative(root, localModelPath)
+        });
+      }
+    }
+  }
+
+  for (const requiredPlacementId of asArray(publicTerrainCore.requiredPlacementIds)) {
+    if (typeof requiredPlacementId !== "string" || !requiredPlacementId.startsWith("terrain-core:")) {
+      fail("Public terrain core requiredPlacementIds must be stable terrain-core placement ids.", { requiredPlacementId });
+    }
+  }
+
   const textureAssetsByPublicFile = new Map();
   for (const textureAsset of acceptedRuntimeTextures.values()) {
     for (const selectedFile of asArray(textureAsset.selectedFiles)) {

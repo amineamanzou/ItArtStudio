@@ -1014,6 +1014,30 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     }),
     createPlacement("terrain-core:outer-west-fern", "terrain-core:outer-west-vegetation", "vegetation", "support", true, "vegetation", "fern_02_1k.gltf", [-33.4, -22.4], 0.76, 0.18, {
       assetId: "accepted-polyhaven-fern-core"
+    }),
+    createPlacement("terrain-core:shore-cliff-top", "terrain-core:shore-relief-east", "relief", "support", true, "relief", "cliff_top_rock.glb", [24.8, 16.4], 1.04, -0.22, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:shore-cave-rock", "terrain-core:shore-relief-west", "relief", "support", true, "relief", "cliff_blockCave_rock.glb", [-25.8, 17.2], 1.0, 0.18, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:shore-waterfall-top", "terrain-core:shore-relief-waterfall", "relief", "support", true, "relief", "cliff_waterfallTop_rock.glb", [30.4, -18.6], 0.98, Math.PI * 0.56, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:ridge-tall-rock", "terrain-core:shore-relief-ridge", "relief", "support", true, "relief", "rock_tallH.glb", [22.2, -26.8], 1.02, -0.12, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:pine-ground-south", "terrain-core:pine-vegetation-south", "vegetation", "support", true, "vegetation", "tree_pineGroundA.glb", [18.4, -32.6], 1.12, 0.2, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:pine-round-east", "terrain-core:pine-vegetation-east", "vegetation", "support", true, "vegetation", "tree_pineRoundC.glb", [31.2, 5.8], 1.08, -0.26, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:field-flower-edge", "terrain-core:flower-vegetation-edge", "vegetation", "support", true, "vegetation", "flower_yellowA.glb", [-18.6, 21.8], 0.74, 0.14, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:ridge-hanging-moss", "terrain-core:moss-vegetation-ridge", "vegetation", "support", true, "vegetation", "hanging_moss.glb", [25.8, 24.4], 0.82, -0.18, {
+      assetId: "accepted-nature-vegetation-core"
     })
   ];
 }
