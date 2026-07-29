@@ -29,11 +29,11 @@ Run:
 npm run assets:validate
 ```
 
-Regenerate local signature GLB assets:
+Hard rule:
 
-```bash
-npm run assets:generate-signature
-```
+- Runtime model collections must come from downloaded asset libraries. The old
+  `local/itart-signature-kit` generated GLB path is forbidden in accepted,
+  integrated, preview, core, and map runtime proofs.
 
 Accepted runtime packs:
 
@@ -52,23 +52,6 @@ Accepted runtime packs:
 - `public/assets/models/vendor/kenney/factory-kit/industrial`: 23 GLB
   industrial, screen, pipe, platform and work-surface pieces for Cloud Dock,
   Design Atelier and Observability Tower proofs.
-- `public/assets/models/local/itart-signature-kit/hero`: 9 generated GLB
-  signature anchors across the three hero locations: server/cloud node, cloud
-  bridge, energy anchor, mannequin/fabric rack, drape frame, pattern wall,
-  telemetry mast, screen array and trace beacon.
-- `public/assets/models/local/itart-signature-kit/environment`: 3 generated GLB
-  environment pieces, one per hero location: cloud server pier, atelier cutting
-  island and observability trace station.
-- `public/assets/models/local/itart-signature-kit/premium`: 3 generated V9.3
-  GLB silhouettes, one per hero location: cloud infra gateway, atelier garment
-  loom and observability signal spire.
-- `public/assets/models/local/itart-signature-kit/detail`: 3 generated V9.9
-  secondary detail GLB pieces, one per hero location: cloud cable manifold,
-  atelier swatch stand and observability log totem.
-- `public/assets/models/local/itart-signature-kit/terrain`: 6 generated V10.1
-  terrain transition GLB pieces for route/water, route/relief, field-marker,
-  route/vegetation, water/relief and field/road seams before the next sparse
-  map expansion.
 - `public/assets/textures/map/hero`: 3 SVG runtime texture pads for Cloud Dock,
   Design Atelier and Observability Tower.
 
@@ -82,18 +65,12 @@ Hero-location curation:
 - The contract names a visual signature, accepted asset collections, at least
   six visual roles, a minimum runtime placement count, and the next custom asset
   gap.
-- The Factory Kit integration is an accelerator, not the final premium library.
-  The local signature kit fills the first recognisable-silhouette gap enough for
-  visual QA: three anchors per hero location, one authored environment
-  furniture piece per hero location and one V9.3 premium silhouette per hero
-  location in the `?assets=map` inspection layer.
-- The local kit is generated from `scripts/generate-signature-assets.mjs`, then
-  declared in the manifest like any other accepted runtime collection. Future
-  Blender assets should replace these generated silhouettes once their visual
-  direction is proven.
-- `?assets=preview` must load both the terrain/vendor specimens and the local
-  premium silhouettes, so accepted models are proven as a library before they
-  are judged inside the full map composition.
+- The Factory Kit integration is an accelerator, not the final premium library:
+  it now carries the three hero locations until stronger downloaded packs are
+  curated.
+- `?assets=preview` must load only downloaded vendor specimens, so accepted
+  models are proven as a library before they are judged inside the full map
+  composition.
 
 Map expansion kits:
 
@@ -106,11 +83,11 @@ Map expansion kits:
 
 Core promotion:
 
-- `corePromotion` is the contract for moving premium anchors from opt-in
-  inspection into the public `core` runtime.
-- V9.6 promotes exactly one premium GLB per hero location:
-  `cloud-infra-gateway.glb`, `atelier-garment-loom.glb`, and
-  `observability-signal-spire.glb`.
+- `corePromotion` is the contract for moving the best downloaded anchors from
+  opt-in inspection into the public `core` runtime.
+- V10.2 promotes one vendor Factory Kit anchor per hero location:
+  `machine-fortified.glb`, `top-large-checkerboard.glb`, and
+  `screen-wide.glb`.
 - Promotion is manifest-driven: the loader reads `requiredPlacementIds`, while
-  QA proves the premium files, placements, hero roles, public paths and
-  screen-space rectangles before the change is considered public-ready.
+  QA proves the files, placements, hero roles, public paths and screen-space
+  rectangles before the change is considered public-ready.

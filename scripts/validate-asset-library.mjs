@@ -496,6 +496,14 @@ for (const role of ["road", "water", "relief", "vegetation"]) {
 const acceptedRuntimeAssets = new Map(
   assets.filter((asset) => asset.status === "accepted" || asset.status === "integrated").map((asset) => [asset.id, asset])
 );
+const generatedRuntimeAssets = [...acceptedRuntimeAssets.values()].filter(
+  (asset) => asset.sourceId === "itart-signature-kit" || String(asset.publicPath ?? "").includes("local/itart-signature-kit")
+);
+if (generatedRuntimeAssets.length > 0) {
+  fail("Generated local IT Art Studio GLB assets are not allowed in accepted runtime anymore.", {
+    assetIds: generatedRuntimeAssets.map((asset) => asset.id)
+  });
+}
 const acceptedRuntimeTextures = new Map(
   [...acceptedRuntimeAssets.values()].filter((asset) => asset.kind === "texture-set" && asset.target === "map").map((asset) => [asset.id, asset])
 );
@@ -647,7 +655,7 @@ for (const requiredRole of ["road", "water", "relief", "vegetation", "route-edge
 }
 
 if (!corePromotion) {
-  fail("Core runtime promotion contract is required before premium anchors enter the public build.");
+  fail("Core runtime promotion contract is required before vendor anchors enter the public build.");
 } else {
   const promotedAsset = acceptedRuntimeAssets.get(corePromotion.assetId);
   const requiredFiles = asArray(corePromotion.requiredFiles);
@@ -719,7 +727,7 @@ if (!corePromotion) {
     }
   }
   if (!Number.isInteger(corePromotion.minimumCorePlacements) || corePromotion.minimumCorePlacements < 18) {
-    fail("Core promotion must require the public core to include the premium anchors plus the existing foundation.", {
+    fail("Core promotion must require the public core to include the vendor anchors plus the existing foundation.", {
       minimumCorePlacements: corePromotion.minimumCorePlacements
     });
   }
@@ -747,8 +755,8 @@ if (!corePromotion) {
       maximumHeroClusterDensity: corePromotion.maximumHeroClusterDensity
     });
   }
-  if (corePromotion.qaGate !== "external-asset-core-premium-runtime") {
-    fail("Core promotion must bind to the premium runtime QA gate.", { qaGate: corePromotion.qaGate });
+  if (corePromotion.qaGate !== "external-asset-core-vendor-anchor-runtime") {
+    fail("Core promotion must bind to the vendor-anchor runtime QA gate.", { qaGate: corePromotion.qaGate });
   }
 }
 
@@ -872,7 +880,7 @@ if (!assetUtilizationWave) {
       minimumMapPlacements: assetUtilizationWave.minimumMapPlacements
     });
   }
-  if (!Number.isInteger(assetUtilizationWave.minimumUniqueFiles) || assetUtilizationWave.minimumUniqueFiles < 70) {
+  if (!Number.isInteger(assetUtilizationWave.minimumUniqueFiles) || assetUtilizationWave.minimumUniqueFiles < 68) {
     fail("Asset utilization wave must raise the unique-file floor beyond the previous map composition.", {
       minimumUniqueFiles: assetUtilizationWave.minimumUniqueFiles
     });
@@ -964,13 +972,13 @@ if (!assetDetailWave) {
       }
     }
   }
-  if (!Number.isInteger(assetDetailWave.minimumMapPlacements) || assetDetailWave.minimumMapPlacements < 146) {
+  if (!Number.isInteger(assetDetailWave.minimumMapPlacements) || assetDetailWave.minimumMapPlacements < 128) {
     fail("Asset detail wave must raise the map placement floor after the utilization wave.", {
       minimumMapPlacements: assetDetailWave.minimumMapPlacements
     });
   }
-  if (!Number.isInteger(assetDetailWave.minimumUniqueFiles) || assetDetailWave.minimumUniqueFiles < 80) {
-    fail("Asset detail wave must raise the unique-file floor after adding three custom detail files.", {
+  if (!Number.isInteger(assetDetailWave.minimumUniqueFiles) || assetDetailWave.minimumUniqueFiles < 68) {
+    fail("Asset detail wave must keep enough unique downloaded files after removing generated local details.", {
       minimumUniqueFiles: assetDetailWave.minimumUniqueFiles
     });
   }
@@ -1010,8 +1018,8 @@ if (!terrainTransitionWave) {
       kind: terrainAsset?.kind
     });
   } else {
-    if (terrainAsset.sourceId !== "itart-signature-kit" || terrainAsset.terrainRole !== "bridge") {
-      fail("Terrain transition wave must use the local terrain transition collection.", {
+    if (terrainAsset.sourceId === "itart-signature-kit" || terrainAsset.terrainRole !== "bridge") {
+      fail("Terrain transition wave must use a downloaded bridge/path model collection, not generated local GLB.", {
         assetId: terrainAsset.id,
         sourceId: terrainAsset.sourceId,
         terrainRole: terrainAsset.terrainRole
@@ -1043,13 +1051,13 @@ if (!terrainTransitionWave) {
   if (!terrainTransitionWave.nextAction || terrainTransitionWave.nextAction.length < 96) {
     fail("Terrain transition wave must declare the next terrain curation action.", { nextAction: terrainTransitionWave.nextAction });
   }
-  if (!Number.isInteger(terrainTransitionWave.minimumMapPlacements) || terrainTransitionWave.minimumMapPlacements < 152) {
-    fail("Terrain transition wave must raise the map placement proof after asset-detail-wave.", {
+  if (!Number.isInteger(terrainTransitionWave.minimumMapPlacements) || terrainTransitionWave.minimumMapPlacements < 128) {
+    fail("Terrain transition wave must preserve a broad vendor-only map placement proof.", {
       minimumMapPlacements: terrainTransitionWave.minimumMapPlacements
     });
   }
-  if (!Number.isInteger(terrainTransitionWave.minimumUniqueFiles) || terrainTransitionWave.minimumUniqueFiles < 86) {
-    fail("Terrain transition wave must raise the unique-file proof after asset-detail-wave.", {
+  if (!Number.isInteger(terrainTransitionWave.minimumUniqueFiles) || terrainTransitionWave.minimumUniqueFiles < 68) {
+    fail("Terrain transition wave must preserve enough unique downloaded files after removing generated local terrain.", {
       minimumUniqueFiles: terrainTransitionWave.minimumUniqueFiles
     });
   }

@@ -1521,6 +1521,24 @@ Gates V10.1:
   visual-only sans HUD afin de juger la couture dans la scene, pas seulement la
   presence d'un objet sous l'interface.
 
+Gates V10.2:
+
+- decision de direction artistique: les GLB generes localement sont retires du
+  runtime et du depot; le site ne doit plus afficher d'objet 3D issu de
+  `local/itart-signature-kit`;
+- les contrats `corePromotion`, `assetDetailWave` et `terrainTransitionWave`
+  pointent maintenant vers des assets telecharges depuis les packs Kenney
+  Factory Kit, Nature Kit et City Kit Roads;
+- `?assets=preview`, le runtime public `core` et `?assets=map` refusent les
+  chemins `assets/models/local/itart-signature-kit` et exigent des chemins
+  `assets/models/vendor/`;
+- la bibliotheque vendor prouve maintenant 68 fichiers uniques apres retrait
+  des 24 GLB generes; le prochain saut qualitatif doit venir d'une nouvelle
+  collecte d'assets telecharges, pas d'une generation locale;
+- cette tranche assume une baisse temporaire de specificite narrative pour
+  retrouver une base saine: bibliotheque telechargee, textures/GLB licencies,
+  QA bloquante, puis prochaine boucle de collecte d'assets premium.
+
 ## Components
 
 - `game-site`: surface principale.

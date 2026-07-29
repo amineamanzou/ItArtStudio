@@ -309,11 +309,10 @@ Baseline actuelle:
 - contrat manifeste `terrainShell`: placements minimums route/eau/relief/
   vegetation, densite non-hero plafonnee et budget renderer conserve a
   `110000` triangles.
-- contrat manifeste `terrainTransitionWave`: V10.0 exigeait trois assets de
-  transition visibles en QA; V10.1 etend ce contrat a six assets et six
-  placements de couture, avec un seuil de 152 placements map, 86 fichiers
-  uniques et un plafond renderer maintenu a `110000` triangles, sans augmenter
-  `worldSize`.
+- contrat manifeste `terrainTransitionWave`: V10.2 remplace les coutures GLB
+  generees par six pieces Kenney Nature Kit deja telechargees; le seuil courant
+  est 128 placements map, 68 fichiers uniques et un plafond renderer maintenu a
+  `110000` triangles, sans augmenter `worldSize`.
 
 ## Phase 4 - Trois Hero Locations
 
@@ -327,18 +326,17 @@ Hero locations:
 
 Baseline actuelle:
 
-- `Cloud Dock`: 12 placements GLB runtime obligatoires, dont
-  `server-cloud-node`, `cloud-circuit-bridge`, `cloud-energy-anchor` et
-  `cloud-infra-gateway`;
-- `Design Atelier`: 11 placements GLB runtime obligatoires, dont
-  `mannequin-fabric-rack`, `atelier-drape-frame` et
-  `atelier-pattern-wall`, avec `atelier-garment-loom` comme ancre premium;
-- `Observability Tower`: 12 placements GLB runtime obligatoires, dont
-  `telemetry-radar-mast`, `telemetry-screen-array` et
-  `telemetry-trace-beacon`, avec `observability-signal-spire` comme ancre
-  premium;
-- les nouveaux assets signature sont repartis en micro-clusters pour enrichir
-  les silhouettes sans creer d'empilement visuel.
+- `Cloud Dock`: placements GLB runtime obligatoires bases sur Factory Kit,
+  City Kit Roads et Nature Kit: racks, machines, pipes, ecrans, plateformes et
+  ponts telecharges;
+- `Design Atelier`: placements GLB runtime obligatoires bases sur Factory Kit
+  et Nature Kit: table de coupe, worktops, caisses, supports, lumiere et sol
+  d'atelier telecharges;
+- `Observability Tower`: 12 placements GLB runtime obligatoires bases sur Factory
+  Kit et City Kit Roads: structure, ecrans, consoles, pipes et beacon
+  telecharges;
+- aucune silhouette GLB generee localement ne doit revenir dans la preview, le
+  core public ou la couche `?assets=map`.
 - la page publique charge deja un noyau de signatures par lieu: au moins trois
   roles hero-location par zone dans la QA `external-asset-core-runtime`.
 - la couche `?assets=map` sert de banc d'inspection plus dense et exige

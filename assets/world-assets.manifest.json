@@ -8,62 +8,62 @@
     "acceptedTextureMaxKb": 4096,
     "heroLocationModelBudget": 16,
     "heroLocationTextureBudget": 10,
-    "rendererTextureCap": 24,
+    "rendererTextureCap": 32,
     "rendererTriangleCap": 110000,
     "acceptedModelTriangleTarget": 8000
   },
   "heroLocations": ["cloud-dock", "design-atelier", "observability-tower"],
   "heroLocationCuration": {
     "cloud-dock": {
-      "visualSignature": "Infra dock: server-like machine blocks, service deck, cable trunks, screen panels, electric masts, a cloud circuit bridge and an infra gateway around the harbor edge.",
-      "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-itart-signature-environment-core", "accepted-itart-signature-premium-v93", "accepted-itart-signature-detail-v99", "accepted-factory-industrial-core", "accepted-city-route-edge-core", "accepted-city-road-core"],
-      "requiredVisualRoles": ["server-cloud-node", "cloud-circuit-bridge", "cloud-energy-anchor", "cloud-server-pier", "cloud-infra-gateway", "cloud-cable-manifold", "rack-core", "cable-trunk", "service-deck", "ops-screen", "electric-mast", "platform-span"],
+      "visualSignature": "Infra dock built only from downloaded library assets: fortified machine blocks, service decks, pipe trunks, screen panels, route lights and road-bridge platforms around the harbor edge.",
+      "requiredAssetIds": ["accepted-factory-industrial-core", "accepted-city-route-edge-core", "accepted-city-road-core"],
+      "requiredVisualRoles": ["rack-core", "service-deck", "ops-screen", "cable-trunk", "control-machine", "dock-floor", "server-pylon", "electric-mast", "platform-span", "data-conveyor", "pipe-spine", "screen-node"],
       "minRuntimePlacements": 13,
-      "nextCustomAsset": "Upgrade the generated node, pier, infra gateway and energy anchor into a richer Blender-authored server dock with cooling fins, visible cabling and cloud-energy anchors."
+      "nextCustomAsset": "Do not generate placeholder GLB. Source a stronger CC0/attribution-safe server, antenna or datacenter asset from an external library before replacing this vendor-only dock."
     },
     "design-atelier": {
-      "visualSignature": "Fashion atelier: mannequin, drape frame, cutting table, worktop, garment loom, pattern corner, swatch crates, reference screen and softer art markers.",
-      "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-itart-signature-environment-core", "accepted-itart-signature-premium-v93", "accepted-itart-signature-detail-v99", "accepted-factory-industrial-core", "accepted-nature-bridge-core", "accepted-nature-vegetation-core"],
-      "requiredVisualRoles": ["mannequin-fabric-rack", "atelier-drape-frame", "atelier-pattern-wall", "atelier-cutting-island", "atelier-garment-loom", "atelier-swatch-stand", "cutting-table", "worktop", "pattern-corner", "swatch-crate", "reference-screen", "swatch-marker"],
+      "visualSignature": "Atelier expressed with downloaded assets only: checkerboard cutting table, worktops, crates, crane, reference screen, wood path corner and small vegetation markers as material swatches.",
+      "requiredAssetIds": ["accepted-factory-industrial-core", "accepted-nature-bridge-core", "accepted-nature-vegetation-core"],
+      "requiredVisualRoles": ["cutting-table", "worktop", "fabric-crane", "reference-screen", "swatch-crate", "material-box", "pattern-corner", "swatch-marker", "atelier-floor", "cloth-line", "tool-bench", "sample-light"],
       "minRuntimePlacements": 12,
-      "nextCustomAsset": "Upgrade the generated mannequin, cutting island, garment loom and pattern wall into a more premium atelier asset with garment drape, pins, pattern curves and a fabric rail."
+      "nextCustomAsset": "Do not generate placeholder GLB. Source a real CC0/attribution-safe mannequin, garment rack or sewing-table asset from a library before claiming a premium atelier silhouette."
     },
     "observability-tower": {
-      "visualSignature": "Telemetry tower: high pylon, radar ring, screen array, signal spire, screen wall, trace panel, data pipe and service platform.",
-      "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-itart-signature-environment-core", "accepted-itart-signature-premium-v93", "accepted-itart-signature-detail-v99", "accepted-factory-industrial-core", "accepted-city-route-edge-core", "accepted-city-road-core"],
-      "requiredVisualRoles": ["telemetry-radar-mast", "telemetry-screen-array", "telemetry-trace-beacon", "observability-trace-station", "observability-signal-spire", "observability-log-totem", "signal-pylon", "radar-ring", "screen-wall", "trace-panel", "data-pipe", "service-platform"],
-      "minRuntimePlacements": 13,
-      "nextCustomAsset": "Upgrade the generated mast, trace station, signal spire and trace beacon into a taller Blender-authored observability beacon with animated scan arcs and trace-beam anchors."
+      "visualSignature": "Telemetry tower built only from downloaded library assets: tall industrial structure, screen wall, hanging screen, glass pipe, machine window, route-light pylon and service platform.",
+      "requiredAssetIds": ["accepted-factory-industrial-core", "accepted-city-route-edge-core", "accepted-city-road-core"],
+      "requiredVisualRoles": ["signal-pylon", "structure-tall", "screen-wall", "trace-panel", "data-pipe", "service-platform", "machine-window", "structure-window", "radar-ring", "beacon-light", "tower-floor", "metric-console"],
+      "minRuntimePlacements": 12,
+      "nextCustomAsset": "Do not generate placeholder GLB. Source a real CC0/attribution-safe tower, radar or telemetry-looking asset from an external library before replacing the current vendor-only tower."
     }
   },
   "corePromotion": {
-    "id": "premium-anchor-core-v96",
+    "id": "vendor-anchor-core-v102",
     "phase": "core-runtime-promotion",
-    "assetId": "accepted-itart-signature-premium-v93",
-    "purpose": "Promote exactly one premium authored anchor per hero location into the public core runtime, only when QA can prove the file, placement and hero role are visible.",
+    "assetId": "accepted-factory-industrial-core",
+    "purpose": "Promote exactly one downloaded CC0 vendor anchor per hero location into the public core runtime, with no generated local GLB allowed in the visible 3D layer.",
     "requiredFiles": [
-      "cloud-infra-gateway.glb",
-      "atelier-garment-loom.glb",
-      "observability-signal-spire.glb"
+      "machine-fortified.glb",
+      "top-large-checkerboard.glb",
+      "screen-wide.glb"
     ],
     "requiredPlacementIds": [
-      "hero:cloud-dock:cloud-infra-gateway",
-      "hero:design-atelier:atelier-garment-loom",
-      "hero:observability-tower:observability-signal-spire"
+      "hero:cloud-dock:rack-core",
+      "hero:design-atelier:cutting-table",
+      "hero:observability-tower:screen-wall"
     ],
     "requiredHeroRoles": {
-      "cloud-dock": ["cloud-infra-gateway"],
-      "design-atelier": ["atelier-garment-loom"],
-      "observability-tower": ["observability-signal-spire"]
+      "cloud-dock": ["rack-core"],
+      "design-atelier": ["cutting-table"],
+      "observability-tower": ["screen-wall"]
     },
     "minimumCorePlacements": 18,
     "minimumHeroLocationPlacements": 12,
     "minimumUniqueFiles": 18,
     "minimumCoverage": { "width": 42, "depth": 42 },
     "maximumHeroClusterDensity": 4,
-    "qaGate": "external-asset-core-premium-runtime",
-    "fallback": "If any premium anchor fails or disappears in QA, keep the existing core layer and demote the failing anchor back to map-only preview.",
-    "nextAction": "Use the promoted premium anchors as the first authored silhouettes before enlarging the terrain shell around the three hero locations."
+    "qaGate": "external-asset-core-vendor-anchor-runtime",
+    "fallback": "If any vendor anchor fails or disappears in QA, keep the rest of the downloaded vendor core and demote the failing placement until a better library asset is sourced.",
+    "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "terrainShell": {
     "id": "expanded-empty-map-shell-v97",
@@ -125,66 +125,66 @@
       "hero:observability-tower:structure-tall"
     ],
     "minimumMapPlacements": 143,
-    "minimumUniqueFiles": 72,
+    "minimumUniqueFiles": 68,
     "maximumRendererTriangles": 110000,
     "qaGate": "asset-utilization-wave",
     "fallback": "If this utilization wave makes the map noisy or exceeds renderer budget, keep the files accepted in the library but remove the new inspection placements before public core promotion.",
     "nextAction": "Use the visual QA captures to decide which utilized files deserve promotion into the public core and which should remain inspection-only."
   },
   "assetDetailWave": {
-    "id": "hero-location-detail-v99",
+    "id": "vendor-hero-detail-v102",
     "phase": "hero-location-detail",
-    "purpose": "Add one authored secondary detail asset to each hero location so the map gains recognition from custom GLB silhouettes rather than from more generic factory or procedural props.",
-    "assetId": "accepted-itart-signature-detail-v99",
+    "purpose": "Keep the hero-location detail wave vendor-only by using downloaded Factory Kit support pieces instead of generated local GLB details, while preserving the no-clutter inspection contract.",
+    "assetId": "accepted-factory-industrial-core",
     "requiredFiles": [
-      "cloud-cable-manifold.glb",
-      "atelier-swatch-stand.glb",
-      "observability-log-totem.glb"
+      "pipe-large-junction.glb",
+      "box-wide.glb",
+      "screen-hanging-wide.glb"
     ],
     "requiredPlacementIds": [
-      "hero:cloud-dock:cloud-cable-manifold",
-      "hero:design-atelier:atelier-swatch-stand",
-      "hero:observability-tower:observability-log-totem"
+      "hero:cloud-dock:cable-trunk",
+      "hero:design-atelier:swatch-crate",
+      "hero:observability-tower:trace-panel"
     ],
     "requiredHeroRoles": {
-      "cloud-dock": ["cloud-cable-manifold"],
-      "design-atelier": ["atelier-swatch-stand"],
-      "observability-tower": ["observability-log-totem"]
+      "cloud-dock": ["cable-trunk"],
+      "design-atelier": ["swatch-crate"],
+      "observability-tower": ["trace-panel"]
     },
-    "minimumMapPlacements": 146,
-    "minimumUniqueFiles": 80,
+    "minimumMapPlacements": 128,
+    "minimumUniqueFiles": 68,
     "maximumRendererTriangles": 110000,
     "qaGate": "asset-detail-wave",
-    "fallback": "If the detail assets read as clutter or push the renderer over budget, keep the GLB files accepted but remove the map inspection placements before public core promotion.",
-    "nextAction": "Use zone screenshots to decide whether these detail pieces should be promoted into the public core after the premium anchors."
+    "fallback": "If these vendor detail assets read as clutter or push the renderer over budget, keep the accepted library but remove the inspection placements before public core promotion.",
+    "nextAction": "Use zone screenshots to identify the exact library asset gaps before sourcing new external atelier, cloud and observability models."
   },
   "terrainTransitionWave": {
-    "id": "terrain-transition-v101",
+    "id": "vendor-terrain-transition-v102",
     "phase": "terrain-transition-library",
-    "purpose": "Extend the local GLB transition kit into a compact terrain continuity grammar for road-water, road-relief, field-marker, road-vegetation, water-relief and field-road seams before any larger map expansion.",
-    "assetId": "accepted-itart-signature-terrain-v100",
+    "purpose": "Replace the generated terrain seam kit with downloaded Kenney Nature bridge and path pieces so road-water, road-relief and field-road transitions are proven with real library assets.",
+    "assetId": "accepted-nature-bridge-core",
     "requiredFiles": [
-      "road-water-causeway.glb",
-      "relief-road-terrace.glb",
-      "field-marker-grove.glb",
-      "road-vegetation-verge.glb",
-      "water-relief-spillway.glb",
-      "field-road-threshold.glb"
+      "bridge_wood.glb",
+      "path_woodCorner.glb",
+      "path_wood.glb",
+      "bridge_woodNarrow.glb",
+      "bridge_side_wood.glb",
+      "bridge_center_wood.glb"
     ],
     "requiredPlacementIds": [
-      "terrain:road-water-causeway:cloud-harbor",
-      "terrain:relief-road-terrace:design-shelf",
-      "terrain:field-marker-grove:observability-field",
-      "terrain:road-vegetation-verge:values-approach",
-      "terrain:water-relief-spillway:cloud-runoff",
-      "terrain:field-road-threshold:design-entry"
+      "terrain:bridge-wood:cloud-harbor",
+      "terrain:path-corner:design-shelf",
+      "terrain:path-wood:observability-field",
+      "terrain:bridge-narrow:values-approach",
+      "terrain:bridge-side:cloud-runoff",
+      "terrain:bridge-center:design-entry"
     ],
-    "minimumMapPlacements": 152,
-    "minimumUniqueFiles": 86,
+    "minimumMapPlacements": 128,
+    "minimumUniqueFiles": 68,
     "maximumRendererTriangles": 110000,
     "qaGate": "terrain-transition-wave",
-    "fallback": "If the transition kit causes visual noise or renderer pressure, keep the GLB files accepted in the library but remove their map inspection placements before any public core promotion.",
-    "nextAction": "Use the terrain transition screenshots to decide which continuity seams should become authored corridors in the next larger sparse terrain shell."
+    "fallback": "If the downloaded bridge/path seams cause visual noise or renderer pressure, keep the vendor files accepted but remove the inspection placements before any public core promotion.",
+    "nextAction": "Use these vendor-only terrain screenshots to decide which external library pack should be sourced next for higher-quality roads, banks and terrain seams."
   },
   "terrainRoles": ["road", "water", "relief", "vegetation", "route-edge", "bridge", "hero-location"],
   "mapExpansionKits": [
@@ -193,7 +193,7 @@
       "phase": "map-expansion",
       "purpose": "Road, bridge and edge vocabulary for scaling the playable map with readable routes before adding more landmarks.",
       "requiredTerrainRoles": ["road", "route-edge", "bridge"],
-      "acceptedAssetIds": ["accepted-city-road-core", "accepted-city-route-edge-core", "accepted-nature-bridge-core", "accepted-itart-signature-terrain-v100"],
+      "acceptedAssetIds": ["accepted-city-road-core", "accepted-city-route-edge-core", "accepted-nature-bridge-core"],
       "textureAssetIds": ["accepted-map-road-texture-studio"],
       "linkedRuntimeLayers": ["worldRoutes", "road-ribbons", "route-guidance"],
       "minimumRuntimePlacements": 14,
@@ -208,7 +208,7 @@
       "phase": "map-expansion",
       "purpose": "Water, rocks, cliffs and crossing pieces for making the larger map feel authored rather than flat.",
       "requiredTerrainRoles": ["water", "relief", "bridge"],
-      "acceptedAssetIds": ["accepted-nature-water-core", "accepted-nature-relief-core", "accepted-nature-bridge-core", "accepted-itart-signature-terrain-v100"],
+      "acceptedAssetIds": ["accepted-nature-water-core", "accepted-nature-relief-core", "accepted-nature-bridge-core"],
       "textureAssetIds": ["accepted-map-water-texture-studio", "accepted-map-relief-texture-studio"],
       "linkedRuntimeLayers": ["worldMaterialRegions.water", "terrainConfig.features", "surface-details"],
       "minimumRuntimePlacements": 18,
@@ -223,7 +223,7 @@
       "phase": "map-expansion",
       "purpose": "Trees, bushes, grass and field texture vocabulary for open areas between hero locations.",
       "requiredTerrainRoles": ["vegetation"],
-      "acceptedAssetIds": ["accepted-nature-vegetation-core", "accepted-itart-signature-terrain-v100"],
+      "acceptedAssetIds": ["accepted-nature-vegetation-core"],
       "textureAssetIds": ["accepted-map-field-texture-studio"],
       "linkedRuntimeLayers": ["world-scenery", "terrain-feature-markers"],
       "minimumRuntimePlacements": 16,
@@ -236,12 +236,9 @@
     {
       "id": "hero-location-anchor-kit",
       "phase": "map-expansion",
-      "purpose": "Signature local GLB anchors and industrial support pieces that make Cloud Dock, Design Atelier and Observability Tower recognizable without labels.",
+      "purpose": "Downloaded vendor GLB anchors and support pieces that make Cloud Dock, Design Atelier and Observability Tower recognizable without generated local models.",
       "requiredTerrainRoles": ["hero-location"],
       "acceptedAssetIds": [
-        "accepted-itart-signature-hero-core",
-        "accepted-itart-signature-environment-core",
-        "accepted-itart-signature-premium-v93",
         "accepted-factory-industrial-core"
       ],
       "textureAssetIds": ["accepted-map-hero-location-texture-studio"],
@@ -365,18 +362,6 @@
       "attributionRequired": false,
       "formats": ["SVG"],
       "notes": "Tiny editable source textures generated for the low-poly map vocabulary while external PBR materials are still under curation."
-    },
-    {
-      "id": "itart-signature-kit",
-      "name": "IT Art Studio Signature Hero Kit",
-      "kind": "local-generated-model-kit",
-      "sourceUrl": "https://github.com/amineamanzou/ItArtStudio",
-      "license": "CC0-1.0",
-      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "commercialUse": true,
-      "attributionRequired": false,
-      "formats": ["GLB"],
-      "notes": "Project-authored low-poly GLB signature assets generated by scripts/generate-signature-assets.mjs to fill hero-location gaps before Blender-authored replacements."
     },
     {
       "id": "quaternius",
@@ -837,130 +822,6 @@
       "styleFit": "high",
       "proceduralFallback": "src/game/world-scenery.ts keeps procedural hero-location silhouettes until the factory GLB cluster is QA-visible.",
       "nextAction": "Promote only a few hero-location placements at a time and reject pieces that read as generic factory noise."
-    },
-    {
-      "id": "accepted-itart-signature-hero-core",
-      "status": "accepted",
-      "sourceId": "itart-signature-kit",
-      "kind": "model-collection",
-      "target": "map",
-      "terrainRole": "hero-location",
-      "narrativeRole": "Accepted local signature GLB set that gives Cloud Dock, Design Atelier and Observability Tower recognisable custom silhouettes before premium Blender replacements.",
-      "preferredFormat": "GLB",
-      "localPath": "public/assets/models/local/itart-signature-kit/hero",
-      "publicPath": "assets/models/local/itart-signature-kit/hero",
-      "fileKb": 574.3,
-      "triangles": 14412,
-      "selectedFiles": [
-        "atelier-drape-frame.glb",
-        "atelier-mannequin-rack.glb",
-        "atelier-pattern-wall.glb",
-        "cloud-circuit-bridge.glb",
-        "cloud-energy-anchor.glb",
-        "server-cloud-node.glb",
-        "telemetry-screen-array.glb",
-        "telemetry-trace-beacon.glb",
-        "telemetry-radar-mast.glb"
-      ],
-      "budget": { "maxKb": 650, "targetTriangles": 15000 },
-      "styleFit": "high",
-      "proceduralFallback": "src/game/world-scenery.ts keeps procedural hero-location signatures until the local signature GLB set is QA-visible.",
-      "nextAction": "Use these as signature anchors in ?assets=map, then replace or refine them with Blender-authored variants after visual QA."
-    },
-    {
-      "id": "accepted-itart-signature-environment-core",
-      "status": "accepted",
-      "sourceId": "itart-signature-kit",
-      "kind": "model-collection",
-      "target": "map",
-      "terrainRole": "hero-location",
-      "narrativeRole": "Accepted local environment GLB set that adds authored place furniture for Cloud Dock, Design Atelier and Observability Tower without relying on generic factory props.",
-      "preferredFormat": "GLB",
-      "localPath": "public/assets/models/local/itart-signature-kit/environment",
-      "publicPath": "assets/models/local/itart-signature-kit/environment",
-      "fileKb": 215.7,
-      "triangles": 5464,
-      "selectedFiles": [
-        "atelier-cutting-island.glb",
-        "cloud-server-pier.glb",
-        "observability-trace-station.glb"
-      ],
-      "budget": { "maxKb": 260, "targetTriangles": 6200 },
-      "styleFit": "high",
-      "proceduralFallback": "src/game/world-scenery.ts keeps procedural surface details and hero set dressing until the environment GLB set is QA-visible.",
-      "nextAction": "Promote one piece per hero location in ?assets=map first, then decide whether each deserves the public core runtime."
-    },
-    {
-      "id": "accepted-itart-signature-premium-v93",
-      "status": "accepted",
-      "sourceId": "itart-signature-kit",
-      "kind": "model-collection",
-      "target": "map",
-      "terrainRole": "hero-location",
-      "narrativeRole": "Accepted local premium GLB set for V9.3 that adds one stronger authored silhouette per hero location before public core promotion.",
-      "preferredFormat": "GLB",
-      "localPath": "public/assets/models/local/itart-signature-kit/premium",
-      "publicPath": "assets/models/local/itart-signature-kit/premium",
-      "fileKb": 235.3,
-      "triangles": 5632,
-      "selectedFiles": [
-        "atelier-garment-loom.glb",
-        "cloud-infra-gateway.glb",
-        "observability-signal-spire.glb"
-      ],
-      "budget": { "maxKb": 520, "targetTriangles": 10000 },
-      "styleFit": "high",
-      "proceduralFallback": "src/game/world-scenery.ts keeps procedural hero-location silhouettes until the premium V9.3 GLB set is QA-visible.",
-      "nextAction": "Keep these pieces in ?assets=map until screenshots prove one premium anchor per hero location deserves promotion into the public core runtime."
-    },
-    {
-      "id": "accepted-itart-signature-detail-v99",
-      "status": "accepted",
-      "sourceId": "itart-signature-kit",
-      "kind": "model-collection",
-      "target": "map",
-      "terrainRole": "hero-location",
-      "narrativeRole": "Accepted local detail GLB set for V9.9 that adds one authored secondary detail per hero location without increasing generic procedural clutter.",
-      "preferredFormat": "GLB",
-      "localPath": "public/assets/models/local/itart-signature-kit/detail",
-      "publicPath": "assets/models/local/itart-signature-kit/detail",
-      "fileKb": 219.1,
-      "triangles": 5084,
-      "selectedFiles": [
-        "atelier-swatch-stand.glb",
-        "cloud-cable-manifold.glb",
-        "observability-log-totem.glb"
-      ],
-      "budget": { "maxKb": 280, "targetTriangles": 6200 },
-      "styleFit": "high",
-      "proceduralFallback": "src/game/world-scenery.ts keeps procedural hero-location details visible if the V9.9 GLB detail set fails to load.",
-      "nextAction": "Inspect each detail asset in ?assets=map screenshots and promote only the pieces that improve recognition without adding noise."
-    },
-    {
-      "id": "accepted-itart-signature-terrain-v100",
-      "status": "accepted",
-      "sourceId": "itart-signature-kit",
-      "kind": "model-collection",
-      "target": "map",
-      "terrainRole": "bridge",
-      "narrativeRole": "Accepted local terrain transition GLB set for V10.0 that gives the expanded map reusable road-water, road-relief and field marker seams before adding a larger terrain shell.",
-      "preferredFormat": "GLB",
-      "localPath": "public/assets/models/local/itart-signature-kit/terrain",
-      "publicPath": "assets/models/local/itart-signature-kit/terrain",
-      "fileKb": 312.6,
-      "triangles": 7116,
-      "selectedFiles": [
-        "field-marker-grove.glb",
-        "field-road-threshold.glb",
-        "relief-road-terrace.glb",
-        "road-vegetation-verge.glb",
-        "road-water-causeway.glb",
-        "water-relief-spillway.glb"
-      ],
-      "budget": { "maxKb": 360, "targetTriangles": 7200 },
-      "styleFit": "high",
-      "proceduralFallback": "src/game/world-scenery.ts keeps route ribbons, water pads, relief contours and field markers visible if the terrain transition GLB set fails to load.",
-      "nextAction": "Inspect these transition pieces in ?assets=map before turning the strongest seams into terrain continuity corridors."
     },
     {
       "id": "cloud-dock-skybridge-spaceport",

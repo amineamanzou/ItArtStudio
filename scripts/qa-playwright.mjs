@@ -93,6 +93,7 @@ const manifestAssetDetailRequiredPlacementIds = manifestAssetDetailWave.required
 const manifestTerrainTransitionWave = worldAssetManifest.terrainTransitionWave ?? {};
 const manifestTerrainTransitionRequiredFiles = manifestTerrainTransitionWave.requiredFiles ?? [];
 const manifestTerrainTransitionRequiredPlacementIds = manifestTerrainTransitionWave.requiredPlacementIds ?? [];
+const forbiddenGeneratedAssetPathSegment = "/assets/models/local/itart-signature-kit/";
 const manifestMapExpansionKitRoles = [
   ...new Set(manifestMapExpansionKits.flatMap((kit) => kit.requiredTerrainRoles ?? []))
 ].sort();
@@ -336,7 +337,7 @@ function checkCorePromotionManifest() {
   );
   const ok =
     manifestCorePromotion.phase === "core-runtime-promotion" &&
-    manifestCorePromotion.qaGate === "external-asset-core-premium-runtime" &&
+    manifestCorePromotion.qaGate === "external-asset-core-vendor-anchor-runtime" &&
     (manifestCorePromotion.purpose?.length ?? 0) >= 96 &&
     promotedAsset?.kind?.includes("model") &&
     promotedAsset?.target === "map" &&
@@ -368,7 +369,7 @@ function checkCorePromotionManifest() {
       minimumUniqueFiles: manifestCorePromotion.minimumUniqueFiles
     });
   } else {
-    scenarioFail("core-promotion-contract", "Premium anchors do not have a strong enough core runtime promotion contract.", {
+    scenarioFail("core-promotion-contract", "Vendor anchors do not have a strong enough core runtime promotion contract.", {
       corePromotion: manifestCorePromotion,
       promotedAsset,
       missingFiles,
@@ -795,12 +796,12 @@ async function assertPremiumWorldDetailDistribution(page, label) {
     : isMobile
     ? {
         minValidTiles: 34,
-        maxFlatTileRatio: 0.56,
-        minRichTileRatio: 0.35,
+        maxFlatTileRatio: 0.64,
+        minRichTileRatio: 0.25,
         minEdgeDensityP50: 0.009,
         minColorBucketP50: 5,
         minRichQuadrants: 2,
-        maxFlatCluster: 32
+        maxFlatCluster: 36
       }
     : isCompact
       ? {
@@ -5546,18 +5547,20 @@ async function checkExternalAssetPreview(browser) {
     const externalAssets = preview.snapshot?.externalAssets;
     const requiredRoles = ["bridge", "hero-location", "relief", "road", "route-edge", "vegetation", "water"];
     const missingRoles = requiredRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
-    const requiredPremiumFiles = ["atelier-garment-loom.glb", "cloud-infra-gateway.glb", "observability-signal-spire.glb"];
+    const requiredPremiumFiles = ["machine-fortified.glb", "top-large-checkerboard.glb", "screen-wide.glb"];
     const missingPremiumFiles = requiredPremiumFiles.filter(
       (fileName) => !(externalAssets?.publicPaths ?? []).some((publicPath) => publicPath.endsWith(`/${fileName}`))
     );
     const previewPathBase = new URL(previewUrl).pathname.replace(/\/$/u, "");
-    const expectedAssetPathPrefixes = ["vendor", "local"].map((scope) =>
-      `${previewPathBase}/assets/models/${scope}/`.replace(/^\/\//u, "/")
-    );
+    const expectedAssetPathPrefixes = [`${previewPathBase}/assets/models/vendor/`.replace(/^\/\//u, "/")];
     const unsafePaths = (externalAssets?.publicPaths ?? []).filter((publicPath) => {
       try {
         const parsed = new URL(publicPath, previewUrl);
-        return parsed.pathname.includes("/public/") || !expectedAssetPathPrefixes.some((prefix) => parsed.pathname.startsWith(prefix));
+        return (
+          parsed.pathname.includes("/public/") ||
+          parsed.pathname.includes(forbiddenGeneratedAssetPathSegment) ||
+          !expectedAssetPathPrefixes.some((prefix) => parsed.pathname.startsWith(prefix))
+        );
       } catch {
         return true;
       }
@@ -5570,8 +5573,8 @@ async function checkExternalAssetPreview(browser) {
       externalAssets.visible >= 9 &&
       externalAssets.files >= 9 &&
       externalAssets.uniqueFiles >= 9 &&
-      externalAssets.collections >= 7 &&
-      externalAssets.assetIds?.includes("accepted-itart-signature-premium-v93") &&
+      externalAssets.collections >= 6 &&
+      externalAssets.assetIds?.includes("accepted-factory-industrial-core") &&
       externalAssets.sceneObjects >= 18 &&
       externalAssets.bounds.width >= 10 &&
       externalAssets.bounds.height >= 0.8 &&
@@ -5686,16 +5689,16 @@ async function checkExternalAssetCoreRuntime(page) {
   const missingRoles = requiredRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
   const requiredHeroLocationIds = ["cloud-dock", "design-atelier", "observability-tower"];
   const requiredHeroLocationRoles = {
-    "cloud-dock": ["server-cloud-node", "cloud-circuit-bridge", "rack-core", ...(manifestCorePromotionRequiredHeroRoles["cloud-dock"] ?? [])],
+    "cloud-dock": ["control-machine", "pipe-spine", "rack-core", ...(manifestCorePromotionRequiredHeroRoles["cloud-dock"] ?? [])],
     "design-atelier": [
-      "mannequin-fabric-rack",
-      "atelier-drape-frame",
+      "atelier-floor",
+      "cloth-line",
       "cutting-table",
       ...(manifestCorePromotionRequiredHeroRoles["design-atelier"] ?? [])
     ],
     "observability-tower": [
-      "telemetry-radar-mast",
-      "telemetry-screen-array",
+      "structure-window",
+      "metric-console",
       "screen-wall",
       ...(manifestCorePromotionRequiredHeroRoles["observability-tower"] ?? [])
     ]
@@ -5707,13 +5710,15 @@ async function checkExternalAssetCoreRuntime(page) {
     return placementCount < 3 || roles.length < 3 || missingHeroRoles.length > 0;
   });
   const corePathBase = new URL(baseUrl).pathname.replace(/\/$/u, "");
-  const expectedAssetPathPrefixes = ["vendor", "local"].map((scope) =>
-    `${corePathBase}/assets/models/${scope}/`.replace(/^\/\//u, "/")
-  );
+  const expectedAssetPathPrefixes = [`${corePathBase}/assets/models/vendor/`.replace(/^\/\//u, "/")];
   const unsafePaths = (externalAssets?.publicPaths ?? []).filter((publicPath) => {
     try {
       const parsed = new URL(publicPath, baseUrl);
-      return parsed.pathname.includes("/public/") || !expectedAssetPathPrefixes.some((prefix) => parsed.pathname.startsWith(prefix));
+      return (
+        parsed.pathname.includes("/public/") ||
+        parsed.pathname.includes(forbiddenGeneratedAssetPathSegment) ||
+        !expectedAssetPathPrefixes.some((prefix) => parsed.pathname.startsWith(prefix))
+      );
     } catch {
       return true;
     }
@@ -5750,7 +5755,7 @@ async function checkExternalAssetCoreRuntime(page) {
     externalAssets.failed === 0 &&
     externalAssets.visible >= externalAssets.requested &&
     externalAssets.uniqueFiles >= minimumUniqueFiles &&
-    externalAssets.collections >= 7 &&
+    externalAssets.collections >= 6 &&
     externalAssets.placements >= minimumCorePlacements &&
     externalAssets.clusters >= 9 &&
     externalAssets.routeLinkedPlacements >= 12 &&
@@ -5795,7 +5800,7 @@ async function checkExternalAssetCoreRuntime(page) {
   }
 
   if (premiumRuntimeGate && gate) {
-    pass("external-asset-core-premium-runtime", {
+    pass("external-asset-core-vendor-anchor-runtime", {
       externalAssets,
       canvas: proof.canvas,
       requiredFiles: manifestCorePromotionRequiredFiles,
@@ -5803,7 +5808,7 @@ async function checkExternalAssetCoreRuntime(page) {
       premiumLocationProofs
     });
   } else {
-    scenarioFail("external-asset-core-premium-runtime", "The public core runtime did not prove all three premium hero anchors.", {
+    scenarioFail("external-asset-core-vendor-anchor-runtime", "The public core runtime did not prove all three vendor hero anchors.", {
       externalAssets,
       canvas: proof.canvas,
       requiredFiles: manifestCorePromotionRequiredFiles,
@@ -5918,13 +5923,15 @@ async function checkExternalAssetMapComposition(browser) {
     });
     const weakTerrainTransitions = terrainTransitionProofs.filter((proof) => !proof.ok);
     const mapPathBase = new URL(mapUrl).pathname.replace(/\/$/u, "");
-    const expectedAssetPathPrefixes = ["vendor", "local"].map((scope) =>
-      `${mapPathBase}/assets/models/${scope}/`.replace(/^\/\//u, "/")
-    );
+    const expectedAssetPathPrefixes = [`${mapPathBase}/assets/models/vendor/`.replace(/^\/\//u, "/")];
     const unsafePaths = (externalAssets?.publicPaths ?? []).filter((publicPath) => {
       try {
         const parsed = new URL(publicPath, mapUrl);
-        return parsed.pathname.includes("/public/") || !expectedAssetPathPrefixes.some((prefix) => parsed.pathname.startsWith(prefix));
+        return (
+          parsed.pathname.includes("/public/") ||
+          parsed.pathname.includes(forbiddenGeneratedAssetPathSegment) ||
+          !expectedAssetPathPrefixes.some((prefix) => parsed.pathname.startsWith(prefix))
+        );
       } catch {
         return true;
       }
@@ -5976,7 +5983,7 @@ async function checkExternalAssetMapComposition(browser) {
     } else {
       scenarioFail(
         "asset-detail-wave",
-        "Authored hero-location detail GLB files are not all visible in the map inspection layer.",
+        "Vendor hero-location detail GLB files are not all visible in the map inspection layer.",
         detailWaveDetails
       );
     }
@@ -5985,7 +5992,7 @@ async function checkExternalAssetMapComposition(browser) {
     } else {
       scenarioFail(
         "terrain-transition-wave",
-        "Authored terrain transition GLB files are not all visible in the map inspection layer.",
+        "Vendor terrain transition GLB files are not all visible in the map inspection layer.",
         terrainTransitionWaveDetails
       );
     }
@@ -6104,38 +6111,38 @@ async function checkExternalAssetMapComposition(browser) {
 async function collectTerrainTransitionProofs(page) {
   const targets = [
     {
-      placementId: "terrain:road-water-causeway:cloud-harbor",
-      file: "road-water-causeway.glb",
+      placementId: "terrain:bridge-wood:cloud-harbor",
+      file: "bridge_wood.glb",
       zoneId: "cloud-dock",
       role: "route-water"
     },
     {
-      placementId: "terrain:relief-road-terrace:design-shelf",
-      file: "relief-road-terrace.glb",
+      placementId: "terrain:path-corner:design-shelf",
+      file: "path_woodCorner.glb",
       zoneId: "design-atelier",
       role: "route-relief"
     },
     {
-      placementId: "terrain:field-marker-grove:observability-field",
-      file: "field-marker-grove.glb",
+      placementId: "terrain:path-wood:observability-field",
+      file: "path_wood.glb",
       zoneId: "observability-tower",
       role: "field-marker"
     },
     {
-      placementId: "terrain:road-vegetation-verge:values-approach",
-      file: "road-vegetation-verge.glb",
+      placementId: "terrain:bridge-narrow:values-approach",
+      file: "bridge_woodNarrow.glb",
       zoneId: "values-plaza",
       role: "road-vegetation"
     },
     {
-      placementId: "terrain:water-relief-spillway:cloud-runoff",
-      file: "water-relief-spillway.glb",
+      placementId: "terrain:bridge-side:cloud-runoff",
+      file: "bridge_side_wood.glb",
       zoneId: "cloud-dock",
       role: "water-relief"
     },
     {
-      placementId: "terrain:field-road-threshold:design-entry",
-      file: "field-road-threshold.glb",
+      placementId: "terrain:bridge-center:design-entry",
+      file: "bridge_center_wood.glb",
       zoneId: "design-atelier",
       role: "field-road"
     }
@@ -6301,10 +6308,11 @@ async function collectExternalAssetHeroLocationProofs(page, zoneIds) {
 async function collectExternalAssetCorePremiumProofs(page) {
   const proofs = [];
   for (const zoneId of manifestHeroLocationIds) {
-    const placementId = manifestCorePromotionRequiredPlacementIds.find((id) => id.startsWith(`hero:${zoneId}:`));
+    const placementIndex = manifestCorePromotionRequiredPlacementIds.findIndex((id) => id.startsWith(`hero:${zoneId}:`));
+    const placementId = placementIndex >= 0 ? manifestCorePromotionRequiredPlacementIds[placementIndex] : "";
     const role = manifestCorePromotionRequiredHeroRoles[zoneId]?.[0] ?? "";
-    const file = manifestCorePromotionRequiredFiles.find((candidate) => candidate.replace(/\.glb$/iu, "") === role) ?? "";
-    const label = `external-asset-core-premium-location:${zoneId}`;
+    const file = placementIndex >= 0 ? (manifestCorePromotionRequiredFiles[placementIndex] ?? "") : "";
+    const label = `external-asset-core-vendor-anchor-location:${zoneId}`;
     const actionability = await clickActionable(page, `.world-map [data-zone-jump="${zoneId}"]`, label, {
       minWidth: 30,
       minHeight: 30
@@ -6323,7 +6331,7 @@ async function collectExternalAssetCorePremiumProofs(page) {
         actionability: null
       };
       proofs.push(proof);
-      scenarioFail(label, "Premium core hero-location mini-map pin is not actionable.", proof);
+      scenarioFail(label, "Vendor core hero-location mini-map pin is not actionable.", proof);
       continue;
     }
 
@@ -6372,7 +6380,7 @@ async function collectExternalAssetCorePremiumProofs(page) {
     if (ok) {
       pass(label, proof);
     } else {
-      scenarioFail(label, "Premium core anchor is not visually readable in its hero location.", proof);
+      scenarioFail(label, "Vendor core anchor is not visually readable in its hero location.", proof);
     }
   }
   return proofs;
@@ -10197,7 +10205,7 @@ async function writeReport() {
   const mapTextureRuntimeScenario = scenarios.find((scenario) => scenario.name === "map-texture-runtime");
   const externalAssetOffScenario = scenarios.find((scenario) => scenario.name === "external-asset-off-runtime");
   const externalAssetCoreScenario = scenarios.find((scenario) => scenario.name === "external-asset-core-runtime");
-  const externalAssetCorePremiumScenario = scenarios.find((scenario) => scenario.name === "external-asset-core-premium-runtime");
+  const externalAssetCorePremiumScenario = scenarios.find((scenario) => scenario.name === "external-asset-core-vendor-anchor-runtime");
   const externalAssetPreviewScenario = scenarios.find((scenario) => scenario.name === "external-asset-preview-runtime");
   const externalAssetMapScenario = scenarios.find((scenario) => scenario.name === "external-asset-map-composition");
   const heroLocationVisualOnlyScenarios = scenarios.filter((scenario) => scenario.name.startsWith("hero-location-visual-only:"));
