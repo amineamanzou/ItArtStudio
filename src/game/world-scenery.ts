@@ -254,6 +254,7 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
   addWaterBodies(add, waterMat, studioMat);
   addReliefRamps(add, techMat, artMat, studioMat, roadMat, inkMat);
   addSurfaceDetails(add, studioMat, roadMat, contourMat);
+  addFashionTerrainWeave(add, artMat, studioMat, roadMat, inkMat);
   addTechSkyline(add, techMat, roadMat, inkMat);
   addArtSculptures(add, artMat, roadMat, inkMat);
   addStudioThreshold(add, studioMat, techMat, artMat, roadMat);
@@ -877,6 +878,103 @@ function addIdentityRibbon(
   return ribbon;
 }
 
+function addFashionTerrainWeave(
+  add: (
+    object: THREE.Object3D,
+    role: SceneRole,
+    signature: string,
+    motionBehavior?: MotionBehavior,
+    options?: { signatures?: string[]; objectCount?: number; roleCount?: number; motionCount?: number }
+  ) => void,
+  artMat: THREE.Material,
+  studioMat: THREE.Material,
+  roadMat: THREE.Material,
+  inkMat: THREE.Material
+) {
+  const center = zones.find((zone) => zone.id === "fashion-room")?.position ?? [10.8, 19.8];
+  const bandCount = 26;
+  const stitchCount = 52;
+  const pinCount = 18;
+  const shadowCount = bandCount;
+  const weave = new THREE.InstancedMesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    instancedColorMaterial(artMat),
+    bandCount + stitchCount + pinCount + shadowCount
+  );
+  weave.name = "fashion-room-terrain-weave";
+  const matrix = new THREE.Matrix4();
+  const quaternion = new THREE.Quaternion();
+  const scale = new THREE.Vector3();
+  const color = new THREE.Color();
+  const signatures: string[] = [];
+  let instanceIndex = 0;
+
+  for (let index = 0; index < bandCount; index += 1) {
+    const lane = index - (bandCount - 1) / 2;
+    const row = index % 2 === 0 ? -1 : 1;
+    const x = center[0] + lane * 0.36;
+    const z = center[1] + row * (2.65 + (index % 5) * 0.18);
+    const rotation = -0.68 + (index % 4) * 0.07;
+    quaternion.setFromEuler(new THREE.Euler(0, rotation, 0));
+    scale.set(2.5 + (index % 5) * 0.34, 0.026, 0.052);
+    matrix.compose(new THREE.Vector3(x, 0.154 + (index % 3) * 0.003, z), quaternion, scale);
+    weave.setMatrixAt(instanceIndex, matrix);
+    weave.setColorAt(instanceIndex, color.setHex((artMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0xff6f7d));
+    instanceIndex += 1;
+    signatures.push(`fashion-weave:band:${index}`);
+
+    scale.set(1.8 + (index % 5) * 0.22, 0.018, 0.044);
+    matrix.compose(new THREE.Vector3(x + 0.08, 0.128, z - 0.08), quaternion, scale);
+    weave.setMatrixAt(instanceIndex, matrix);
+    weave.setColorAt(instanceIndex, color.setHex((inkMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0x070a0d));
+    instanceIndex += 1;
+    signatures.push(`fashion-weave:shadow:${index}`);
+  }
+
+  for (let index = 0; index < stitchCount; index += 1) {
+    const t = index / Math.max(1, stitchCount - 1);
+    const side = index % 2 === 0 ? -1 : 1;
+    const x = center[0] - 5.2 + t * 10.4;
+    const z = center[1] + side * (1.72 + Math.sin(t * Math.PI * 3) * 0.28);
+    quaternion.setFromEuler(new THREE.Euler(0, -0.68 + side * 0.18, 0));
+    scale.set(0.18 + (index % 3) * 0.02, 0.03, 0.034);
+    matrix.compose(new THREE.Vector3(x, 0.19 + (index % 4) * 0.002, z), quaternion, scale);
+    weave.setMatrixAt(instanceIndex, matrix);
+    weave.setColorAt(instanceIndex, color.setHex((roadMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0xdfe6ce));
+    instanceIndex += 1;
+    signatures.push(`fashion-weave:stitch:${index}`);
+  }
+
+  for (let index = 0; index < pinCount; index += 1) {
+    const angle = (index / pinCount) * Math.PI * 2;
+    const radius = 3.4 + (index % 3) * 0.56;
+    const x = center[0] + Math.cos(angle) * radius;
+    const z = center[1] + Math.sin(angle) * radius * 0.62;
+    quaternion.setFromEuler(new THREE.Euler(0.18, angle, 0.12));
+    scale.set(0.045 + (index % 4) * 0.004, 0.26, 0.045 + (index % 4) * 0.004);
+    matrix.compose(new THREE.Vector3(x, 0.32, z), quaternion, scale);
+    weave.setMatrixAt(instanceIndex, matrix);
+    weave.setColorAt(instanceIndex, color.setHex((studioMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0xffe38a));
+    instanceIndex += 1;
+    signatures.push(`fashion-weave:pin:${index}`);
+  }
+
+  weave.instanceMatrix.needsUpdate = true;
+  if (weave.instanceColor) {
+    weave.instanceColor.needsUpdate = true;
+  }
+  weave.userData.surfaceDetailPart = "fashion-terrain-weave";
+  weave.userData.surfaceDetailProfileIds = ["fashion-room:terrain-weave"];
+  weave.userData.surfaceDetailSignatures = signatures.slice();
+
+  add(weave, "surface-detail", "surface-detail:fashion-room-terrain-weave", "instance-pulse", {
+    signatures,
+    objectCount: bandCount + stitchCount + pinCount + shadowCount,
+    roleCount: 4,
+    motionCount: bandCount + stitchCount
+  });
+}
+
 function createIdentityWordmarkMaterial(palette: WorldSceneryPalette) {
   const canvas = document.createElement("canvas");
   canvas.width = 1024;
@@ -1091,7 +1189,8 @@ function sampleRouteMarkers(routes: WorldRoute[]) {
       return [];
     }
     const points = [from.position, ...(route.via ?? []), to.position];
-    const samples = [0.27, 0.5, 0.73];
+    const isArchitectureRoute = route.from === "architecture-bridge" || route.to === "architecture-bridge";
+    const samples = isArchitectureRoute ? [0.12, 0.24, 0.38, 0.5, 0.62, 0.76, 0.88] : [0.27, 0.5, 0.73];
     return samples.map((sample, lane) => {
       const marker = samplePolyline(points, sample);
       return {

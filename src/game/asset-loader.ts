@@ -625,10 +625,10 @@ function createRoutePlacementSpecs(): MapPlacementSpec[] {
 }
 
 function createWaterPlacementSpecs(): MapPlacementSpec[] {
-  const files = ["ground_riverStraight.glb", "ground_riverBend.glb", "ground_riverRocks.glb", "lily_large.glb"];
+  const files = ["ground_riverStraight.glb", "ground_riverBend.glb", "ground_riverRocks.glb", "lily_large.glb", "ground_riverCorner.glb", "ground_riverSplit.glb"];
   return [
     ...worldMaterialRegions.water.map((region, index) =>
-      createPlacement(`water:${region.id}`, `water:${region.id}`, "water", index >= 4 ? "context" : index === 3 ? "support" : "primary", true, "water", files[index % files.length], region.center, index >= 4 ? 1.05 : index === 3 ? 1.12 : 1.74, region.rotation)
+      createPlacement(`water:${region.id}`, `water:${region.id}`, "water", index >= 8 ? "context" : index >= 4 ? "support" : index === 3 ? "support" : "primary", true, "water", files[index % files.length], region.center, index >= 8 ? 1.18 : index >= 4 ? 1.08 : index === 3 ? 1.12 : 1.74, region.rotation)
     ),
     createPlacement("water:studio-crossing-proof", "water:studio-crossing-proof", "water", "support", true, "water", "ground_riverStraight.glb", [-0.8, 5.9], 1.46, -0.18)
   ];
@@ -647,6 +647,10 @@ function createReliefPlacementSpecs(): MapPlacementSpec[] {
     createPlacement("relief:north-terrace", "relief:north-terrace", "relief", "context", false, "relief", "cliff_corner_rock.glb", [4.6, 32.2], 1.16, 0.16),
     createPlacement("relief:west-cloud-basin", "relief:west-cloud-basin", "relief", "context", false, "relief", "rock_largeC.glb", [-32.4, -17.8], 1.14, -0.22),
     createPlacement("relief:east-atelier-plain", "relief:east-atelier-plain", "relief", "context", false, "relief", "cliff_blockSlope_rock.glb", [32.0, -11.4], 1.16, 0.34),
+    createPlacement("relief:outer-north-gallery", "relief:outer-north-gallery", "relief", "context", false, "relief", "cliff_half_rock.glb", [14.9, 36.4], 1.18, -0.18),
+    createPlacement("relief:outer-south-runoff-cut", "relief:outer-south-runoff-cut", "relief", "context", false, "relief", "rock_largeA.glb", [-18.7, -36.2], 1.16, 0.18),
+    createPlacement("relief:outer-west-cloud-shelf", "relief:outer-west-cloud-shelf", "relief", "context", false, "relief", "cliff_corner_rock.glb", [-36.6, -20.8], 1.14, 0.08),
+    createPlacement("relief:outer-east-art-shelf", "relief:outer-east-art-shelf", "relief", "context", false, "relief", "rock_tallA.glb", [36.4, 23.7], 1.18, -0.16),
     createPlacement("relief:studio-crossing-proof", "relief:studio-crossing-proof", "relief", "support", true, "relief", "rock_largeC.glb", [2.8, 6.5], 1.18, -0.12)
   ];
 }
@@ -671,6 +675,10 @@ function createVegetationPlacementSpecs(): MapPlacementSpec[] {
     createPlacement("vegetation:east-pond", "vegetation:east-pond", "vegetation", "context", false, "vegetation", "flower_yellowA.glb", [32.2, 18.4], 1.04, -0.12),
     createPlacement("vegetation:north-terrace", "vegetation:north-terrace", "vegetation", "context", false, "vegetation", "tree_fat.glb", [3.2, 32.4], 1.28, 0.2),
     createPlacement("vegetation:south-mail-edge", "vegetation:south-mail-edge", "vegetation", "context", false, "vegetation", "plant_bushLarge.glb", [-13.8, -32.1], 1.12, -0.18),
+    createPlacement("vegetation:outer-north-gallery-oak", "vegetation:outer-north-gallery", "vegetation", "context", false, "vegetation", "tree_oak.glb", [18.8, 35.7], 1.24, -0.28),
+    createPlacement("vegetation:outer-south-runoff-grass", "vegetation:outer-south-runoff", "vegetation", "context", false, "vegetation", "grass_large.glb", [-21.4, -35.6], 1.16, 0.16),
+    createPlacement("vegetation:outer-west-wetland-bush", "vegetation:outer-west-wetland", "vegetation", "context", false, "vegetation", "plant_bushLarge.glb", [-35.8, -24.4], 1.1, -0.1),
+    createPlacement("vegetation:outer-east-reflection-palm", "vegetation:outer-east-reflection", "vegetation", "context", false, "vegetation", "tree_palm.glb", [35.6, 27.6], 1.22, 0.32),
     createPlacement("vegetation:studio-crossing-proof", "vegetation:studio-crossing-proof", "vegetation", "support", true, "vegetation", "tree_oak.glb", [-3.2, 6.8], 1.32, 0.14)
   ];
 }

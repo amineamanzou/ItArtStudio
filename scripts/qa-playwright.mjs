@@ -82,8 +82,8 @@ const manifestHeroLocationMinimumTotal = Object.values(manifestHeroLocationMinim
   (total, count) => total + count,
   0
 );
-const qaWorldHalfExtent = 34;
-const qaInnerRoamExtent = 29.4;
+const qaWorldHalfExtent = 38;
+const qaInnerRoamExtent = 33;
 const qaBoundaryTargetExtent = qaWorldHalfExtent + 1.8;
 
 const scenarios = [];
@@ -4537,6 +4537,8 @@ async function checkWorldRichness(page) {
   const terrainFeatureMarkers =
     world &&
     world.terrainFeatureCount >= 7 &&
+    world.terrainFeaturesLinkedToRoutesOrZones >= world.terrainFeatureCount &&
+    (world.orphanTerrainFeatureIds?.length ?? 0) === 0 &&
     world.terrainFeatureMarkerObjects >= world.terrainFeatureCount * 6 &&
     world.terrainFeatureMarkerSceneObjects <= 3 &&
     world.terrainFeatureMarkerSignatures >= world.terrainFeatureCount * 6 &&
@@ -4547,6 +4549,8 @@ async function checkWorldRichness(page) {
   if (terrainFeatureMarkers) {
     pass("terrain-feature-markers", {
       terrainFeatureCount: world.terrainFeatureCount,
+      terrainFeaturesLinkedToRoutesOrZones: world.terrainFeaturesLinkedToRoutesOrZones,
+      orphanTerrainFeatureIds: world.orphanTerrainFeatureIds,
       terrainFeatureMarkerObjects: world.terrainFeatureMarkerObjects,
       terrainFeatureMarkerSceneObjects: world.terrainFeatureMarkerSceneObjects,
       terrainFeatureMarkerSignatures: world.terrainFeatureMarkerSignatures,
@@ -4560,6 +4564,8 @@ async function checkWorldRichness(page) {
   } else {
     scenarioFail("terrain-feature-markers", "Physical terrain features are not explicitly readable as instanced map landmarks.", {
       terrainFeatureCount: world?.terrainFeatureCount,
+      terrainFeaturesLinkedToRoutesOrZones: world?.terrainFeaturesLinkedToRoutesOrZones,
+      orphanTerrainFeatureIds: world?.orphanTerrainFeatureIds,
       terrainFeatureMarkerObjects: world?.terrainFeatureMarkerObjects,
       terrainFeatureMarkerSceneObjects: world?.terrainFeatureMarkerSceneObjects,
       terrainFeatureMarkerSignatures: world?.terrainFeatureMarkerSignatures,
@@ -5410,9 +5416,9 @@ async function checkExternalAssetMapComposition(browser) {
       externalAssets.clusters >= 8 &&
       externalAssets.placementGroups >= 4 &&
       externalAssets.routeLinkedPlacements >= 11 &&
-      externalAssets.waterLinkedPlacements >= 4 &&
-      externalAssets.reliefLinkedPlacements >= 5 &&
-      externalAssets.vegetationLinkedPlacements >= 12 &&
+      externalAssets.waterLinkedPlacements >= 8 &&
+      externalAssets.reliefLinkedPlacements >= 9 &&
+      externalAssets.vegetationLinkedPlacements >= 16 &&
       externalAssets.primaryPlacements >= 18 &&
       externalAssets.supportPlacements >= 12 &&
       externalAssets.contextPlacements >= 8 &&
@@ -5425,14 +5431,14 @@ async function checkExternalAssetMapComposition(browser) {
       externalAssets.coplanarRiskPlacements === 0 &&
       externalAssets.actualMinGroundClearance >= 0.08 &&
       externalAssets.actualCoplanarRiskPlacements === 0 &&
-      externalAssets.waterPlacements >= 4 &&
-      externalAssets.reliefPlacements >= 5 &&
-      externalAssets.vegetationPlacements >= 12 &&
-      externalAssets.mapCoverageWidth >= 56 &&
-      externalAssets.mapCoverageDepth >= 56 &&
-      externalAssets.mapCoverageArea >= 3136 &&
-      externalAssets.bounds.width >= 56 &&
-      externalAssets.bounds.depth >= 56 &&
+      externalAssets.waterPlacements >= 8 &&
+      externalAssets.reliefPlacements >= 9 &&
+      externalAssets.vegetationPlacements >= 16 &&
+      externalAssets.mapCoverageWidth >= 70 &&
+      externalAssets.mapCoverageDepth >= 70 &&
+      externalAssets.mapCoverageArea >= 4900 &&
+      externalAssets.bounds.width >= 70 &&
+      externalAssets.bounds.depth >= 70 &&
       externalAssets.bounds.height >= 1 &&
       missingRoles.length === 0 &&
       weakScreenRoles.length === 0 &&

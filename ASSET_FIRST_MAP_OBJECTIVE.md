@@ -1,5 +1,8 @@
 # Objectif Fige - Asset Library First
 
+Statut: fige le 2026-07-29. Ce document devient la source de verite pour les
+prochaines boucles agentic du site IT Art Studio.
+
 ## Objectif Canonique
 
 Construire une carte jouable premium pour IT Art Studio en partant d'abord d'une
@@ -13,6 +16,27 @@ de copier son univers, son vehicule ou ses assets, mais d'atteindre le meme
 niveau d'exigence percue: assets propres, carte respirante, lieux
 reconnaissables, interactions fiables et captures QA capables de juger le
 livrable comme une vraie experience.
+
+## Nouvel Objectif De Boucle
+
+Construire la prochaine version premium du monde IT Art Studio avec une
+strategie asset-first: collecter et curer une bibliotheque GLB/glTF + textures
+web-ready, fiabiliser leur pipeline runtime, puis agrandir une carte volontairement
+respirante avant de composer trois lieux signatures reconnaissables sans texte:
+`Cloud Dock`, `Design Atelier` et `Observability Tower`.
+
+La boucle doit prioriser les assets, les textures, l'eau, le relief, la verdure,
+les routes et la lisibilite des lieux. Le gameplay vehicule reste secondaire:
+il doit permettre l'exploration, mais ne doit pas absorber l'effort tant que la
+carte et les lieux ne produisent pas encore un niveau de qualite comparable a
+une vitrine web ludique premium inspiree par Bruno Simon.
+
+Chaque iteration doit remplacer de l'abstrait par du concret: un asset accepte,
+une texture runtime validee, une route mieux composee, une zone plus lisible, une
+capture QA plus probante ou un bruit procedural supprime. La livraison est jugee
+par une QA jouee au clavier, avec captures desktop, verification des budgets
+renderer, absence de scintillement evident et reconnaissance visuelle des trois
+hero locations sans dependance aux panneaux HTML.
 
 ## Plan Fige
 
@@ -170,13 +194,13 @@ Principes:
 
 Baseline actuelle:
 
-- monde jouable: `68x68`;
-- roam QA interieur: `+-29.4`;
-- terrain: features physiques reparties au centre, en peripherie et sur les
-  nouvelles terrasses nord/est/ouest;
-- eau: huit regions, dont plusieurs respirations de bord;
-- rampes: dix transitions, sans collision bloquante;
-- GLB opt-in `?assets=map`: couverture attendue au moins `56x56`.
+- monde jouable: `76x76`;
+- roam QA interieur: `+-33`;
+- terrain: 19 features physiques reparties au centre, en peripherie et sur le
+  nouvel anneau exterieur, chacune liee a au moins une route ou zone;
+- eau: 12 regions, dont quatre respirations supplementaires de bord;
+- rampes: 14 transitions, sans collision bloquante;
+- GLB opt-in `?assets=map`: couverture attendue au moins `70x70`.
 
 ## Phase 4 - Trois Hero Locations
 

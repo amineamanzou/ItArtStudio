@@ -26,6 +26,8 @@ export type TerrainFeature = {
   radiusZ: number;
   rotation: number;
   height: number;
+  linkedRouteIds: string[];
+  linkedZoneIds: string[];
 };
 
 export type TerrainSample = {
@@ -63,7 +65,11 @@ const waterRegions: WaterRegion[] = [
   { id: "north-reflection-cut", center: [-16.8, 29.0], radiusX: 3.85, radiusZ: 1.72, rotation: 0.2 },
   { id: "south-postal-basin", center: [10.8, -30.2], radiusX: 3.75, radiusZ: 1.9, rotation: -0.08 },
   { id: "west-signal-marsh", center: [-30.0, -3.8], radiusX: 2.35, radiusZ: 5.4, rotation: 0.12 },
-  { id: "east-material-pond", center: [30.4, 17.6], radiusX: 2.6, radiusZ: 4.9, rotation: -0.26 }
+  { id: "east-material-pond", center: [30.4, 17.6], radiusX: 2.6, radiusZ: 4.9, rotation: -0.26 },
+  { id: "outer-north-mirror", center: [14.8, 35.8], radiusX: 5.4, radiusZ: 1.84, rotation: -0.18 },
+  { id: "outer-south-runoff", center: [-18.4, -35.6], radiusX: 5.2, radiusZ: 1.78, rotation: 0.18 },
+  { id: "outer-west-wetland", center: [-35.7, -20.6], radiusX: 1.86, radiusZ: 5.1, rotation: 0.08 },
+  { id: "outer-east-reflection", center: [35.8, 23.6], radiusX: 1.92, radiusZ: 5.2, rotation: -0.16 }
 ];
 
 const rampRegions: RampRegion[] = [
@@ -76,23 +82,33 @@ const rampRegions: RampRegion[] = [
   { id: "north-shelf", center: [-10.8, 27.0], width: 3.9, depth: 1.06, rotation: 0.22, height: 0.22, direction: 1 },
   { id: "south-shelf", center: [8.6, -27.8], width: 3.7, depth: 1.08, rotation: -0.16, height: 0.22, direction: -1 },
   { id: "west-observability-bank", center: [-28.8, 6.4], width: 3.8, depth: 1.05, rotation: 0.24, height: 0.21, direction: -1 },
-  { id: "east-atelier-bank", center: [28.4, -6.2], width: 3.8, depth: 1.05, rotation: -0.3, height: 0.21, direction: 1 }
+  { id: "east-atelier-bank", center: [28.4, -6.2], width: 3.8, depth: 1.05, rotation: -0.3, height: 0.21, direction: 1 },
+  { id: "outer-north-terrace-ramp", center: [14.4, 32.9], width: 4.2, depth: 1.02, rotation: -0.18, height: 0.19, direction: 1 },
+  { id: "outer-south-basin-ramp", center: [-18.2, -32.8], width: 4.1, depth: 1.04, rotation: 0.2, height: 0.19, direction: -1 },
+  { id: "outer-west-marsh-ramp", center: [-33.4, -20.0], width: 3.6, depth: 1.02, rotation: 1.45, height: 0.18, direction: 1 },
+  { id: "outer-east-gallery-ramp", center: [33.4, 23.0], width: 3.6, depth: 1.02, rotation: -1.42, height: 0.18, direction: -1 }
 ];
 
 const terrainFeatures: TerrainFeature[] = [
-  { id: "tech-ridge", kind: "ridge", center: [-21.6, 1.0], radiusX: 12.8, radiusZ: 5.8, rotation: -0.24, height: 0.39 },
-  { id: "art-mound", kind: "mound", center: [20.6, 3.1], radiusX: 10.8, radiusZ: 6.1, rotation: 0.36, height: 0.34 },
-  { id: "studio-spine", kind: "ridge", center: [0, 11.8], radiusX: 4.8, radiusZ: 16.2, rotation: -0.06, height: 0.3 },
-  { id: "contact-basin", kind: "basin", center: [0.1, -25.6], radiusX: 7.6, radiusZ: 4.05, rotation: 0.02, height: -0.29 },
-  { id: "harbor-cut", kind: "basin", center: [-15.0, -26.0], radiusX: 8.0, radiusZ: 4.75, rotation: -0.18, height: -0.25 },
-  { id: "atelier-lift", kind: "mound", center: [19.0, -10.8], radiusX: 7.0, radiusZ: 3.85, rotation: 0.42, height: 0.28 },
-  { id: "outer-field-roll", kind: "ridge", center: [0, -31.8], radiusX: 20.8, radiusZ: 3.2, rotation: 0.04, height: 0.18 },
-  { id: "north-reflection-ridge", kind: "ridge", center: [-10.4, 29.0], radiusX: 11.2, radiusZ: 2.8, rotation: 0.18, height: 0.2 },
-  { id: "east-foundry-shelf", kind: "mound", center: [29.4, 11.2], radiusX: 4.7, radiusZ: 6.9, rotation: -0.28, height: 0.19 },
-  { id: "west-observability-cut", kind: "basin", center: [-30.6, 9.6], radiusX: 4.25, radiusZ: 7.1, rotation: 0.1, height: -0.18 },
-  { id: "north-values-terrace", kind: "ridge", center: [5.6, 31.6], radiusX: 12.4, radiusZ: 2.4, rotation: -0.12, height: 0.16 },
-  { id: "east-atelier-plain", kind: "mound", center: [31.0, -11.8], radiusX: 3.8, radiusZ: 8.4, rotation: -0.18, height: 0.15 },
-  { id: "west-cloud-basin", kind: "basin", center: [-31.2, -17.2], radiusX: 3.9, radiusZ: 8.2, rotation: 0.16, height: -0.15 }
+  { id: "tech-ridge", kind: "ridge", center: [-21.6, 1.0], radiusX: 12.8, radiusZ: 5.8, rotation: -0.24, height: 0.39, linkedRouteIds: ["tech-ai-obs"], linkedZoneIds: ["ai-lab", "observability-tower"] },
+  { id: "art-mound", kind: "mound", center: [20.6, 3.1], radiusX: 10.8, radiusZ: 6.1, rotation: 0.36, height: 0.34, linkedRouteIds: ["art-design-foundry"], linkedZoneIds: ["design-atelier", "three-d-foundry"] },
+  { id: "studio-spine", kind: "ridge", center: [0, 11.8], radiusX: 4.8, radiusZ: 16.2, rotation: -0.06, height: 0.3, linkedRouteIds: ["spine-gate-values"], linkedZoneIds: ["studio-gate", "values-plaza"] },
+  { id: "contact-basin", kind: "basin", center: [0.1, -25.6], radiusX: 7.6, radiusZ: 4.05, rotation: 0.02, height: -0.29, linkedRouteIds: ["spine-contact-gate"], linkedZoneIds: ["contact-portal"] },
+  { id: "harbor-cut", kind: "basin", center: [-15.0, -26.0], radiusX: 8.0, radiusZ: 4.75, rotation: -0.18, height: -0.25, linkedRouteIds: ["tech-gate-cloud", "tech-cloud-ai"], linkedZoneIds: ["cloud-dock"] },
+  { id: "atelier-lift", kind: "mound", center: [19.0, -10.8], radiusX: 7.0, radiusZ: 3.85, rotation: 0.42, height: 0.28, linkedRouteIds: ["art-gate-design"], linkedZoneIds: ["design-atelier"] },
+  { id: "outer-field-roll", kind: "ridge", center: [0, -31.8], radiusX: 20.8, radiusZ: 3.2, rotation: 0.04, height: 0.18, linkedRouteIds: ["spine-contact-gate"], linkedZoneIds: ["contact-portal"] },
+  { id: "north-reflection-ridge", kind: "ridge", center: [-10.4, 29.0], radiusX: 11.2, radiusZ: 2.8, rotation: 0.18, height: 0.2, linkedRouteIds: ["spine-gate-values", "tech-obs-arch"], linkedZoneIds: ["values-plaza", "architecture-bridge"] },
+  { id: "east-foundry-shelf", kind: "mound", center: [29.4, 11.2], radiusX: 4.7, radiusZ: 6.9, rotation: -0.28, height: 0.19, linkedRouteIds: ["art-design-foundry", "art-foundry-fashion"], linkedZoneIds: ["three-d-foundry"] },
+  { id: "west-observability-cut", kind: "basin", center: [-30.6, 9.6], radiusX: 4.25, radiusZ: 7.1, rotation: 0.1, height: -0.18, linkedRouteIds: ["tech-ai-obs", "tech-obs-arch"], linkedZoneIds: ["observability-tower"] },
+  { id: "north-values-terrace", kind: "ridge", center: [5.6, 31.6], radiusX: 12.4, radiusZ: 2.4, rotation: -0.12, height: 0.16, linkedRouteIds: ["spine-gate-values", "art-fashion-values"], linkedZoneIds: ["values-plaza"] },
+  { id: "east-atelier-plain", kind: "mound", center: [31.0, -11.8], radiusX: 3.8, radiusZ: 8.4, rotation: -0.18, height: 0.15, linkedRouteIds: ["art-gate-design", "art-design-foundry"], linkedZoneIds: ["design-atelier"] },
+  { id: "west-cloud-basin", kind: "basin", center: [-31.2, -17.2], radiusX: 3.9, radiusZ: 8.2, rotation: 0.16, height: -0.15, linkedRouteIds: ["tech-cloud-ai"], linkedZoneIds: ["cloud-dock", "ai-lab"] },
+  { id: "outer-north-gallery", kind: "ridge", center: [14.8, 35.2], radiusX: 13.6, radiusZ: 2.5, rotation: -0.18, height: 0.17, linkedRouteIds: ["art-fashion-values"], linkedZoneIds: ["values-plaza", "fashion-room"] },
+  { id: "outer-south-runoff-cut", kind: "basin", center: [-18.4, -35.0], radiusX: 13.4, radiusZ: 2.55, rotation: 0.18, height: -0.17, linkedRouteIds: ["spine-contact-gate", "tech-gate-cloud"], linkedZoneIds: ["contact-portal", "cloud-dock"] },
+  { id: "outer-west-cloud-shelf", kind: "basin", center: [-35.0, -20.6], radiusX: 2.6, radiusZ: 12.6, rotation: 0.08, height: -0.16, linkedRouteIds: ["tech-cloud-ai"], linkedZoneIds: ["cloud-dock", "ai-lab"] },
+  { id: "outer-east-art-shelf", kind: "mound", center: [35.2, 23.6], radiusX: 2.7, radiusZ: 12.4, rotation: -0.14, height: 0.16, linkedRouteIds: ["art-foundry-fashion"], linkedZoneIds: ["three-d-foundry", "fashion-room"] },
+  { id: "outer-northwest-ridge", kind: "ridge", center: [-30.2, 34.6], radiusX: 7.6, radiusZ: 2.1, rotation: 0.32, height: 0.14, linkedRouteIds: ["tech-obs-arch"], linkedZoneIds: ["observability-tower", "architecture-bridge"] },
+  { id: "outer-southeast-mound", kind: "mound", center: [30.8, -34.4], radiusX: 7.8, radiusZ: 2.2, rotation: -0.28, height: 0.14, linkedRouteIds: ["art-gate-design"], linkedZoneIds: ["design-atelier", "contact-portal"] }
 ];
 
 const fieldSample: WorldMaterialSample = {
@@ -185,7 +201,11 @@ export function sampleTerrain(position: THREE.Vector3): TerrainSample {
 
 export const terrainConfig = {
   features: terrainFeatures,
-  featureCount: terrainFeatures.length
+  featureCount: terrainFeatures.length,
+  linkedFeatureCount: terrainFeatures.filter((feature) => feature.linkedRouteIds.length > 0 || feature.linkedZoneIds.length > 0).length,
+  orphanFeatureIds: terrainFeatures
+    .filter((feature) => feature.linkedRouteIds.length === 0 && feature.linkedZoneIds.length === 0)
+    .map((feature) => feature.id)
 };
 
 function sampleWater(position: THREE.Vector3) {

@@ -37,6 +37,11 @@ un support d'exploration, pas le centre du produit. Le saut de qualite doit
 venir de la carte, des assets, des textures, des silhouettes et de la coherence
 des lieux.
 
+Le plan canonique est fige dans `ASSET_FIRST_MAP_OBJECTIVE.md`. Toute prochaine
+boucle agentic doit respecter l'ordre suivant: bibliotheque d'assets et textures,
+pipeline GLB/glTF, map vide agrandie, trois hero locations, reduction du bruit,
+puis QA visuelle et performance.
+
 Objectif fige:
 
 > Construire une carte jouable premium pour IT Art Studio en partant d'abord
@@ -1263,6 +1268,23 @@ Gates V8.15:
   `assets/world-assets.manifest.json`, applique aussi les caps renderer a
   `?assets=map`, et couvre `?assets=off` comme mode de comparaison
   procedural-only.
+
+Gates V8.16:
+
+- la carte jouable passe de `68x68` a `76x76`; le roam QA interieur passe a
+  `+-33`, sans changer la priorite secondaire du gameplay vehicule;
+- `world-materials` ajoute un anneau exterieur intentionnel: 12 regions d'eau,
+  14 rampes et 19 features terrain nommees, toutes reliees a des routes ou des
+  zones pour eviter les reliefs orphelins;
+- `?assets=map` pose des GLB terrain supplementaires sur les bords nord, sud,
+  est et ouest afin que l'agrandissement soit visible comme vocabulaire
+  asset-first: eau, relief et vegetation gagnent chacun des preuves sur le
+  nouvel anneau;
+- `external-asset-map-composition` exige maintenant une couverture GLB d'au
+  moins `70x70`, avec au moins 8 placements eau, 9 reliefs et 16 vegetations;
+- `terrain-feature-markers` refuse desormais toute feature terrain non liee a
+  une route ou zone: la carte peut rester aerée, mais aucun relief ne doit etre
+  gratuit.
 
 ## Components
 

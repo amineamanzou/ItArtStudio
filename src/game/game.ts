@@ -794,6 +794,8 @@ type QaSnapshot = {
     terrainVertexCount: number;
     terrainGradeMax: number;
     terrainFeatureCount: number;
+    terrainFeaturesLinkedToRoutesOrZones: number;
+    orphanTerrainFeatureIds: string[];
     mapTextureRoles: string[];
     mapTextureUrls: string[];
     mapTextureMaterialCount: number;
@@ -1230,6 +1232,8 @@ class StudioGame {
       terrainVertexCount: 0,
       terrainGradeMax: 0,
       terrainFeatureCount: 0,
+      terrainFeaturesLinkedToRoutesOrZones: 0,
+      orphanTerrainFeatureIds: [],
       mapTextureRoles: [],
       mapTextureUrls: [],
       mapTextureMaterialCount: 0,
@@ -2088,10 +2092,10 @@ class StudioGame {
       emissiveIntensity: 0.08,
       vertexColors: true
     });
-    const propGroup = new THREE.Group();
-    propGroup.name = "instanced-world-beacon-posts";
     const stems = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.035, 0.05, 0.7, 8), propMaterial, props.length);
+    stems.name = "instanced-world-beacon-stems";
     const caps = new THREE.InstancedMesh(new THREE.SphereGeometry(0.13, 12, 8), propMaterial, props.length);
+    caps.name = "instanced-world-beacon-caps";
     const dummy = new THREE.Object3D();
     const color = new THREE.Color();
 
@@ -2120,10 +2124,9 @@ class StudioGame {
       mesh.receiveShadow = true;
       mesh.userData.worldBeaconPart = mesh === stems ? "beacon-stem" : "beacon-cap";
       mesh.userData.worldBeaconObjectCount = props.length;
-      propGroup.add(mesh);
     });
 
-    this.scene.add(propGroup);
+    this.scene.add(stems, caps);
     this.decorativeObjectCount += props.length * 2;
   }
 
@@ -4241,6 +4244,8 @@ class StudioGame {
         terrainVertexCount: this.terrainVertexCount,
         terrainGradeMax: this.terrainGradeMax,
         terrainFeatureCount: this.terrainFeatureCount,
+        terrainFeaturesLinkedToRoutesOrZones: terrainConfig.linkedFeatureCount,
+        orphanTerrainFeatureIds: terrainConfig.orphanFeatureIds,
         mapTextureRoles: this.mapTextureRoles,
         mapTextureUrls: this.mapTextureUrls,
         mapTextureMaterialCount: this.mapTextureMaterialCount,
