@@ -896,10 +896,13 @@ function addFashionTerrainWeave(
   const stitchCount = 52;
   const pinCount = 18;
   const shadowCount = bandCount;
+  const aiTraceCount = 36;
+  const aiNodeCount = 42;
+  const aiShadowCount = 18;
   const weave = new THREE.InstancedMesh(
     new THREE.BoxGeometry(1, 1, 1),
     instancedColorMaterial(artMat),
-    bandCount + stitchCount + pinCount + shadowCount
+    bandCount + stitchCount + pinCount + shadowCount + aiTraceCount + aiNodeCount + aiShadowCount
   );
   weave.name = "fashion-room-terrain-weave";
   const matrix = new THREE.Matrix4();
@@ -913,17 +916,17 @@ function addFashionTerrainWeave(
     const lane = index - (bandCount - 1) / 2;
     const row = index % 2 === 0 ? -1 : 1;
     const x = center[0] + lane * 0.36;
-    const z = center[1] + row * (2.65 + (index % 5) * 0.18);
+    const z = center[1] + row * (2.9 + (index % 5) * 0.24);
     const rotation = -0.68 + (index % 4) * 0.07;
     quaternion.setFromEuler(new THREE.Euler(0, rotation, 0));
-    scale.set(2.5 + (index % 5) * 0.34, 0.026, 0.052);
+    scale.set(2.9 + (index % 5) * 0.42, 0.038, 0.12);
     matrix.compose(new THREE.Vector3(x, 0.154 + (index % 3) * 0.003, z), quaternion, scale);
     weave.setMatrixAt(instanceIndex, matrix);
     weave.setColorAt(instanceIndex, color.setHex((artMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0xff6f7d));
     instanceIndex += 1;
     signatures.push(`fashion-weave:band:${index}`);
 
-    scale.set(1.8 + (index % 5) * 0.22, 0.018, 0.044);
+    scale.set(2.25 + (index % 5) * 0.28, 0.026, 0.105);
     matrix.compose(new THREE.Vector3(x + 0.08, 0.128, z - 0.08), quaternion, scale);
     weave.setMatrixAt(instanceIndex, matrix);
     weave.setColorAt(instanceIndex, color.setHex((inkMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0x070a0d));
@@ -935,9 +938,9 @@ function addFashionTerrainWeave(
     const t = index / Math.max(1, stitchCount - 1);
     const side = index % 2 === 0 ? -1 : 1;
     const x = center[0] - 5.2 + t * 10.4;
-    const z = center[1] + side * (1.72 + Math.sin(t * Math.PI * 3) * 0.28);
+    const z = center[1] + side * (1.86 + Math.sin(t * Math.PI * 3) * 0.34);
     quaternion.setFromEuler(new THREE.Euler(0, -0.68 + side * 0.18, 0));
-    scale.set(0.18 + (index % 3) * 0.02, 0.03, 0.034);
+    scale.set(0.28 + (index % 3) * 0.04, 0.04, 0.074);
     matrix.compose(new THREE.Vector3(x, 0.19 + (index % 4) * 0.002, z), quaternion, scale);
     weave.setMatrixAt(instanceIndex, matrix);
     weave.setColorAt(instanceIndex, color.setHex((roadMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0xdfe6ce));
@@ -951,7 +954,7 @@ function addFashionTerrainWeave(
     const x = center[0] + Math.cos(angle) * radius;
     const z = center[1] + Math.sin(angle) * radius * 0.62;
     quaternion.setFromEuler(new THREE.Euler(0.18, angle, 0.12));
-    scale.set(0.045 + (index % 4) * 0.004, 0.26, 0.045 + (index % 4) * 0.004);
+    scale.set(0.066 + (index % 4) * 0.006, 0.32, 0.066 + (index % 4) * 0.006);
     matrix.compose(new THREE.Vector3(x, 0.32, z), quaternion, scale);
     weave.setMatrixAt(instanceIndex, matrix);
     weave.setColorAt(instanceIndex, color.setHex((studioMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0xffe38a));
@@ -959,19 +962,65 @@ function addFashionTerrainWeave(
     signatures.push(`fashion-weave:pin:${index}`);
   }
 
+  const aiCenter = zones.find((zone) => zone.id === "ai-lab")?.position ?? [-21.4, -8.8];
+  for (let index = 0; index < aiTraceCount; index += 1) {
+    const lane = index - (aiTraceCount - 1) / 2;
+    const side = index % 2 === 0 ? -1 : 1;
+    const x = aiCenter[0] + lane * 0.26;
+    const z = aiCenter[1] + side * (2.55 + (index % 6) * 0.16);
+    const rotation = 0.72 + side * 0.18 + (index % 5) * 0.026;
+    quaternion.setFromEuler(new THREE.Euler(0, rotation, 0));
+    scale.set(1.45 + (index % 4) * 0.28, 0.028, 0.038);
+    matrix.compose(new THREE.Vector3(x, 0.188 + (index % 3) * 0.004, z), quaternion, scale);
+    weave.setMatrixAt(instanceIndex, matrix);
+    weave.setColorAt(instanceIndex, color.setHex(index % 3 === 0 ? 0xffe38a : (roadMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0xdfe6ce));
+    instanceIndex += 1;
+    signatures.push(`ai-lab-circuit:trace:${index}`);
+  }
+
+  for (let index = 0; index < aiNodeCount; index += 1) {
+    const ring = index % 3;
+    const angle = (index / aiNodeCount) * Math.PI * 2.0 + ring * 0.28;
+    const radius = 2.65 + ring * 0.78 + (index % 4) * 0.05;
+    const x = aiCenter[0] + Math.cos(angle) * radius * 1.18;
+    const z = aiCenter[1] + Math.sin(angle) * radius * 0.72;
+    quaternion.setFromEuler(new THREE.Euler(0, angle, 0));
+    const nodeScale = 0.08 + (index % 5) * 0.012;
+    scale.set(nodeScale, 0.05, nodeScale);
+    matrix.compose(new THREE.Vector3(x, 0.226 + ring * 0.012, z), quaternion, scale);
+    weave.setMatrixAt(instanceIndex, matrix);
+    weave.setColorAt(instanceIndex, color.setHex(index % 4 === 0 ? 0xff6f7d : 0x17d2ff));
+    instanceIndex += 1;
+    signatures.push(`ai-lab-circuit:node:${index}`);
+  }
+
+  for (let index = 0; index < aiShadowCount; index += 1) {
+    const t = index / Math.max(1, aiShadowCount - 1);
+    const side = index % 2 === 0 ? -1 : 1;
+    const x = aiCenter[0] - 4.4 + t * 8.8;
+    const z = aiCenter[1] + side * (3.15 + Math.sin(t * Math.PI * 2) * 0.24);
+    quaternion.setFromEuler(new THREE.Euler(0, 0.74 + side * 0.12, 0));
+    scale.set(1.22 + (index % 4) * 0.22, 0.018, 0.05);
+    matrix.compose(new THREE.Vector3(x, 0.14, z), quaternion, scale);
+    weave.setMatrixAt(instanceIndex, matrix);
+    weave.setColorAt(instanceIndex, color.setHex((inkMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0x070a0d));
+    instanceIndex += 1;
+    signatures.push(`ai-lab-circuit:shadow:${index}`);
+  }
+
   weave.instanceMatrix.needsUpdate = true;
   if (weave.instanceColor) {
     weave.instanceColor.needsUpdate = true;
   }
   weave.userData.surfaceDetailPart = "fashion-terrain-weave";
-  weave.userData.surfaceDetailProfileIds = ["fashion-room:terrain-weave"];
+  weave.userData.surfaceDetailProfileIds = ["fashion-room:terrain-weave", "ai-lab:circuit-weave"];
   weave.userData.surfaceDetailSignatures = signatures.slice();
 
   add(weave, "surface-detail", "surface-detail:fashion-room-terrain-weave", "instance-pulse", {
     signatures,
-    objectCount: bandCount + stitchCount + pinCount + shadowCount,
-    roleCount: 4,
-    motionCount: bandCount + stitchCount
+    objectCount: bandCount + stitchCount + pinCount + shadowCount + aiTraceCount + aiNodeCount + aiShadowCount,
+    roleCount: 6,
+    motionCount: bandCount + stitchCount + aiTraceCount + aiNodeCount
   });
 }
 
