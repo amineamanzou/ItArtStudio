@@ -45,6 +45,7 @@ const externalAssetMapMode = requestedAssetMode === "map";
 const externalAssetCoreMode = !externalAssetDisabledMode && !externalAssetPreviewMode && !externalAssetMapMode;
 const externalAssetRuntimeMode = !externalAssetDisabledMode;
 const assetOnlyPlayerPath = "assets/models/vendor/kenney/car-kit/vehicles/sedan-sports.glb";
+const assetOnlyGroundTexturePath = "assets/textures/vendor/polyhaven/forrest_ground_01/forrest_ground_01_diff_1k.jpg";
 const playerMaxForwardSpeed = qaMode ? 12.8 : 10.5;
 const playerMaxReverseSpeed = qaMode ? 6.4 : 4.2;
 const playerAcceleration = qaMode ? 38 : 24;
@@ -290,6 +291,17 @@ const surfaceFxProfiles: Record<
 };
 
 const worldTexture = assetOnlyWorld ? null : createWorldTexture(colors.ground, 9);
+
+function createDownloadedTexture(path: string, repeat = 1) {
+  const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+  const texture = new THREE.TextureLoader().load(`${base}${path.replace(/^\/+/u, "")}`);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(repeat, repeat);
+  texture.anisotropy = 4;
+  return texture;
+}
 
 type DriveKey = "up" | "down" | "left" | "right";
 
@@ -1701,13 +1713,14 @@ class StudioGame {
   }
 
   private setWorld() {
+    const groundTexture = assetOnlyWorld ? createDownloadedTexture(assetOnlyGroundTexturePath, 6) : worldTexture;
     const ground = new THREE.Mesh(
       assetOnlyWorld
         ? new THREE.PlaneGeometry(worldSize * 1.18, worldSize * 1.18, 1, 1)
         : new THREE.CircleGeometry(worldGroundRadius, 48),
       new THREE.MeshStandardMaterial({
-        color: assetOnlyWorld ? 0x1d3f2e : 0xffffff,
-        map: worldTexture,
+        color: assetOnlyWorld ? 0x4f6248 : 0xffffff,
+        map: groundTexture,
         roughness: assetOnlyWorld ? 0.94 : 0.86,
         metalness: assetOnlyWorld ? 0.01 : 0.05
       })

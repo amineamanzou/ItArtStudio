@@ -186,18 +186,18 @@
     "fallback": "If the downloaded bridge/path seams cause visual noise or renderer pressure, keep the vendor files accepted but remove the inspection placements before any public core promotion.",
     "nextAction": "Use these vendor-only terrain screenshots to decide which external library pack should be sourced next for higher-quality roads, banks and terrain seams."
   },
-  "terrainRoles": ["road", "water", "relief", "vegetation", "route-edge", "bridge", "hero-location"],
+  "terrainRoles": ["road", "water", "relief", "vegetation", "route-edge", "bridge", "rail", "hero-location"],
   "mapExpansionKits": [
     {
       "id": "route-network-kit",
       "phase": "map-expansion",
       "purpose": "Road, bridge and edge vocabulary for scaling the playable map with readable routes before adding more landmarks.",
-      "requiredTerrainRoles": ["road", "route-edge", "bridge"],
-      "acceptedAssetIds": ["accepted-city-road-core", "accepted-city-route-edge-core", "accepted-nature-bridge-core"],
+      "requiredTerrainRoles": ["road", "route-edge", "bridge", "rail"],
+      "acceptedAssetIds": ["accepted-city-road-core", "accepted-city-route-edge-core", "accepted-nature-bridge-core", "accepted-train-rail-core"],
       "textureAssetIds": ["accepted-map-road-texture-studio"],
       "linkedRuntimeLayers": ["worldRoutes", "road-ribbons", "route-guidance"],
       "minimumRuntimePlacements": 14,
-      "minimumUniqueFiles": 10,
+      "minimumUniqueFiles": 11,
       "minimumCoverage": { "width": 42, "depth": 42 },
       "noiseBudget": { "maxClusterDensity": 3, "maxContextShare": 0.3 },
       "fallback": "Keep procedural road ribbons active until modular GLB roads prove route readability across the larger map.",
@@ -522,6 +522,32 @@
       "nextAction": "Test track/rail pieces as stylized bridge trims; reject if too railway-coded."
     },
     {
+      "id": "accepted-train-rail-core",
+      "status": "accepted",
+      "sourceId": "kenney-train-kit",
+      "kind": "model-collection",
+      "target": "map",
+      "terrainRole": "rail",
+      "narrativeRole": "Accepted CC0 rail and track vocabulary for terrain-first map structure, crossings and district transitions without generated bars or abstract primitives.",
+      "preferredFormat": "GLB",
+      "localPath": "public/assets/models/vendor/kenney/train-kit/rails",
+      "publicPath": "assets/models/vendor/kenney/train-kit/rails",
+      "fileKb": 57.4,
+      "triangles": 392,
+      "selectedFiles": [
+        "track-detailed.glb",
+        "track-rail.glb",
+        "track-segment.glb",
+        "track-single-detailed.glb",
+        "track-single.glb",
+        "track.glb"
+      ],
+      "budget": { "maxKb": 160, "targetTriangles": 800 },
+      "styleFit": "high",
+      "proceduralFallback": "No procedural rail fallback is allowed in the public asset-only world; omit rails rather than drawing generated bars.",
+      "nextAction": "Use sparse track pieces to prove rail vocabulary on the public terrain, then decide if Train Kit vehicles or station pieces belong in a later map pass."
+    },
+    {
       "id": "accepted-nature-bridge-core",
       "status": "accepted",
       "sourceId": "kenney-nature-kit",
@@ -746,6 +772,24 @@
       "styleFit": "high",
       "proceduralFallback": "src/game/world-scenery.ts keeps vertex-colored terrain under the runtime SVG texture for readable fallback shading.",
       "nextAction": "Use as the active vegetation/open-field material while curation continues for richer PBR candidates."
+    },
+    {
+      "id": "accepted-polyhaven-forest-ground-texture",
+      "status": "accepted",
+      "sourceId": "polyhaven",
+      "kind": "texture-set",
+      "target": "map",
+      "terrainRole": "vegetation",
+      "narrativeRole": "Downloaded CC0 forest-ground diffuse texture used to break the flat public field surface before fuller biome and soil work.",
+      "preferredFormat": "JPG",
+      "localPath": "public/assets/textures/vendor/polyhaven/forrest_ground_01",
+      "publicPath": "assets/textures/vendor/polyhaven/forrest_ground_01",
+      "fileKb": 814.2,
+      "selectedFiles": ["forrest_ground_01_diff_1k.jpg"],
+      "budget": { "maxKb": 1200, "targetResolution": 1024 },
+      "styleFit": "medium",
+      "proceduralFallback": "If the downloaded texture fails to load, the public map falls back to a plain matte ground color rather than a generated pattern.",
+      "nextAction": "Color-grade or replace with additional downloaded grass, dirt and rock textures once the terrain-only composition is validated."
     },
     {
       "id": "accepted-map-water-texture-studio",

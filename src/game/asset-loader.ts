@@ -592,6 +592,7 @@ function measureActualGroundClearance(wrapper: THREE.Object3D) {
 function createMapPlacementSpecs(): MapPlacementSpec[] {
   return [
     ...createRoutePlacementSpecs(),
+    ...createRailPlacementSpecs(),
     ...createWaterPlacementSpecs(),
     ...createReliefPlacementSpecs(),
     ...createVegetationPlacementSpecs(),
@@ -677,6 +678,12 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     ...curatedTerrain,
     createPlacement("terrain-core:road-entry", "terrain-core:entry-road", "route", "primary", true, "road", "road-straight.glb", [3.8, 1.3], 1.5, Math.PI * 0.5),
     createPlacement("terrain-core:road-bend", "terrain-core:entry-road", "route", "support", true, "road", "road-curve.glb", [6.2, 1.8], 1.36, Math.PI * 0.5),
+    createPlacement("terrain-core:rail-spine-a", "terrain-core:rail-spine", "route", "primary", true, "rail", "track-detailed.glb", [5.7, 0.2], 1.38, Math.PI * 0.5, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("terrain-core:rail-spine-b", "terrain-core:rail-spine", "route", "support", true, "rail", "track-single-detailed.glb", [7.15, 0.2], 1.28, Math.PI * 0.5, {
+      assetId: "accepted-train-rail-core"
+    }),
     createPlacement("terrain-core:water-channel", "terrain-core:central-water", "water", "primary", true, "water", "ground_riverBend.glb", [-4.7, 2.8], 1.64, -0.28),
     createPlacement("terrain-core:water-rocks", "terrain-core:central-water", "water", "support", true, "water", "ground_riverRocks.glb", [-6.0, 5.2], 1.24, 0.18),
     createPlacement("terrain-core:bridge-crossing", "terrain-core:central-crossing", "route", "primary", true, "bridge", "bridge_wood.glb", [-2.5, 3.6], 1.52, Math.PI * 0.42, {
@@ -687,6 +694,23 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     createPlacement("terrain-core:grass-left", "terrain-core:central-field", "vegetation", "support", true, "vegetation", "grass_large.glb", [-5.6, 8.0], 1.08, 0.1),
     createPlacement("terrain-core:tree-left", "terrain-core:central-field", "vegetation", "primary", true, "vegetation", "tree_default.glb", [-7.2, 7.0], 1.44, -0.16),
     createPlacement("terrain-core:tree-right", "terrain-core:central-field", "vegetation", "support", true, "vegetation", "tree_oak.glb", [7.1, 5.5], 1.36, 0.22)
+  ];
+}
+
+function createRailPlacementSpecs(): MapPlacementSpec[] {
+  return [
+    createPlacement("rail:studio-spine:detailed", "rail:studio-spine", "route", "support", true, "rail", "track-detailed.glb", [5.7, 0.2], 1.24, Math.PI * 0.5, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("rail:studio-spine:single", "rail:studio-spine", "route", "support", true, "rail", "track-single-detailed.glb", [7.0, 0.2], 1.18, Math.PI * 0.5, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("rail:cloud-edge:segment", "rail:cloud-edge", "route", "context", false, "rail", "track-segment.glb", [-28.2, -18.2], 1.1, -0.16, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("rail:art-edge:curve-proof", "rail:art-edge", "route", "context", false, "rail", "track-rail.glb", [28.8, 18.0], 1.08, Math.PI * 0.68, {
+      assetId: "accepted-train-rail-core"
+    })
   ];
 }
 
@@ -1206,6 +1230,7 @@ function getRoleGroundClearance(terrainRole: string, curation: MapPlacementSpec[
     road: 0.32,
     "route-edge": 0.36,
     bridge: 0.48,
+    rail: 0.34,
     water: 0.22,
     relief: 0.3,
     vegetation: 0.34
