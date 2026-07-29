@@ -66,9 +66,9 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v129",
+    "id": "public-terrain-core-v130",
     "phase": "public-terrain-first-runtime",
-    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor brown-mud-leaf/grass-path/relief/water-edge textures and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles, visible map-edge voids or hero/factory clutter.",
+    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor brown-mud-leaf/stony-dirt-path/relief/water-edge textures and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles, visible map-edge voids or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
     "requiredPlayerAssetId": "accepted-car-vehicle-core",
     "requiredPlayerFile": "race.glb",
@@ -277,7 +277,7 @@
     "requiredTerrainMaterialRoles": ["field", "path", "relief", "water"],
     "requiredTerrainTextureFiles": [
       "assets/textures/vendor/polyhaven/brown_mud_leaves_01/brown_mud_leaves_01_diff_1k.jpg",
-      "assets/textures/vendor/polyhaven/grass_path_2/grass_path_2_diff_1k.jpg",
+      "assets/textures/vendor/polyhaven/stony_dirt_path/stony_dirt_path_diff_1k.jpg",
       "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg",
       "assets/textures/vendor/polyhaven/low_tide_rocks/low_tide_rocks_diff_1k.jpg"
     ],
@@ -408,7 +408,7 @@
     "maximumHeroLocationPlacements": 0,
     "allowedGeneratedSubstrate": "single extended terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief/water-edge material; visible public decor must come from downloaded vendor GLB/glTF.",
     "fallback": "If a terrain GLB fails, omit that placement and keep the public world sparse rather than replacing it with a generated rectangle, cone, halo, plate or abstract primitive.",
-    "nextAction": "Review the v129 north/south/east/west terrain-only screenshots for the brown-mud-leaves field material, then decide whether forest_ground_04 or rocky_trail should become secondary biome layers before densifying Cloud Dock, Design Atelier or Observability Tower."
+    "nextAction": "Review the v130 north/south/east/west terrain-only screenshots for the stony-dirt-path route material, then decide whether forest_ground_04 or rocky_trail should become secondary biome layers before densifying Cloud Dock, Design Atelier or Observability Tower."
   },
   "publicTerrainMaterialCore": {
     "id": "polyhaven-terrain-material-v112",
@@ -1333,7 +1333,7 @@
       "kind": "texture-set",
       "target": "map",
       "terrainRole": "path",
-      "narrativeRole": "Downloaded CC0 stony dirt path diffuse texture used as the public organic path material so routes read as terrain instead of placed tiles.",
+      "narrativeRole": "Downloaded CC0 stony dirt path diffuse texture used as the public route material so paths read as compacted earth and pebbles rather than gray road plates, generated tire traces or synthetic markings.",
       "preferredFormat": "JPG",
       "assetPageUrl": "https://polyhaven.com/a/stony_dirt_path",
       "downloadUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stony_dirt_path/stony_dirt_path_diff_1k.jpg",
@@ -1346,18 +1346,18 @@
       "selectedFiles": ["stony_dirt_path_diff_1k.jpg"],
       "budget": { "maxKb": 1400, "targetResolution": 1024 },
       "styleFit": "high",
-      "qaProof": "qa/artifacts/2026-07-29T13-24-58-952Z/report.md#public-terrain-core",
-      "proceduralFallback": "If this downloaded texture fails to load, public terrain keeps the forest-ground material and omits synthetic route markings rather than drawing generated plates.",
-      "nextAction": "Source complementary downloaded path-edge and mud textures so future map expansion can vary route shoulders without reintroducing placed path tiles."
+      "qaProof": "qa/artifacts/2026-07-29T19-28-59-294Z/report.md#public-asset-only-terrain-core",
+      "proceduralFallback": "If this downloaded texture fails to load, route shoulders keep the previously accepted grass-path texture rather than drawing generated plates, tiles or synthetic tire marks.",
+      "nextAction": "Validate v130 screenshots for path readability and confirm it does not overpower the brown-mud-leaves field material."
     },
     {
       "id": "accepted-polyhaven-grass-path-2-texture",
-      "status": "integrated",
+      "status": "accepted",
       "sourceId": "polyhaven",
       "kind": "texture-set",
       "target": "map",
       "terrainRole": "path",
-      "narrativeRole": "Downloaded CC0 grass path diffuse texture used as the public path material so routes read as authored terrain, not black skid marks or modular ground tiles.",
+      "narrativeRole": "Downloaded CC0 grass path diffuse texture retained as a fallback path candidate after v130 moved the public route material to a less grassy, more compact stony dirt path.",
       "preferredFormat": "JPG",
       "assetPageUrl": "https://polyhaven.com/a/grass_path_2",
       "downloadUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grass_path_2/grass_path_2_diff_1k.jpg",
@@ -1372,7 +1372,7 @@
       "styleFit": "high",
       "qaProof": "qa/artifacts/2026-07-29T14-41-51-225Z/report.md#public-terrain-core",
       "proceduralFallback": "If this downloaded texture fails to load, public terrain keeps the forest-ground material and no generated road plate, tire trace or path tile is drawn.",
-      "nextAction": "Use QA screenshots to decide whether the stony path texture should remain as an opt-in secondary material or be demoted from public terrain."
+      "nextAction": "Keep as a secondary route shoulder candidate if the stony dirt path becomes too visually dense in QA."
     },
     {
       "id": "accepted-polyhaven-brown-mud-leaves-texture",

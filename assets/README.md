@@ -53,8 +53,8 @@ Accepted runtime packs:
   industrial, screen, pipe, platform and work-surface pieces for Cloud Dock,
   Design Atelier and Observability Tower proofs.
 - `public/assets/textures/vendor/polyhaven`: CC0 terrain texture set used by
-  the public asset-only shader, including brown muddy leaf litter, grass path,
-  rocky relief and low-tide shore materials.
+  the public asset-only shader, including brown muddy leaf litter, stony dirt
+  path, grass path fallback, rocky relief and low-tide shore materials.
 - `public/assets/textures/map/hero`: 3 SVG runtime texture pads for Cloud Dock,
   Design Atelier and Observability Tower.
 
