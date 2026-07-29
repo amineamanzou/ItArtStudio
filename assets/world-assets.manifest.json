@@ -66,12 +66,12 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v123",
+    "id": "public-terrain-core-v124",
     "phase": "public-terrain-first-runtime",
     "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor field/stony-dirt-path/relief/water-edge textures and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
     "requiredPlayerAssetId": "accepted-car-vehicle-core",
-    "requiredPlayerFile": "sedan-sports.glb",
+    "requiredPlayerFile": "race.glb",
     "requiredTerrainRoles": ["bridge", "rail", "relief", "path", "vegetation", "water"],
     "requiredAssetIds": [
       "accepted-assetquest-pond-water-core",
@@ -120,7 +120,7 @@
       "cliff_blockCave_rock.glb",
       "cliff_top_rock.glb",
       "cliff_waterfallTop_rock.glb",
-      "sedan-sports.glb",
+      "race.glb",
       "fern_02_1k.gltf",
       "track-detailed.glb",
       "track-rail.glb",
@@ -746,7 +746,7 @@
       "styleFit": "high",
       "qaProof": "qa/artifacts/2026-07-29T13-24-58-952Z/report.md#public-asset-only-player",
       "proceduralFallback": "src/game/game.ts keeps the legacy QA rover only behind qa or legacy modes; public runtime must use the downloaded car GLB.",
-      "nextAction": "Use sedan-sports.glb as the public player, then evaluate separated wheels only after terrain readability is validated."
+      "nextAction": "Use race.glb as the public player because its open-wheel silhouette reads cleaner in the isometric terrain view; keep sedan variants available only as QA comparison options."
     },
     {
       "id": "terrain-road-modular-primary",

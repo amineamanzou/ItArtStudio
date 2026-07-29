@@ -44,7 +44,12 @@ const externalAssetDisabledMode = requestedAssetMode === "off";
 const externalAssetMapMode = requestedAssetMode === "map";
 const externalAssetCoreMode = !externalAssetDisabledMode && !externalAssetPreviewMode && !externalAssetMapMode;
 const externalAssetRuntimeMode = !externalAssetDisabledMode;
-const assetOnlyPlayerPath = "assets/models/vendor/kenney/car-kit/vehicles/sedan-sports.glb";
+const assetOnlyVehicleFiles = new Set(["hatchback-sports.glb", "race.glb", "sedan-sports.glb", "sedan.glb"]);
+const requestedAssetOnlyVehicle = searchParams.get("vehicle");
+const assetOnlyPlayerFile =
+  requestedAssetOnlyVehicle && assetOnlyVehicleFiles.has(requestedAssetOnlyVehicle) ? requestedAssetOnlyVehicle : "race.glb";
+const assetOnlyPlayerName = `vendor-player:${assetOnlyPlayerFile.replace(/\.glb$/u, "")}`;
+const assetOnlyPlayerPath = `assets/models/vendor/kenney/car-kit/vehicles/${assetOnlyPlayerFile}`;
 const assetOnlyGroundTexturePath = "assets/textures/vendor/polyhaven/forrest_ground_01/forrest_ground_01_diff_1k.jpg";
 const assetOnlyReliefTexturePath = "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg";
 const assetOnlyPathTexturePath = "assets/textures/vendor/polyhaven/stony_dirt_path/stony_dirt_path_diff_1k.jpg";
@@ -2844,7 +2849,7 @@ class StudioGame {
   private setAssetOnlyPlayer() {
     this.playerAssetMode = "vendor-glb";
     this.playerAssetStatus = "loading";
-    this.playerAssetName = "vendor-player:sedan-sports";
+    this.playerAssetName = assetOnlyPlayerName;
     this.playerAssetPath = assetOnlyPlayerPath;
     this.player.rotation.y = Math.PI;
     this.player.position.copy(this.playerPosition);
@@ -2856,7 +2861,7 @@ class StudioGame {
       `${base}${assetOnlyPlayerPath}`,
       (gltf) => {
         const visual = gltf.scene;
-        visual.name = "vendor-player:sedan-sports";
+        visual.name = assetOnlyPlayerName;
         const box = new THREE.Box3().setFromObject(visual);
         const center = new THREE.Vector3();
         const size = new THREE.Vector3();

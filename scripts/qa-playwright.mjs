@@ -3694,7 +3694,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
     ];
     const requiredAssetIds = manifestPublicTerrainCore.requiredAssetIds ?? [];
     const requiredFiles = (manifestPublicTerrainCore.requiredFiles ?? []).filter(
-      (file) => file !== (manifestPublicTerrainCore.requiredPlayerFile ?? "sedan-sports.glb")
+      (file) => file !== (manifestPublicTerrainCore.requiredPlayerFile ?? "race.glb")
     );
     const requiredPlacementIds = manifestPublicTerrainCore.requiredPlacementIds ?? [];
     const forbiddenFiles = manifestPublicTerrainCore.forbiddenFiles ?? [];
@@ -3961,11 +3961,14 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const forbiddenHeroPlacements = externalAssets?.heroLocationPlacements ?? 0;
     const publicGeneratedRuntime = publicAssetOnlyGeneratedRuntime(snapshot);
     const publicGeneratedRuntimeOk = isPublicAssetOnlyGeneratedRuntimeClean(publicGeneratedRuntime);
+    const expectedPlayerFile = manifestPublicTerrainCore.requiredPlayerFile ?? "race.glb";
+    const expectedPlayerName = `vendor-player:${expectedPlayerFile.replace(/\.glb$/u, "")}`;
+    const expectedPlayerPath = `assets/models/vendor/kenney/car-kit/vehicles/${expectedPlayerFile}`;
     const vehicleOk =
       asset?.mode === "vendor-glb" &&
       asset.status === "loaded" &&
-      asset.name === "vendor-player:sedan-sports" &&
-      asset.path === "assets/models/vendor/kenney/car-kit/vehicles/sedan-sports.glb" &&
+      asset.name === expectedPlayerName &&
+      asset.path === expectedPlayerPath &&
       player.meshCount >= 1 &&
       player.wheelCount === 0 &&
       player.bounds?.width >= 0.55 &&
@@ -4061,7 +4064,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
         externalAssets,
         canvas: proof.canvas,
         capture: proof.relativePath,
-        expectedPath: "assets/models/vendor/kenney/car-kit/vehicles/sedan-sports.glb",
+        expectedPath: expectedPlayerPath,
         terrainCoreDiagnostics: {
           contract: manifestPublicTerrainCore,
           terrainShellOk,
