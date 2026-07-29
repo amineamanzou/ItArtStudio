@@ -37,6 +37,7 @@ jobs:
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
+        timeout-minutes: 4
 
       - name: Smoke GitHub Pages artifact
         run: npm run qa:game:static
