@@ -3659,7 +3659,7 @@ async function checkProductionRuntimeLightweight(browser) {
 
 async function checkPublicAssetOnlyPlayer(browser) {
   const assetOnlyUrl = withSearchParam(baseUrl, "world", "asset-only");
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
   attachPageDiagnostics(page, "public-asset-only-player");
 
   try {
@@ -3706,6 +3706,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const requiredMaterialStyleRoles = manifestPublicTerrainCore.requiredMaterialStyleRoles ?? [];
     const maximumIntroAssetOcclusions = manifestPublicTerrainCore.maximumIntroAssetOcclusions ?? 0;
     const maximumIntroAssetOcclusionRatio = manifestPublicTerrainCore.maximumIntroAssetOcclusionRatio ?? 0.06;
+    const introAssetClearancePx = manifestPublicTerrainCore.introAssetClearancePx ?? 0;
     const availableTerrainRoles = new Set([...(externalAssets?.terrainRoles ?? []), ...(snapshot?.world?.mapTextureRoles ?? [])]);
     const missingTerrainRoles = requiredTerrainRoles.filter((role) => !availableTerrainRoles.has(role));
     const missingAssetIds = requiredAssetIds.filter((assetId) => !externalAssets?.assetIds?.includes(assetId));
@@ -3749,6 +3750,15 @@ async function checkPublicAssetOnlyPlayer(browser) {
           width: introRect.width,
           height: introRect.height
         };
+        const safeBox = {
+          left: introBox.left,
+          top: introBox.top,
+          right: introBox.right,
+          bottom: introBox.bottom + Math.max(0, Number(maximumRatio.clearancePx) || 0),
+          width: introBox.width,
+          height: introBox.height + Math.max(0, Number(maximumRatio.clearancePx) || 0)
+        };
+        const overlapLimit = Number(maximumRatio.ratio);
         const occludedPlacements = [];
 
         for (const [placementId, rect] of Object.entries(placementScreenRects ?? {})) {
@@ -3767,6 +3777,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
 
           const placementBox = { left, top, right: left + width, bottom: top + height, width, height };
           const overlapArea = intersectArea(introBox, placementBox);
+          const safeAreaOverlap = intersectArea(safeBox, placementBox);
           const overlapRatio = overlapArea / area;
           const center = rect.center ?? {};
           const centerInside =
@@ -3775,13 +3786,21 @@ async function checkPublicAssetOnlyPlayer(browser) {
             center.x <= introBox.right &&
             center.y >= introBox.top &&
             center.y <= introBox.bottom;
+          const centerInsideSafeArea =
+            center.visible === true &&
+            center.x >= safeBox.left &&
+            center.x <= safeBox.right &&
+            center.y >= safeBox.top &&
+            center.y <= safeBox.bottom;
 
-          if (centerInside || overlapRatio > maximumRatio) {
+          if (centerInside || centerInsideSafeArea || overlapRatio > overlapLimit || safeAreaOverlap > 0) {
             occludedPlacements.push({
               placementId,
               overlapArea: Number(overlapArea.toFixed(2)),
               overlapRatio: Number(overlapRatio.toFixed(3)),
-              centerInside
+              safeAreaOverlap: Number(safeAreaOverlap.toFixed(2)),
+              centerInside,
+              centerInsideSafeArea
             });
           }
         }
@@ -3794,13 +3813,22 @@ async function checkPublicAssetOnlyPlayer(browser) {
             width: Number(introBox.width.toFixed(1)),
             height: Number(introBox.height.toFixed(1))
           },
+          safeRect: {
+            x: Number(safeBox.left.toFixed(1)),
+            y: Number(safeBox.top.toFixed(1)),
+            width: Number(safeBox.width.toFixed(1)),
+            height: Number(safeBox.height.toFixed(1))
+          },
           occludedPlacements,
           maxOcclusionRatio: Number(Math.max(0, ...occludedPlacements.map((item) => item.overlapRatio)).toFixed(3))
         };
       },
       {
         placementScreenRects: externalAssets?.placementScreenRects ?? {},
-        maximumRatio: maximumIntroAssetOcclusionRatio
+        maximumRatio: {
+          ratio: maximumIntroAssetOcclusionRatio,
+          clearancePx: introAssetClearancePx
+        }
       }
     );
     const forbiddenPlacementFiles = forbiddenFiles.filter((file) => externalAssets?.placementFiles?.includes(file));

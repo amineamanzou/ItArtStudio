@@ -112,7 +112,7 @@ const manifest = worldAssetManifest as WorldAssetManifest;
 const zoneById = new Map(zones.map((zone) => [zone.id, zone]));
 const publicWaterEdgeTexturePath = "assets/textures/vendor/polyhaven/low_tide_rocks/low_tide_rocks_diff_1k.jpg";
 let publicWaterEdgeTexture: THREE.Texture | null = null;
-const introSafeTerrainOffset: [number, number] = [4.2, 2.8];
+const introSafeTerrainOffset: [number, number] = [5.8, 6.4];
 
 const previewSpecs: PreviewSpec[] = [
   {
@@ -920,10 +920,10 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     createPlacement("terrain-core:relief-steps-north", "terrain-core:central-relief", "relief", "support", true, "relief", "cliff_steps_rock.glb", [6.55, 8.45], 1.05, -0.34),
     createPlacement("terrain-core:relief-corner-east", "terrain-core:central-relief-east", "relief", "support", true, "relief", "cliff_corner_rock.glb", [12.15, 7.8], 0.94, 0.42),
     createPlacement("terrain-core:grass-left", "terrain-core:central-field-west", "vegetation", "support", true, "vegetation", "grass_leafsLarge.glb", [-8.8, 9.35], 1.08, 0.1),
-    createPlacement("terrain-core:tree-left", "terrain-core:central-field", "vegetation", "primary", true, "vegetation", "tree_oak.glb", [-7.2, 7.0], 1.5, -0.16),
+    createPlacement("terrain-core:tree-left", "terrain-core:central-field", "vegetation", "primary", true, "vegetation", "tree_oak.glb", [-1.4, 11.1], 1.5, -0.16),
     createPlacement("terrain-core:tree-right", "terrain-core:central-field", "vegetation", "support", true, "vegetation", "tree_fat.glb", [7.1, 5.5], 1.34, 0.22),
     createPlacement("terrain-core:pine-right", "terrain-core:central-field-east", "vegetation", "support", true, "vegetation", "tree_pineTallA.glb", [10.35, 4.95], 1.22, -0.3),
-    createPlacement("terrain-core:field-log", "terrain-core:central-field-west", "vegetation", "support", true, "vegetation", "log_stack.glb", [-4.15, 7.35], 0.92, -0.34),
+    createPlacement("terrain-core:field-log", "terrain-core:central-field-west", "vegetation", "support", true, "vegetation", "log_stack.glb", [-0.2, 11.85], 0.92, -0.34),
     createPlacement("terrain-core:spawn-rock-flat", "terrain-core:spawn-clearing-east", "relief", "support", true, "relief", "rock_smallFlatC.glb", [9.9, 1.8], 0.9, -0.28),
     createPlacement("terrain-core:spawn-bush-west", "terrain-core:spawn-clearing-east", "vegetation", "support", true, "vegetation", "plant_bushDetailed.glb", [5.65, 2.75], 1.02, 0.16),
     createPlacement("terrain-core:spawn-grass-west", "terrain-core:spawn-clearing-west", "vegetation", "support", true, "vegetation", "grass_leafsLarge.glb", [4.85, 1.05], 0.9, 0.42),
