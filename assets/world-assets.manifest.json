@@ -66,9 +66,9 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v133",
+    "id": "public-terrain-core-v134",
     "phase": "public-terrain-first-runtime",
-    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor brown-mud-leaf/stony-dirt-path/relief/river-pebble water-edge textures, subdued integrated pond surfaces that read as wet shoreline instead of blue plates, and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles, visible map-edge voids or hero/factory clutter.",
+    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor brown-mud-leaf/stony-dirt-path/relief/river-pebble water-edge textures, subdued integrated pond surfaces that read as wet shoreline instead of blue plates, a visible central wetland composed from downloaded reeds, lilies, rocks and bank vegetation, and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles, visible map-edge voids or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
     "requiredPlayerAssetId": "accepted-car-vehicle-core",
     "requiredPlayerFile": "race.glb",
@@ -165,6 +165,13 @@
       "terrain-core:path-boardwalk-pond-b",
       "terrain-core:path-boardwalk-pond-corner",
       "terrain-core:path-boardwalk-ridge",
+      "terrain-core:central-wetland-cattail-west",
+      "terrain-core:central-wetland-hyacinth-east",
+      "terrain-core:central-wetland-lily-north",
+      "terrain-core:central-wetland-flat-bank-west",
+      "terrain-core:central-wetland-boulder-east",
+      "terrain-core:central-wetland-log-bank",
+      "terrain-core:central-wetland-grass-bank",
       "terrain-core:far-north-relief-half",
       "terrain-core:far-south-relief-large",
       "terrain-core:far-west-relief-corner",
@@ -264,13 +271,13 @@
       "top-large-checkerboard.glb",
       "tree_cone.glb"
     ],
-    "minimumPlacements": 147,
+    "minimumPlacements": 154,
     "minimumUniqueFiles": 60,
     "minimumRolePlacements": {
       "route": 35,
-      "water": 27,
-      "relief": 38,
-      "vegetation": 47
+      "water": 30,
+      "relief": 40,
+      "vegetation": 49
     },
     "minimumCoverage": { "width": 78, "depth": 78 },
     "minimumCoverageArea": 6500,
@@ -347,6 +354,18 @@
     "minimumVisibleShorelineReliefPlacements": 3,
     "minimumShorelineReliefClippedArea": 180,
     "minimumShorelineReliefVisibleRatio": 0.004,
+    "requiredCentralWetlandPlacementIds": [
+      "terrain-core:central-wetland-cattail-west",
+      "terrain-core:central-wetland-hyacinth-east",
+      "terrain-core:central-wetland-lily-north",
+      "terrain-core:central-wetland-flat-bank-west",
+      "terrain-core:central-wetland-boulder-east",
+      "terrain-core:central-wetland-log-bank",
+      "terrain-core:central-wetland-grass-bank"
+    ],
+    "minimumVisibleCentralWetlandPlacements": 5,
+    "minimumCentralWetlandClippedArea": 120,
+    "minimumCentralWetlandVisibleRatio": 0.003,
     "requiredOuterBandProofs": [
       {
         "id": "north",
@@ -428,7 +447,7 @@
     "maximumHeroLocationPlacements": 0,
     "allowedGeneratedSubstrate": "single extended terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief/water-edge material; visible public decor must come from downloaded vendor GLB/glTF.",
     "fallback": "If a terrain GLB fails, omit that placement and keep the public world sparse rather than replacing it with a generated rectangle, cone, halo, plate or abstract primitive.",
-    "nextAction": "Review the v133 north/south/east/west terrain-only screenshots for wet shoreline readability before densifying Cloud Dock, Design Atelier or Observability Tower."
+    "nextAction": "Review the v134 central wetland plus north/south/east/west terrain-only screenshots for wet shoreline readability before densifying Cloud Dock, Design Atelier or Observability Tower."
   },
   "publicTerrainMaterialCore": {
     "id": "polyhaven-terrain-material-v112",

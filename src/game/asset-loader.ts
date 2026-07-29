@@ -923,6 +923,27 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     createPlacement("terrain-core:shore-waterfall-rock", "terrain-core:central-water-edge", "water", "support", true, "water", "cliff_waterfall_rock.glb", offsetTerrainCoreIntroSafe([-8.95, 5.95]), 0.74, 0.42, {
       assetId: "accepted-nature-water-core"
     }),
+    createPlacement("terrain-core:central-wetland-cattail-west", "terrain-core:central-wetland-reeds", "water", "support", true, "water", "cattail-1.glb", [-1.6, 10.95], 0.58, -0.28, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:central-wetland-hyacinth-east", "terrain-core:central-wetland-reeds", "water", "support", true, "water", "water-hyacinth-1.glb", [2.85, 10.3], 0.5, 0.18, {
+      assetId: "accepted-assetquest-pond-water-core"
+    }),
+    createPlacement("terrain-core:central-wetland-lily-north", "terrain-core:central-wetland-reeds", "water", "support", true, "water", "lily_large.glb", [0.35, 12.1], 0.42, 0.34, {
+      assetId: "accepted-nature-water-core"
+    }),
+    createPlacement("terrain-core:central-wetland-flat-bank-west", "terrain-core:central-wetland-bank-relief", "relief", "support", true, "relief", "rock_smallFlatC.glb", [-2.35, 8.9], 0.74, -0.14, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:central-wetland-boulder-east", "terrain-core:central-wetland-bank-relief", "relief", "support", true, "relief", "rock_largeA.glb", [3.75, 8.7], 0.86, 0.28, {
+      assetId: "accepted-nature-relief-core"
+    }),
+    createPlacement("terrain-core:central-wetland-log-bank", "terrain-core:central-wetland-bank-vegetation", "vegetation", "support", true, "vegetation", "log.glb", [3.2, 12.2], 0.78, -0.38, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:central-wetland-grass-bank", "terrain-core:central-wetland-bank-vegetation", "vegetation", "support", true, "vegetation", "grass.glb", [-3.2, 12.0], 0.84, 0.22, {
+      assetId: "accepted-nature-vegetation-core"
+    }),
     createPlacement("terrain-core:bridge-crossing", "terrain-core:central-crossing", "route", "primary", true, "bridge", "bridge_stoneRoundNarrow.glb", offsetTerrainCoreIntroSafe([-2.5, 3.6]), 1.62, Math.PI * 0.42, {
       assetId: "accepted-nature-stone-bridge-core"
     }),

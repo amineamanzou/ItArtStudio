@@ -3797,6 +3797,10 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const minimumVisibleShorelineReliefPlacements = manifestPublicTerrainCore.minimumVisibleShorelineReliefPlacements ?? 0;
     const minimumShorelineReliefClippedArea = manifestPublicTerrainCore.minimumShorelineReliefClippedArea ?? 180;
     const minimumShorelineReliefVisibleRatio = manifestPublicTerrainCore.minimumShorelineReliefVisibleRatio ?? 0.004;
+    const requiredCentralWetlandPlacementIds = manifestPublicTerrainCore.requiredCentralWetlandPlacementIds ?? [];
+    const minimumVisibleCentralWetlandPlacements = manifestPublicTerrainCore.minimumVisibleCentralWetlandPlacements ?? 0;
+    const minimumCentralWetlandClippedArea = manifestPublicTerrainCore.minimumCentralWetlandClippedArea ?? 120;
+    const minimumCentralWetlandVisibleRatio = manifestPublicTerrainCore.minimumCentralWetlandVisibleRatio ?? 0.003;
     const availableTerrainRoles = new Set([...(externalAssets?.terrainRoles ?? []), ...(snapshot?.world?.mapTextureRoles ?? [])]);
     const missingTerrainRoles = requiredTerrainRoles.filter((role) => !availableTerrainRoles.has(role));
     const missingAssetIds = requiredAssetIds.filter((assetId) => !externalAssets?.assetIds?.includes(assetId));
@@ -3913,6 +3917,33 @@ async function checkPublicAssetOnlyPlayer(browser) {
       missingShorelineReliefPlacements,
       missingShorelineReliefPublicPaths,
       visibleShorelineReliefPlacements
+    };
+    const missingCentralWetlandPlacements = requiredCentralWetlandPlacementIds.filter(
+      (placementId) => !externalAssets?.placementIds?.includes(placementId)
+    );
+    const visibleCentralWetlandPlacements = requiredCentralWetlandPlacementIds
+      .map((placementId) => {
+        const rect = externalAssets?.placementScreenRects?.[placementId];
+        const clippedArea = rect?.clippedArea ?? 0;
+        const visibleRatio = rect?.visibleRatio ?? 0;
+        return {
+          placementId,
+          visible:
+            rect?.visible === true &&
+            clippedArea >= minimumCentralWetlandClippedArea &&
+            visibleRatio >= minimumCentralWetlandVisibleRatio,
+          clippedArea,
+          visibleRatio
+        };
+      })
+      .filter((item) => item.visible);
+    const centralWetlandProof = {
+      requiredCentralWetlandPlacementIds,
+      minimumVisibleCentralWetlandPlacements,
+      minimumCentralWetlandClippedArea,
+      minimumCentralWetlandVisibleRatio,
+      missingCentralWetlandPlacements,
+      visibleCentralWetlandPlacements
     };
     const introAssetOcclusion = await page.evaluate(
       ({ placementScreenRects, maximumRatio }) => {
@@ -4116,6 +4147,8 @@ async function checkPublicAssetOnlyPlayer(browser) {
       missingShorelineReliefPlacements.length === 0 &&
       missingShorelineReliefPublicPaths.length === 0 &&
       visibleShorelineReliefPlacements.length >= minimumVisibleShorelineReliefPlacements &&
+      missingCentralWetlandPlacements.length === 0 &&
+      visibleCentralWetlandPlacements.length >= minimumVisibleCentralWetlandPlacements &&
       introAssetOcclusion.introVisible === true &&
       introAssetOcclusion.occludedPlacements.length <= maximumIntroAssetOcclusions &&
       terrainShellOk &&
@@ -4141,6 +4174,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
         missingMaterialStyleRoles,
         boardwalkProof,
         shorelineReliefProof,
+        centralWetlandProof,
         introAssetOcclusion,
         terrainShell: {
           terrainLayers: snapshot?.world?.terrainLayers,
@@ -4177,6 +4211,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
           missingMaterialStyleRoles,
           boardwalkProof,
           shorelineReliefProof,
+          centralWetlandProof,
           introAssetOcclusion,
           forbiddenPlacementFiles,
           forbiddenPublicPaths,
@@ -11468,7 +11503,7 @@ async function writeReport() {
     }`,
     `- Public terrain core: ${
       publicTerrainCoreScenario?.details?.externalAssets
-        ? `${publicTerrainCoreScenario.status}, placements ${publicTerrainCoreScenario.details.externalAssets.placements}, unique files ${publicTerrainCoreScenario.details.externalAssets.uniqueFiles}, roles ${publicTerrainCoreScenario.details.externalAssets.terrainRoles.join("/")}, terrain roles ${(publicTerrainCoreScenario.details.availableTerrainRoles ?? []).join("/")}, terrain layers ${publicTerrainCoreScenario.details.terrainShell?.terrainLayers ?? "n/a"}, height ${publicTerrainCoreScenario.details.terrainShell?.terrainHeightRange ?? "n/a"}, hero placements ${publicTerrainCoreScenario.details.externalAssets.heroLocationPlacements}, cluster density ${publicTerrainCoreScenario.details.externalAssets.maxNonHeroClusterDensity}, coverage ${publicTerrainCoreScenario.details.externalAssets.mapCoverageWidth}x${publicTerrainCoreScenario.details.externalAssets.mapCoverageDepth}, capture ${publicTerrainCoreScenario.details.capture ?? "n/a"}`
+        ? `${publicTerrainCoreScenario.status}, placements ${publicTerrainCoreScenario.details.externalAssets.placements}, unique files ${publicTerrainCoreScenario.details.externalAssets.uniqueFiles}, roles ${publicTerrainCoreScenario.details.externalAssets.terrainRoles.join("/")}, terrain roles ${(publicTerrainCoreScenario.details.availableTerrainRoles ?? []).join("/")}, central wetland ${publicTerrainCoreScenario.details.centralWetlandProof?.visibleCentralWetlandPlacements?.length ?? "n/a"}/${publicTerrainCoreScenario.details.centralWetlandProof?.minimumVisibleCentralWetlandPlacements ?? "n/a"}, terrain layers ${publicTerrainCoreScenario.details.terrainShell?.terrainLayers ?? "n/a"}, height ${publicTerrainCoreScenario.details.terrainShell?.terrainHeightRange ?? "n/a"}, hero placements ${publicTerrainCoreScenario.details.externalAssets.heroLocationPlacements}, cluster density ${publicTerrainCoreScenario.details.externalAssets.maxNonHeroClusterDensity}, coverage ${publicTerrainCoreScenario.details.externalAssets.mapCoverageWidth}x${publicTerrainCoreScenario.details.externalAssets.mapCoverageDepth}, capture ${publicTerrainCoreScenario.details.capture ?? "n/a"}`
         : (publicTerrainCoreScenario?.status ?? "n/a")
     }`,
     `- Public asset-only generated runtime clean: ${
