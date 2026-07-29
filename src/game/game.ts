@@ -53,7 +53,7 @@ const assetOnlyPlayerPath = `assets/models/vendor/kenney/car-kit/vehicles/${asse
 const assetOnlyGroundTexturePath = "assets/textures/vendor/polyhaven/brown_mud_leaves_01/brown_mud_leaves_01_diff_1k.jpg";
 const assetOnlyReliefTexturePath = "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg";
 const assetOnlyPathTexturePath = "assets/textures/vendor/polyhaven/stony_dirt_path/stony_dirt_path_diff_1k.jpg";
-const assetOnlyWaterTexturePath = "assets/textures/vendor/polyhaven/low_tide_rocks/low_tide_rocks_diff_1k.jpg";
+const assetOnlyWaterTexturePath = "assets/textures/vendor/polyhaven/river_small_rocks/river_small_rocks_diff_1k.jpg";
 const assetOnlyTerrainVisualScale = 1.62;
 const assetOnlyTerrainVisualSize = worldSize * assetOnlyTerrainVisualScale;
 const terrainZoneById = new Map(zones.map((zone) => [zone.id, zone]));
@@ -345,8 +345,8 @@ function createAssetOnlyTerrainMaterial() {
       textureScale: { value: assetOnlyTerrainVisualScale },
       ambientColor: { value: new THREE.Color(0x1a231c) },
       keyLightColor: { value: new THREE.Color(0xfff1ce) },
-      waterDeep: { value: new THREE.Color(0x123f47) },
-      waterShallow: { value: new THREE.Color(0x6ca7a2) }
+      waterDeep: { value: new THREE.Color(0x0a2522) },
+      waterShallow: { value: new THREE.Color(0x31534a) }
     },
     vertexShader: `
       attribute float pathMask;
@@ -395,15 +395,15 @@ function createAssetOnlyTerrainMaterial() {
         vec3 waterTex = texture2D(waterMap, vUv * 4.2 * textureScale).rgb;
         float relief = smoothstep(0.12, 0.72, vReliefMask) * (1.0 - vPathMask * 0.5);
         float path = smoothstep(0.08, 0.72, vPathMask);
-        float water = smoothstep(0.44, 0.92, vWaterMask);
+        float water = smoothstep(0.5, 0.96, vWaterMask);
         float shallow = 1.0 - smoothstep(0.72, 1.0, vWaterMask);
         vec3 pathShoulder = mix(fieldTex, pathTex, 0.52);
         vec3 land = mix(fieldTex, reliefTex, relief);
         land = mix(land, pathShoulder, smoothstep(0.02, 0.42, vPathMask) * 0.3);
         land = mix(land, pathTex, path * 0.72);
-        vec3 wetStone = waterTex * vec3(0.48, 0.68, 0.66);
+        vec3 wetStone = waterTex * vec3(0.30, 0.39, 0.34);
         vec3 waterCol = mix(waterDeep, waterShallow, clamp(vWaterMask, 0.0, 1.0));
-        waterCol = mix(waterCol, wetStone, 0.34 + shallow * 0.28);
+        waterCol = mix(waterCol, wetStone, 0.24 + shallow * 0.46);
         vec3 base = mix(land, waterCol, water);
         float light = clamp(dot(normalize(vNormalView), normalize(vec3(-0.22, 0.82, 0.52))) * 0.48 + 0.58 + vShadeBias, 0.28, 1.18);
         vec3 lit = base * mix(ambientColor, keyLightColor, light);

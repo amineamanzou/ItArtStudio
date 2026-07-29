@@ -66,9 +66,9 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v131",
+    "id": "public-terrain-core-v133",
     "phase": "public-terrain-first-runtime",
-    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor brown-mud-leaf/stony-dirt-path/relief/water-edge textures, lower integrated pond surfaces and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles, visible map-edge voids or hero/factory clutter.",
+    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor brown-mud-leaf/stony-dirt-path/relief/river-pebble water-edge textures, subdued integrated pond surfaces that read as wet shoreline instead of blue plates, and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across the outer map with no generated decorative primitives, road tiles, river tiles, visible map-edge voids or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
     "requiredPlayerAssetId": "accepted-car-vehicle-core",
     "requiredPlayerFile": "race.glb",
@@ -279,7 +279,7 @@
       "assets/textures/vendor/polyhaven/brown_mud_leaves_01/brown_mud_leaves_01_diff_1k.jpg",
       "assets/textures/vendor/polyhaven/stony_dirt_path/stony_dirt_path_diff_1k.jpg",
       "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg",
-      "assets/textures/vendor/polyhaven/low_tide_rocks/low_tide_rocks_diff_1k.jpg"
+      "assets/textures/vendor/polyhaven/river_small_rocks/river_small_rocks_diff_1k.jpg"
     ],
     "requiredMaterialStyleRoles": [
       "bridge-stone",
@@ -408,7 +408,7 @@
     "maximumHeroLocationPlacements": 0,
     "allowedGeneratedSubstrate": "single extended terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief/water-edge material; visible public decor must come from downloaded vendor GLB/glTF.",
     "fallback": "If a terrain GLB fails, omit that placement and keep the public world sparse rather than replacing it with a generated rectangle, cone, halo, plate or abstract primitive.",
-    "nextAction": "Review the v131 north/south/east/west terrain-only screenshots for integrated pond surfaces and shoreline readability before densifying Cloud Dock, Design Atelier or Observability Tower."
+    "nextAction": "Review the v133 north/south/east/west terrain-only screenshots for wet shoreline readability before densifying Cloud Dock, Design Atelier or Observability Tower."
   },
   "publicTerrainMaterialCore": {
     "id": "polyhaven-terrain-material-v112",
@@ -1447,12 +1447,12 @@
     },
     {
       "id": "accepted-polyhaven-low-tide-rocks-water-texture",
-      "status": "integrated",
+      "status": "accepted",
       "sourceId": "polyhaven",
       "kind": "texture-set",
       "target": "map",
       "terrainRole": "water",
-      "narrativeRole": "Downloaded CC0 low-tide rocks diffuse texture used to break the flat public water and shore material with a real wet-edge surface before fuller water asset work.",
+      "narrativeRole": "Downloaded CC0 low-tide rocks diffuse texture retained as a fallback wet-edge candidate after v132 moved public water/shore styling to river pebble material.",
       "preferredFormat": "JPG",
       "assetPageUrl": "https://polyhaven.com/a/low_tide_rocks",
       "downloadUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/low_tide_rocks/low_tide_rocks_diff_1k.jpg",
@@ -1467,7 +1467,31 @@
       "styleFit": "medium",
       "qaProof": "qa/artifacts/2026-07-29T14-41-51-225Z/report.md#public-terrain-core",
       "proceduralFallback": "If this downloaded texture fails to load, public terrain keeps the darker water tint and no generated ripple or synthetic pattern is added.",
-      "nextAction": "Source dedicated water and shoreline GLB assets so the next pass can shape banks and crossings instead of relying on a single pond surface."
+      "nextAction": "Keep as fallback only if river_small_rocks proves too gray in public screenshots."
+    },
+    {
+      "id": "accepted-polyhaven-river-small-rocks-water-texture",
+      "status": "integrated",
+      "sourceId": "polyhaven",
+      "kind": "texture-set",
+      "target": "map",
+      "terrainRole": "water",
+      "narrativeRole": "Downloaded CC0 river pebble diffuse texture used as the public water-edge material so lakes and ponds read as shallow rocky banks rather than coastal gravel or blue plates.",
+      "preferredFormat": "JPG",
+      "assetPageUrl": "https://polyhaven.com/a/river_small_rocks",
+      "downloadUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/river_small_rocks/river_small_rocks_diff_1k.jpg",
+      "licenseUrl": "https://polyhaven.com/license",
+      "retrievedAt": "2026-07-29",
+      "sha256": "adbcaae1f1445d5b49797c71ea2c3f43ccaf7b109f933a427f0d0993d1dbbc51",
+      "localPath": "public/assets/textures/vendor/polyhaven/river_small_rocks",
+      "publicPath": "assets/textures/vendor/polyhaven/river_small_rocks",
+      "fileKb": 1004.6,
+      "selectedFiles": ["river_small_rocks_diff_1k.jpg"],
+      "budget": { "maxKb": 1200, "targetResolution": 1024 },
+      "styleFit": "medium",
+      "qaProof": "qa/artifacts/2026-07-29T20-02-01-185Z/report.md#public-asset-only-terrain-core",
+      "proceduralFallback": "If this downloaded texture fails to load, public terrain falls back to the accepted low-tide rocks texture rather than drawing generated water ripples or synthetic shore marks.",
+      "nextAction": "Validate v133 screenshots to ensure river pebbles improve shoreline credibility and remove the blue-plate reading."
     },
     {
       "id": "accepted-polyhaven-stony-dirt-texture",

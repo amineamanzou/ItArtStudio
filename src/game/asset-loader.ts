@@ -110,7 +110,7 @@ type MapPlacementSpec = PreviewSpec & {
 
 const manifest = worldAssetManifest as WorldAssetManifest;
 const zoneById = new Map(zones.map((zone) => [zone.id, zone]));
-const publicWaterEdgeTexturePath = "assets/textures/vendor/polyhaven/low_tide_rocks/low_tide_rocks_diff_1k.jpg";
+const publicWaterEdgeTexturePath = "assets/textures/vendor/polyhaven/river_small_rocks/river_small_rocks_diff_1k.jpg";
 let publicWaterEdgeTexture: THREE.Texture | null = null;
 const introSafeTerrainOffset: [number, number] = [5.8, 6.4];
 
@@ -591,8 +591,7 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
     const isPondSurface = spec.preferredFile.startsWith("pond-");
     const isRock = spec.preferredFile.startsWith("rock-");
     const styleRole = isPondSurface ? "water-surface-textured" : isRock ? "water-bank-rock" : "water-plant";
-    const materialColor = isPondSurface ? 0x17414a : isRock ? 0x8b806f : 0x4f7f55;
-    const emissiveColor = isPondSurface ? 0x0b3139 : 0x000000;
+    const materialColor = isPondSurface ? 0x26352b : isRock ? 0x8b806f : 0x4f7f55;
 
     wrapper.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) {
@@ -601,13 +600,13 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
       object.material = new THREE.MeshStandardMaterial({
         color: materialColor,
         map: isPondSurface ? getPublicWaterEdgeTexture() : null,
-        roughness: isPondSurface ? 0.22 : 0.82,
-        metalness: isPondSurface ? 0.02 : 0,
+        roughness: isPondSurface ? 0.72 : 0.82,
+        metalness: 0,
         transparent: isPondSurface,
-        opacity: isPondSurface ? 0.78 : 1,
+        opacity: isPondSurface ? 0.46 : 1,
         depthWrite: !isPondSurface,
-        emissive: emissiveColor,
-        emissiveIntensity: isPondSurface ? 0.06 : 0
+        emissive: 0x000000,
+        emissiveIntensity: 0
       });
       object.renderOrder = isPondSurface ? -1 : object.renderOrder;
       object.userData.externalAssetMaterialStyleRole = styleRole;
