@@ -9044,16 +9044,15 @@ async function checkStaticPlayableProofReel(browser, page, homeCapture) {
     {
       routeId: "art-gate-design",
       family: "art",
-      position: { x: 6.4, z: -4.84 },
-      radius: 1.1,
-      timeoutMs: 12_000,
+      position: { x: 4.22, z: -3.15 },
+      radius: 1.25,
+      timeoutMs: 14_000,
       route: [
-        { id: "static-art-design-jump", miniMapZoneId: "design-atelier", timeoutMs: 10_000, pauseMs: 240 },
-        { id: "static-art-from-atelier", position: { x: 9.1, z: -6.2 }, radius: 1.7, timeoutMs: 12_000, overshootBrake: true },
-        { id: "static-art-from-studio", position: { x: 7.4, z: -5.5 }, radius: 1.55, timeoutMs: 12_000, overshootBrake: true },
+        { id: "static-art-gate-jump", miniMapZoneId: "studio-gate", timeoutMs: 10_000, pauseMs: 240 },
+        { id: "static-art-gate-approach", position: { x: 2.15, z: -1.6 }, radius: 1.5, timeoutMs: 12_000, overshootBrake: true },
         {
           id: "static-art-gate-design",
-          position: { x: 6.4, z: -4.84 },
+          position: { x: 4.22, z: -3.15 },
           radius: 1.45,
           timeoutMs: 16_000,
           overshootBrake: true,

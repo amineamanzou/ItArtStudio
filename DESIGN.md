@@ -1323,6 +1323,24 @@ Gates V9.2:
   obligatoires, tout en exposant les nouveaux roles texture hero-location dans
   le snapshot.
 
+Gates V9.3:
+
+- `scripts/generate-signature-assets.mjs` genere une collection locale
+  separee `premium` pour eviter de gonfler les collections `hero` et
+  `environment` deja acceptees;
+- la nouvelle collection `accepted-itart-signature-premium-v93` ajoute
+  `cloud-infra-gateway.glb`, `atelier-garment-loom.glb` et
+  `observability-signal-spire.glb`, soit 235.3 KB et 5 632 triangles;
+- chaque hero location gagne une silhouette premium distincte dans
+  `?assets=map`: arche serveur/fibre pour Cloud Dock, metier textile pour
+  Design Atelier, spire de signal pour Observability Tower;
+- ces trois GLB ne sont pas promus dans le runtime `core` public tant que les
+  captures `external-asset-hero-location-*` ne prouvent pas leur lisibilite
+  sans bruit ni depassement renderer;
+- `external-asset-map-composition` derive maintenant des contrats manifest au
+  moins 12 placements Cloud Dock, 11 Design Atelier et 12 Observability Tower,
+  avec les roles premium V9.3 obligatoires.
+
 ## Components
 
 - `game-site`: surface principale.

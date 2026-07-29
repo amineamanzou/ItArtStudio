@@ -59,6 +59,9 @@ Accepted runtime packs:
 - `public/assets/models/local/itart-signature-kit/environment`: 3 generated GLB
   environment pieces, one per hero location: cloud server pier, atelier cutting
   island and observability trace station.
+- `public/assets/models/local/itart-signature-kit/premium`: 3 generated V9.3
+  GLB silhouettes, one per hero location: cloud infra gateway, atelier garment
+  loom and observability signal spire.
 - `public/assets/textures/map/hero`: 3 SVG runtime texture pads for Cloud Dock,
   Design Atelier and Observability Tower.
 
@@ -74,8 +77,9 @@ Hero-location curation:
   gap.
 - The Factory Kit integration is an accelerator, not the final premium library.
   The local signature kit fills the first recognisable-silhouette gap enough for
-  visual QA: three anchors per hero location plus one authored environment
-  furniture piece per hero location.
+  visual QA: three anchors per hero location, one authored environment
+  furniture piece per hero location and one V9.3 premium silhouette per hero
+  location in the `?assets=map` inspection layer.
 - The local kit is generated from `scripts/generate-signature-assets.mjs`, then
   declared in the manifest like any other accepted runtime collection. Future
   Blender assets should replace these generated silhouettes once their visual

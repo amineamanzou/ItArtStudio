@@ -25,3 +25,5 @@ Current accepted local roots:
   Dock, Design Atelier and Observability Tower.
 - `local/itart-signature-kit/environment`: project-authored GLB environment
   furniture for the three hero locations.
+- `local/itart-signature-kit/premium`: project-authored V9.3 GLB silhouettes
+  held in `?assets=map` before any public core promotion.

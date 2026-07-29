@@ -46,6 +46,10 @@ const material = (color: number, emissive = 0.12, opacity = 0.88) =>
     opacity
   });
 
+const routeEncounterProgressOverrides: Record<string, number> = {
+  "art-gate-design": 0.22
+};
+
 const createChevronGeometry = () => {
   const shape = new THREE.Shape();
   shape.moveTo(-0.29, -0.22);
@@ -180,7 +184,7 @@ function createEncounterGate(routeId: string, color: number, points: Array<[numb
     return null;
   }
 
-  let remaining = totalLength * 0.52;
+  let remaining = totalLength * (routeEncounterProgressOverrides[routeId] ?? 0.52);
   let selected = segments[0];
   for (const segment of segments) {
     selected = segment;

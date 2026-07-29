@@ -177,9 +177,9 @@ Baseline actuelle:
   kit local IT Art Studio;
 - modeles runtime acceptes: routes, route-edge, ponts, eau, relief,
   vegetation;
-- collection signature locale IT Art Studio: 12 GLB custom pour les lieux hero,
-  soit 790.0 KB / 19 876 triangles repartis entre 9 ancres signature et 3
-  pieces d'environnement;
+- collection signature locale IT Art Studio: 15 GLB custom pour les lieux hero,
+  soit 1025.3 KB / 25 508 triangles repartis entre 9 ancres signature, 3
+  pieces d'environnement et 3 silhouettes premium V9.3;
 - textures runtime acceptees et promues: route, vegetation/open-field, eau,
   relief et pads distinctifs pour les trois hero locations;
 - runtime public: couche GLB `core` curatee par defaut, avec `?assets=off` pour
@@ -247,21 +247,23 @@ Hero locations:
 
 Baseline actuelle:
 
-- `Cloud Dock`: 10 placements GLB runtime obligatoires, dont
-  `server-cloud-node`, `cloud-circuit-bridge` et `cloud-energy-anchor`;
-- `Design Atelier`: 9 placements GLB runtime obligatoires, dont
+- `Cloud Dock`: 12 placements GLB runtime obligatoires, dont
+  `server-cloud-node`, `cloud-circuit-bridge`, `cloud-energy-anchor` et
+  `cloud-infra-gateway`;
+- `Design Atelier`: 11 placements GLB runtime obligatoires, dont
   `mannequin-fabric-rack`, `atelier-drape-frame` et
-  `atelier-pattern-wall`;
-- `Observability Tower`: 10 placements GLB runtime obligatoires, dont
+  `atelier-pattern-wall`, avec `atelier-garment-loom` comme ancre premium;
+- `Observability Tower`: 12 placements GLB runtime obligatoires, dont
   `telemetry-radar-mast`, `telemetry-screen-array` et
-  `telemetry-trace-beacon`;
+  `telemetry-trace-beacon`, avec `observability-signal-spire` comme ancre
+  premium;
 - les nouveaux assets signature sont repartis en micro-clusters pour enrichir
   les silhouettes sans creer d'empilement visuel.
 - la page publique charge deja un noyau de signatures par lieu: au moins trois
   roles hero-location par zone dans la QA `external-asset-core-runtime`.
 - la couche `?assets=map` sert de banc d'inspection plus dense et exige
-  maintenant au moins 12 placements hero-location, dont trois roles signature
-  locaux par zone avant promotion dans le core public.
+  maintenant au moins 35 placements hero-location au total, dont un role
+  premium local V9.3 par zone avant promotion dans le core public.
 
 Definition of done:
 

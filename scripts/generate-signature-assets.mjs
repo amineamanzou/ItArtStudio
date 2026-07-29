@@ -6,6 +6,7 @@ import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 const root = process.cwd();
 const heroOutputDir = path.join(root, "public", "assets", "models", "local", "itart-signature-kit", "hero");
 const environmentOutputDir = path.join(root, "public", "assets", "models", "local", "itart-signature-kit", "environment");
+const premiumOutputDir = path.join(root, "public", "assets", "models", "local", "itart-signature-kit", "premium");
 
 if (!globalThis.FileReader) {
   globalThis.FileReader = class NodeFileReader {
@@ -376,6 +377,79 @@ function createObservabilityTraceStation() {
   return group;
 }
 
+function createCloudInfraGateway() {
+  const group = new THREE.Group();
+  group.name = "itart-cloud-infra-gateway";
+
+  addBox(group, "network-arch-service-pad", [1.92, 0.12, 0.94], [0, 0.06, 0], mats.techDeep);
+  addCylinder(group, "arch-left-server-leg", 0.07, 0.09, 1.22, [-0.72, 0.67, 0], mats.ink, [0, 0, 0], 10);
+  addCylinder(group, "arch-right-server-leg", 0.07, 0.09, 1.22, [0.72, 0.67, 0], mats.ink, [0, 0, 0], 10);
+  addBox(group, "arch-left-rack-face", [0.3, 0.92, 0.05], [-0.72, 0.68, -0.11], mats.graphite);
+  addBox(group, "arch-right-rack-face", [0.3, 0.92, 0.05], [0.72, 0.68, -0.11], mats.graphite);
+  for (let index = 0; index < 4; index += 1) {
+    addBox(group, `arch-left-server-light-${index}`, [0.2, 0.026, 0.024], [-0.72, 0.36 + index * 0.16, -0.15], index % 2 ? mats.tech : mats.studio);
+    addBox(group, `arch-right-server-light-${index}`, [0.2, 0.026, 0.024], [0.72, 0.36 + index * 0.16, -0.15], index % 2 ? mats.warm : mats.tech);
+  }
+  addTube(group, "fiber-arch-primary", [[-0.72, 1.2, -0.03], [-0.34, 1.58, -0.16], [0.0, 1.72, -0.18], [0.34, 1.58, -0.16], [0.72, 1.2, -0.03]], 0.025, mats.tech);
+  addTube(group, "fiber-arch-return", [[-0.64, 1.02, 0.18], [-0.26, 1.34, 0.34], [0.1, 1.2, 0.3], [0.52, 1.42, 0.2], [0.8, 1.08, 0.1]], 0.018, mats.warm);
+  addSphere(group, "arch-cloud-left", 0.22, [-0.4, 1.64, -0.05], mats.techGlass, [1.3, 0.72, 0.8]);
+  addSphere(group, "arch-cloud-center", 0.28, [0.06, 1.74, -0.08], mats.techGlass, [1.45, 0.74, 0.82]);
+  addSphere(group, "arch-cloud-right", 0.2, [0.5, 1.62, -0.04], mats.techGlass, [1.15, 0.7, 0.78]);
+  addSphere(group, "arch-routing-node-a", 0.075, [-0.28, 1.35, -0.24], mats.tech);
+  addSphere(group, "arch-routing-node-b", 0.07, [0.22, 1.48, -0.26], mats.warm);
+  addBox(group, "dock-direction-strip", [1.36, 0.035, 0.045], [0, 0.2, -0.48], mats.tech);
+
+  return group;
+}
+
+function createAtelierGarmentLoom() {
+  const group = new THREE.Group();
+  group.name = "itart-atelier-garment-loom";
+
+  addBox(group, "loom-floor-runner", [1.86, 0.1, 0.84], [0, 0.05, 0], mats.studio);
+  addCylinder(group, "loom-left-post", 0.028, 0.038, 1.18, [-0.72, 0.68, 0.02], mats.ink, [0, 0, 0], 8);
+  addCylinder(group, "loom-right-post", 0.028, 0.038, 1.18, [0.72, 0.68, 0.02], mats.ink, [0, 0, 0], 8);
+  addCylinder(group, "loom-top-bar", 0.026, 0.026, 1.52, [0, 1.26, 0.02], mats.ink, [0, 0, Math.PI * 0.5], 8);
+  addCylinder(group, "loom-bottom-bar", 0.026, 0.026, 1.48, [0, 0.44, 0.02], mats.ink, [0, 0, Math.PI * 0.5], 8);
+  for (let index = 0; index < 7; index += 1) {
+    const x = -0.48 + index * 0.16;
+    addBox(group, `vertical-warp-thread-${index}`, [0.018, 0.78, 0.018], [x, 0.84, -0.08], index % 3 === 0 ? mats.art : index % 3 === 1 ? mats.studio : mats.cloth);
+  }
+  addTube(group, "woven-thread-coral", [[-0.62, 0.98, -0.12], [-0.24, 0.86, -0.18], [0.18, 1.02, -0.12], [0.62, 0.88, -0.16]], 0.019, mats.cloth);
+  addTube(group, "woven-thread-cream", [[-0.6, 0.72, -0.08], [-0.18, 0.84, -0.14], [0.2, 0.68, -0.08], [0.64, 0.8, -0.14]], 0.017, mats.studio);
+  addCylinder(group, "fabric-roll-back", 0.09, 0.09, 1.34, [0, 1.4, 0.16], mats.artDeep, [0, 0, Math.PI * 0.5], 14);
+  addCylinder(group, "fabric-roll-front", 0.075, 0.075, 1.16, [0, 0.28, -0.24], mats.cloth, [0, 0, Math.PI * 0.5], 14);
+  addBox(group, "loom-shuttle", [0.38, 0.052, 0.11], [0.32, 0.62, -0.22], mats.warm, [0, 0.18, 0.03]);
+  addBox(group, "pedal-left", [0.34, 0.035, 0.18], [-0.28, 0.16, 0.28], mats.ink, [0, 0.14, 0]);
+  addBox(group, "pedal-right", [0.34, 0.035, 0.18], [0.28, 0.16, 0.28], mats.ink, [0, -0.14, 0]);
+
+  return group;
+}
+
+function createObservabilitySignalSpire() {
+  const group = new THREE.Group();
+  group.name = "itart-observability-signal-spire";
+
+  addBox(group, "relay-service-pad", [1.58, 0.12, 0.92], [0, 0.06, 0], mats.ink);
+  addCylinder(group, "relay-left-uplink", 0.036, 0.052, 1.34, [-0.52, 0.76, 0.02], mats.graphite, [0, 0, -0.08], 10);
+  addCylinder(group, "relay-right-uplink", 0.036, 0.052, 1.24, [0.52, 0.72, 0.02], mats.graphite, [0, 0, 0.08], 10);
+  addBox(group, "relay-trace-wall", [1.08, 0.72, 0.07], [0, 0.68, -0.24], mats.techDeep, [-0.08, 0, 0]);
+  for (let index = 0; index < 6; index += 1) {
+    const y = 0.42 + index * 0.095;
+    addBox(group, `relay-log-line-${index}`, [0.18 + (index % 3) * 0.14, 0.022, 0.026], [-0.34 + index * 0.13, y, -0.3], index % 2 ? mats.warm : mats.tech);
+  }
+  addTube(group, "relay-trace-primary", [[-0.62, 0.24, 0.28], [-0.28, 0.7, 0.12], [0.06, 1.08, -0.12], [0.48, 1.38, -0.24]], 0.016, mats.tech);
+  addTube(group, "relay-trace-secondary", [[0.62, 0.24, 0.26], [0.22, 0.62, 0.16], [-0.06, 0.98, -0.08], [-0.44, 1.28, -0.22]], 0.014, mats.warm);
+  addTorus(group, "relay-scan-orbit-low", 0.42, 0.012, [0, 0.94, 0.02], mats.tech, [Math.PI * 0.5, 0.32, 0]);
+  addTorus(group, "relay-scan-orbit-high", 0.3, 0.011, [0, 1.32, 0.0], mats.warm, [Math.PI * 0.5, -0.2, 0]);
+  addSphere(group, "relay-correlation-node", 0.1, [0, 1.48, -0.18], mats.techGlass, [1.12, 0.88, 1]);
+  addSphere(group, "relay-alert-node-left", 0.055, [-0.46, 0.96, -0.26], mats.warm);
+  addSphere(group, "relay-alert-node-right", 0.052, [0.42, 0.84, -0.26], mats.tech);
+  addBox(group, "relay-metric-stack", [0.72, 0.08, 0.16], [0, 0.22, 0.3], mats.graphite);
+
+  return group;
+}
+
 const assets = [
   { outputDir: heroOutputDir, fileName: "server-cloud-node.glb", scene: createServerCloudNode() },
   { outputDir: heroOutputDir, fileName: "atelier-mannequin-rack.glb", scene: createAtelierMannequinRack() },
@@ -388,11 +462,15 @@ const assets = [
   { outputDir: heroOutputDir, fileName: "telemetry-trace-beacon.glb", scene: createTelemetryTraceBeacon() },
   { outputDir: environmentOutputDir, fileName: "cloud-server-pier.glb", scene: createCloudServerPier() },
   { outputDir: environmentOutputDir, fileName: "atelier-cutting-island.glb", scene: createAtelierCuttingIsland() },
-  { outputDir: environmentOutputDir, fileName: "observability-trace-station.glb", scene: createObservabilityTraceStation() }
+  { outputDir: environmentOutputDir, fileName: "observability-trace-station.glb", scene: createObservabilityTraceStation() },
+  { outputDir: premiumOutputDir, fileName: "cloud-infra-gateway.glb", scene: createCloudInfraGateway() },
+  { outputDir: premiumOutputDir, fileName: "atelier-garment-loom.glb", scene: createAtelierGarmentLoom() },
+  { outputDir: premiumOutputDir, fileName: "observability-signal-spire.glb", scene: createObservabilitySignalSpire() }
 ];
 
 fs.mkdirSync(heroOutputDir, { recursive: true });
 fs.mkdirSync(environmentOutputDir, { recursive: true });
+fs.mkdirSync(premiumOutputDir, { recursive: true });
 const exporter = new GLTFExporter();
 const results = [];
 

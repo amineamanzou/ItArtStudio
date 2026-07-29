@@ -1009,8 +1009,8 @@ function addFashionTerrainWeave(
 ) {
   const center = zones.find((zone) => zone.id === "fashion-room")?.position ?? [10.8, 19.8];
   const bandCount = 26;
-  const stitchCount = 52;
-  const pinCount = 18;
+  const stitchCount = 64;
+  const pinCount = 24;
   const shadowCount = bandCount;
   const aiTraceCount = 36;
   const aiNodeCount = 42;
@@ -1042,10 +1042,10 @@ function addFashionTerrainWeave(
     instanceIndex += 1;
     signatures.push(`fashion-weave:band:${index}`);
 
-    scale.set(2.25 + (index % 5) * 0.28, 0.026, 0.105);
-    matrix.compose(new THREE.Vector3(x + 0.08, 0.128, z - 0.08), quaternion, scale);
+    scale.set(1.68 + (index % 5) * 0.22, 0.022, 0.082);
+    matrix.compose(new THREE.Vector3(x + 0.08, 0.13, z - 0.08), quaternion, scale);
     weave.setMatrixAt(instanceIndex, matrix);
-    weave.setColorAt(instanceIndex, color.setHex((inkMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0x070a0d));
+    weave.setColorAt(instanceIndex, color.setHex(index % 3 === 0 ? 0x5d2336 : ((inkMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0x070a0d)));
     instanceIndex += 1;
     signatures.push(`fashion-weave:shadow:${index}`);
   }
@@ -1056,10 +1056,10 @@ function addFashionTerrainWeave(
     const x = center[0] - 5.2 + t * 10.4;
     const z = center[1] + side * (1.86 + Math.sin(t * Math.PI * 3) * 0.34);
     quaternion.setFromEuler(new THREE.Euler(0, -0.68 + side * 0.18, 0));
-    scale.set(0.28 + (index % 3) * 0.04, 0.04, 0.074);
+    scale.set(0.3 + (index % 4) * 0.04, 0.044, 0.082);
     matrix.compose(new THREE.Vector3(x, 0.19 + (index % 4) * 0.002, z), quaternion, scale);
     weave.setMatrixAt(instanceIndex, matrix);
-    weave.setColorAt(instanceIndex, color.setHex((roadMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0xdfe6ce));
+    weave.setColorAt(instanceIndex, color.setHex(index % 4 === 0 ? 0xffe38a : ((roadMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0xdfe6ce)));
     instanceIndex += 1;
     signatures.push(`fashion-weave:stitch:${index}`);
   }

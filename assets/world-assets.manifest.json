@@ -6,7 +6,7 @@
   "budgets": {
     "acceptedModelMaxKb": 1800,
     "acceptedTextureMaxKb": 4096,
-    "heroLocationModelBudget": 14,
+    "heroLocationModelBudget": 16,
     "heroLocationTextureBudget": 10,
     "rendererTextureCap": 24,
     "rendererTriangleCap": 110000,
@@ -15,25 +15,25 @@
   "heroLocations": ["cloud-dock", "design-atelier", "observability-tower"],
   "heroLocationCuration": {
     "cloud-dock": {
-      "visualSignature": "Infra dock: server-like machine blocks, service deck, cable trunks, screen panels, electric masts and a cloud circuit bridge around the harbor edge.",
-      "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-itart-signature-environment-core", "accepted-factory-industrial-core", "accepted-city-route-edge-core", "accepted-city-road-core"],
-      "requiredVisualRoles": ["server-cloud-node", "cloud-circuit-bridge", "cloud-energy-anchor", "cloud-server-pier", "rack-core", "cable-trunk", "service-deck", "ops-screen", "electric-mast", "platform-span"],
-      "minRuntimePlacements": 11,
-      "nextCustomAsset": "Upgrade the generated node, pier and energy anchor into a richer Blender-authored server dock with cooling fins, visible cabling and cloud-energy anchors."
+      "visualSignature": "Infra dock: server-like machine blocks, service deck, cable trunks, screen panels, electric masts, a cloud circuit bridge and an infra gateway around the harbor edge.",
+      "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-itart-signature-environment-core", "accepted-itart-signature-premium-v93", "accepted-factory-industrial-core", "accepted-city-route-edge-core", "accepted-city-road-core"],
+      "requiredVisualRoles": ["server-cloud-node", "cloud-circuit-bridge", "cloud-energy-anchor", "cloud-server-pier", "cloud-infra-gateway", "rack-core", "cable-trunk", "service-deck", "ops-screen", "electric-mast", "platform-span"],
+      "minRuntimePlacements": 12,
+      "nextCustomAsset": "Upgrade the generated node, pier, infra gateway and energy anchor into a richer Blender-authored server dock with cooling fins, visible cabling and cloud-energy anchors."
     },
     "design-atelier": {
-      "visualSignature": "Fashion atelier: mannequin, drape frame, cutting table, worktop, pattern corner, swatch crates, reference screen and softer art markers.",
-      "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-itart-signature-environment-core", "accepted-factory-industrial-core", "accepted-nature-bridge-core", "accepted-nature-vegetation-core"],
-      "requiredVisualRoles": ["mannequin-fabric-rack", "atelier-drape-frame", "atelier-pattern-wall", "atelier-cutting-island", "cutting-table", "worktop", "pattern-corner", "swatch-crate", "reference-screen", "swatch-marker"],
-      "minRuntimePlacements": 10,
-      "nextCustomAsset": "Upgrade the generated mannequin, cutting island and pattern wall into a more premium atelier asset with garment drape, pins, pattern curves and a fabric rail."
+      "visualSignature": "Fashion atelier: mannequin, drape frame, cutting table, worktop, garment loom, pattern corner, swatch crates, reference screen and softer art markers.",
+      "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-itart-signature-environment-core", "accepted-itart-signature-premium-v93", "accepted-factory-industrial-core", "accepted-nature-bridge-core", "accepted-nature-vegetation-core"],
+      "requiredVisualRoles": ["mannequin-fabric-rack", "atelier-drape-frame", "atelier-pattern-wall", "atelier-cutting-island", "atelier-garment-loom", "cutting-table", "worktop", "pattern-corner", "swatch-crate", "reference-screen", "swatch-marker"],
+      "minRuntimePlacements": 11,
+      "nextCustomAsset": "Upgrade the generated mannequin, cutting island, garment loom and pattern wall into a more premium atelier asset with garment drape, pins, pattern curves and a fabric rail."
     },
     "observability-tower": {
-      "visualSignature": "Telemetry tower: high pylon, radar ring, screen array, screen wall, trace panel, data pipe and service platform.",
-      "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-itart-signature-environment-core", "accepted-factory-industrial-core", "accepted-city-route-edge-core", "accepted-city-road-core"],
-      "requiredVisualRoles": ["telemetry-radar-mast", "telemetry-screen-array", "telemetry-trace-beacon", "observability-trace-station", "signal-pylon", "radar-ring", "screen-wall", "trace-panel", "data-pipe", "service-platform"],
-      "minRuntimePlacements": 11,
-      "nextCustomAsset": "Upgrade the generated mast, trace station and trace beacon into a taller Blender-authored observability beacon with animated scan arcs and trace-beam anchors."
+      "visualSignature": "Telemetry tower: high pylon, radar ring, screen array, signal spire, screen wall, trace panel, data pipe and service platform.",
+      "requiredAssetIds": ["accepted-itart-signature-hero-core", "accepted-itart-signature-environment-core", "accepted-itart-signature-premium-v93", "accepted-factory-industrial-core", "accepted-city-route-edge-core", "accepted-city-road-core"],
+      "requiredVisualRoles": ["telemetry-radar-mast", "telemetry-screen-array", "telemetry-trace-beacon", "observability-trace-station", "observability-signal-spire", "signal-pylon", "radar-ring", "screen-wall", "trace-panel", "data-pipe", "service-platform"],
+      "minRuntimePlacements": 12,
+      "nextCustomAsset": "Upgrade the generated mast, trace station, signal spire and trace beacon into a taller Blender-authored observability beacon with animated scan arcs and trace-beam anchors."
     }
   },
   "terrainRoles": ["road", "water", "relief", "vegetation", "route-edge", "bridge"],
@@ -670,6 +670,29 @@
       "styleFit": "high",
       "proceduralFallback": "src/game/world-scenery.ts keeps procedural surface details and hero set dressing until the environment GLB set is QA-visible.",
       "nextAction": "Promote one piece per hero location in ?assets=map first, then decide whether each deserves the public core runtime."
+    },
+    {
+      "id": "accepted-itart-signature-premium-v93",
+      "status": "accepted",
+      "sourceId": "itart-signature-kit",
+      "kind": "model-collection",
+      "target": "map",
+      "terrainRole": "hero-location",
+      "narrativeRole": "Accepted local premium GLB set for V9.3 that adds one stronger authored silhouette per hero location before public core promotion.",
+      "preferredFormat": "GLB",
+      "localPath": "public/assets/models/local/itart-signature-kit/premium",
+      "publicPath": "assets/models/local/itart-signature-kit/premium",
+      "fileKb": 235.3,
+      "triangles": 5632,
+      "selectedFiles": [
+        "atelier-garment-loom.glb",
+        "cloud-infra-gateway.glb",
+        "observability-signal-spire.glb"
+      ],
+      "budget": { "maxKb": 520, "targetTriangles": 10000 },
+      "styleFit": "high",
+      "proceduralFallback": "src/game/world-scenery.ts keeps procedural hero-location silhouettes until the premium V9.3 GLB set is QA-visible.",
+      "nextAction": "Keep these pieces in ?assets=map until screenshots prove one premium anchor per hero location deserves promotion into the public core runtime."
     },
     {
       "id": "cloud-dock-skybridge-spaceport",
