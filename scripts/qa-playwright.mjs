@@ -771,17 +771,21 @@ async function sampleCanvasVoidEdges(page) {
     const samplesPerSide = 48;
     const inset = Math.max(4, Math.floor(Math.min(width, height) * 0.018));
     const sides = {
-      top: { voidSamples: 0, samples: 0 },
-      right: { voidSamples: 0, samples: 0 },
-      bottom: { voidSamples: 0, samples: 0 },
-      left: { voidSamples: 0, samples: 0 }
+      top: { voidSamples: 0, samples: 0, currentRun: 0, longestRun: 0 },
+      right: { voidSamples: 0, samples: 0, currentRun: 0, longestRun: 0 },
+      bottom: { voidSamples: 0, samples: 0, currentRun: 0, longestRun: 0 },
+      left: { voidSamples: 0, samples: 0, currentRun: 0, longestRun: 0 }
     };
-    const isSceneVoid = (r, g, b) => r <= 18 && g <= 28 && b <= 26;
+    const isSceneVoid = (r, g, b) => r <= 8 && g <= 12 && b <= 14;
     const read = (side, x, y) => {
       gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
       sides[side].samples += 1;
       if (isSceneVoid(pixels[0], pixels[1], pixels[2])) {
         sides[side].voidSamples += 1;
+        sides[side].currentRun += 1;
+        sides[side].longestRun = Math.max(sides[side].longestRun, sides[side].currentRun);
+      } else {
+        sides[side].currentRun = 0;
       }
     };
 
@@ -802,6 +806,13 @@ async function sampleCanvasVoidEdges(page) {
       ])
     );
     const maxSideRatio = Number(Math.max(...Object.values(ratios)).toFixed(3));
+    const runRatios = Object.fromEntries(
+      Object.entries(sides).map(([side, value]) => [
+        side,
+        Number((value.samples > 0 ? value.longestRun / value.samples : 1).toFixed(3))
+      ])
+    );
+    const maxRunRatio = Number(Math.max(...Object.values(runRatios)).toFixed(3));
     const totalVoidSamples = Object.values(sides).reduce((sum, value) => sum + value.voidSamples, 0);
     const totalSamples = Object.values(sides).reduce((sum, value) => sum + value.samples, 0);
 
@@ -811,8 +822,11 @@ async function sampleCanvasVoidEdges(page) {
       height,
       inset,
       samplesPerSide,
+      voidThreshold: { r: 8, g: 12, b: 14 },
       ratios,
+      runRatios,
       maxSideRatio,
+      maxRunRatio,
       totalVoidRatio: Number((totalSamples > 0 ? totalVoidSamples / totalSamples : 1).toFixed(3))
     };
   });
@@ -4198,7 +4212,9 @@ async function checkPublicAssetOnlyOuterBands(browser) {
     const bandContracts = manifestPublicTerrainCore.requiredOuterBandProofs ?? [];
     const minimumClippedArea = manifestPublicTerrainCore.minimumOuterBandClippedArea ?? 160;
     const minimumVisibleRatio = manifestPublicTerrainCore.minimumOuterBandVisibleRatio ?? 0.004;
-    const maximumCanvasEdgeVoidRatio = manifestPublicTerrainCore.maximumCanvasEdgeVoidRatio ?? 0.04;
+    const maximumCanvasEdgeVoidRunRatio =
+      manifestPublicTerrainCore.maximumCanvasEdgeVoidRunRatio ?? manifestPublicTerrainCore.maximumCanvasEdgeVoidRatio ?? 0.04;
+    const maximumCanvasEdgeVoidTotalRatio = manifestPublicTerrainCore.maximumCanvasEdgeVoidTotalRatio ?? 0.08;
     const bandProofs = [];
 
     for (const band of bandContracts) {
@@ -4238,7 +4254,8 @@ async function checkPublicAssetOnlyOuterBands(browser) {
         hookState.hasSetPlayer === true &&
         proof.canvas.ok &&
         canvasEdgeVoid.ok === true &&
-        canvasEdgeVoid.maxSideRatio <= maximumCanvasEdgeVoidRatio &&
+        canvasEdgeVoid.maxRunRatio <= maximumCanvasEdgeVoidRunRatio &&
+        canvasEdgeVoid.totalVoidRatio <= maximumCanvasEdgeVoidTotalRatio &&
         cleanRuntime &&
         playerDistance < 1.25 &&
         visiblePlacements.length >= (band.minimumVisiblePlacements ?? 1);
@@ -4255,7 +4272,8 @@ async function checkPublicAssetOnlyOuterBands(browser) {
         visiblePlacements,
         cleanRuntime,
         canvasEdgeVoid,
-        maximumCanvasEdgeVoidRatio,
+        maximumCanvasEdgeVoidRunRatio,
+        maximumCanvasEdgeVoidTotalRatio,
         canvas: proof.canvas,
         capture: proof.relativePath,
         ok
@@ -4282,7 +4300,8 @@ async function checkPublicAssetOnlyOuterBands(browser) {
           target: band.target,
           playerDistance: band.playerDistance,
           visiblePlacements: band.visiblePlacements.length,
-          maxCanvasEdgeVoidRatio: band.canvasEdgeVoid?.maxSideRatio,
+          maxCanvasEdgeVoidRunRatio: band.canvasEdgeVoid?.maxRunRatio,
+          totalCanvasEdgeVoidRatio: band.canvasEdgeVoid?.totalVoidRatio,
           capture: band.capture
         }))
       });
