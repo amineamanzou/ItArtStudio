@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-26",
+  "updatedAt": "2026-07-29",
   "strategy": "asset-first",
   "statusModel": ["candidate", "accepted", "integrated", "rejected"],
   "budgets": {
@@ -540,6 +540,28 @@
       "styleFit": "high",
       "proceduralFallback": "src/game/world-scenery.ts keeps contour rings and solid relief shading if the SVG texture fails to load.",
       "nextAction": "Use as the active relief accent material while cliffs and ramps are refined."
+    },
+    {
+      "id": "accepted-map-hero-location-texture-studio",
+      "status": "accepted",
+      "sourceId": "itart-procedural-texture-kit",
+      "kind": "texture-set",
+      "target": "map",
+      "terrainRole": "hero-location",
+      "narrativeRole": "Accepted stylized texture pads that give Cloud Dock, Design Atelier and Observability Tower distinct ground language without adding prop clutter.",
+      "preferredFormat": "SVG",
+      "localPath": "public/assets/textures/map/hero",
+      "publicPath": "assets/textures/map/hero",
+      "fileKb": 3.4,
+      "selectedFiles": [
+        "cloud-dock-circuit-pad.svg",
+        "design-atelier-pattern-pad.svg",
+        "observability-trace-pad.svg"
+      ],
+      "budget": { "maxKb": 64, "targetResolution": 512 },
+      "styleFit": "high",
+      "proceduralFallback": "src/game/world-scenery.ts keeps colored hero-location lighting and pads if the SVG texture files fail to load.",
+      "nextAction": "Use these as the active hero-location floor language while replacing generic props with better authored assets."
     },
     {
       "id": "cloud-dock-server-racks",

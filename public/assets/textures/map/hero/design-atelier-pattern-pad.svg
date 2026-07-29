@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#25171f"/>
+  <path d="M42 412c92-90 118-206 214-224s150 54 214-88" fill="none" stroke="#fff0cf" stroke-width="15" opacity=".34"/>
+  <path d="M70 388c82-66 119-144 188-154s117 44 184-42" fill="none" stroke="#ff7285" stroke-width="9" opacity=".5"/>
+  <path d="M112 94c44 36 44 103 0 139s-44 104 0 140" fill="none" stroke="#ffe38a" stroke-width="5" opacity=".36"/>
+  <path d="M316 78c-40 60-39 108 3 144s42 87-2 153" fill="none" stroke="#f7e7c5" stroke-width="5" opacity=".28"/>
+  <g fill="#ff6f7d" opacity=".5">
+    <circle cx="128" cy="92" r="9"/>
+    <circle cx="316" cy="78" r="9"/>
+    <circle cx="442" cy="192" r="8"/>
+    <circle cx="112" cy="374" r="9"/>
+  </g>
+  <g stroke="#8b2f49" stroke-width="4" opacity=".55">
+    <path d="M38 246h436M256 42v428"/>
+  </g>
+  <g fill="#f8f0d4" opacity=".34">
+    <rect x="180" y="294" width="86" height="28" rx="6" transform="rotate(-12 223 308)"/>
+    <rect x="274" y="340" width="112" height="28" rx="6" transform="rotate(9 330 354)"/>
+  </g>
+</svg>

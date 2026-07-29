@@ -16,6 +16,8 @@ enlarged map:
 - `field`: authored green ground grain for vegetation districts;
 - `water`: stylized water edge/foam material;
 - `relief`: contour/rock material for cliffs and height changes.
+- `hero`: authored ground pads for Cloud Dock, Design Atelier and
+  Observability Tower.
 
 These files are SVG source textures so they stay tiny, editable, and color
 coherent while the GLB map layer is still opt-in.

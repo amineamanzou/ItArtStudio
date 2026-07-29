@@ -59,6 +59,8 @@ Accepted runtime packs:
 - `public/assets/models/local/itart-signature-kit/environment`: 3 generated GLB
   environment pieces, one per hero location: cloud server pier, atelier cutting
   island and observability trace station.
+- `public/assets/textures/map/hero`: 3 SVG runtime texture pads for Cloud Dock,
+  Design Atelier and Observability Tower.
 
 The validator derives local file weight and triangle counts from the GLB files
 and refuses accepted entries when the manifest drifts from the runtime folders.

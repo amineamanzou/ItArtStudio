@@ -38,7 +38,7 @@ type SceneRole =
   | "route-light";
 type MotionBehavior = "pulse" | "sweep" | "tilt" | "float" | "blink" | "instance-pulse";
 
-type RuntimeMapTextureRole = "relief" | "road" | "vegetation" | "water";
+type RuntimeMapTextureRole = "cloud-dock" | "design-atelier" | "observability-tower" | "relief" | "road" | "vegetation" | "water";
 
 type RuntimeMapTexture = {
   role: RuntimeMapTextureRole;
@@ -50,7 +50,10 @@ const mapTextureSpecs: Array<{ role: RuntimeMapTextureRole; path: string; repeat
   { role: "vegetation", path: "assets/textures/map/field/field-grain-studio.svg", repeat: 9 },
   { role: "relief", path: "assets/textures/map/relief/relief-contours-studio.svg", repeat: 7 },
   { role: "road", path: "assets/textures/map/road/road-asphalt-studio.svg", repeat: 5 },
-  { role: "water", path: "assets/textures/map/water/water-edge-studio.svg", repeat: 4 }
+  { role: "water", path: "assets/textures/map/water/water-edge-studio.svg", repeat: 4 },
+  { role: "cloud-dock", path: "assets/textures/map/hero/cloud-dock-circuit-pad.svg", repeat: 2 },
+  { role: "design-atelier", path: "assets/textures/map/hero/design-atelier-pattern-pad.svg", repeat: 2 },
+  { role: "observability-tower", path: "assets/textures/map/hero/observability-trace-pad.svg", repeat: 2 }
 ];
 
 const runtimeAssetUrl = (path: string) => {
@@ -253,6 +256,7 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
 
   addWaterBodies(add, waterMat, studioMat);
   addReliefRamps(add, techMat, artMat, studioMat, roadMat, inkMat);
+  addHeroTexturePads(add, mapTextureByRole, palette);
   addSurfaceDetails(add, studioMat, roadMat, contourMat);
   addFashionTerrainWeave(add, artMat, studioMat, roadMat, inkMat);
   addTechSkyline(add, techMat, roadMat, inkMat);
@@ -595,6 +599,118 @@ function addReliefRamps(
     objectCount: ramps.length * 3,
     roleCount: ramps.length,
     motionCount: ramps.length
+  });
+}
+
+function addHeroTexturePads(
+  add: (
+    object: THREE.Object3D,
+    role: SceneRole,
+    signature: string,
+    motionBehavior?: MotionBehavior,
+    options?: { signatures?: string[]; objectCount?: number; roleCount?: number; motionCount?: number }
+  ) => void,
+  mapTextureByRole: Map<RuntimeMapTextureRole, THREE.Texture>,
+  palette: WorldSceneryPalette
+) {
+  const specs = [
+    {
+      id: "cloud-dock",
+      role: "cloud-dock" as const,
+      center: [-11.65, -24.15] as const,
+      size: [7.2, 5.8] as const,
+      rotation: -0.22,
+      color: palette.tech,
+      opacity: 0.36
+    },
+    {
+      id: "design-atelier",
+      role: "design-atelier" as const,
+      center: [21.25, -9.55] as const,
+      size: [6.9, 5.6] as const,
+      rotation: 0.38,
+      color: palette.art,
+      opacity: 0.34
+    },
+    {
+      id: "observability-tower",
+      role: "observability-tower" as const,
+      center: [-22.9, 9.55] as const,
+      size: [6.7, 5.7] as const,
+      rotation: 0.08,
+      color: palette.tech,
+      opacity: 0.32
+    }
+  ];
+
+  const geometry = new THREE.BufferGeometry();
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  const materials: THREE.MeshStandardMaterial[] = [];
+  const signatures: string[] = [];
+
+  specs.forEach((spec, index) => {
+    const texture = mapTextureByRole.get(spec.role);
+    if (!texture) {
+      return;
+    }
+    materials.push(new THREE.MeshStandardMaterial({
+      color: spec.color,
+      map: texture,
+      roughness: 0.46,
+      metalness: 0.12,
+      emissive: spec.color,
+      emissiveIntensity: 0.12,
+      transparent: true,
+      opacity: spec.opacity,
+      depthWrite: false
+    }));
+    const terrain = sampleTerrain(new THREE.Vector3(spec.center[0], 0, spec.center[1]));
+    const baseIndex = positions.length / 3;
+    const halfX = spec.size[0] * 0.5;
+    const halfZ = spec.size[1] * 0.5;
+    const cos = Math.cos(spec.rotation);
+    const sin = Math.sin(spec.rotation);
+    const y = terrain.height + 0.118 + index * 0.006;
+    const corners = [
+      [-halfX, -halfZ, 0, 0],
+      [halfX, -halfZ, 1, 0],
+      [halfX, halfZ, 1, 1],
+      [-halfX, halfZ, 0, 1]
+    ] as const;
+    for (const [localX, localZ, u, v] of corners) {
+      const x = spec.center[0] + localX * cos - localZ * sin;
+      const z = spec.center[1] + localX * sin + localZ * cos;
+      positions.push(x, y, z);
+      uvs.push(u, v);
+    }
+    indices.push(baseIndex, baseIndex + 1, baseIndex + 2, baseIndex, baseIndex + 2, baseIndex + 3);
+    geometry.addGroup(index * 6, 6, index);
+    signatures.push(`hero-texture-pad:${spec.id}:${spec.role}`);
+  });
+
+  if (positions.length === 0) {
+    return;
+  }
+
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+
+  const pads = new THREE.Mesh(geometry, materials);
+  pads.name = "hero-location-texture-pads";
+  pads.renderOrder = -0.5;
+  pads.receiveShadow = false;
+  pads.userData.mapTextureRole = "hero-location";
+  pads.userData.heroLocationTexturePad = true;
+  pads.userData.heroLocationTexturePadCount = specs.length;
+  pads.userData.heroLocationTexturePadRoles = specs.map((spec) => spec.role);
+  add(pads, "surface-detail", "hero-location-texture-pads", undefined, {
+    signatures,
+    objectCount: specs.length,
+    roleCount: specs.length
   });
 }
 
@@ -1194,8 +1310,7 @@ function addRouteLights(
   }
   const lights = new THREE.Group();
   lights.name = "route-light-instances";
-  const stems = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.026, 0.036, 0.5, 8), roadMat, markers.length);
-  const caps = new THREE.InstancedMesh(new THREE.SphereGeometry(0.09, 12, 8), roadMat, markers.length);
+  const posts = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.078, 0.034, 0.66, 10), roadMat, markers.length);
   const matrix = new THREE.Matrix4();
   const quaternion = new THREE.Quaternion();
 
@@ -1203,23 +1318,16 @@ function addRouteLights(
     quaternion.setFromEuler(new THREE.Euler(0, marker.angle, 0));
     const pulseScale = 0.82 + (marker.lane % 3) * 0.12;
     matrix.compose(
-      new THREE.Vector3(marker.x, 0.31 + marker.lane * 0.035, marker.z),
+      new THREE.Vector3(marker.x, 0.43 + marker.lane * 0.052, marker.z),
       quaternion,
-      new THREE.Vector3(0.82, pulseScale, 0.82)
+      new THREE.Vector3(0.82 + marker.lane * 0.05, pulseScale, 0.82 + marker.lane * 0.05)
     );
-    stems.setMatrixAt(index, matrix);
-    matrix.compose(
-      new THREE.Vector3(marker.x, 0.59 + marker.lane * 0.08, marker.z),
-      quaternion,
-      new THREE.Vector3(0.86 + marker.lane * 0.08, 0.86 + marker.lane * 0.08, 0.86 + marker.lane * 0.08)
-    );
-    caps.setMatrixAt(index, matrix);
+    posts.setMatrixAt(index, matrix);
   });
-  stems.instanceMatrix.needsUpdate = true;
-  caps.instanceMatrix.needsUpdate = true;
-  stems.userData.worldSceneryPart = "route-light-stem";
-  caps.userData.worldSceneryPart = "route-light-cap";
-  lights.add(stems, caps);
+  posts.instanceMatrix.needsUpdate = true;
+  posts.userData.worldSceneryPart = "route-light-compressed-post";
+  posts.userData.worldSceneryCompressedParts = ["stem", "cap"];
+  lights.add(posts);
 
   add(lights, "route-light", "route-light:instanced", "instance-pulse", {
     signatures: markers.map((marker, index) => `route-light:${marker.route.id}:${index}`),

@@ -181,7 +181,7 @@ Baseline actuelle:
   soit 790.0 KB / 19 876 triangles repartis entre 9 ancres signature et 3
   pieces d'environnement;
 - textures runtime acceptees et promues: route, vegetation/open-field, eau,
-  relief;
+  relief et pads distinctifs pour les trois hero locations;
 - runtime public: couche GLB `core` curatee par defaut, avec `?assets=off` pour
   comparer le fallback procedural-only, `?assets=preview` pour la planche de
   specimens et `?assets=map` pour la composition complete;

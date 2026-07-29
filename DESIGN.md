@@ -1307,6 +1307,22 @@ Gates V9.1:
   19 876 triangles, avec un objectif clair: remplacer progressivement les
   props generiques par des assets narratifs plus reconnaissables.
 
+Gates V9.2:
+
+- la texture library ajoute `accepted-map-hero-location-texture-studio`: trois
+  SVG de 512px pour donner un sol de scene distinct a `Cloud Dock`,
+  `Design Atelier` et `Observability Tower`;
+- ces textures pesent 3.4 KB au total et sont chargees par le runtime Three.js
+  comme vrais materiaux de carte, pas comme decoration HTML;
+- `world-scenery` pose trois pads bas et non bloquants sous les clusters hero
+  locations pour renforcer la reconnaissance en screenshot sans ajouter de
+  petits props generiques;
+- les pads sont regroupes dans un seul mesh multi-materiaux et les route lights
+  sont compresses pour conserver la marge `premium-scene-headroom` a 24/24;
+- la QA `map-texture-runtime` doit continuer a passer avec les roles terrain
+  obligatoires, tout en exposant les nouveaux roles texture hero-location dans
+  le snapshot.
+
 ## Components
 
 - `game-site`: surface principale.
