@@ -635,8 +635,8 @@ button {
   .zone-panel {
     left: var(--pad);
     right: var(--pad);
-    bottom: 192px;
-    max-height: 21svh;
+    bottom: 222px;
+    max-height: 19svh;
     overflow: auto;
     padding: 12px 12px 46px;
   }
@@ -692,8 +692,19 @@ button {
   }
 
   .mobile-zone-nav {
-    display: flex;
-    bottom: 128px;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    bottom: 112px;
+    gap: 4px;
+    padding: 5px;
+    overflow: hidden;
+  }
+
+  .mobile-zone-nav__item {
+    min-width: 0;
+    min-height: 44px;
+    padding-inline: 6px;
+    font-size: 0.7rem;
   }
 }
 
@@ -724,6 +735,10 @@ button {
   .zone-panel__signals li {
     min-height: 28px;
     font-size: 0.76rem;
+  }
+
+  .mobile-zone-nav__item {
+    font-size: 0.66rem;
   }
 }
 

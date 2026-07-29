@@ -3858,6 +3858,257 @@ async function checkPublicAssetOnlyPlayer(browser) {
   }
 }
 
+async function waitForPublicAssetOnlyRuntime(page, url) {
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30_000 });
+  await page.waitForFunction(
+    () =>
+      document.documentElement.dataset.gameState === "ready" &&
+      window.__IT_ART_STUDIO_QA__?.ready === true &&
+      window.__IT_ART_STUDIO_QA__?.externalAssets?.enabled === true &&
+      window.__IT_ART_STUDIO_QA__?.externalAssets?.mode === "core" &&
+      window.__IT_ART_STUDIO_QA__?.externalAssets?.loaded >= window.__IT_ART_STUDIO_QA__?.externalAssets?.requested &&
+      window.__IT_ART_STUDIO_QA__?.player?.asset?.status === "loaded",
+    { timeout: 24_000 }
+  );
+}
+
+function isPublicAssetOnlySnapshotClean(snapshot) {
+  return (
+    snapshot?.externalAssets?.enabled === true &&
+    snapshot?.externalAssets?.mode === "core" &&
+    (snapshot?.externalAssets?.heroLocationPlacements ?? 0) === 0 &&
+    (snapshot?.world?.decorativeObjects ?? 0) === 0 &&
+    (snapshot?.world?.roadSegments ?? 0) === 0 &&
+    (snapshot?.world?.routeSurfaceObjects ?? 0) === 0 &&
+    (snapshot?.trail?.totalMarks ?? 0) === 0 &&
+    (snapshot?.material?.surfaceFxObjectCapacity ?? 0) === 0
+  );
+}
+
+async function checkPublicAssetOnlyMobile(browser) {
+  const assetOnlyUrl = withSearchParam(baseUrl, "world", "asset-only");
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  attachPageDiagnostics(page, "public-asset-only-mobile");
+
+  try {
+    await waitForPublicAssetOnlyRuntime(page, assetOnlyUrl);
+    await page.waitForTimeout(450);
+    await waitForViewportReady(page, { width: 390, height: 844 }, "public-asset-only-mobile-prep");
+    const before = await getQaSnapshot(page, { refresh: true });
+    const chrome = await page.evaluate(() => {
+      const worldMap = document.querySelector(".world-map");
+      const mobileNav = document.querySelector(".mobile-zone-nav");
+      const mobileDrive = document.querySelector(".mobile-drive");
+      const stateFor = (node) => {
+        if (!(node instanceof HTMLElement)) {
+          return { exists: false };
+        }
+        const style = getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        return {
+          exists: true,
+          display: style.display,
+          visibility: style.visibility,
+          opacity: Number(style.opacity),
+          width: rect.width,
+          height: rect.height
+        };
+      };
+      return {
+        worldMap: stateFor(worldMap),
+        mobileNav: stateFor(mobileNav),
+        mobileDrive: stateFor(mobileDrive)
+      };
+    });
+    const navActionability = await clickActionable(
+      page,
+      '.mobile-zone-nav [data-zone-jump="ai-lab"]',
+      "public-asset-only-mobile:ai-lab",
+      { minWidth: 44, minHeight: 44 }
+    );
+    if (navActionability) {
+      await page.waitForFunction(() => window.__IT_ART_STUDIO_QA__?.activeZoneId === "ai-lab", { timeout: 8_000 });
+    }
+    const forwardActionability = await holdActionable(page, '.mobile-drive [data-drive="up"]', "public-asset-only-mobile:up", {
+      minWidth: 44,
+      minHeight: 44,
+      delay: 320
+    });
+    const turnActionability = await holdActionable(page, '.mobile-drive [data-drive="right"]', "public-asset-only-mobile:right", {
+      minWidth: 44,
+      minHeight: 44,
+      delay: 520
+    });
+    await page.waitForTimeout(260);
+    const proof = await capture(page, "public-asset-only-mobile", {
+      skipCanvasDetail: true,
+      skipPremiumWorldDistribution: true
+    });
+    const after = proof.snapshot ?? (await getQaSnapshot(page, { refresh: true }));
+    const distance = Math.hypot((after?.player?.x ?? 0) - (before?.player?.x ?? 0), (after?.player?.z ?? 0) - (before?.player?.z ?? 0));
+    const rotationDelta = Math.abs(angleDelta(after?.player?.rotationY ?? 0, before?.player?.rotationY ?? 0));
+    const mobileChromeOk =
+      chrome.worldMap.exists &&
+      chrome.worldMap.display === "none" &&
+      chrome.mobileNav.exists &&
+      chrome.mobileNav.display !== "none" &&
+      chrome.mobileNav.visibility !== "hidden" &&
+      chrome.mobileNav.width > 0 &&
+      chrome.mobileDrive.exists &&
+      chrome.mobileDrive.display !== "none" &&
+      chrome.mobileDrive.visibility !== "hidden" &&
+      chrome.mobileDrive.width > 0;
+    const ok =
+      mobileChromeOk &&
+      navActionability &&
+      forwardActionability &&
+      turnActionability &&
+      after?.activeZoneId === "ai-lab" &&
+      after?.lastInputMode === "touch" &&
+      distance > 0.08 &&
+      rotationDelta > 0.08 &&
+      proof.canvas.ok &&
+      isPublicAssetOnlySnapshotClean(after);
+
+    if (ok) {
+      pass("public-asset-only-mobile", {
+        url: assetOnlyUrl,
+        chrome,
+        navActionability,
+        forwardActionability,
+        turnActionability,
+        before: before?.player,
+        after: after?.player,
+        distance: Number(distance.toFixed(3)),
+        rotationDelta: Number(rotationDelta.toFixed(3)),
+        externalAssets: after?.externalAssets,
+        capture: proof.relativePath
+      });
+    } else {
+      scenarioFail("public-asset-only-mobile", "Public asset-only runtime did not prove mobile layout and touch driving.", {
+        url: assetOnlyUrl,
+        chrome,
+        mobileChromeOk,
+        navActionability,
+        forwardActionability,
+        turnActionability,
+        before: before?.player,
+        after: after?.player,
+        distance,
+        rotationDelta,
+        cleanRuntime: isPublicAssetOnlySnapshotClean(after),
+        canvas: proof.canvas,
+        capture: proof.relativePath
+      });
+    }
+  } catch (error) {
+    scenarioFail("public-asset-only-mobile", "Public asset-only mobile runtime did not reach a verifiable state.", {
+      url: assetOnlyUrl,
+      message: error instanceof Error ? error.message : String(error)
+    });
+  } finally {
+    await releaseDriveKeys(page).catch(() => {});
+    await page.close();
+  }
+}
+
+async function checkPublicAssetOnlyKeyboardRoute(browser) {
+  const assetOnlyUrl = withSearchParam(withSearchParam(baseUrl, "world", "asset-only"), "realKeys", "1");
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
+  attachPageDiagnostics(page, "public-asset-only-keyboard");
+
+  try {
+    await waitForPublicAssetOnlyRuntime(page, assetOnlyUrl);
+    await assertCanvasGeometry(page);
+    await releaseDriveKeys(page);
+    await page.waitForTimeout(180);
+    const hookState = await page.evaluate(() => ({
+      hasQaStep: typeof window.__IT_ART_STUDIO_QA_STEP__ === "function",
+      href: window.location.href
+    }));
+    const before = await getQaSnapshot(page, { refresh: true });
+    const beforeDownCount = before?.input?.keyboardDownCount ?? 0;
+    const beforeUpCount = before?.input?.keyboardUpCount ?? 0;
+    const beforeQaStepHookCalls = before?.input?.qaStepHookCalls ?? 0;
+
+    await page.keyboard.down("ArrowUp");
+    await page.waitForTimeout(420);
+    await page.keyboard.down("ArrowLeft");
+    await page.waitForTimeout(520);
+    const during = await getQaSnapshot(page, { refresh: true });
+    await page.keyboard.up("ArrowLeft");
+    await page.keyboard.up("ArrowUp");
+    await page.waitForTimeout(240);
+    const proof = await capture(page, "public-asset-only-keyboard-route", {
+      skipCanvasDetail: true,
+      skipPremiumWorldDistribution: true
+    });
+    const after = proof.snapshot ?? (await getQaSnapshot(page, { refresh: true }));
+    const distance = Math.hypot((after?.player?.x ?? 0) - (before?.player?.x ?? 0), (after?.player?.z ?? 0) - (before?.player?.z ?? 0));
+    const signedRotationDelta = angleDelta(after?.player?.rotationY ?? 0, before?.player?.rotationY ?? 0);
+    const rotationDelta = Math.abs(signedRotationDelta);
+    const downDelta = (after?.input?.keyboardDownCount ?? 0) - beforeDownCount;
+    const upDelta = (after?.input?.keyboardUpCount ?? 0) - beforeUpCount;
+    const qaStepHookDelta = (after?.input?.qaStepHookCalls ?? 0) - beforeQaStepHookCalls;
+    const ok =
+      hookState.hasQaStep === false &&
+      after?.lastInputMode === "keyboard" &&
+      distance > 0.35 &&
+      rotationDelta > 0.08 &&
+      downDelta >= 2 &&
+      upDelta >= 2 &&
+      qaStepHookDelta === 0 &&
+      (during?.input?.activeKeys ?? []).includes("up") &&
+      (during?.input?.activeKeys ?? []).includes("left") &&
+      (after?.input?.activeKeys ?? []).length === 0 &&
+      proof.canvas.ok &&
+      isPublicAssetOnlySnapshotClean(after);
+
+    if (ok) {
+      pass("public-asset-only-keyboard-route", {
+        url: assetOnlyUrl,
+        hookState,
+        before: before?.player,
+        during: during?.player,
+        after: after?.player,
+        distance: Number(distance.toFixed(3)),
+        signedRotationDelta: Number(signedRotationDelta.toFixed(3)),
+        rotationDelta: Number(rotationDelta.toFixed(3)),
+        downDelta,
+        upDelta,
+        qaStepHookDelta,
+        externalAssets: after?.externalAssets,
+        capture: proof.relativePath
+      });
+    } else {
+      scenarioFail("public-asset-only-keyboard-route", "Public asset-only runtime did not prove real keyboard driving.", {
+        url: assetOnlyUrl,
+        hookState,
+        before: before?.player,
+        during: during?.player,
+        after: after?.player,
+        distance,
+        signedRotationDelta,
+        rotationDelta,
+        downDelta,
+        upDelta,
+        qaStepHookDelta,
+        cleanRuntime: isPublicAssetOnlySnapshotClean(after),
+        canvas: proof.canvas,
+        capture: proof.relativePath
+      });
+    }
+  } catch (error) {
+    scenarioFail("public-asset-only-keyboard-route", "Public asset-only keyboard route did not reach a verifiable state.", {
+      url: assetOnlyUrl,
+      message: error instanceof Error ? error.message : String(error)
+    });
+  } finally {
+    await releaseDriveKeys(page).catch(() => {});
+    await page.close();
+  }
+}
+
 async function checkRealKeyboardInput(page) {
   const before = await getQaSnapshot(page);
   let after = before;
@@ -10441,6 +10692,8 @@ async function writeReport() {
   const publicAssetOnlyPlayerScenario = scenarios.find((scenario) => scenario.name === "public-asset-only-player");
   const publicTerrainCoreScenario = scenarios.find((scenario) => scenario.name === "public-asset-only-terrain-core");
   const publicNoQaAssetOnlyScenario = scenarios.find((scenario) => scenario.name === "public-noqa-asset-only-runtime");
+  const publicAssetOnlyMobileScenario = scenarios.find((scenario) => scenario.name === "public-asset-only-mobile");
+  const publicAssetOnlyKeyboardScenario = scenarios.find((scenario) => scenario.name === "public-asset-only-keyboard-route");
   const heroLocationVisualOnlyScenarios = scenarios.filter((scenario) => scenario.name.startsWith("hero-location-visual-only:"));
   const heroLocationVisualOnlyHiddenLabels = heroLocationVisualOnlyScenarios
     .map((scenario) => scenario.details?.hiddenSceneLabels)
@@ -10728,6 +10981,16 @@ async function writeReport() {
       publicNoQaAssetOnlyScenario?.details
         ? `${publicNoQaAssetOnlyScenario.status}, search "${publicNoQaAssetOnlyScenario.details.search}", QA hooks ${publicNoQaAssetOnlyScenario.details.hasQaSnapshot}/${publicNoQaAssetOnlyScenario.details.hasQaStep}/${publicNoQaAssetOnlyScenario.details.hasQaRefresh}, frames ${publicNoQaAssetOnlyScenario.details.frames}, capture ${publicNoQaAssetOnlyScenario.details.capture ?? "n/a"}`
         : "n/a"
+    }`,
+    `- Public asset-only mobile: ${
+      publicAssetOnlyMobileScenario?.details
+        ? `${publicAssetOnlyMobileScenario.status}, distance ${publicAssetOnlyMobileScenario.details.distance}, rotation ${publicAssetOnlyMobileScenario.details.rotationDelta}, capture ${publicAssetOnlyMobileScenario.details.capture ?? "n/a"}`
+        : (publicAssetOnlyMobileScenario?.status ?? "n/a")
+    }`,
+    `- Public asset-only keyboard route: ${
+      publicAssetOnlyKeyboardScenario?.details
+        ? `${publicAssetOnlyKeyboardScenario.status}, distance ${publicAssetOnlyKeyboardScenario.details.distance}, rotation ${publicAssetOnlyKeyboardScenario.details.rotationDelta}, QA step hook ${publicAssetOnlyKeyboardScenario.details.hookState?.hasQaStep ? "present" : "absent"}, capture ${publicAssetOnlyKeyboardScenario.details.capture ?? "n/a"}`
+        : (publicAssetOnlyKeyboardScenario?.status ?? "n/a")
     }`,
     `- Rover trail: ${trail?.activeMarks ?? "n/a"}/${trail?.totalMarks ?? "n/a"} active, max opacity ${
       trail?.maxOpacity ?? "n/a"
@@ -11026,6 +11289,8 @@ async function main() {
       checkCorePromotionManifest();
       await checkProductionRuntimeLightweight(browser);
       await checkPublicAssetOnlyPlayer(browser);
+      await checkPublicAssetOnlyMobile(browser);
+      await checkPublicAssetOnlyKeyboardRoute(browser);
       if (staticSmokeOnly) {
         pass("static-dist-smoke-profile", {
           scope: staticProofScope,
@@ -11080,6 +11345,8 @@ async function main() {
     checkMapExpansionKitsManifest();
     checkCorePromotionManifest();
     await checkPublicAssetOnlyPlayer(browser);
+    await checkPublicAssetOnlyMobile(browser);
+    await checkPublicAssetOnlyKeyboardRoute(browser);
     await checkTerrainShellRuntime(page);
     await checkExternalAssetOffRuntime(browser);
     await checkExternalAssetCoreRuntime(page);
