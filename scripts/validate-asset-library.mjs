@@ -177,6 +177,7 @@ const terrainRoles = new Set(asArray(manifest.terrainRoles));
 const mapExpansionKits = asArray(manifest.mapExpansionKits);
 const corePromotion = manifest.corePromotion ?? null;
 const terrainShell = manifest.terrainShell ?? null;
+const assetUtilizationWave = manifest.assetUtilizationWave ?? null;
 const productionLicenseAssets = [];
 const declaredRuntimeGlbs = new Set();
 const declaredRuntimeTextures = new Set();
@@ -819,6 +820,75 @@ if (!terrainShell) {
   }
 }
 
+if (!assetUtilizationWave) {
+  fail("Asset utilization wave contract is required before adding another inspection placement wave.");
+} else {
+  const requiredFiles = asArray(assetUtilizationWave.requiredFiles);
+  const requiredPlacementIds = asArray(assetUtilizationWave.requiredPlacementIds);
+  const acceptedSelectedFiles = new Map(
+    [...acceptedRuntimeAssets.values()]
+      .filter((asset) => asset.kind.includes("model"))
+      .flatMap((asset) => asArray(asset.selectedFiles).map((file) => [file, asset.id]))
+  );
+
+  if (assetUtilizationWave.phase !== "asset-library-utilization") {
+    fail("Asset utilization wave must declare phase asset-library-utilization.", { phase: assetUtilizationWave.phase });
+  }
+  if (!assetUtilizationWave.id || assetUtilizationWave.id.length < 8) {
+    fail("Asset utilization wave must declare a stable id.", { id: assetUtilizationWave.id });
+  }
+  if (!assetUtilizationWave.purpose || assetUtilizationWave.purpose.length < 120) {
+    fail("Asset utilization wave must explain why this placement wave reduces library waste.", {
+      purpose: assetUtilizationWave.purpose
+    });
+  }
+  if (!assetUtilizationWave.fallback || assetUtilizationWave.fallback.length < 96) {
+    fail("Asset utilization wave must declare a rollback fallback.", { fallback: assetUtilizationWave.fallback });
+  }
+  if (!assetUtilizationWave.nextAction || assetUtilizationWave.nextAction.length < 96) {
+    fail("Asset utilization wave must declare the next curation action.", { nextAction: assetUtilizationWave.nextAction });
+  }
+  if (requiredFiles.length < 10 || new Set(requiredFiles).size !== requiredFiles.length) {
+    fail("Asset utilization wave must require a broad unique-file set.", { requiredFiles });
+  }
+  if (requiredPlacementIds.length !== requiredFiles.length || new Set(requiredPlacementIds).size !== requiredPlacementIds.length) {
+    fail("Asset utilization wave must bind one unique placement per required file.", {
+      requiredFiles,
+      requiredPlacementIds
+    });
+  }
+  for (const file of requiredFiles) {
+    if (!acceptedSelectedFiles.has(file)) {
+      fail("Asset utilization wave requiredFiles must be selected by an accepted model asset.", {
+        file,
+        acceptedModelAssets: [...new Set(acceptedSelectedFiles.values())].sort()
+      });
+    }
+  }
+  if (!Number.isInteger(assetUtilizationWave.minimumMapPlacements) || assetUtilizationWave.minimumMapPlacements < 140) {
+    fail("Asset utilization wave must raise the map placement floor beyond the terrain shell baseline.", {
+      minimumMapPlacements: assetUtilizationWave.minimumMapPlacements
+    });
+  }
+  if (!Number.isInteger(assetUtilizationWave.minimumUniqueFiles) || assetUtilizationWave.minimumUniqueFiles < 70) {
+    fail("Asset utilization wave must raise the unique-file floor beyond the previous map composition.", {
+      minimumUniqueFiles: assetUtilizationWave.minimumUniqueFiles
+    });
+  }
+  if (
+    !Number.isInteger(assetUtilizationWave.maximumRendererTriangles) ||
+    assetUtilizationWave.maximumRendererTriangles > budgets.rendererTriangleCap
+  ) {
+    fail("Asset utilization wave maximumRendererTriangles must stay inside the global renderer cap.", {
+      maximumRendererTriangles: assetUtilizationWave.maximumRendererTriangles,
+      rendererTriangleCap: budgets.rendererTriangleCap
+    });
+  }
+  if (assetUtilizationWave.qaGate !== "asset-utilization-wave") {
+    fail("Asset utilization wave must bind to the asset-utilization-wave QA gate.", { qaGate: assetUtilizationWave.qaGate });
+  }
+}
+
 const ccByProductionAssets = productionLicenseAssets.filter((asset) => {
   const source = sources.find((item) => item.id === asset.sourceId);
   return source?.kind !== "pipeline-reference";
@@ -867,6 +937,16 @@ const summary = {
         minimumMapCoverage: terrainShell.minimumMapCoverage,
         minimumMapPlacements: terrainShell.minimumMapPlacements,
         minimumRolePlacements: terrainShell.minimumRolePlacements
+      }
+    : null,
+  assetUtilizationWave: assetUtilizationWave
+    ? {
+        id: assetUtilizationWave.id,
+        requiredFiles: asArray(assetUtilizationWave.requiredFiles).length,
+        requiredPlacementIds: asArray(assetUtilizationWave.requiredPlacementIds).length,
+        minimumMapPlacements: assetUtilizationWave.minimumMapPlacements,
+        minimumUniqueFiles: assetUtilizationWave.minimumUniqueFiles,
+        qaGate: assetUtilizationWave.qaGate
       }
     : null,
   warnings,

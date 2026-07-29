@@ -12,14 +12,14 @@ export type RoadRibbonGeometry = {
 type RoutePoint = THREE.Vector3;
 
 export const roadRibbonVisualConfig = {
-  bedRadiusRatio: 0.052,
-  shoulderOffsetRatio: 0.21,
-  shoulderRadius: 0.024,
-  signalOffsetRatio: 0.15,
-  signalRadius: 0.025,
-  dashWidth: 0.08,
-  dashHeight: 0.032,
-  dashDepthRatio: 0.24,
+  bedRadiusRatio: 0.032,
+  shoulderOffsetRatio: 0.19,
+  shoulderRadius: 0.013,
+  signalOffsetRatio: 0.14,
+  signalRadius: 0.024,
+  dashWidth: 0.052,
+  dashHeight: 0.02,
+  dashDepthRatio: 0.16,
   dashChevronAngle: 0.42,
   dashSpreadRatio: 0.07,
   dashCount: 4

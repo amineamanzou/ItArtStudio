@@ -2,16 +2,32 @@
   <rect width="512" height="512" fill="#18231d"/>
   <path d="M0 120c80-35 136 35 216 0s143-31 296 14v378H0z" fill="#223628" opacity=".86"/>
   <path d="M0 326c62 18 105-15 165-3s93 36 156 13 119-28 191 11v165H0z" fill="#101811" opacity=".72"/>
-  <g stroke="#5ecb78" stroke-width="3" opacity=".18">
+  <g stroke="#476b52" stroke-width="2" opacity=".12">
     <path d="M42 458l26-60M112 430l36-82M194 466l26-78M300 438l44-102M420 468l30-88"/>
   </g>
-  <g stroke="#f6c95b" stroke-width="2" opacity=".13">
+  <g fill="none" stroke-linecap="round">
+    <path d="M38 64h62v22h48v36h-72v42h112" stroke="#304737" stroke-width="3" opacity=".32"/>
+    <path d="M286 48h84v34h54v58h-46v42h94" stroke="#385240" stroke-width="3" opacity=".28"/>
+    <path d="M44 250h96v30h68v44h-38v34h128" stroke="#223127" stroke-width="4" opacity=".34"/>
+    <path d="M284 266h54v-32h74v44h52v74h-92" stroke="#2b3e32" stroke-width="4" opacity=".32"/>
+  </g>
+  <g stroke="#4b563c" stroke-width="2" opacity=".26">
+    <path d="M26 42h20M78 42h14M166 74h30M232 96h18M350 218h42M438 218h20M38 384h36M116 384h20M286 416h28M386 448h46"/>
+  </g>
+  <g stroke="#615938" stroke-width="2" opacity=".2">
     <path d="M72 122l28-58M248 126l34-76M386 142l42-88"/>
   </g>
-  <g fill="#77e39b" opacity=".18">
+  <g fill="#6abf80" opacity=".14">
     <circle cx="82" cy="206" r="5"/>
     <circle cx="168" cy="278" r="3"/>
     <circle cx="308" cy="232" r="4"/>
     <circle cx="436" cy="302" r="5"/>
+  </g>
+  <g fill="#5c5738" opacity=".24">
+    <circle cx="42" cy="92" r="3"/>
+    <circle cx="142" cy="166" r="2"/>
+    <circle cx="236" cy="204" r="3"/>
+    <circle cx="336" cy="344" r="2"/>
+    <circle cx="458" cy="408" r="3"/>
   </g>
 </svg>

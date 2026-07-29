@@ -47,9 +47,9 @@ type RuntimeMapTexture = {
 };
 
 const mapTextureSpecs: Array<{ role: RuntimeMapTextureRole; path: string; repeat: number }> = [
-  { role: "vegetation", path: "assets/textures/map/field/field-grain-studio.svg", repeat: 9 },
-  { role: "relief", path: "assets/textures/map/relief/relief-contours-studio.svg", repeat: 7 },
-  { role: "road", path: "assets/textures/map/road/road-asphalt-studio.svg", repeat: 5 },
+  { role: "vegetation", path: "assets/textures/map/field/field-grain-studio.svg", repeat: 11 },
+  { role: "relief", path: "assets/textures/map/relief/relief-contours-studio.svg", repeat: 9 },
+  { role: "road", path: "assets/textures/map/road/road-asphalt-studio.svg", repeat: 7 },
   { role: "water", path: "assets/textures/map/water/water-edge-studio.svg", repeat: 4 },
   { role: "cloud-dock", path: "assets/textures/map/hero/cloud-dock-circuit-pad.svg", repeat: 2 },
   { role: "design-atelier", path: "assets/textures/map/hero/design-atelier-pattern-pad.svg", repeat: 2 },
@@ -258,7 +258,7 @@ export function createWorldScenery(palette: WorldSceneryPalette): RenderedWorldS
   addReliefRamps(add, techMat, artMat, studioMat, roadMat, inkMat);
   addHeroTexturePads(add, mapTextureByRole, palette);
   addSurfaceDetails(add, studioMat, roadMat, contourMat);
-  addFashionTerrainWeave(add, artMat, studioMat, roadMat, inkMat);
+  addFashionTerrainWeave(add, artMat, studioMat, roadMat);
   addTechSkyline(add, techMat, roadMat, inkMat);
   addArtSculptures(add, artMat, roadMat, inkMat);
   addStudioThreshold(add, studioMat, techMat, artMat, roadMat);
@@ -1012,8 +1012,7 @@ function addFashionTerrainWeave(
   ) => void,
   artMat: THREE.Material,
   studioMat: THREE.Material,
-  roadMat: THREE.Material,
-  inkMat: THREE.Material
+  roadMat: THREE.Material
 ) {
   const center = zones.find((zone) => zone.id === "fashion-room")?.position ?? [10.8, 19.8];
   const bandCount = 26;
@@ -1025,7 +1024,7 @@ function addFashionTerrainWeave(
   const aiShadowCount = 10;
   const weave = new THREE.InstancedMesh(
     new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false }),
+    new THREE.MeshBasicMaterial({ vertexColors: true, toneMapped: false, transparent: true, opacity: 0.38, depthWrite: false }),
     bandCount + stitchCount + pinCount + shadowCount + aiTraceCount + aiNodeCount + aiShadowCount
   );
   weave.name = "fashion-room-terrain-weave";
@@ -1053,7 +1052,7 @@ function addFashionTerrainWeave(
     scale.set(1.68 + (index % 5) * 0.22, 0.022, 0.082);
     matrix.compose(new THREE.Vector3(x + 0.08, 0.13, z - 0.08), quaternion, scale);
     weave.setMatrixAt(instanceIndex, matrix);
-    weave.setColorAt(instanceIndex, color.setHex(index % 3 === 0 ? 0x5d2336 : ((inkMat as THREE.MeshStandardMaterial).color?.getHex() ?? 0x070a0d)));
+    weave.setColorAt(instanceIndex, color.setHex(index % 3 === 0 ? 0x5a3b44 : 0x30433b));
     instanceIndex += 1;
     signatures.push(`fashion-weave:shadow:${index}`);
   }
@@ -1094,10 +1093,10 @@ function addFashionTerrainWeave(
     const z = aiCenter[1] + side * (3.2 + (index % 6) * 0.28);
     const rotation = 0.72 + side * 0.18 + (index % 5) * 0.026;
     quaternion.setFromEuler(new THREE.Euler(0, rotation, 0));
-    scale.set(2.5 + (index % 4) * 0.34, 0.044, 0.13);
+    scale.set(1.82 + (index % 4) * 0.22, 0.034, 0.092);
     matrix.compose(new THREE.Vector3(x, 0.188 + (index % 3) * 0.004, z), quaternion, scale);
     weave.setMatrixAt(instanceIndex, matrix);
-    weave.setColorAt(instanceIndex, color.setHex(index % 4 === 0 ? 0xffe38a : index % 2 === 0 ? 0x17d2ff : 0x2d6f7a));
+    weave.setColorAt(instanceIndex, color.setHex(index % 4 === 0 ? 0xd8c46f : index % 2 === 0 ? 0x17bce6 : 0x39756a));
     instanceIndex += 1;
     signatures.push(`ai-lab-circuit:trace:${index}`);
   }
@@ -1124,10 +1123,10 @@ function addFashionTerrainWeave(
     const x = aiCenter[0] - 6.0 + t * 12.0;
     const z = aiCenter[1] + side * (4.55 + Math.sin(t * Math.PI * 2) * 0.42);
     quaternion.setFromEuler(new THREE.Euler(0, 0.74 + side * 0.12, 0));
-    scale.set(2.25 + (index % 4) * 0.28, 0.02, 0.11);
+    scale.set(1.28 + (index % 4) * 0.16, 0.016, 0.072);
     matrix.compose(new THREE.Vector3(x, 0.14, z), quaternion, scale);
     weave.setMatrixAt(instanceIndex, matrix);
-    weave.setColorAt(instanceIndex, color.setHex(0x2a4a48));
+    weave.setColorAt(instanceIndex, color.setHex(0x344f49));
     instanceIndex += 1;
     signatures.push(`ai-lab-circuit:shadow:${index}`);
   }

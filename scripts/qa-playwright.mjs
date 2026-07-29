@@ -83,6 +83,9 @@ const manifestCorePromotionRequiredFiles = manifestCorePromotion.requiredFiles ?
 const manifestCorePromotionRequiredPlacementIds = manifestCorePromotion.requiredPlacementIds ?? [];
 const manifestCorePromotionRequiredHeroRoles = manifestCorePromotion.requiredHeroRoles ?? {};
 const manifestTerrainShell = worldAssetManifest.terrainShell ?? {};
+const manifestAssetUtilizationWave = worldAssetManifest.assetUtilizationWave ?? {};
+const manifestAssetUtilizationRequiredFiles = manifestAssetUtilizationWave.requiredFiles ?? [];
+const manifestAssetUtilizationRequiredPlacementIds = manifestAssetUtilizationWave.requiredPlacementIds ?? [];
 const manifestMapExpansionKitRoles = [
   ...new Set(manifestMapExpansionKits.flatMap((kit) => kit.requiredTerrainRoles ?? []))
 ].sort();
@@ -5109,15 +5112,18 @@ async function checkWorldRichness(page) {
   const routeSurfaceMaterialized =
     world &&
     surface &&
+    world.routeSurfaceStyle?.bedRadiusRatio >= 0.024 &&
     world.routeSurfaceStyle?.bedRadiusRatio <= 0.055 &&
     world.routeSurfaceStyle?.shoulderOffsetRatio <= 0.22 &&
     world.routeSurfaceStyle?.shoulderRadius <= 0.025 &&
-    world.routeSurfaceStyle?.signalRadius >= 0.024 &&
+    world.routeSurfaceStyle?.signalRadius >= 0.012 &&
+    world.routeSurfaceStyle?.signalRadius <= 0.025 &&
     world.routeSurfaceStyle?.dashDepthRatio <= 0.26 &&
     world.routeSurfaceStyle?.dashChevronAngle >= 0.36 &&
     world.routeSurfaceStyle?.underlayOpacity <= 0.15 &&
     world.routeSurfaceStyle?.underlayColor === 0x6a766d &&
-    world.routeSurfaceStyle?.laneOpacity >= 0.72 &&
+    world.routeSurfaceStyle?.laneOpacity >= 0.62 &&
+    world.routeSurfaceStyle?.laneOpacity <= 0.78 &&
     world.routeSurfaceStyle?.laneEmissiveIntensity >= 0.18 &&
     world.routeSurfaceStyle?.polygonOffsetFactor <= -1 &&
     world.routeSurfaceStyle?.polygonOffsetUnits <= -1 &&
@@ -5721,6 +5727,21 @@ async function checkExternalAssetMapComposition(browser) {
     ].filter((assetId) => !externalAssets?.assetIds?.includes(assetId));
     const requiredHeroLocationIds = manifestHeroLocationIds;
     const requiredHeroLocationRoles = manifestHeroLocationRequiredRoles;
+    const missingUtilizationFiles = manifestAssetUtilizationRequiredFiles.filter(
+      (file) => !externalAssets?.placementFiles?.includes(file)
+    );
+    const missingUtilizationPlacementIds = manifestAssetUtilizationRequiredPlacementIds.filter(
+      (placementId) => !externalAssets?.placementIds?.includes(placementId)
+    );
+    const utilizationWaveOk =
+      manifestAssetUtilizationWave.phase === "asset-library-utilization" &&
+      manifestAssetUtilizationWave.qaGate === "asset-utilization-wave" &&
+      externalAssets?.placements >= (manifestAssetUtilizationWave.minimumMapPlacements ?? 0) &&
+      externalAssets?.uniqueFiles >= (manifestAssetUtilizationWave.minimumUniqueFiles ?? 0) &&
+      (mapRenderer?.triangles ?? Number.POSITIVE_INFINITY) <=
+        (manifestAssetUtilizationWave.maximumRendererTriangles ?? rendererCaps.triangles) &&
+      missingUtilizationFiles.length === 0 &&
+      missingUtilizationPlacementIds.length === 0;
     const requiredScreenRoles = ["road", "water", "relief", "vegetation"];
     const weakScreenRoles = requiredScreenRoles.filter((role) => {
       const rect = externalAssets?.roleScreenRects?.[role];
@@ -5746,6 +5767,26 @@ async function checkExternalAssetMapComposition(browser) {
         return true;
       }
     });
+    const utilizationDetails = {
+      contract: manifestAssetUtilizationWave,
+      requiredFiles: manifestAssetUtilizationRequiredFiles,
+      requiredPlacementIds: manifestAssetUtilizationRequiredPlacementIds,
+      missingUtilizationFiles,
+      missingUtilizationPlacementIds,
+      placements: externalAssets?.placements,
+      uniqueFiles: externalAssets?.uniqueFiles,
+      renderer: mapRenderer,
+      caps: rendererCaps
+    };
+    if (utilizationWaveOk) {
+      pass("asset-utilization-wave", utilizationDetails);
+    } else {
+      scenarioFail(
+        "asset-utilization-wave",
+        "Accepted GLB files selected for the utilization wave are not all visible in the map inspection layer.",
+        utilizationDetails
+      );
+    }
     const gate =
       externalAssets?.enabled === true &&
       externalAssets.mode === "map" &&
@@ -5793,6 +5834,7 @@ async function checkExternalAssetMapComposition(browser) {
       missingRoles.length === 0 &&
       missingKitRoles.length === 0 &&
       missingKitAssetIds.length === 0 &&
+      utilizationWaveOk &&
       manifestMapExpansionKits.length >= 4 &&
       weakScreenRoles.length === 0 &&
       weakHeroLocations.length === 0 &&
@@ -5826,6 +5868,10 @@ async function checkExternalAssetMapComposition(browser) {
         missingRoles,
         missingKitRoles,
         missingKitAssetIds,
+        missingUtilizationFiles,
+        missingUtilizationPlacementIds,
+        utilizationWaveOk,
+        assetUtilizationWave: manifestAssetUtilizationWave,
         mapExpansionKits: manifestMapExpansionKits,
         weakScreenRoles,
         weakHeroLocations,
@@ -9794,6 +9840,7 @@ async function writeReport() {
   const mapExpansionKitsScenario = scenarios.find((scenario) => scenario.name === "map-expansion-kits-manifest");
   const corePromotionContractScenario = scenarios.find((scenario) => scenario.name === "core-promotion-contract");
   const terrainShellScenario = scenarios.find((scenario) => scenario.name === "terrain-shell-runtime");
+  const assetUtilizationWaveScenario = scenarios.find((scenario) => scenario.name === "asset-utilization-wave");
   const mapTextureRuntimeScenario = scenarios.find((scenario) => scenario.name === "map-texture-runtime");
   const externalAssetOffScenario = scenarios.find((scenario) => scenario.name === "external-asset-off-runtime");
   const externalAssetCoreScenario = scenarios.find((scenario) => scenario.name === "external-asset-core-runtime");
@@ -9926,6 +9973,11 @@ async function writeReport() {
       terrainShellScenario?.details
         ? `${terrainShellScenario.status}, world ${terrainShellScenario.details.worldSize}x${terrainShellScenario.details.worldSize}, roam +-${terrainShellScenario.details.innerRoamExtent}, water/ramp/features ${terrainShellScenario.details.waterRegionCount}/${terrainShellScenario.details.rampRegionCount}/${terrainShellScenario.details.terrainFeatureCount}, triangles ${terrainShellScenario.details.renderer?.triangles ?? "n/a"}/${terrainShellScenario.details.contract?.maximumRendererTriangles ?? "n/a"}`
         : (terrainShellScenario?.status ?? "n/a")
+    }`,
+    `- Asset utilization wave: ${
+      assetUtilizationWaveScenario?.details
+        ? `${assetUtilizationWaveScenario.status}, files ${assetUtilizationWaveScenario.details.requiredFiles?.length ?? 0}, placements ${assetUtilizationWaveScenario.details.requiredPlacementIds?.length ?? 0}, map placements ${assetUtilizationWaveScenario.details.placements ?? "n/a"}, unique files ${assetUtilizationWaveScenario.details.uniqueFiles ?? "n/a"}, triangles ${assetUtilizationWaveScenario.details.renderer?.triangles ?? "n/a"}/${assetUtilizationWaveScenario.details.contract?.maximumRendererTriangles ?? "n/a"}`
+        : (assetUtilizationWaveScenario?.status ?? "n/a")
     }`,
     `- External asset off runtime: ${
       externalAssetOffScenario?.details?.externalAssets

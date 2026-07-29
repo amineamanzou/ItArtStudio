@@ -730,6 +730,78 @@ function createRoutePlacementSpecs(): MapPlacementSpec[] {
       [42.2, 12.2],
       1.12,
       -Math.PI * 0.5
+    ),
+    createPlacement(
+      "route:north-crossroad-utilization",
+      "route:north-crossroad-utilization",
+      "route",
+      "context",
+      false,
+      "road",
+      "road-crossroad.glb",
+      [-1.4, 34.8],
+      1.24,
+      0.06
+    ),
+    createPlacement(
+      "route:south-end-utilization",
+      "route:south-end-utilization",
+      "route",
+      "context",
+      false,
+      "road",
+      "road-end.glb",
+      [-2.8, -43.2],
+      1.18,
+      Math.PI
+    ),
+    createPlacement(
+      "route:east-half-road-utilization",
+      "route:east-half-road-utilization",
+      "route",
+      "context",
+      false,
+      "road",
+      "road-straight-half.glb",
+      [42.6, -1.6],
+      1.16,
+      Math.PI * 0.5
+    ),
+    createPlacement(
+      "bridge:far-north-canal-narrow",
+      "bridge:far-north-canal-narrow",
+      "water",
+      "context",
+      false,
+      "bridge",
+      "bridge_woodNarrow.glb",
+      [-5.4, 42.4],
+      1.22,
+      -0.1
+    ),
+    createPlacement(
+      "bridge:far-west-cloud-side",
+      "bridge:far-west-cloud-side",
+      "water",
+      "context",
+      false,
+      "bridge",
+      "bridge_side_wood.glb",
+      [-42.4, -8.6],
+      1.16,
+      Math.PI * 0.5
+    ),
+    createPlacement(
+      "bridge:far-east-art-center",
+      "bridge:far-east-art-center",
+      "water",
+      "context",
+      false,
+      "bridge",
+      "bridge_center_wood.glb",
+      [42.4, 10.4],
+      1.16,
+      -Math.PI * 0.5
     )
   ];
 }
@@ -740,7 +812,9 @@ function createWaterPlacementSpecs(): MapPlacementSpec[] {
     ...worldMaterialRegions.water.map((region, index) =>
       createPlacement(`water:${region.id}`, `water:${region.id}`, "water", index >= 8 ? "context" : index >= 4 ? "support" : index === 3 ? "support" : "primary", true, "water", files[index % files.length], region.center, index >= 8 ? 1.18 : index >= 4 ? 1.08 : index === 3 ? 1.12 : 1.74, region.rotation)
     ),
-    createPlacement("water:studio-crossing-proof", "water:studio-crossing-proof", "water", "support", true, "water", "ground_riverStraight.glb", [-0.8, 5.9], 1.46, -0.18)
+    createPlacement("water:studio-crossing-proof", "water:studio-crossing-proof", "water", "support", true, "water", "ground_riverStraight.glb", [-0.8, 5.9], 1.46, -0.18),
+    createPlacement("water:far-west-waterfall-utilization", "water:far-west-waterfall-utilization", "water", "context", false, "water", "cliff_waterfall_rock.glb", [-43.6, -7.8], 1.12, Math.PI * 0.5),
+    createPlacement("water:far-east-lily-utilization", "water:far-east-lily-utilization", "water", "context", false, "water", "lily_small.glb", [43.2, 13.5], 0.92, -0.2)
   ];
 }
 
@@ -765,6 +839,7 @@ function createReliefPlacementSpecs(): MapPlacementSpec[] {
     createPlacement("relief:far-south-contact-runoff", "relief:far-south-shell", "relief", "context", false, "relief", "rock_largeC.glb", [7.8, -44.0], 1.16, 0.14),
     createPlacement("relief:far-west-cloud-marsh", "relief:far-west-shell", "relief", "context", false, "relief", "cliff_corner_rock.glb", [-44.2, -10.8], 1.14, 0.1),
     createPlacement("relief:far-east-art-gallery", "relief:far-east-shell", "relief", "context", false, "relief", "cliff_blockSlope_rock.glb", [44.2, 12.4], 1.16, -0.18),
+    createPlacement("relief:far-north-block-utilization", "relief:far-north-block-utilization", "relief", "context", false, "relief", "cliff_block_rock.glb", [-2.6, 44.8], 1.12, 0.2),
     createPlacement("relief:studio-crossing-proof", "relief:studio-crossing-proof", "relief", "support", true, "relief", "rock_largeC.glb", [2.8, 6.5], 1.18, -0.12)
   ];
 }
@@ -860,6 +935,11 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
       heroLocation: "cloud-dock",
       heroRole: "ops-screen"
     }),
+    createPlacement("hero:cloud-dock:data-conveyor", "hero:cloud-dock:data-conveyor", "route", "context", false, "hero-location", "conveyor-long.glb", [-14.55, -24.65], 1.18, Math.PI * 0.32, {
+      assetId: "accepted-factory-industrial-core",
+      heroLocation: "cloud-dock",
+      heroRole: "data-conveyor"
+    }),
     createPlacement("hero:design-atelier:mannequin-fabric-rack", "hero:design-atelier", "route", "primary", true, "hero-location", "atelier-mannequin-rack.glb", [20.35, -9.05], 2.0, Math.PI * 0.58, {
       assetId: "accepted-itart-signature-hero-core",
       heroLocation: "design-atelier",
@@ -912,6 +992,11 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "design-atelier",
       heroRole: "reference-screen"
+    }),
+    createPlacement("hero:design-atelier:fabric-crane", "hero:design-atelier:fabric-crane", "route", "context", false, "hero-location", "crane.glb", [23.5, -10.65], 1.08, Math.PI * 0.44, {
+      assetId: "accepted-factory-industrial-core",
+      heroLocation: "design-atelier",
+      heroRole: "fabric-crane"
     }),
     createPlacement("hero:observability-tower:telemetry-radar-mast", "hero:observability-tower", "route", "primary", true, "hero-location", "telemetry-radar-mast.glb", [-22.95, 9.25], 2.35, 0.16, {
       assetId: "accepted-itart-signature-hero-core",
@@ -969,6 +1054,16 @@ function createHeroLocationPlacementSpecs(): MapPlacementSpec[] {
       assetId: "accepted-factory-industrial-core",
       heroLocation: "observability-tower",
       heroRole: "service-platform"
+    }),
+    createPlacement("hero:observability-tower:machine-window", "hero:observability-tower:machine-window", "route", "context", false, "hero-location", "machine-window.glb", [-20.75, 10.05], 1.05, 0.42, {
+      assetId: "accepted-factory-industrial-core",
+      heroLocation: "observability-tower",
+      heroRole: "machine-window"
+    }),
+    createPlacement("hero:observability-tower:structure-tall", "hero:observability-tower:structure-tall", "route", "context", false, "hero-location", "structure-tall.glb", [-24.95, 11.15], 1.12, -0.16, {
+      assetId: "accepted-factory-industrial-core",
+      heroLocation: "observability-tower",
+      heroRole: "structure-tall"
     })
   ];
 }

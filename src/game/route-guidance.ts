@@ -34,16 +34,13 @@ type RouteGeometryPart = {
   role: string;
 };
 
-const material = (color: number, emissive = 0.12, opacity = 0.88) =>
-  new THREE.MeshStandardMaterial({
+const material = (color: number, _emissive = 0.12, opacity = 0.88) =>
+  new THREE.MeshBasicMaterial({
     color,
-    roughness: 0.5,
-    metalness: 0.18,
-    emissive: color,
-    emissiveIntensity: emissive,
     side: THREE.DoubleSide,
     transparent: opacity < 1,
-    opacity
+    opacity,
+    depthWrite: false
   });
 
 const routeEncounterProgressOverrides: Record<string, number> = {

@@ -90,6 +90,47 @@
     "fallback": "Keep the existing 76-unit map shell and central hero locations if the larger shell fails renderer budget, boundary QA or role coverage.",
     "nextAction": "Use this sparse outer shell as the terrain canvas for authored road continuity, water crossings and biome transitions before adding another object-dense asset wave."
   },
+  "assetUtilizationWave": {
+    "id": "accepted-library-utilization-v98",
+    "phase": "asset-library-utilization",
+    "purpose": "Move already accepted but underused GLB files out of the library and into the map inspection layer so the next quality jump comes from curated assets rather than procedural filler.",
+    "requiredFiles": [
+      "road-crossroad.glb",
+      "road-end.glb",
+      "road-straight-half.glb",
+      "bridge_woodNarrow.glb",
+      "bridge_side_wood.glb",
+      "bridge_center_wood.glb",
+      "cliff_waterfall_rock.glb",
+      "lily_small.glb",
+      "cliff_block_rock.glb",
+      "conveyor-long.glb",
+      "crane.glb",
+      "machine-window.glb",
+      "structure-tall.glb"
+    ],
+    "requiredPlacementIds": [
+      "route:north-crossroad-utilization",
+      "route:south-end-utilization",
+      "route:east-half-road-utilization",
+      "bridge:far-north-canal-narrow",
+      "bridge:far-west-cloud-side",
+      "bridge:far-east-art-center",
+      "water:far-west-waterfall-utilization",
+      "water:far-east-lily-utilization",
+      "relief:far-north-block-utilization",
+      "hero:cloud-dock:data-conveyor",
+      "hero:design-atelier:fabric-crane",
+      "hero:observability-tower:machine-window",
+      "hero:observability-tower:structure-tall"
+    ],
+    "minimumMapPlacements": 143,
+    "minimumUniqueFiles": 72,
+    "maximumRendererTriangles": 110000,
+    "qaGate": "asset-utilization-wave",
+    "fallback": "If this utilization wave makes the map noisy or exceeds renderer budget, keep the files accepted in the library but remove the new inspection placements before public core promotion.",
+    "nextAction": "Use the visual QA captures to decide which utilized files deserve promotion into the public core and which should remain inspection-only."
+  },
   "terrainRoles": ["road", "water", "relief", "vegetation", "route-edge", "bridge", "hero-location"],
   "mapExpansionKits": [
     {
@@ -621,7 +662,7 @@
       "preferredFormat": "SVG",
       "localPath": "public/assets/textures/map/field",
       "publicPath": "assets/textures/map/field",
-      "fileKb": 0.8,
+      "fileKb": 1.6,
       "selectedFiles": ["field-grain-studio.svg"],
       "budget": { "maxKb": 64, "targetResolution": 512 },
       "styleFit": "high",

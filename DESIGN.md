@@ -42,16 +42,17 @@ boucle agentic doit respecter l'ordre suivant: bibliotheque d'assets et textures
 pipeline GLB/glTF, map vide agrandie, trois hero locations, reduction du bruit,
 puis QA visuelle et performance.
 
-Objectif fige V9:
+Objectif fige V10:
 
-> Construire la fondation asset-first de la carte IT Art Studio: collecter,
-> curer et integrer une bibliotheque GLB/glTF + textures web-ready; stabiliser
-> le manifest et les validations runtime; preparer une carte agrandie avec
-> routes, eau, relief, verdure et respirations; composer trois hero locations
-> premium, `Cloud Dock`, `Design Atelier` et `Observability Tower`, de sorte
-> qu'elles soient reconnaissables en screenshot sans lire les panneaux HTML;
-> reduire le bruit procedural; prouver le resultat par une QA clavier avec
-> captures desktop et budgets renderer.
+> Construire le socle asset-first du monde IT Art Studio: collecter et curer
+> un maximum d'assets GLB/glTF et textures web-ready avec licences claires;
+> stabiliser un pipeline runtime fiable par manifest, normalisation, fallback
+> et budgets; agrandir ensuite une carte volontairement peu dense mais
+> coherentement preparee avec routes, eau, relief, verdure et respirations;
+> composer trois hero locations premium, `Cloud Dock`, `Design Atelier` et
+> `Observability Tower`, exclusivement avec ce vocabulaire visuel; reduire le
+> bruit procedural; puis prouver le resultat par une QA clavier avec captures
+> desktop/mobile, inspection visuelle des lieux et budgets renderer.
 
 Sequence de livraison:
 
@@ -104,6 +105,14 @@ Priorite produit:
 - Agrandissement map / terrain: 25%;
 - Hero locations: 20%;
 - Gameplay vehicule: 5%.
+
+Directive V10:
+
+- les assets et textures creent le langage visuel avant l'agrandissement;
+- la map s'etend ensuite avec routes, eau, relief, vegetation et respirations;
+- les trois hero locations sont composees apres la stabilisation du vocabulaire;
+- la QA doit refuser une scene simplement plus remplie si elle n'est pas plus
+  lisible, plus reconnaissable et plus premium.
 
 ## Color
 
@@ -740,6 +749,9 @@ Gates V5.2:
 - `route-surface-materialized` verifie maintenant le profil visuel des routes:
   ratios de rayon/offset, opacites, emissive, chevrons, absence d'ombre portee
   et `polygonOffset` pour limiter le scintillement terrain/route.
+- la vague asset-first V9.8 affine encore ce profil: les rubans restent
+  modelises et verifies, mais leurs rails/signaux deviennent plus fins et moins
+  opaques afin de ne pas lire comme des barres noires dans les captures mobile.
 - les courbes de relief `terrain-contour` utilisent une encre topographique
   claire et tres transparente, separee du `inkMat` structurel, afin d'eviter
   les grands arcs noirs qui saturent les captures desktop/mobile.
@@ -1404,6 +1416,26 @@ Gates V9.7:
 - la QA ajoute `terrain-shell-runtime` et derive les bornes monde depuis
   `src/game/world-config.ts`, pour eviter les constantes 76/33 recopiees dans
   le runner.
+
+Gates V9.8:
+
+- `assetUtilizationWave` devient le contrat d'inspection des assets acceptes
+  mais encore sous-utilises: 13 fichiers GLB doivent maintenant apparaitre dans
+  `?assets=map`, sans promotion automatique dans le runtime public `core`;
+- la vague utilise des pieces deja declarees et licenciees: routes
+  `road-crossroad`, `road-end`, `road-straight-half`; ponts
+  `bridge_woodNarrow`, `bridge_side_wood`, `bridge_center_wood`; eau/relief
+  `cliff_waterfall_rock`, `lily_small`, `cliff_block_rock`; support industriel
+  `conveyor-long`, `crane`, `machine-window`, `structure-tall`;
+- les nouveaux placements sont disperses avec des clusters dedies afin de
+  relever l'utilisation de bibliotheque sans augmenter la densite non-hero ou
+  l'empilement des hero locations;
+- `external-asset-map-composition` doit maintenant prouver 143 placements et
+  77 fichiers uniques, avec le nouveau gate `asset-utilization-wave` et le
+  budget renderer toujours limite a `110000` triangles;
+- `field-grain-studio.svg` gagne une micro-grammaire plus lisible en mobile
+  pour que l'agrandissement ne produise pas de grandes plaques plates entre les
+  assets.
 
 ## Components
 

@@ -1693,7 +1693,7 @@ class StudioGame {
 
   private setWorld() {
     const ground = new THREE.Mesh(
-      new THREE.CircleGeometry(worldGroundRadius, 10),
+      new THREE.CircleGeometry(worldGroundRadius, 48),
       new THREE.MeshStandardMaterial({
         color: 0xffffff,
         map: worldTexture,
@@ -1977,8 +1977,8 @@ class StudioGame {
 
   private addRoads() {
     const routeSurfaceStyle = {
-      underlayOpacity: 0.14,
-      laneOpacity: 0.78,
+      underlayOpacity: 0.08,
+      laneOpacity: 0.72,
       laneEmissiveIntensity: 0.22,
       polygonOffsetFactor: -1,
       polygonOffsetUnits: -1,
@@ -2011,14 +2011,11 @@ class StudioGame {
       }
 
       const accent = colors[routeInfo.kind];
-      const accentMaterial = new THREE.MeshStandardMaterial({
+      const accentMaterial = new THREE.MeshBasicMaterial({
         color: accent,
-        roughness: 0.52,
-        metalness: 0.24,
-        emissive: accent,
-        emissiveIntensity: routeSurfaceStyle.laneEmissiveIntensity,
         transparent: true,
         opacity: routeSurfaceStyle.laneOpacity,
+        depthWrite: false,
         polygonOffset: true,
         polygonOffsetFactor: routeSurfaceStyle.polygonOffsetFactor,
         polygonOffsetUnits: routeSurfaceStyle.polygonOffsetUnits

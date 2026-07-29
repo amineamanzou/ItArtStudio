@@ -269,8 +269,9 @@ The runner:
   enough to read as premium 3D assets.
 - Route surfaces must read as modeled playable ribbons, not flat strokes:
   `route-surface-materialized` checks rendered route-surface objects, detail
-  parts, unique signatures and a bounded vertex budget while preserving
-  `sceneObjects <= 940`.
+  parts, unique signatures, a bounded vertex budget and a slim visual profile
+  so roads guide exploration without becoming black bars on mobile, while
+  preserving `sceneObjects <= 940`.
 - World richness must prove the authored world now contains water and relief:
   at least 3 `water-body` basins, 5 `relief-ramp` instances, thematic districts,
   route lights and the central identity ribbon, all inside the same premium
@@ -550,6 +551,13 @@ manifest `terrainShell` contract against runtime telemetry: larger boundary,
 water regions, ramps, linked terrain features, scenery roles, heightfield
 range, grade and renderer caps. This keeps future map expansion tied to the
 asset-first plan instead of hidden QA constants.
+
+`asset-utilization-wave` protects the V9.8 library-utilization step. The
+manifest names accepted GLB files and placement ids that must be present in
+`?assets=map`; Playwright then verifies the files, placements, unique-file
+floor, map placement floor and renderer cap. This catches the failure mode where
+the library grows on disk but the visible map still relies on old procedural
+vocabulary.
 
 ## Next Gates
 

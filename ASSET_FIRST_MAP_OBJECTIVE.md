@@ -1,4 +1,4 @@
-# Objectif Fige - V9 Asset Library First
+# Objectif Fige - V10 Asset-First Worldbuilding
 
 Statut: fige le 2026-07-29. Ce document devient la source de verite pour les
 prochaines boucles agentic du site IT Art Studio.
@@ -19,28 +19,30 @@ niveau d'exigence percue: assets propres, carte respirante, lieux
 reconnaissables, interactions fiables et captures QA capables de juger le
 livrable comme une vraie experience.
 
-## Nouvel Objectif Agentic
+## Nouvel Objectif Agentic V10
 
-Lancer une boucle agentic V9 orientee assets et cartographie dont le livrable
-principal est une carte plus grande, plus lisible et plus incarnable par des
-assets 3D, pas une conduite plus sophistiquee.
+Lancer une boucle agentic V10 orientee assets, textures et cartographie. Le
+livrable principal n'est pas une conduite plus sophistiquee: c'est une carte
+plus grande, plus lisible, plus exploree par l'oeil, et incarnee par une vraie
+bibliotheque GLB/glTF + textures.
 
 Objectif a donner aux agents:
 
-> Construire la fondation asset-first de la carte IT Art Studio: collecter,
-> curer et integrer une bibliotheque GLB/glTF + textures web-ready; stabiliser
-> le manifest et les validations runtime; preparer une carte agrandie avec
-> routes, eau, relief, verdure et respirations; composer trois hero locations
-> premium, `Cloud Dock`, `Design Atelier` et `Observability Tower`, de sorte
-> qu'elles soient reconnaissables en screenshot sans lire les panneaux HTML;
-> reduire le bruit procedural; prouver le resultat par une QA clavier avec
-> captures desktop et budgets renderer.
+> Construire le socle asset-first du monde IT Art Studio: collecter et curer
+> un maximum d'assets GLB/glTF et textures web-ready avec licences claires;
+> stabiliser un pipeline runtime fiable par manifest, normalisation, fallback
+> et budgets; agrandir ensuite une carte volontairement peu dense mais
+> coherentement preparee avec routes, eau, relief, verdure et respirations;
+> composer trois hero locations premium, `Cloud Dock`, `Design Atelier` et
+> `Observability Tower`, exclusivement avec ce vocabulaire visuel; reduire le
+> bruit procedural; puis prouver le resultat par une QA clavier avec captures
+> desktop/mobile, inspection visuelle des lieux et budgets renderer.
 
 La boucle doit prioriser les assets, les textures, l'eau, le relief, la verdure,
-les routes et la lisibilite des lieux. Le gameplay vehicule reste secondaire:
-il doit permettre l'exploration, mais ne doit pas absorber l'effort tant que la
-carte et les lieux ne produisent pas encore un niveau de qualite comparable a
-une vitrine web ludique premium inspiree par Bruno Simon.
+les routes, les respirations et la lisibilite des lieux. Le gameplay vehicule
+reste secondaire: il doit permettre l'exploration, mais ne doit pas absorber
+l'effort tant que la carte et les lieux ne produisent pas encore un niveau de
+qualite comparable a une vitrine web ludique premium inspiree par Bruno Simon.
 
 Chaque iteration doit remplacer de l'abstrait par du concret: un asset accepte,
 une texture runtime validee, une route mieux composee, une zone plus lisible, une
@@ -55,7 +57,8 @@ Le plan de production est maintenant verrouille dans cet ordre:
 
 1. Collecter et curer un maximum d'assets et textures accelerateurs.
 2. Stabiliser le pipeline GLB/glTF et textures.
-3. Agrandir une map volontairement peu dense, mais coherentement preparee.
+3. Agrandir une map vide mais coherente, deja pensee pour les routes, l'eau,
+   le relief, la vegetation et les futures compositions.
 4. Construire trois hero locations premium avec la bibliotheque d'assets.
 5. Reduire le bruit procedural et les doublons visuels.
 6. Iterer en boucle QA jusqu'a obtenir des captures comparables a un livrable
@@ -69,7 +72,22 @@ Toute boucle qui saute directement a l'agrandissement, au gameplay, a de
 nouveaux effets ou a des proceduraux generiques doit etre consideree hors plan,
 sauf si elle demontre qu'elle debloque directement l'un des jalons asset-first.
 
-## Jalon V9 Attendu
+## Directive Pour Les Prochaines Boucles
+
+Chaque agent doit travailler dans cette logique:
+
+- architecte plan/review: verifier que la boucle augmente la coherence de la
+  bibliotheque, de la carte ou des lieux, et refuser le volume gratuit;
+- developpeur: integrer peu d'assets, mais les rendre visibles, documentes,
+  budgetes et testables;
+- QA: juger par screenshots, budgets renderer, lisibilite sans texte,
+  scintillement, z-fighting, densite et reconnaissance des lieux.
+
+La question centrale de chaque boucle est: "est-ce que la carte ressemble
+davantage a un monde premium exploratoire, ou seulement a une scene plus
+remplie ?" Seule la premiere reponse valide la boucle.
+
+## Jalon V10 Attendu
 
 Le prochain jalon doit livrer une preuve concrete de cartographie premium:
 
@@ -185,6 +203,10 @@ Baseline actuelle:
 - runtime public: couche GLB `core` curatee par defaut, avec `?assets=off` pour
   comparer le fallback procedural-only, `?assets=preview` pour la planche de
   specimens et `?assets=map` pour la composition complete;
+- vague d'utilisation V9.8: 13 fichiers GLB deja acceptes mais sous-exploites
+  sont maintenant obligatoires dans la couche `?assets=map` via
+  `assetUtilizationWave`, portant la preuve d'inspection a 143 placements et
+  77 fichiers uniques;
 - chaque fichier runtime doit rester declare dans le manifest et passer
   `npm run assets:validate`.
 
@@ -308,6 +330,9 @@ Le protocole doit prouver:
 - verification du contrat `terrainShell` derivee du manifest: taille monde,
   roam interieur, eau, rampes, features liees, couverture GLB et budget
   renderer;
+- verification du contrat `assetUtilizationWave`: fichiers acceptes réellement
+  utilises, placements runtime presents, nombre de fichiers uniques augmente et
+  budget renderer conserve;
 - absence de scintillement, z-fighting et assets casses;
 - budget renderer et scene graph preserve;
 - regression mobile et desktop couverte.
