@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import crypto from "node:crypto";
 import path from "node:path";
 
 const root = process.cwd();
@@ -133,6 +134,7 @@ const analyzeLocalAsset = (assetId, localPath) => {
 
 const roughlyEqual = (actual, declared) => Math.abs(actual - declared) <= Math.max(0.2, actual * 0.01);
 const toPublicPath = (localPath) => (localPath.startsWith("public/") ? localPath.slice("public/".length) : localPath);
+const hashFileSha256 = (filePath) => crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
 
 if (!Number.isInteger(manifest.version) || manifest.version < 1) {
   fail("Manifest version must be a positive integer.", { version: manifest.version });
@@ -190,6 +192,7 @@ const heroLocationCuration = manifest.heroLocationCuration ?? {};
 const terrainRoles = new Set(asArray(manifest.terrainRoles));
 const mapExpansionKits = asArray(manifest.mapExpansionKits);
 const corePromotion = manifest.corePromotion ?? null;
+const publicTerrainCore = manifest.publicTerrainCore ?? null;
 const terrainShell = manifest.terrainShell ?? null;
 const assetUtilizationWave = manifest.assetUtilizationWave ?? null;
 const assetDetailWave = manifest.assetDetailWave ?? null;
@@ -521,6 +524,118 @@ if (generatedRuntimeAssets.length > 0) {
 const acceptedRuntimeTextures = new Map(
   [...acceptedRuntimeAssets.values()].filter((asset) => asset.kind === "texture-set" && asset.target === "map").map((asset) => [asset.id, asset])
 );
+
+if (!publicTerrainCore) {
+  fail("Public terrain core contract is required for the asset-only public runtime.");
+} else {
+  const textureAssetsByPublicFile = new Map();
+  for (const textureAsset of acceptedRuntimeTextures.values()) {
+    for (const selectedFile of asArray(textureAsset.selectedFiles)) {
+      if (typeof selectedFile !== "string" || !textureAsset.publicPath) {
+        continue;
+      }
+      textureAssetsByPublicFile.set(path.posix.join(textureAsset.publicPath, selectedFile), textureAsset);
+    }
+  }
+
+  const requiredTerrainTextureFiles = asArray(publicTerrainCore.requiredTerrainTextureFiles);
+  const requiredTerrainMaterialRoles = asArray(publicTerrainCore.requiredTerrainMaterialRoles);
+  if (requiredTerrainTextureFiles.length < requiredTerrainMaterialRoles.length) {
+    fail("Public terrain core must bind a downloaded texture file to every required material role.", {
+      requiredTerrainTextureFiles,
+      requiredTerrainMaterialRoles
+    });
+  }
+
+  for (const texturePath of requiredTerrainTextureFiles) {
+    if (typeof texturePath !== "string" || texturePath.length === 0) {
+      fail("Public terrain core required texture files must be non-empty strings.", { texturePath });
+      continue;
+    }
+    if (texturePath.startsWith("/") || texturePath.startsWith("public/") || texturePath.split(/[\\/]/u).includes("..")) {
+      fail("Public terrain core texture paths must be GitHub Pages-safe public paths.", { texturePath });
+      continue;
+    }
+    if (!texturePath.startsWith("assets/textures/vendor/")) {
+      fail("Public terrain core textures must come from downloaded vendor assets, not authored map placeholders.", {
+        texturePath
+      });
+    }
+    if (!isTextureFile(texturePath) || /\.svg$/iu.test(texturePath)) {
+      fail("Public terrain core textures must be downloaded raster texture files.", { texturePath });
+    }
+
+    const localTexturePath = path.join(root, "public", texturePath);
+    if (!fs.existsSync(localTexturePath)) {
+      fail("Public terrain core required texture file does not exist locally.", {
+        texturePath,
+        expectedPath: path.relative(root, localTexturePath)
+      });
+      continue;
+    }
+
+    const textureAsset = textureAssetsByPublicFile.get(texturePath);
+    if (!textureAsset) {
+      fail("Public terrain core required texture file must be declared by an accepted or integrated texture asset.", {
+        texturePath
+      });
+      continue;
+    }
+
+    const source = sources.find((item) => item.id === textureAsset.sourceId);
+    if (source?.license !== "CC0-1.0") {
+      fail("Public terrain core required texture must use a CC0 source.", {
+        texturePath,
+        assetId: textureAsset.id,
+        sourceId: textureAsset.sourceId,
+        license: source?.license
+      });
+    }
+    for (const key of ["assetPageUrl", "downloadUrl", "licenseUrl"]) {
+      if (!isHttpUrl(textureAsset[key])) {
+        fail("Public terrain core required texture asset must declare provenance URLs.", {
+          texturePath,
+          assetId: textureAsset.id,
+          key,
+          value: textureAsset[key]
+        });
+      }
+    }
+    if (!textureAsset.retrievedAt || !/^\d{4}-\d{2}-\d{2}$/u.test(textureAsset.retrievedAt)) {
+      fail("Public terrain core required texture asset must declare a retrieval date.", {
+        texturePath,
+        assetId: textureAsset.id,
+        retrievedAt: textureAsset.retrievedAt
+      });
+    }
+    if (!/^[a-f0-9]{64}$/u.test(textureAsset.sha256 ?? "")) {
+      fail("Public terrain core required texture asset must declare a sha256 hash.", {
+        texturePath,
+        assetId: textureAsset.id,
+        sha256: textureAsset.sha256
+      });
+    } else {
+      const actualSha256 = hashFileSha256(localTexturePath);
+      if (actualSha256 !== textureAsset.sha256) {
+        fail("Public terrain core required texture sha256 must match the local file.", {
+          texturePath,
+          assetId: textureAsset.id,
+          declared: textureAsset.sha256,
+          actual: actualSha256
+        });
+      }
+    }
+    if (textureAsset.status !== "integrated" || !textureAsset.qaProof) {
+      fail("Public terrain core required texture assets must be integrated with QA proof.", {
+        texturePath,
+        assetId: textureAsset.id,
+        status: textureAsset.status,
+        qaProof: textureAsset.qaProof
+      });
+    }
+  }
+}
+
 const mapExpansionKitIds = new Set();
 const mapExpansionKitRoles = new Set();
 let mapExpansionRuntimePlacementBudget = 0;
