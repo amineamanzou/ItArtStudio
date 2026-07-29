@@ -187,6 +187,8 @@
     "minimumTerrainLayers": 4,
     "minimumTerrainHeightRange": 0.5,
     "minimumTerrainVertexCount": 90000,
+    "maximumIntroAssetOcclusions": 0,
+    "maximumIntroAssetOcclusionRatio": 0.06,
     "maximumNonHeroClusterDensity": 4,
     "maximumHeroLocationPlacements": 0,
     "allowedGeneratedSubstrate": "single terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief/water-edge material; visible public decor must come from downloaded vendor GLB/glTF.",

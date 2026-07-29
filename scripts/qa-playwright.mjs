@@ -3704,6 +3704,8 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const requiredTerrainMaterialRoles = manifestPublicTerrainCore.requiredTerrainMaterialRoles ?? [];
     const requiredTerrainTextureFiles = manifestPublicTerrainCore.requiredTerrainTextureFiles ?? [];
     const requiredMaterialStyleRoles = manifestPublicTerrainCore.requiredMaterialStyleRoles ?? [];
+    const maximumIntroAssetOcclusions = manifestPublicTerrainCore.maximumIntroAssetOcclusions ?? 0;
+    const maximumIntroAssetOcclusionRatio = manifestPublicTerrainCore.maximumIntroAssetOcclusionRatio ?? 0.06;
     const availableTerrainRoles = new Set([...(externalAssets?.terrainRoles ?? []), ...(snapshot?.world?.mapTextureRoles ?? [])]);
     const missingTerrainRoles = requiredTerrainRoles.filter((role) => !availableTerrainRoles.has(role));
     const missingAssetIds = requiredAssetIds.filter((assetId) => !externalAssets?.assetIds?.includes(assetId));
@@ -3715,6 +3717,91 @@ async function checkPublicAssetOnlyPlayer(browser) {
     );
     const missingMaterialStyleRoles = requiredMaterialStyleRoles.filter(
       (role) => !externalAssets?.materialStyleRoles?.includes(role)
+    );
+    const introAssetOcclusion = await page.evaluate(
+      ({ placementScreenRects, maximumRatio }) => {
+        const intro = document.querySelector("[data-intro-plate]");
+        if (!(intro instanceof HTMLElement)) {
+          return { introVisible: false, introRect: null, occludedPlacements: [], maxOcclusionRatio: 0 };
+        }
+        const style = getComputedStyle(intro);
+        const introRect = intro.getBoundingClientRect();
+        const introVisible =
+          introRect.width > 0 &&
+          introRect.height > 0 &&
+          style.display !== "none" &&
+          style.visibility !== "hidden" &&
+          Number(style.opacity) > 0.2;
+
+        const intersectArea = (a, b) => {
+          const left = Math.max(a.left, b.left);
+          const right = Math.min(a.right, b.right);
+          const top = Math.max(a.top, b.top);
+          const bottom = Math.min(a.bottom, b.bottom);
+          return Math.max(0, right - left) * Math.max(0, bottom - top);
+        };
+
+        const introBox = {
+          left: introRect.left,
+          top: introRect.top,
+          right: introRect.right,
+          bottom: introRect.bottom,
+          width: introRect.width,
+          height: introRect.height
+        };
+        const occludedPlacements = [];
+
+        for (const [placementId, rect] of Object.entries(placementScreenRects ?? {})) {
+          if (!placementId.startsWith("terrain-core:") || !rect || rect.visible !== true) {
+            continue;
+          }
+
+          const left = Number.isFinite(rect.clippedX) ? rect.clippedX : rect.x;
+          const top = Number.isFinite(rect.clippedY) ? rect.clippedY : rect.y;
+          const width = Number.isFinite(rect.clippedWidth) ? rect.clippedWidth : rect.width;
+          const height = Number.isFinite(rect.clippedHeight) ? rect.clippedHeight : rect.height;
+          const area = Math.max(1, Number.isFinite(rect.clippedArea) ? rect.clippedArea : width * height);
+          if (width <= 0 || height <= 0 || area < 256) {
+            continue;
+          }
+
+          const placementBox = { left, top, right: left + width, bottom: top + height, width, height };
+          const overlapArea = intersectArea(introBox, placementBox);
+          const overlapRatio = overlapArea / area;
+          const center = rect.center ?? {};
+          const centerInside =
+            center.visible === true &&
+            center.x >= introBox.left &&
+            center.x <= introBox.right &&
+            center.y >= introBox.top &&
+            center.y <= introBox.bottom;
+
+          if (centerInside || overlapRatio > maximumRatio) {
+            occludedPlacements.push({
+              placementId,
+              overlapArea: Number(overlapArea.toFixed(2)),
+              overlapRatio: Number(overlapRatio.toFixed(3)),
+              centerInside
+            });
+          }
+        }
+
+        return {
+          introVisible,
+          introRect: {
+            x: Number(introBox.left.toFixed(1)),
+            y: Number(introBox.top.toFixed(1)),
+            width: Number(introBox.width.toFixed(1)),
+            height: Number(introBox.height.toFixed(1))
+          },
+          occludedPlacements,
+          maxOcclusionRatio: Number(Math.max(0, ...occludedPlacements.map((item) => item.overlapRatio)).toFixed(3))
+        };
+      },
+      {
+        placementScreenRects: externalAssets?.placementScreenRects ?? {},
+        maximumRatio: maximumIntroAssetOcclusionRatio
+      }
     );
     const forbiddenPlacementFiles = forbiddenFiles.filter((file) => externalAssets?.placementFiles?.includes(file));
     const forbiddenPublicPaths = (externalAssets?.publicPaths ?? []).filter((publicPath) => {
@@ -3783,6 +3870,8 @@ async function checkPublicAssetOnlyPlayer(browser) {
       externalAssets.mapCoverageDepth >= minimumCoverage.depth &&
       externalAssets.mapCoverageArea >= minimumCoverageArea &&
       missingMaterialStyleRoles.length === 0 &&
+      introAssetOcclusion.introVisible === true &&
+      introAssetOcclusion.occludedPlacements.length <= maximumIntroAssetOcclusions &&
       terrainShellOk &&
       (externalAssets.errors?.length ?? 0) === 0;
     const ok = vehicleOk && terrainCoreOk;
@@ -3804,6 +3893,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
         forbiddenFiles,
         requiredMaterialStyleRoles,
         missingMaterialStyleRoles,
+        introAssetOcclusion,
         terrainShell: {
           terrainLayers: snapshot?.world?.terrainLayers,
           terrainHeightRange: snapshot?.world?.terrainHeightRange,
@@ -3840,6 +3930,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
           missingTerrainMaterialRoles,
           missingTerrainTextureFiles,
           missingMaterialStyleRoles,
+          introAssetOcclusion,
           forbiddenPlacementFiles,
           forbiddenPublicPaths,
           missingRolePlacementCounts,

@@ -112,6 +112,7 @@ const manifest = worldAssetManifest as WorldAssetManifest;
 const zoneById = new Map(zones.map((zone) => [zone.id, zone]));
 const publicWaterEdgeTexturePath = "assets/textures/vendor/polyhaven/low_tide_rocks/low_tide_rocks_diff_1k.jpg";
 let publicWaterEdgeTexture: THREE.Texture | null = null;
+const introSafeTerrainOffset: [number, number] = [4.2, 2.8];
 
 const previewSpecs: PreviewSpec[] = [
   {
@@ -873,40 +874,40 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     createPlacement("terrain-core:rail-spine-c", "terrain-core:rail-spine", "route", "support", true, "rail", "track-segment.glb", [8.6, 0.2], 1.16, Math.PI * 0.5, {
       assetId: "accepted-train-rail-core"
     }),
-    createPlacement("terrain-core:pond-basin", "terrain-core:central-water", "water", "primary", true, "water", "pond-2.glb", [-4.85, 3.05], 3.35, -0.18, {
+    createPlacement("terrain-core:pond-basin", "terrain-core:central-water", "water", "primary", true, "water", "pond-2.glb", offsetTerrainCoreIntroSafe([-4.85, 3.05]), 3.35, -0.18, {
       assetId: "accepted-assetquest-pond-water-core"
     }),
-    createPlacement("terrain-core:pond-secondary", "terrain-core:central-water-west", "water", "support", true, "water", "pond-1.glb", [-8.75, 4.8], 2.4, 0.24, {
+    createPlacement("terrain-core:pond-secondary", "terrain-core:central-water-west", "water", "support", true, "water", "pond-1.glb", offsetTerrainCoreIntroSafe([-8.75, 4.8]), 2.4, 0.24, {
       assetId: "accepted-assetquest-pond-water-core"
     }),
-    createPlacement("terrain-core:pond-rock-a", "terrain-core:central-water-west", "water", "support", true, "water", "rock-1a.glb", [-6.6, 6.3], 0.78, 0.2, {
+    createPlacement("terrain-core:pond-rock-a", "terrain-core:central-water-west", "water", "support", true, "water", "rock-1a.glb", offsetTerrainCoreIntroSafe([-6.6, 6.3]), 0.78, 0.2, {
       assetId: "accepted-assetquest-pond-water-core"
     }),
-    createPlacement("terrain-core:pond-rock-b", "terrain-core:central-water-east", "water", "support", true, "water", "rock-2a.glb", [-2.0, 4.0], 0.72, -0.24, {
+    createPlacement("terrain-core:pond-rock-b", "terrain-core:central-water-east", "water", "support", true, "water", "rock-2a.glb", offsetTerrainCoreIntroSafe([-2.0, 4.0]), 0.72, -0.24, {
       assetId: "accepted-assetquest-pond-water-core"
     }),
-    createPlacement("terrain-core:pond-cattail", "terrain-core:central-water-plants", "water", "support", true, "water", "cattail-1.glb", [-1.55, 5.15], 0.7, -0.2, {
+    createPlacement("terrain-core:pond-cattail", "terrain-core:central-water-plants", "water", "support", true, "water", "cattail-1.glb", offsetTerrainCoreIntroSafe([-1.55, 5.15]), 0.7, -0.2, {
       assetId: "accepted-assetquest-pond-water-core"
     }),
-    createPlacement("terrain-core:pond-hyacinth", "terrain-core:central-water-plants", "water", "support", true, "water", "water-hyacinth-1.glb", [-2.35, 4.65], 0.54, 0.36, {
+    createPlacement("terrain-core:pond-hyacinth", "terrain-core:central-water-plants", "water", "support", true, "water", "water-hyacinth-1.glb", offsetTerrainCoreIntroSafe([-2.35, 4.65]), 0.54, 0.36, {
       assetId: "accepted-assetquest-pond-water-core"
     }),
-    createPlacement("terrain-core:pond-lily-leaf", "terrain-core:central-water-plants", "water", "support", true, "water", "water-lily-leaf-1.glb", [-3.1, 5.35], 0.46, -0.12, {
+    createPlacement("terrain-core:pond-lily-leaf", "terrain-core:central-water-plants", "water", "support", true, "water", "water-lily-leaf-1.glb", offsetTerrainCoreIntroSafe([-3.1, 5.35]), 0.46, -0.12, {
       assetId: "accepted-assetquest-pond-water-core"
     }),
-    createPlacement("terrain-core:nature-lily-large", "terrain-core:central-water-plants", "water", "support", true, "water", "lily_large.glb", [-4.1, 5.95], 0.48, 0.28, {
+    createPlacement("terrain-core:nature-lily-large", "terrain-core:central-water-plants", "water", "support", true, "water", "lily_large.glb", offsetTerrainCoreIntroSafe([-4.1, 5.95]), 0.48, 0.28, {
       assetId: "accepted-nature-water-core"
     }),
-    createPlacement("terrain-core:nature-lily-small-bank", "terrain-core:central-water-east", "water", "support", true, "water", "lily_small.glb", [-1.15, 4.75], 0.44, -0.32, {
+    createPlacement("terrain-core:nature-lily-small-bank", "terrain-core:central-water-east", "water", "support", true, "water", "lily_small.glb", offsetTerrainCoreIntroSafe([-1.15, 4.75]), 0.44, -0.32, {
       assetId: "accepted-nature-water-core"
     }),
-    createPlacement("terrain-core:shore-waterfall-rock", "terrain-core:central-water-edge", "water", "support", true, "water", "cliff_waterfall_rock.glb", [-8.95, 5.95], 0.74, 0.42, {
+    createPlacement("terrain-core:shore-waterfall-rock", "terrain-core:central-water-edge", "water", "support", true, "water", "cliff_waterfall_rock.glb", offsetTerrainCoreIntroSafe([-8.95, 5.95]), 0.74, 0.42, {
       assetId: "accepted-nature-water-core"
     }),
-    createPlacement("terrain-core:bridge-crossing", "terrain-core:central-crossing", "route", "primary", true, "bridge", "bridge_stoneRoundNarrow.glb", [-2.5, 3.6], 1.62, Math.PI * 0.42, {
+    createPlacement("terrain-core:bridge-crossing", "terrain-core:central-crossing", "route", "primary", true, "bridge", "bridge_stoneRoundNarrow.glb", offsetTerrainCoreIntroSafe([-2.5, 3.6]), 1.62, Math.PI * 0.42, {
       assetId: "accepted-nature-stone-bridge-core"
     }),
-    createPlacement("terrain-core:bridge-bank", "terrain-core:central-crossing-bank", "water", "support", true, "bridge", "bridge_side_stone.glb", [-6.35, 3.4], 1.08, Math.PI * 0.44, {
+    createPlacement("terrain-core:bridge-bank", "terrain-core:central-crossing-bank", "water", "support", true, "bridge", "bridge_side_stone.glb", offsetTerrainCoreIntroSafe([-6.35, 3.4]), 1.08, Math.PI * 0.44, {
       assetId: "accepted-nature-stone-bridge-core"
     }),
     createPlacement("terrain-core:relief-slope", "terrain-core:central-relief", "relief", "primary", true, "relief", "rock_largeE.glb", [4.8, 6.55], 1.2, -0.2),
@@ -930,12 +931,12 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     createPlacement("terrain-core:spawn-stump-east", "terrain-core:spawn-clearing-north", "vegetation", "support", true, "vegetation", "stump_roundDetailed.glb", [8.45, 3.9], 0.78, -0.2),
     createPlacement("terrain-core:spawn-grass-east", "terrain-core:spawn-clearing-south", "vegetation", "support", true, "vegetation", "grass_large.glb", [7.75, 1.65], 0.92, 0.08),
     createPlacement("terrain-core:spawn-tree-ground", "terrain-core:spawn-clearing-west", "vegetation", "support", true, "vegetation", "tree_default.glb", [4.95, 5.05], 1.18, 0.22),
-    createPlacement("terrain-core:pond-bank-log", "terrain-core:pond-bank", "vegetation", "support", true, "vegetation", "log.glb", [-8.0, 2.2], 0.92, Math.PI * 0.34),
-    createPlacement("terrain-core:pond-bank-bush", "terrain-core:pond-bank", "vegetation", "support", true, "vegetation", "plant_bushDetailed.glb", [-7.35, 7.05], 0.82, -0.18),
-    createPlacement("terrain-core:polyhaven-fern-bank", "terrain-core:premium-vegetation-bank", "vegetation", "support", true, "vegetation", "fern_02_1k.gltf", [-5.85, 8.2], 0.82, 0.32, {
+    createPlacement("terrain-core:pond-bank-log", "terrain-core:pond-bank", "vegetation", "support", true, "vegetation", "log.glb", offsetTerrainCoreIntroSafe([-8.0, 2.2]), 0.92, Math.PI * 0.34),
+    createPlacement("terrain-core:pond-bank-bush", "terrain-core:pond-bank", "vegetation", "support", true, "vegetation", "plant_bushDetailed.glb", offsetTerrainCoreIntroSafe([-7.35, 7.05]), 0.82, -0.18),
+    createPlacement("terrain-core:polyhaven-fern-bank", "terrain-core:premium-vegetation-bank", "vegetation", "support", true, "vegetation", "fern_02_1k.gltf", offsetTerrainCoreIntroSafe([-5.85, 8.2]), 0.82, 0.32, {
       assetId: "accepted-polyhaven-fern-core"
     }),
-    createPlacement("terrain-core:pond-bank-rock", "terrain-core:pond-bank", "relief", "support", true, "relief", "rock_smallFlatC.glb", [-2.1, 1.25], 0.76, 0.22),
+    createPlacement("terrain-core:pond-bank-rock", "terrain-core:pond-bank", "relief", "support", true, "relief", "rock_smallFlatC.glb", offsetTerrainCoreIntroSafe([-2.1, 1.25]), 0.76, 0.22),
     createPlacement("terrain-core:south-tree-detailed", "terrain-core:south-marker", "vegetation", "support", true, "vegetation", "tree_detailed.glb", [2.8, 9.25], 1.18, -0.1),
     createPlacement("terrain-core:south-grass", "terrain-core:south-marker", "vegetation", "support", true, "vegetation", "grass_large.glb", [0.8, 9.8], 0.88, 0.34),
     createPlacement("terrain-core:south-rock", "terrain-core:south-marker", "relief", "support", true, "relief", "rock_largeD.glb", [4.55, 8.85], 0.88, -0.36),
@@ -1572,6 +1573,10 @@ function createPlacement(
     rotationY,
     ...options
   };
+}
+
+function offsetTerrainCoreIntroSafe(center: readonly [number, number]): [number, number] {
+  return [center[0] + introSafeTerrainOffset[0], center[1] + introSafeTerrainOffset[1]];
 }
 
 function getRoleGroundClearance(terrainRole: string, curation: MapPlacementSpec["curation"]) {
