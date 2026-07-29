@@ -75,8 +75,8 @@
     "requiredTerrainRoles": ["bridge", "rail", "relief", "road", "vegetation", "water"],
     "requiredAssetIds": [
       "accepted-assetquest-pond-water-core",
-      "accepted-city-road-core",
       "accepted-nature-relief-core",
+      "accepted-nature-path-core",
       "accepted-nature-stone-bridge-core",
       "accepted-nature-vegetation-core",
       "accepted-polyhaven-fern-core",
@@ -86,8 +86,10 @@
     "requiredFiles": [
       "bridge_stoneRoundNarrow.glb",
       "pond-2.glb",
-      "road-curve.glb",
-      "road-straight.glb",
+      "ground_pathBend.glb",
+      "ground_pathRocks.glb",
+      "ground_pathSplit.glb",
+      "ground_pathStraight.glb",
       "rock_09_1k.gltf",
       "rock_largeE.glb",
       "sedan-sports.glb",
@@ -100,6 +102,10 @@
       "box-wide.glb",
       "construction-cone.glb",
       "floor-large.glb",
+      "road-curve.glb",
+      "road-split.glb",
+      "road-straight-half.glb",
+      "road-straight.glb",
       "top-large.glb",
       "top-large-checkerboard.glb",
       "tree_cone.glb"

@@ -599,6 +599,28 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
     return;
   }
 
+  if (spec.assetId === "accepted-nature-path-core") {
+    const remapPathMaterial = (material: THREE.Material) => {
+      const name = material.name.toLowerCase();
+      const color = name.includes("grass") ? 0x314d37 : name.includes("dark") ? 0x3e342a : 0x755b44;
+      return new THREE.MeshStandardMaterial({
+        color,
+        roughness: 0.96,
+        metalness: 0
+      });
+    };
+
+    wrapper.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) {
+        return;
+      }
+      object.material = Array.isArray(object.material)
+        ? object.material.map((material) => remapPathMaterial(material))
+        : remapPathMaterial(object.material);
+    });
+    return;
+  }
+
   if (spec.terrainRole !== "vegetation" && spec.terrainRole !== "relief") {
     return;
   }
@@ -701,7 +723,6 @@ function createCorePlacementSpecs(): MapPlacementSpec[] {
 
 function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
   const terrainPlacementIds = new Set([
-    "route:studio-crossing-road-proof",
     "relief:studio-crossing-proof",
     "relief:studio-spine",
     "vegetation:studio-crossing-proof",
@@ -719,17 +740,20 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
 
   return [
     ...curatedTerrain,
-    createPlacement("terrain-core:spawn-road-curve", "terrain-core:spawn-road", "route", "primary", true, "road", "road-curve.glb", [3.2, -2.6], 1.34, Math.PI * 0.18, {
-      assetId: "accepted-city-road-core"
+    createPlacement("terrain-core:studio-crossing-path-proof", "terrain-core:studio-crossing-path-proof", "route", "primary", true, "road", "ground_pathSide.glb", [0.6, 4.8], 1.42, -0.18, {
+      assetId: "accepted-nature-path-core"
     }),
-    createPlacement("terrain-core:spawn-road-straight", "terrain-core:spawn-road", "route", "primary", true, "road", "road-straight.glb", [6.45, -1.0], 1.36, Math.PI * 0.5, {
-      assetId: "accepted-city-road-core"
+    createPlacement("terrain-core:spawn-path-bend", "terrain-core:spawn-path", "route", "primary", true, "road", "ground_pathBend.glb", [3.2, -2.6], 1.34, Math.PI * 0.18, {
+      assetId: "accepted-nature-path-core"
     }),
-    createPlacement("terrain-core:spawn-road-bend", "terrain-core:spawn-road", "route", "support", true, "road", "road-split.glb", [9.45, 0.45], 1.24, Math.PI * 0.34, {
-      assetId: "accepted-city-road-core"
+    createPlacement("terrain-core:spawn-path-straight", "terrain-core:spawn-path", "route", "primary", true, "road", "ground_pathStraight.glb", [6.45, -1.0], 1.36, Math.PI * 0.5, {
+      assetId: "accepted-nature-path-core"
     }),
-    createPlacement("terrain-core:pond-road-approach", "terrain-core:pond-approach", "route", "support", true, "road", "road-straight-half.glb", [-0.95, 2.35], 1.18, Math.PI * 0.28, {
-      assetId: "accepted-city-road-core"
+    createPlacement("terrain-core:spawn-path-split", "terrain-core:spawn-path", "route", "support", true, "road", "ground_pathSplit.glb", [9.45, 0.45], 1.24, Math.PI * 0.34, {
+      assetId: "accepted-nature-path-core"
+    }),
+    createPlacement("terrain-core:pond-path-approach", "terrain-core:pond-approach", "route", "support", true, "road", "ground_pathRocks.glb", [-0.95, 2.35], 1.18, Math.PI * 0.28, {
+      assetId: "accepted-nature-path-core"
     }),
     createPlacement("terrain-core:rail-spine-a", "terrain-core:rail-spine", "route", "primary", true, "rail", "track-detailed.glb", [5.7, 0.2], 1.38, Math.PI * 0.5, {
       assetId: "accepted-train-rail-core"
