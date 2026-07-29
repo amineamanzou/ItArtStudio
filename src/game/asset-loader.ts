@@ -1168,6 +1168,34 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     }),
     createPlacement("terrain-core:corner-southeast-bush", "terrain-core:corner-southeast-shrub", "vegetation", "support", true, "vegetation", "plant_bushDetailed.glb", [39.8, -42.4], 0.84, 0.18, {
       assetId: "accepted-nature-vegetation-core"
+    }),
+    createPlacement("terrain-core:outer-loop-north-boardwalk-a", "terrain-core:outer-loop-north-boardwalk", "route", "support", true, "bridge", "path_wood.glb", [-17.8, 36.4], 1.08, Math.PI * 0.18, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.58
+    }),
+    createPlacement("terrain-core:outer-loop-north-boardwalk-b", "terrain-core:outer-loop-north-boardwalk", "route", "support", true, "bridge", "path_wood.glb", [-15.9, 36.9], 1.04, Math.PI * 0.18, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.58
+    }),
+    createPlacement("terrain-core:outer-loop-west-rail-a", "terrain-core:outer-loop-west-rail", "route", "support", true, "rail", "track-detailed.glb", [-41.2, 5.8], 1.02, Math.PI * 0.54, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("terrain-core:outer-loop-west-rail-b", "terrain-core:outer-loop-west-rail", "route", "support", true, "rail", "track-single-detailed.glb", [-40.2, 7.05], 0.98, Math.PI * 0.54, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("terrain-core:outer-loop-south-boardwalk-a", "terrain-core:outer-loop-south-boardwalk", "route", "support", true, "bridge", "bridge_center_wood.glb", [-25.2, -36.6], 0.98, Math.PI * 0.68, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.56
+    }),
+    createPlacement("terrain-core:outer-loop-south-boardwalk-b", "terrain-core:outer-loop-south-boardwalk", "route", "support", true, "bridge", "bridge_side_wood.glb", [-23.85, -37.35], 0.88, Math.PI * 0.68, {
+      assetId: "accepted-nature-bridge-core",
+      groundClearance: 0.56
+    }),
+    createPlacement("terrain-core:outer-loop-east-rail-a", "terrain-core:outer-loop-east-rail", "route", "support", true, "rail", "track-rail.glb", [40.6, 2.4], 1.0, -0.22, {
+      assetId: "accepted-train-rail-core"
+    }),
+    createPlacement("terrain-core:outer-loop-east-rail-b", "terrain-core:outer-loop-east-rail", "route", "support", true, "rail", "track-segment.glb", [42.2, 1.95], 0.96, -0.22, {
+      assetId: "accepted-train-rail-core"
     })
   ];
 }
