@@ -46,6 +46,8 @@ const externalAssetCoreMode = !externalAssetDisabledMode && !externalAssetPrevie
 const externalAssetRuntimeMode = !externalAssetDisabledMode;
 const assetOnlyPlayerPath = "assets/models/vendor/kenney/car-kit/vehicles/sedan-sports.glb";
 const assetOnlyGroundTexturePath = "assets/textures/vendor/polyhaven/forrest_ground_01/forrest_ground_01_diff_1k.jpg";
+const assetOnlyDirtTexturePath = "assets/textures/vendor/polyhaven/aerial_ground_rock/aerial_ground_rock_diff_1k.jpg";
+const assetOnlyRockTexturePath = "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg";
 const playerMaxForwardSpeed = qaMode ? 12.8 : 10.5;
 const playerMaxReverseSpeed = qaMode ? 6.4 : 4.2;
 const playerAcceleration = qaMode ? 38 : 24;
@@ -301,6 +303,46 @@ function createDownloadedTexture(path: string, repeat = 1) {
   texture.repeat.set(repeat, repeat);
   texture.anisotropy = 4;
   return texture;
+}
+
+function createAssetOnlyGroundMaterial() {
+  const grassMap = createDownloadedTexture(assetOnlyGroundTexturePath, 7);
+  const dirtMap = createDownloadedTexture(assetOnlyDirtTexturePath, 7);
+  const rockMap = createDownloadedTexture(assetOnlyRockTexturePath, 8);
+  const material = new THREE.MeshStandardMaterial({
+    color: 0x4e6548,
+    map: grassMap,
+    roughness: 0.96,
+    metalness: 0.01
+  });
+
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.dirtMap = { value: dirtMap };
+    shader.uniforms.rockMap = { value: rockMap };
+    shader.fragmentShader = shader.fragmentShader.replace(
+      "#include <common>",
+      `#include <common>
+uniform sampler2D dirtMap;
+uniform sampler2D rockMap;`
+    );
+    shader.fragmentShader = shader.fragmentShader.replace(
+      "#include <map_fragment>",
+      `#include <map_fragment>
+#ifdef USE_MAP
+  vec2 terrainUv = vMapUv;
+  float terrainNoise = sin(terrainUv.x * 18.0 + terrainUv.y * 7.0) * 0.5 + sin(terrainUv.x * 5.0 - terrainUv.y * 13.0) * 0.5;
+  float dirtMask = smoothstep(0.42, 0.86, terrainUv.x + terrainUv.y * 0.18 + terrainNoise * 0.07);
+  float rockMask = smoothstep(0.70, 0.98, terrainUv.y + terrainNoise * 0.10) * smoothstep(0.52, 0.88, terrainUv.x);
+  vec3 dirtColor = texture2D(dirtMap, terrainUv * 1.08 + vec2(0.19, 0.07)).rgb * vec3(0.56, 0.48, 0.38);
+  vec3 rockColor = texture2D(rockMap, terrainUv * 1.18 + vec2(0.31, 0.41)).rgb * vec3(0.48, 0.54, 0.46);
+  diffuseColor.rgb = mix(diffuseColor.rgb, dirtColor, dirtMask * 0.24);
+  diffuseColor.rgb = mix(diffuseColor.rgb, rockColor, rockMask * 0.18);
+  diffuseColor.rgb *= vec3(0.72, 0.82, 0.66);
+#endif`
+    );
+  };
+
+  return material;
 }
 
 type DriveKey = "up" | "down" | "left" | "right";
@@ -1713,17 +1755,18 @@ class StudioGame {
   }
 
   private setWorld() {
-    const groundTexture = assetOnlyWorld ? createDownloadedTexture(assetOnlyGroundTexturePath, 6) : worldTexture;
     const ground = new THREE.Mesh(
       assetOnlyWorld
         ? new THREE.PlaneGeometry(worldSize * 1.18, worldSize * 1.18, 1, 1)
         : new THREE.CircleGeometry(worldGroundRadius, 48),
-      new THREE.MeshStandardMaterial({
-        color: assetOnlyWorld ? 0x4f6248 : 0xffffff,
-        map: groundTexture,
-        roughness: assetOnlyWorld ? 0.94 : 0.86,
-        metalness: assetOnlyWorld ? 0.01 : 0.05
-      })
+      assetOnlyWorld
+        ? createAssetOnlyGroundMaterial()
+        : new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            map: worldTexture,
+            roughness: 0.86,
+            metalness: 0.05
+          })
     );
     ground.rotation.x = -Math.PI * 0.5;
     ground.rotation.z = Math.PI * 0.06;
