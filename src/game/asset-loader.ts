@@ -685,7 +685,10 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
       assetId: "accepted-train-rail-core"
     }),
     createPlacement("terrain-core:water-channel", "terrain-core:central-water", "water", "primary", true, "water", "ground_riverBend.glb", [-4.7, 2.8], 1.64, -0.28),
-    createPlacement("terrain-core:water-rocks", "terrain-core:central-water", "water", "support", true, "water", "ground_riverRocks.glb", [-6.0, 5.2], 1.24, 0.18),
+    createPlacement("terrain-core:water-bank-corner", "terrain-core:central-water", "water", "support", true, "water", "ground_riverCorner.glb", [-4.2, 1.0], 1.36, Math.PI * 0.2),
+    createPlacement("terrain-core:water-straight", "terrain-core:central-water", "water", "support", true, "water", "ground_riverStraight.glb", [-5.55, 4.15], 1.44, -0.28),
+    createPlacement("terrain-core:water-rocks", "terrain-core:central-water", "water", "support", true, "water", "ground_riverRocks.glb", [-6.15, 5.65], 1.3, 0.18),
+    createPlacement("terrain-core:water-lily", "terrain-core:central-water", "water", "support", true, "water", "lily_large.glb", [-5.05, 2.35], 0.62, -0.1),
     createPlacement("terrain-core:bridge-crossing", "terrain-core:central-crossing", "route", "primary", true, "bridge", "bridge_wood.glb", [-2.5, 3.6], 1.52, Math.PI * 0.42, {
       assetId: "accepted-nature-bridge-core"
     }),
