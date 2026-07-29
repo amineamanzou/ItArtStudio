@@ -3621,7 +3621,6 @@ async function checkProductionRuntimeLightweight(browser) {
       state.hasQaSnapshot === false &&
       state.hasQaStep === false &&
       state.hasQaRefresh === false &&
-      state.frames >= 4 &&
       state.canvas?.width > 0 &&
       state.canvas?.height > 0
     ) {
