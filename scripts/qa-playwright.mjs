@@ -3688,7 +3688,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
       "bridge",
       "rail",
       "relief",
-      "road",
+      "path",
       "vegetation",
       "water"
     ];
@@ -3699,10 +3699,10 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const forbiddenFiles = manifestPublicTerrainCore.forbiddenFiles ?? [];
     const minimumRolePlacements = manifestPublicTerrainCore.minimumRolePlacements ?? {};
     const minimumCoverage = manifestPublicTerrainCore.minimumCoverage ?? { width: 0, depth: 0 };
-    const minimumNaturalPathPlacements = manifestPublicTerrainCore.minimumNaturalPathPlacements ?? 0;
     const requiredTerrainMaterialRoles = manifestPublicTerrainCore.requiredTerrainMaterialRoles ?? [];
     const requiredTerrainTextureFiles = manifestPublicTerrainCore.requiredTerrainTextureFiles ?? [];
-    const missingTerrainRoles = requiredTerrainRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
+    const availableTerrainRoles = new Set([...(externalAssets?.terrainRoles ?? []), ...(snapshot?.world?.mapTextureRoles ?? [])]);
+    const missingTerrainRoles = requiredTerrainRoles.filter((role) => !availableTerrainRoles.has(role));
     const missingAssetIds = requiredAssetIds.filter((assetId) => !externalAssets?.assetIds?.includes(assetId));
     const missingFiles = requiredFiles.filter((file) => !externalAssets?.placementFiles?.includes(file));
     const missingTerrainMaterialRoles = requiredTerrainMaterialRoles.filter((role) => !snapshot?.world?.mapTextureRoles?.includes(role));
@@ -3721,13 +3721,6 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const missingRolePlacementCounts = Object.entries(minimumRolePlacements).filter(
       ([role, minimum]) => (externalAssets?.[`${role}LinkedPlacements`] ?? 0) < minimum
     );
-    const naturalPathPlacementKeys = (externalAssets?.placementAssetKeys ?? []).filter((key) => {
-      const [assetId, , file] = key.split("::");
-      return assetId === "accepted-nature-path-core" && file?.startsWith("ground_path");
-    });
-    const naturalPathPlacementIds = naturalPathPlacementKeys.map((key) => key.split("::")[1]).filter(Boolean);
-    const naturalPathPlacementFiles = naturalPathPlacementKeys.map((key) => key.split("::")[2]).filter(Boolean);
-    const naturalPathPlacementOk = naturalPathPlacementKeys.length >= minimumNaturalPathPlacements;
     const forbiddenHeroPlacements = externalAssets?.heroLocationPlacements ?? 0;
     const publicGeneratedRuntimeOk =
       (snapshot?.world?.decorativeObjects ?? 0) === 0 &&
@@ -3769,7 +3762,6 @@ async function checkPublicAssetOnlyPlayer(browser) {
       forbiddenPlacementFiles.length === 0 &&
       forbiddenPublicPaths.length === 0 &&
       missingRolePlacementCounts.length === 0 &&
-      naturalPathPlacementOk &&
       publicGeneratedRuntimeOk &&
       forbiddenHeroPlacements <= (manifestPublicTerrainCore.maximumHeroLocationPlacements ?? 0) &&
       externalAssets.routeLinkedPlacements >= (minimumRolePlacements.route ?? 0) &&
@@ -3806,9 +3798,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
           mapTextureRoles: snapshot?.world?.mapTextureRoles,
           mapTextureUrls: snapshot?.world?.mapTextureUrls
         },
-        naturalPathPlacementIds,
-        naturalPathPlacementFiles,
-        naturalPathPlacementKeys,
+        availableTerrainRoles: [...availableTerrainRoles].sort(),
         publicGeneratedRuntime: {
           decorativeObjects: snapshot?.world?.decorativeObjects,
           roadSegments: snapshot?.world?.roadSegments,
@@ -3838,10 +3828,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
           forbiddenPlacementFiles,
           forbiddenPublicPaths,
           missingRolePlacementCounts,
-          naturalPathPlacementOk,
-          naturalPathPlacementIds,
-          naturalPathPlacementFiles,
-          naturalPathPlacementKeys,
+          availableTerrainRoles: [...availableTerrainRoles].sort(),
           publicGeneratedRuntimeOk,
           publicGeneratedRuntime: {
             decorativeObjects: snapshot?.world?.decorativeObjects,
@@ -10727,7 +10714,7 @@ async function writeReport() {
     }`,
     `- Public terrain core: ${
       publicTerrainCoreScenario?.details?.externalAssets
-        ? `${publicTerrainCoreScenario.status}, placements ${publicTerrainCoreScenario.details.externalAssets.placements}, unique files ${publicTerrainCoreScenario.details.externalAssets.uniqueFiles}, roles ${publicTerrainCoreScenario.details.externalAssets.terrainRoles.join("/")}, natural paths ${publicTerrainCoreScenario.details.naturalPathPlacementIds?.length ?? "n/a"}, terrain layers ${publicTerrainCoreScenario.details.terrainShell?.terrainLayers ?? "n/a"}, height ${publicTerrainCoreScenario.details.terrainShell?.terrainHeightRange ?? "n/a"}, hero placements ${publicTerrainCoreScenario.details.externalAssets.heroLocationPlacements}, cluster density ${publicTerrainCoreScenario.details.externalAssets.maxNonHeroClusterDensity}, coverage ${publicTerrainCoreScenario.details.externalAssets.mapCoverageWidth}x${publicTerrainCoreScenario.details.externalAssets.mapCoverageDepth}, capture ${publicTerrainCoreScenario.details.capture ?? "n/a"}`
+        ? `${publicTerrainCoreScenario.status}, placements ${publicTerrainCoreScenario.details.externalAssets.placements}, unique files ${publicTerrainCoreScenario.details.externalAssets.uniqueFiles}, roles ${publicTerrainCoreScenario.details.externalAssets.terrainRoles.join("/")}, terrain roles ${(publicTerrainCoreScenario.details.availableTerrainRoles ?? []).join("/")}, terrain layers ${publicTerrainCoreScenario.details.terrainShell?.terrainLayers ?? "n/a"}, height ${publicTerrainCoreScenario.details.terrainShell?.terrainHeightRange ?? "n/a"}, hero placements ${publicTerrainCoreScenario.details.externalAssets.heroLocationPlacements}, cluster density ${publicTerrainCoreScenario.details.externalAssets.maxNonHeroClusterDensity}, coverage ${publicTerrainCoreScenario.details.externalAssets.mapCoverageWidth}x${publicTerrainCoreScenario.details.externalAssets.mapCoverageDepth}, capture ${publicTerrainCoreScenario.details.capture ?? "n/a"}`
         : (publicTerrainCoreScenario?.status ?? "n/a")
     }`,
     `- Public no-QA runtime: ${

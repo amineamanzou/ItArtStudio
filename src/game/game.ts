@@ -47,6 +47,8 @@ const externalAssetRuntimeMode = !externalAssetDisabledMode;
 const assetOnlyPlayerPath = "assets/models/vendor/kenney/car-kit/vehicles/sedan-sports.glb";
 const assetOnlyGroundTexturePath = "assets/textures/vendor/polyhaven/forrest_ground_01/forrest_ground_01_diff_1k.jpg";
 const assetOnlyReliefTexturePath = "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg";
+const assetOnlyPathTexturePath = "assets/textures/vendor/polyhaven/stony_dirt_path/stony_dirt_path_diff_1k.jpg";
+const terrainZoneById = new Map(zones.map((zone) => [zone.id, zone]));
 const playerMaxForwardSpeed = qaMode ? 12.8 : 10.5;
 const playerMaxReverseSpeed = qaMode ? 6.4 : 4.2;
 const playerAcceleration = qaMode ? 38 : 24;
@@ -305,8 +307,7 @@ function createDownloadedTexture(path: string, repeat = 1) {
   return texture;
 }
 
-type AssetOnlyTerrainKind = "field" | "water" | "relief";
-type AssetOnlyTerrainClassification = AssetOnlyTerrainKind | "road";
+type AssetOnlyTerrainKind = "field" | "path" | "water" | "relief";
 
 type AssetOnlyTerrainMetrics = {
   heightRange: number;
@@ -318,144 +319,219 @@ type AssetOnlyTerrainMetrics = {
   textureUrls: string[];
 };
 
-function createAssetOnlyTerrainMaterials(): Record<AssetOnlyTerrainKind, THREE.MeshStandardMaterial> {
+function createAssetOnlyTerrainMaterial() {
   const fieldMap = createDownloadedTexture(assetOnlyGroundTexturePath, 8);
   const reliefMap = createDownloadedTexture(assetOnlyReliefTexturePath, 5);
+  const pathMap = createDownloadedTexture(assetOnlyPathTexturePath, 7);
 
-  return {
-    field: new THREE.MeshStandardMaterial({
-      color: 0x55704f,
-      map: fieldMap,
-      vertexColors: true,
-      roughness: 0.98,
-      metalness: 0.01
-    }),
-    relief: new THREE.MeshStandardMaterial({
-      color: 0x625f52,
-      map: reliefMap,
-      vertexColors: true,
-      roughness: 0.96,
-      metalness: 0.02
-    }),
-    water: new THREE.MeshStandardMaterial({
-      color: 0x2d7c88,
-      vertexColors: true,
-      roughness: 0.24,
-      metalness: 0.02,
-      emissive: 0x0b5966,
-      emissiveIntensity: 0.08
-    })
-  };
+  const material = new THREE.ShaderMaterial({
+    uniforms: {
+      fieldMap: { value: fieldMap },
+      reliefMap: { value: reliefMap },
+      pathMap: { value: pathMap },
+      ambientColor: { value: new THREE.Color(0x1a231c) },
+      keyLightColor: { value: new THREE.Color(0xfff1ce) },
+      waterDeep: { value: new THREE.Color(0x123f47) },
+      waterShallow: { value: new THREE.Color(0x6ca7a2) }
+    },
+    vertexShader: `
+      attribute float pathMask;
+      attribute float reliefMask;
+      attribute float waterMask;
+      attribute float shadeBias;
+      varying vec2 vUv;
+      varying vec3 vNormalView;
+      varying float vPathMask;
+      varying float vReliefMask;
+      varying float vWaterMask;
+      varying float vShadeBias;
+
+      void main() {
+        vUv = uv;
+        vPathMask = pathMask;
+        vReliefMask = reliefMask;
+        vWaterMask = waterMask;
+        vShadeBias = shadeBias;
+        vNormalView = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D fieldMap;
+      uniform sampler2D reliefMap;
+      uniform sampler2D pathMap;
+      uniform vec3 ambientColor;
+      uniform vec3 keyLightColor;
+      uniform vec3 waterDeep;
+      uniform vec3 waterShallow;
+      varying vec2 vUv;
+      varying vec3 vNormalView;
+      varying float vPathMask;
+      varying float vReliefMask;
+      varying float vWaterMask;
+      varying float vShadeBias;
+
+      void main() {
+        vec3 fieldTex = texture2D(fieldMap, vUv * 8.0).rgb * vec3(0.58, 0.73, 0.54);
+        vec3 reliefTex = texture2D(reliefMap, vUv * 5.2).rgb * vec3(0.72, 0.70, 0.63);
+        vec3 pathTex = texture2D(pathMap, vUv * 7.0).rgb * vec3(0.82, 0.66, 0.50);
+        float relief = smoothstep(0.16, 0.82, vReliefMask) * (1.0 - vPathMask * 0.45);
+        float path = smoothstep(0.10, 0.92, vPathMask);
+        float water = smoothstep(0.44, 0.92, vWaterMask);
+        vec3 land = mix(fieldTex, reliefTex, relief);
+        land = mix(land, pathTex, path);
+        vec3 waterCol = mix(waterDeep, waterShallow, clamp(vWaterMask, 0.0, 1.0));
+        vec3 base = mix(land, waterCol, water);
+        float light = clamp(dot(normalize(vNormalView), normalize(vec3(-0.22, 0.82, 0.52))) * 0.48 + 0.58 + vShadeBias, 0.28, 1.18);
+        vec3 lit = base * mix(ambientColor, keyLightColor, light);
+        gl_FragColor = vec4(lit, 1.0);
+      }
+    `
+  });
+  material.name = "asset-only-downloaded-terrain-blend";
+  return material;
 }
 
-function classifyAssetOnlyTerrainCell(position: THREE.Vector3): AssetOnlyTerrainClassification {
-  const route = sampleDriveSurface(position);
-  const worldMaterial = sampleWorldMaterial(position, route.onRoute);
+const smoothstep = (edge0: number, edge1: number, value: number) => {
+  const t = clamp((value - edge0) / (edge1 - edge0), 0, 1);
+  return t * t * (3 - 2 * t);
+};
+
+function distanceToSegment2d(px: number, pz: number, ax: number, az: number, bx: number, bz: number) {
+  const abx = bx - ax;
+  const abz = bz - az;
+  const lengthSq = abx * abx + abz * abz;
+  if (lengthSq <= 0.0001) {
+    return Math.hypot(px - ax, pz - az);
+  }
+  const t = clamp(((px - ax) * abx + (pz - az) * abz) / lengthSq, 0, 1);
+  const x = ax + abx * t;
+  const z = az + abz * t;
+  return Math.hypot(px - x, pz - z);
+}
+
+function routeDistanceOnly(position: THREE.Vector3) {
+  let best = Number.POSITIVE_INFINITY;
+  for (const route of worldRoutes) {
+    const from = terrainZoneById.get(route.from);
+    const to = terrainZoneById.get(route.to);
+    if (!from || !to) {
+      continue;
+    }
+    const points = [from.position, ...(route.via ?? []), to.position];
+    for (let index = 0; index < points.length - 1; index += 1) {
+      const [ax, az] = points[index];
+      const [bx, bz] = points[index + 1];
+      best = Math.min(best, distanceToSegment2d(position.x, position.z, ax, az, bx, bz));
+    }
+  }
+  return best;
+}
+
+function sampleOrganicPathMask(position: THREE.Vector3) {
+  const routeDistance = routeDistanceOnly(position);
+  const zoneDistance = zones.reduce((best, zone) => {
+    const distanceFromEdge = Math.hypot(position.x - zone.position[0], position.z - zone.position[1]) - zone.radius;
+    return Math.min(best, distanceFromEdge);
+  }, Number.POSITIVE_INFINITY);
+  const zoneSuppression = 1 - smoothstep(-0.2, 1.45, zoneDistance);
+  const grain =
+    Math.sin(position.x * 0.61 + position.z * 0.37) * 0.16 +
+    Math.sin(position.x * 1.17 - position.z * 0.53) * 0.1 +
+    Math.cos(position.x * 0.29 + position.z * 0.91) * 0.08;
+  const width = 1.12 + grain - zoneSuppression * 0.36;
+  const feather = 0.44 + Math.abs(grain) * 0.36;
+  return 1 - smoothstep(width, width + feather, routeDistance);
+}
+
+function sampleAssetOnlyTerrainMasks(position: THREE.Vector3) {
+  const worldMaterial = sampleWorldMaterial(position, false);
   const terrain = sampleTerrain(position);
-  if (worldMaterial.kind === "water") {
-    return "water";
-  }
-  if (route.distance <= driveSurfaceConfig.routeWidth * 0.86) {
-    return "road";
-  }
-  if (terrain.dominantFeatureId && Math.abs(terrain.height) >= 0.12) {
-    return "relief";
-  }
-  return "field";
-}
-
-function colorForAssetOnlyTerrain(kind: AssetOnlyTerrainKind, terrain: TerrainSample) {
-  const heightT = clamp((terrain.height + 0.22) / 0.64, 0, 1);
-  const gradeT = clamp(terrain.grade * 6, 0, 1);
-  const color =
-    kind === "water"
-      ? new THREE.Color(0x236b73).lerp(new THREE.Color(0x6ca7a2), clamp(terrain.wetness, 0.18, 0.82))
-      : kind === "relief"
-        ? new THREE.Color(0x4f5045).lerp(new THREE.Color(0x8a806c), Math.max(heightT, gradeT * 0.72))
-        : new THREE.Color(0x2f513e).lerp(new THREE.Color(0x678264), heightT * 0.78);
-  if (kind !== "water") {
-    color.lerp(new THREE.Color(0x161d19), gradeT * 0.18);
-  }
-  return color;
+  const path = worldMaterial.kind === "water" ? 0 : sampleOrganicPathMask(position);
+  const relief = terrain.dominantFeatureId ? clamp((Math.abs(terrain.height) - 0.045) / 0.22, 0, 1) : 0;
+  const water = worldMaterial.kind === "water" ? clamp(0.58 + worldMaterial.intensity * 0.42, 0, 1) : 0;
+  return {
+    path,
+    relief,
+    water,
+    shadeBias: clamp((terrain.height + 0.08) * 0.08 - terrain.grade * 0.34, -0.08, 0.08)
+  };
 }
 
 function createAssetOnlyTerrainShell() {
-  const materials = createAssetOnlyTerrainMaterials();
-  const segments = 128;
+  const material = createAssetOnlyTerrainMaterial();
+  const segments = 300;
   const size = worldSize * 1.04;
   const half = size / 2;
-  const buckets: Record<AssetOnlyTerrainKind, { positions: number[]; uvs: number[]; colors: number[] }> = {
-    field: { positions: [], uvs: [], colors: [] },
-    water: { positions: [], uvs: [], colors: [] },
-    relief: { positions: [], uvs: [], colors: [] }
-  };
   const group = new THREE.Group();
   group.name = "asset-only-terrain-shell";
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const pathMasks: number[] = [];
+  const reliefMasks: number[] = [];
+  const waterMasks: number[] = [];
+  const shadeBiases: number[] = [];
+  const indices: number[] = [];
   let minHeight = Number.POSITIVE_INFINITY;
   let maxHeight = Number.NEGATIVE_INFINITY;
   let gradeMax = 0;
-  let vertexCount = 0;
 
-  const pushVertex = (kind: AssetOnlyTerrainKind, x: number, z: number) => {
-    const terrain = sampleTerrain(new THREE.Vector3(x, 0, z));
-    const y = kind === "water" ? Math.min(terrain.height, -0.055) + 0.022 : terrain.height - 0.018;
-    const color = colorForAssetOnlyTerrain(kind, terrain);
-    buckets[kind].positions.push(x, y, z);
-    buckets[kind].uvs.push((x + half) / size, (z + half) / size);
-    buckets[kind].colors.push(color.r, color.g, color.b);
-    minHeight = Math.min(minHeight, y);
-    maxHeight = Math.max(maxHeight, y);
-    gradeMax = Math.max(gradeMax, terrain.grade);
-    vertexCount += 1;
-  };
+  for (let zIndex = 0; zIndex <= segments; zIndex += 1) {
+    const z = -half + (zIndex / segments) * size;
+    for (let xIndex = 0; xIndex <= segments; xIndex += 1) {
+      const x = -half + (xIndex / segments) * size;
+      const position = new THREE.Vector3(x, 0, z);
+      const terrain = sampleTerrain(position);
+      const masks = sampleAssetOnlyTerrainMasks(position);
+      const y = masks.water > 0.44 ? Math.min(terrain.height, -0.055) + 0.018 : terrain.height - 0.018;
+      positions.push(x, y, z);
+      uvs.push((x + half) / size, (z + half) / size);
+      pathMasks.push(masks.path);
+      reliefMasks.push(masks.relief);
+      waterMasks.push(masks.water);
+      shadeBiases.push(masks.shadeBias);
+      minHeight = Math.min(minHeight, y);
+      maxHeight = Math.max(maxHeight, y);
+      gradeMax = Math.max(gradeMax, terrain.grade);
+    }
+  }
 
   for (let zIndex = 0; zIndex < segments; zIndex += 1) {
-    const z0 = -half + (zIndex / segments) * size;
-    const z1 = -half + ((zIndex + 1) / segments) * size;
     for (let xIndex = 0; xIndex < segments; xIndex += 1) {
-      const x0 = -half + (xIndex / segments) * size;
-      const x1 = -half + ((xIndex + 1) / segments) * size;
-      const center = new THREE.Vector3((x0 + x1) * 0.5, 0, (z0 + z1) * 0.5);
-      const classification = classifyAssetOnlyTerrainCell(center);
-      const kind = classification === "road" ? "field" : classification;
-      pushVertex(kind, x0, z0);
-      pushVertex(kind, x0, z1);
-      pushVertex(kind, x1, z0);
-      pushVertex(kind, x1, z0);
-      pushVertex(kind, x0, z1);
-      pushVertex(kind, x1, z1);
+      const a = zIndex * (segments + 1) + xIndex;
+      const b = a + 1;
+      const c = a + segments + 1;
+      const d = c + 1;
+      indices.push(a, c, b, b, c, d);
     }
   }
 
-  const materialRoles: AssetOnlyTerrainKind[] = [];
-  for (const kind of ["field", "water", "relief"] as const) {
-    const bucket = buckets[kind];
-    if (bucket.positions.length === 0) {
-      continue;
-    }
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.Float32BufferAttribute(bucket.positions, 3));
-    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(bucket.uvs, 2));
-    geometry.setAttribute("color", new THREE.Float32BufferAttribute(bucket.colors, 3));
-    geometry.computeVertexNormals();
-    const mesh = new THREE.Mesh(geometry, materials[kind]);
-    mesh.name = `asset-only-terrain-${kind}`;
-    mesh.receiveShadow = true;
-    mesh.renderOrder = kind === "water" ? -1 : -4;
-    mesh.userData.assetOnlyTerrainRole = kind;
-    mesh.userData.assetOnlyTerrainVertexCount = bucket.positions.length / 3;
-    group.add(mesh);
-    materialRoles.push(kind);
-  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setIndex(indices);
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setAttribute("pathMask", new THREE.Float32BufferAttribute(pathMasks, 1));
+  geometry.setAttribute("reliefMask", new THREE.Float32BufferAttribute(reliefMasks, 1));
+  geometry.setAttribute("waterMask", new THREE.Float32BufferAttribute(waterMasks, 1));
+  geometry.setAttribute("shadeBias", new THREE.Float32BufferAttribute(shadeBiases, 1));
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.name = "asset-only-terrain-downloaded-texture-blend";
+  mesh.receiveShadow = true;
+  mesh.renderOrder = -4;
+  mesh.userData.assetOnlyTerrainRole = "field/path/water/relief";
+  mesh.userData.assetOnlyTerrainVertexCount = positions.length / 3;
+  group.add(mesh);
 
+  const materialRoles: AssetOnlyTerrainKind[] = ["field", "path", "water", "relief"];
   const metrics: AssetOnlyTerrainMetrics = {
     heightRange: Number((maxHeight - minHeight).toFixed(3)),
     minHeight: Number(minHeight.toFixed(3)),
     maxHeight: Number(maxHeight.toFixed(3)),
     gradeMax: Number(gradeMax.toFixed(3)),
-    vertexCount,
+    vertexCount: positions.length / 3,
     materialRoles,
-    textureUrls: [assetOnlyGroundTexturePath, assetOnlyReliefTexturePath]
+    textureUrls: [assetOnlyGroundTexturePath, assetOnlyPathTexturePath, assetOnlyReliefTexturePath]
   };
 
   return { group, metrics };

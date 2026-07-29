@@ -754,22 +754,6 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
 
   return [
     ...curatedTerrain,
-    ...createTerrainPathContinuitySpecs(),
-    createPlacement("terrain-core:studio-crossing-path-proof", "terrain-core:studio-crossing-path-proof", "route", "primary", true, "road", "ground_pathSide.glb", [0.6, 4.8], 1.42, -0.18, {
-      assetId: "accepted-nature-path-core"
-    }),
-    createPlacement("terrain-core:spawn-path-bend", "terrain-core:spawn-path", "route", "primary", true, "road", "ground_pathBend.glb", [3.2, -2.6], 1.34, Math.PI * 0.18, {
-      assetId: "accepted-nature-path-core"
-    }),
-    createPlacement("terrain-core:spawn-path-straight", "terrain-core:spawn-path", "route", "primary", true, "road", "ground_pathStraight.glb", [6.45, -1.0], 1.36, Math.PI * 0.5, {
-      assetId: "accepted-nature-path-core"
-    }),
-    createPlacement("terrain-core:spawn-path-split", "terrain-core:spawn-path", "route", "support", true, "road", "ground_pathSplit.glb", [9.45, 0.45], 1.24, Math.PI * 0.34, {
-      assetId: "accepted-nature-path-core"
-    }),
-    createPlacement("terrain-core:pond-path-approach", "terrain-core:pond-approach", "route", "support", true, "road", "ground_pathRocks.glb", [-0.95, 2.35], 1.18, Math.PI * 0.28, {
-      assetId: "accepted-nature-path-core"
-    }),
     createPlacement("terrain-core:rail-spine-a", "terrain-core:rail-spine", "route", "primary", true, "rail", "track-detailed.glb", [5.7, 0.2], 1.38, Math.PI * 0.5, {
       assetId: "accepted-train-rail-core"
     }),
@@ -839,64 +823,6 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     createPlacement("terrain-core:north-bush", "terrain-core:north-marker", "vegetation", "support", true, "vegetation", "plant_bushLarge.glb", [10.6, 8.35], 0.98, 0.12),
     createPlacement("terrain-core:north-tree-detailed", "terrain-core:north-marker", "vegetation", "support", true, "vegetation", "tree_detailed.glb", [12.35, 6.4], 1.18, -0.22),
     createPlacement("terrain-core:north-rock", "terrain-core:north-marker", "relief", "support", true, "relief", "rock_largeE.glb", [12.1, 10.2], 0.86, 0.24)
-  ];
-}
-
-function createTerrainPathContinuitySpecs(): MapPlacementSpec[] {
-  const pathAsset = { assetId: "accepted-nature-path-core" };
-  return [
-    createPlacement(
-      "terrain-core:path-continuity-pond-corner",
-      "terrain-core:path-continuity-pond",
-      "route",
-      "support",
-      true,
-      "road",
-      "ground_pathCorner.glb",
-      [-2.25, 2.55],
-      1.34,
-      Math.PI * 0.36,
-      pathAsset
-    ),
-    createPlacement(
-      "terrain-core:path-continuity-studio-side",
-      "terrain-core:path-continuity-studio",
-      "route",
-      "support",
-      true,
-      "road",
-      "ground_pathBendBank.glb",
-      [1.95, 3.42],
-      1.42,
-      Math.PI * 0.28,
-      pathAsset
-    ),
-    createPlacement(
-      "terrain-core:path-continuity-spawn-bend",
-      "terrain-core:path-continuity-spawn",
-      "route",
-      "support",
-      true,
-      "road",
-      "ground_pathEnd.glb",
-      [4.8, 1.4],
-      1.36,
-      Math.PI * 0.46,
-      pathAsset
-    ),
-    createPlacement(
-      "terrain-core:path-continuity-east-corner",
-      "terrain-core:path-continuity-east",
-      "route",
-      "support",
-      true,
-      "road",
-      "ground_pathBendBank.glb",
-      [10.9, 1.5],
-      1.32,
-      Math.PI * 0.2,
-      pathAsset
-    )
   ];
 }
 

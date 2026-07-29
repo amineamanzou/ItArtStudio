@@ -66,17 +66,16 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v113",
+    "id": "public-terrain-core-v114",
     "phase": "public-terrain-first-runtime",
-    "purpose": "Prove the public asset-only world as terrain before bases: downloaded car, vendor ground texture and GLB roles for road, bridge, rail, water, relief and vegetation with no generated decorative primitives or hero/factory clutter.",
+    "purpose": "Prove the public asset-only world as terrain before bases: downloaded car, vendor field/path/relief textures and GLB roles for bridge, rail, water, relief and vegetation with no generated decorative primitives or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
     "requiredPlayerAssetId": "accepted-car-vehicle-core",
     "requiredPlayerFile": "sedan-sports.glb",
-    "requiredTerrainRoles": ["bridge", "rail", "relief", "road", "vegetation", "water"],
+    "requiredTerrainRoles": ["bridge", "rail", "relief", "path", "vegetation", "water"],
     "requiredAssetIds": [
       "accepted-assetquest-pond-water-core",
       "accepted-nature-relief-core",
-      "accepted-nature-path-core",
       "accepted-nature-stone-bridge-core",
       "accepted-nature-vegetation-core",
       "accepted-polyhaven-fern-core",
@@ -86,14 +85,6 @@
     "requiredFiles": [
       "bridge_stoneRoundNarrow.glb",
       "pond-2.glb",
-      "ground_pathBend.glb",
-      "ground_pathBendBank.glb",
-      "ground_pathCorner.glb",
-      "ground_pathEnd.glb",
-      "ground_pathRocks.glb",
-      "ground_pathSide.glb",
-      "ground_pathSplit.glb",
-      "ground_pathStraight.glb",
       "rock_09_1k.gltf",
       "rock_largeE.glb",
       "sedan-sports.glb",
@@ -106,6 +97,14 @@
       "box-wide.glb",
       "construction-cone.glb",
       "floor-large.glb",
+      "ground_pathBend.glb",
+      "ground_pathBendBank.glb",
+      "ground_pathCorner.glb",
+      "ground_pathEnd.glb",
+      "ground_pathRocks.glb",
+      "ground_pathSide.glb",
+      "ground_pathSplit.glb",
+      "ground_pathStraight.glb",
       "road-curve.glb",
       "road-split.glb",
       "road-straight-half.glb",
@@ -117,24 +116,24 @@
     "minimumPlacements": 36,
     "minimumUniqueFiles": 29,
     "minimumRolePlacements": {
-      "route": 11,
+      "route": 4,
       "water": 6,
       "relief": 8,
       "vegetation": 12
     },
-    "minimumNaturalPathPlacements": 9,
     "minimumCoverage": { "width": 18, "depth": 12 },
-    "requiredTerrainMaterialRoles": ["field", "relief", "water"],
+    "requiredTerrainMaterialRoles": ["field", "path", "relief", "water"],
     "requiredTerrainTextureFiles": [
       "assets/textures/vendor/polyhaven/forrest_ground_01/forrest_ground_01_diff_1k.jpg",
+      "assets/textures/vendor/polyhaven/stony_dirt_path/stony_dirt_path_diff_1k.jpg",
       "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg"
     ],
-    "minimumTerrainLayers": 3,
+    "minimumTerrainLayers": 4,
     "minimumTerrainHeightRange": 0.5,
     "minimumTerrainVertexCount": 90000,
     "maximumNonHeroClusterDensity": 4,
     "maximumHeroLocationPlacements": 0,
-    "allowedGeneratedSubstrate": "multi-material terrain heightfield only, using downloaded vendor textures and vertex colors for field/relief/water; visible public routes and decor must come from downloaded vendor GLB/glTF.",
+    "allowedGeneratedSubstrate": "single terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief plus water material; visible public decor must come from downloaded vendor GLB/glTF.",
     "fallback": "If a terrain GLB fails, omit that placement and keep the public world sparse rather than replacing it with a generated rectangle, cone, halo, plate or abstract primitive.",
     "nextAction": "Source stronger terrain packs before expanding the public map beyond this proof core; do not densify Cloud Dock, Design Atelier or Observability Tower until this terrain gate stays green."
   },
@@ -271,7 +270,7 @@
     "fallback": "If the downloaded bridge/path seams cause visual noise or renderer pressure, keep the vendor files accepted but remove the inspection placements before any public core promotion.",
     "nextAction": "Use these vendor-only terrain screenshots to decide which external library pack should be sourced next for higher-quality roads, banks and terrain seams."
   },
-  "terrainRoles": ["road", "water", "relief", "vegetation", "route-edge", "bridge", "rail", "hero-location"],
+  "terrainRoles": ["road", "path", "water", "relief", "vegetation", "route-edge", "bridge", "rail", "hero-location"],
   "mapExpansionKits": [
     {
       "id": "route-network-kit",
@@ -500,7 +499,7 @@
   "assets": [
     {
       "id": "accepted-car-vehicle-core",
-      "status": "accepted",
+      "status": "integrated",
       "sourceId": "kenney-car-kit",
       "kind": "model-collection",
       "target": "player",
@@ -521,6 +520,7 @@
       ],
       "budget": { "maxKb": 900, "targetTriangles": 9500 },
       "styleFit": "high",
+      "qaProof": "qa/artifacts/2026-07-29T13-24-58-952Z/report.md#public-asset-only-player",
       "proceduralFallback": "src/game/game.ts keeps the legacy QA rover only behind qa or legacy modes; public runtime must use the downloaded car GLB.",
       "nextAction": "Use sedan-sports.glb as the public player, then evaluate separated wheels only after terrain readability is validated."
     },
@@ -1045,6 +1045,30 @@
       "styleFit": "medium",
       "proceduralFallback": "If the downloaded texture fails to load, the public map falls back to a plain matte ground color rather than a generated pattern.",
       "nextAction": "Color-grade or replace with additional downloaded grass, dirt and rock textures once the terrain-only composition is validated."
+    },
+    {
+      "id": "accepted-polyhaven-stony-dirt-path-texture",
+      "status": "integrated",
+      "sourceId": "polyhaven",
+      "kind": "texture-set",
+      "target": "map",
+      "terrainRole": "path",
+      "narrativeRole": "Downloaded CC0 stony dirt path diffuse texture used as the public organic path material so routes read as terrain instead of placed tiles.",
+      "preferredFormat": "JPG",
+      "assetPageUrl": "https://polyhaven.com/a/stony_dirt_path",
+      "downloadUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stony_dirt_path/stony_dirt_path_diff_1k.jpg",
+      "licenseUrl": "https://polyhaven.com/license",
+      "retrievedAt": "2026-07-29",
+      "sha256": "a662000ff3f7f64e23c25d2b8cd5947b9c8fd893510c5ed49c0daa2847004758",
+      "localPath": "public/assets/textures/vendor/polyhaven/stony_dirt_path",
+      "publicPath": "assets/textures/vendor/polyhaven/stony_dirt_path",
+      "fileKb": 1205.1,
+      "selectedFiles": ["stony_dirt_path_diff_1k.jpg"],
+      "budget": { "maxKb": 1400, "targetResolution": 1024 },
+      "styleFit": "high",
+      "qaProof": "qa/artifacts/2026-07-29T13-24-58-952Z/report.md#public-terrain-core",
+      "proceduralFallback": "If this downloaded texture fails to load, public terrain keeps the forest-ground material and omits synthetic route markings rather than drawing generated plates.",
+      "nextAction": "Source complementary downloaded path-edge and mud textures so future map expansion can vary route shoulders without reintroducing placed path tiles."
     },
     {
       "id": "accepted-polyhaven-stony-dirt-texture",
