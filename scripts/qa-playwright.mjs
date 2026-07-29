@@ -171,6 +171,19 @@ const expectedPrioritySignatureFamilies = {
 };
 let screenshotIndex = 0;
 
+const qaVisualOnlyUiSelectors = [
+  ".game-brand",
+  ".game-status",
+  ".game-audio",
+  ".game-contact",
+  ".zone-panel",
+  ".world-map",
+  ".mobile-zone-nav",
+  ".mobile-drive",
+  ".intro-plate",
+  ".game-loader"
+];
+
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function fail(message, details = {}) {
@@ -1282,6 +1295,106 @@ async function capture(page, label, extra = {}) {
     await assertPremiumWorldDetailDistribution(page, label);
   }
   return entry;
+}
+
+async function ensureQaVisualOnlyStyle(page) {
+  await page.evaluate((selectors) => {
+    if (document.getElementById("qa-visual-only-style")) {
+      return;
+    }
+
+    const style = document.createElement("style");
+    style.id = "qa-visual-only-style";
+    style.textContent = `
+      html[data-qa-visual-only="true"] :is(${selectors.join(", ")}) {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+
+      html[data-qa-visual-only="true"] .studio-map-canvas {
+        cursor: default !important;
+      }
+    `;
+    document.head.append(style);
+  }, qaVisualOnlyUiSelectors);
+}
+
+async function inspectQaVisualOnlyState(page) {
+  return page.evaluate((selectors) => {
+    const elements = selectors.flatMap((selector) =>
+      [...document.querySelectorAll(selector)].map((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        const visible =
+          rect.width > 0 &&
+          rect.height > 0 &&
+          style.display !== "none" &&
+          style.visibility !== "hidden" &&
+          Number(style.opacity) > 0.01;
+
+        return {
+          selector,
+          tag: element.tagName.toLowerCase(),
+          text: element.textContent?.trim().replace(/\s+/gu, " ").slice(0, 80) ?? "",
+          visible,
+          rect: {
+            x: Number(rect.x.toFixed(2)),
+            y: Number(rect.y.toFixed(2)),
+            width: Number(rect.width.toFixed(2)),
+            height: Number(rect.height.toFixed(2))
+          },
+          opacity: Number(style.opacity),
+          visibility: style.visibility,
+          display: style.display
+        };
+      })
+    );
+
+    return {
+      enabled: document.documentElement.dataset.qaVisualOnly === "true",
+      trackedElementCount: elements.length,
+      hiddenElementCount: elements.filter((element) => !element.visible).length,
+      visibleElementCount: elements.filter((element) => element.visible).length,
+      visibleText: elements.filter((element) => element.visible && element.text.length > 0),
+      elements
+    };
+  }, qaVisualOnlyUiSelectors);
+}
+
+async function captureVisualOnly(page, label, extra = {}) {
+  await ensureQaVisualOnlyStyle(page);
+  await page.evaluate(() => {
+    document.documentElement.dataset.qaVisualOnly = "true";
+  });
+  const visualOnlyScene = await page.evaluate(() =>
+    typeof window.__IT_ART_STUDIO_QA_VISUAL_ONLY__ === "function"
+      ? window.__IT_ART_STUDIO_QA_VISUAL_ONLY__(true)
+      : { hiddenLabels: 0, visibleLabels: 0 }
+  );
+  await page.waitForTimeout(180);
+  const visualOnlyState = await inspectQaVisualOnlyState(page);
+
+  try {
+    return await capture(page, label, {
+      ...extra,
+      skipPremiumWorldDistribution: true,
+      qaVisualOnly: {
+        ...visualOnlyState,
+        scene: visualOnlyScene
+      }
+    });
+  } finally {
+    await page.evaluate(() => {
+      if (typeof window.__IT_ART_STUDIO_QA_VISUAL_ONLY__ === "function") {
+        window.__IT_ART_STUDIO_QA_VISUAL_ONLY__(false);
+      }
+    });
+    await page.evaluate(() => {
+      delete document.documentElement.dataset.qaVisualOnly;
+    });
+    await page.waitForTimeout(80);
+  }
 }
 
 async function driveToZone(page, target) {
@@ -5963,11 +6076,23 @@ async function collectExternalAssetHeroLocationProofs(page, zoneIds) {
     const captureEntry = await capture(page, `external-asset-hero-location-${zoneId}`, {
       skipPremiumWorldDistribution: true
     });
+    const visualOnlyCaptureEntry = await captureVisualOnly(page, `external-asset-hero-location-${zoneId}-visual-only`);
     const snapshot = captureEntry.snapshot;
     const externalAssets = snapshot?.externalAssets;
     const rect = externalAssets?.heroLocationScreenRects?.[zoneId];
     const roles = externalAssets?.heroLocationRoles?.[zoneId] ?? [];
     const placementCount = externalAssets?.heroLocationPlacementCounts?.[zoneId] ?? 0;
+    const visualOnlyState = visualOnlyCaptureEntry.qaVisualOnly;
+    const visualOnlyOk =
+      visualOnlyCaptureEntry.snapshot?.activeZoneId === zoneId &&
+      visualOnlyState?.enabled === true &&
+      visualOnlyState?.trackedElementCount >= 5 &&
+      visualOnlyState?.visibleElementCount === 0 &&
+      visualOnlyState?.scene?.hiddenLabels >= 3 &&
+      visualOnlyState?.scene?.visibleLabels === 0 &&
+      visualOnlyCaptureEntry.canvas.ok &&
+      visualOnlyCaptureEntry.canvas.edgeTransitions >= 70 &&
+      visualOnlyCaptureEntry.canvas.colorBuckets >= 35;
     const ok =
       snapshot?.activeZoneId === zoneId &&
       placementCount >= 3 &&
@@ -5975,7 +6100,8 @@ async function collectExternalAssetHeroLocationProofs(page, zoneIds) {
       rect?.visible === true &&
       rect.clippedArea >= 220 &&
       rect.visibleRatio >= 0.008 &&
-      captureEntry.canvas.ok;
+      captureEntry.canvas.ok &&
+      visualOnlyOk;
     const proof = {
       zoneId,
       ok,
@@ -5985,13 +6111,32 @@ async function collectExternalAssetHeroLocationProofs(page, zoneIds) {
       rect,
       canvas: captureEntry.canvas,
       capture: captureEntry.relativePath,
+      visualOnly: {
+        ok: visualOnlyOk,
+        capture: visualOnlyCaptureEntry.relativePath,
+        canvas: visualOnlyCaptureEntry.canvas,
+        hiddenElementCount: visualOnlyState?.hiddenElementCount ?? 0,
+        trackedElementCount: visualOnlyState?.trackedElementCount ?? 0,
+        visibleElementCount: visualOnlyState?.visibleElementCount ?? 0,
+        hiddenSceneLabels: visualOnlyState?.scene?.hiddenLabels ?? 0,
+        visibleSceneLabels: visualOnlyState?.scene?.visibleLabels ?? 0,
+        visibleText: visualOnlyState?.visibleText ?? []
+      },
       actionability
     };
     proofs.push(proof);
     if (ok) {
       pass(label, proof);
+      pass(`hero-location-visual-only:${zoneId}`, proof.visualOnly);
     } else {
       scenarioFail(label, "Hero location GLB cluster is not visually readable in its map zone.", proof);
+      if (!visualOnlyOk) {
+        scenarioFail(
+          `hero-location-visual-only:${zoneId}`,
+          "Hero location is not yet visually readable without HTML labels, panels, or mini-map UI.",
+          proof.visualOnly
+        );
+      }
     }
   }
   return proofs;
@@ -9897,6 +10042,13 @@ async function writeReport() {
   const externalAssetCorePremiumScenario = scenarios.find((scenario) => scenario.name === "external-asset-core-premium-runtime");
   const externalAssetPreviewScenario = scenarios.find((scenario) => scenario.name === "external-asset-preview-runtime");
   const externalAssetMapScenario = scenarios.find((scenario) => scenario.name === "external-asset-map-composition");
+  const heroLocationVisualOnlyScenarios = scenarios.filter((scenario) => scenario.name.startsWith("hero-location-visual-only:"));
+  const heroLocationVisualOnlyHiddenLabels = heroLocationVisualOnlyScenarios
+    .map((scenario) => scenario.details?.hiddenSceneLabels)
+    .filter((value) => typeof value === "number");
+  const heroLocationVisualOnlyVisibleLabels = heroLocationVisualOnlyScenarios
+    .map((scenario) => scenario.details?.visibleSceneLabels)
+    .filter((value) => typeof value === "number");
   const visualScenario = scenarios.find((scenario) => scenario.name === "visual-specs-rendered");
   const placeArchitectureScenario = scenarios.find((scenario) => scenario.name === "place-architecture-rendered");
   const projectArtifactsScenario = scenarios.find((scenario) => scenario.name === "project-artifacts-rendered");
@@ -10068,6 +10220,11 @@ async function writeReport() {
       externalAssetMapScenario?.details?.externalAssets
         ? `${externalAssetMapScenario.status}, placements ${externalAssetMapScenario.details.externalAssets.heroLocationPlacements ?? 0}, locations ${(externalAssetMapScenario.details.externalAssets.heroLocationIds ?? []).join("/")}, proofs ${(externalAssetMapScenario.details.heroLocationProofs ?? []).filter((proof) => proof.ok).length}/${(externalAssetMapScenario.details.heroLocationProofs ?? []).length}`
         : (externalAssetMapScenario?.status ?? "n/a")
+    }`,
+    `- Hero locations without HTML labels: ${
+      heroLocationVisualOnlyScenarios.length > 0
+        ? `${heroLocationVisualOnlyScenarios.filter((scenario) => scenario.status === "pass").length}/${heroLocationVisualOnlyScenarios.length}, hidden 3D labels ${Math.min(...heroLocationVisualOnlyHiddenLabels)}/${Math.max(...heroLocationVisualOnlyHiddenLabels)}, visible 3D labels max ${Math.max(...heroLocationVisualOnlyVisibleLabels)}, captures ${heroLocationVisualOnlyScenarios.map((scenario) => scenario.details?.capture).filter(Boolean).join("/")}`
+        : "n/a"
     }`,
     `- Landmark objects: ${world?.landmarkObjects ?? "n/a"}`,
     `- Road segments: ${world?.roadSegments ?? "n/a"}`,

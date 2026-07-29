@@ -1470,6 +1470,22 @@ Gates V9.10:
 - les contours globaux de surface sont reduits: ils doivent suggérer la
   topographie, pas dessiner une couche graphique au-dessus des lieux.
 
+Gates V9.11:
+
+- la QA `external-asset-map-composition` capture maintenant chaque hero
+  location deux fois: une capture normale et une capture `visual-only`;
+- la capture `visual-only` masque les panneaux HTML, le HUD, la mini-map, les
+  controles mobiles, l'intro, le loader et les labels 3D de zone afin de
+  verifier que les GLB et la composition portent seuls la reconnaissance du
+  lieu;
+- `hero-location-visual-only:*` refuse un lieu si un element d'interface reste
+  visible, si un label Three.js reste affiche, si la capture canvas manque de
+  detail ou si `Cloud Dock`, `Design Atelier` et `Observability Tower` ne
+  restent pas lisibles apres retrait des textes;
+- ce gate ne change pas le runtime public: il renforce la preuve QA que la
+  boucle asset-first produit des lieux reconnaissables, pas seulement des
+  panneaux explicatifs.
+
 ## Components
 
 - `game-site`: surface principale.

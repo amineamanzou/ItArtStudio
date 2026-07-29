@@ -930,6 +930,7 @@ declare global {
     __IT_ART_STUDIO_QA__?: QaSnapshot;
     __IT_ART_STUDIO_QA_STEP__?: (direction: DriveKey) => void;
     __IT_ART_STUDIO_QA_REFRESH__?: () => void;
+    __IT_ART_STUDIO_QA_VISUAL_ONLY__?: (enabled: boolean) => { hiddenLabels: number; visibleLabels: number };
   }
 }
 
@@ -941,6 +942,7 @@ class StudioGame {
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
   private readonly zoneMeshes = new Map<string, THREE.Object3D>();
+  private readonly zoneLabelSprites: THREE.Sprite[] = [];
   private readonly keys = new Set<DriveKey>();
   private readonly player = new THREE.Group();
   private readonly playerVelocity = new THREE.Vector3();
@@ -1668,6 +1670,7 @@ class StudioGame {
     if (qaMode) {
       this.exposeQaSnapshot();
       this.exposeQaRefresh();
+      this.exposeQaVisualOnlyControl();
     }
     this.exposeQaControls();
     this.animate();
@@ -2198,6 +2201,9 @@ class StudioGame {
 
     const label = this.createLabel(zone.shortLabel, accent);
     label.position.set(0, 1.78, 0);
+    label.userData.zoneLabel = true;
+    label.userData.zoneId = zone.id;
+    this.zoneLabelSprites.push(label);
     group.add(label);
 
     this.zoneMeshes.set(zone.id, group);
@@ -3991,6 +3997,20 @@ class StudioGame {
 
   private exposeQaRefresh() {
     window.__IT_ART_STUDIO_QA_REFRESH__ = () => this.syncQaSnapshot({ full: true });
+  }
+
+  private exposeQaVisualOnlyControl() {
+    window.__IT_ART_STUDIO_QA_VISUAL_ONLY__ = (enabled: boolean) => {
+      this.zoneLabelSprites.forEach((label) => {
+        label.visible = !enabled;
+      });
+      this.renderer.render(this.scene, this.camera);
+
+      return {
+        hiddenLabels: this.zoneLabelSprites.filter((label) => !label.visible).length,
+        visibleLabels: this.zoneLabelSprites.filter((label) => label.visible).length
+      };
+    };
   }
 
   private exposeQaControls() {
