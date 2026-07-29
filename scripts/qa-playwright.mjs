@@ -3591,13 +3591,17 @@ async function checkProductionRuntimeLightweight(browser) {
         requestAnimationFrame(tick);
       });
       const canvas = document.querySelector("#studio-map-canvas");
+      const scriptSources = [...document.scripts].map((script) => script.src).filter(Boolean);
       return {
         url: window.location.href,
+        pathname: window.location.pathname,
+        search: window.location.search,
         ready: document.documentElement.classList.contains("game-ready"),
         gameState: document.documentElement.dataset.gameState ?? null,
         hasQaSnapshot: "__IT_ART_STUDIO_QA__" in window,
         hasQaStep: "__IT_ART_STUDIO_QA_STEP__" in window,
         hasQaRefresh: "__IT_ART_STUDIO_QA_REFRESH__" in window,
+        scriptSources,
         frames,
         canvas:
           canvas instanceof HTMLCanvasElement
@@ -3605,10 +3609,15 @@ async function checkProductionRuntimeLightweight(browser) {
             : null
       };
     });
+    const proof = await capture(page, "public-noqa-runtime", {
+      skipCanvasDetail: true,
+      skipPremiumWorldDistribution: true
+    });
 
     if (
       state.ready &&
       state.gameState === "ready" &&
+      state.search === "" &&
       state.hasQaSnapshot === false &&
       state.hasQaStep === false &&
       state.hasQaRefresh === false &&
@@ -3616,9 +3625,27 @@ async function checkProductionRuntimeLightweight(browser) {
       state.canvas?.width > 0 &&
       state.canvas?.height > 0
     ) {
-      pass("production-runtime-lightweight", state);
+      pass("production-runtime-lightweight", {
+        ...state,
+        canvasSample: proof.canvas,
+        capture: proof.relativePath
+      });
+      pass("public-noqa-asset-only-runtime", {
+        url: state.url,
+        search: state.search,
+        hasQaSnapshot: state.hasQaSnapshot,
+        hasQaStep: state.hasQaStep,
+        hasQaRefresh: state.hasQaRefresh,
+        frames: state.frames,
+        canvas: proof.canvas,
+        capture: proof.relativePath
+      });
     } else {
-      scenarioFail("production-runtime-lightweight", "Production runtime exposes QA hooks or did not animate.", state);
+      scenarioFail("production-runtime-lightweight", "Production runtime exposes QA hooks, includes QA params, or did not animate.", {
+        ...state,
+        canvasSample: proof.canvas,
+        capture: proof.relativePath
+      });
     }
   } catch (error) {
     scenarioFail("production-runtime-lightweight", "Production runtime did not reach ready state.", {
@@ -10269,6 +10296,7 @@ async function writeReport() {
   const externalAssetPreviewScenario = scenarios.find((scenario) => scenario.name === "external-asset-preview-runtime");
   const externalAssetMapScenario = scenarios.find((scenario) => scenario.name === "external-asset-map-composition");
   const publicAssetOnlyPlayerScenario = scenarios.find((scenario) => scenario.name === "public-asset-only-player");
+  const publicNoQaAssetOnlyScenario = scenarios.find((scenario) => scenario.name === "public-noqa-asset-only-runtime");
   const heroLocationVisualOnlyScenarios = scenarios.filter((scenario) => scenario.name.startsWith("hero-location-visual-only:"));
   const heroLocationVisualOnlyHiddenLabels = heroLocationVisualOnlyScenarios
     .map((scenario) => scenario.details?.hiddenSceneLabels)
@@ -10379,6 +10407,8 @@ async function writeReport() {
     "| Capture | Active zone | Avg frame ms | Canvas | Bright ratio | Edges | Buckets |",
     "|---|---:|---:|---:|---:|---:|---:|",
     ...evidenceRows,
+    "",
+    "Note: `public-noqa-runtime` is captured from the real production URL without `?qa`; WebGL canvas sampling can be unreadable there, so its proof is the page screenshot plus the `Public no-QA runtime` hook check below.",
     "",
     "## 3D Inventory",
     "",
@@ -10544,6 +10574,11 @@ async function writeReport() {
       publicAssetOnlyPlayerScenario?.details?.player
         ? `${publicAssetOnlyPlayerScenario.status}, ${publicAssetOnlyPlayerScenario.details.player.asset?.name ?? "n/a"}, ${publicAssetOnlyPlayerScenario.details.player.asset?.path ?? "n/a"}, meshes ${publicAssetOnlyPlayerScenario.details.player.meshCount}, capture ${publicAssetOnlyPlayerScenario.details.capture ?? "n/a"}`
         : (publicAssetOnlyPlayerScenario?.status ?? "n/a")
+    }`,
+    `- Public no-QA runtime: ${
+      publicNoQaAssetOnlyScenario?.details
+        ? `${publicNoQaAssetOnlyScenario.status}, search "${publicNoQaAssetOnlyScenario.details.search}", QA hooks ${publicNoQaAssetOnlyScenario.details.hasQaSnapshot}/${publicNoQaAssetOnlyScenario.details.hasQaStep}/${publicNoQaAssetOnlyScenario.details.hasQaRefresh}, frames ${publicNoQaAssetOnlyScenario.details.frames}, capture ${publicNoQaAssetOnlyScenario.details.capture ?? "n/a"}`
+        : "n/a"
     }`,
     `- Rover trail: ${trail?.activeMarks ?? "n/a"}/${trail?.totalMarks ?? "n/a"} active, max opacity ${
       trail?.maxOpacity ?? "n/a"
@@ -10840,6 +10875,7 @@ async function main() {
       await checkWorldRichness(page);
       checkMapExpansionKitsManifest();
       checkCorePromotionManifest();
+      await checkProductionRuntimeLightweight(browser);
       await checkPublicAssetOnlyPlayer(browser);
       if (staticSmokeOnly) {
         pass("static-dist-smoke-profile", {
