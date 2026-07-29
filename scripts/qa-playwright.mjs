@@ -3699,6 +3699,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const forbiddenFiles = manifestPublicTerrainCore.forbiddenFiles ?? [];
     const minimumRolePlacements = manifestPublicTerrainCore.minimumRolePlacements ?? {};
     const minimumCoverage = manifestPublicTerrainCore.minimumCoverage ?? { width: 0, depth: 0 };
+    const minimumNaturalPathPlacements = manifestPublicTerrainCore.minimumNaturalPathPlacements ?? 0;
     const requiredTerrainMaterialRoles = manifestPublicTerrainCore.requiredTerrainMaterialRoles ?? [];
     const requiredTerrainTextureFiles = manifestPublicTerrainCore.requiredTerrainTextureFiles ?? [];
     const missingTerrainRoles = requiredTerrainRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
@@ -3720,7 +3721,21 @@ async function checkPublicAssetOnlyPlayer(browser) {
     const missingRolePlacementCounts = Object.entries(minimumRolePlacements).filter(
       ([role, minimum]) => (externalAssets?.[`${role}LinkedPlacements`] ?? 0) < minimum
     );
+    const naturalPathPlacementKeys = (externalAssets?.placementAssetKeys ?? []).filter((key) => {
+      const [assetId, , file] = key.split("::");
+      return assetId === "accepted-nature-path-core" && file?.startsWith("ground_path");
+    });
+    const naturalPathPlacementIds = naturalPathPlacementKeys.map((key) => key.split("::")[1]).filter(Boolean);
+    const naturalPathPlacementFiles = naturalPathPlacementKeys.map((key) => key.split("::")[2]).filter(Boolean);
+    const naturalPathPlacementOk = naturalPathPlacementKeys.length >= minimumNaturalPathPlacements;
     const forbiddenHeroPlacements = externalAssets?.heroLocationPlacements ?? 0;
+    const publicGeneratedRuntimeOk =
+      (snapshot?.world?.decorativeObjects ?? 0) === 0 &&
+      (snapshot?.world?.roadSegments ?? 0) === 0 &&
+      (snapshot?.world?.routeSurfaceObjects ?? 0) === 0 &&
+      (snapshot?.trail?.totalMarks ?? 0) === 0 &&
+      (snapshot?.trail?.activeMarks ?? 0) === 0 &&
+      (snapshot?.material?.surfaceFxObjectCapacity ?? 0) === 0;
     const vehicleOk =
       asset?.mode === "vendor-glb" &&
       asset.status === "loaded" &&
@@ -3754,6 +3769,8 @@ async function checkPublicAssetOnlyPlayer(browser) {
       forbiddenPlacementFiles.length === 0 &&
       forbiddenPublicPaths.length === 0 &&
       missingRolePlacementCounts.length === 0 &&
+      naturalPathPlacementOk &&
+      publicGeneratedRuntimeOk &&
       forbiddenHeroPlacements <= (manifestPublicTerrainCore.maximumHeroLocationPlacements ?? 0) &&
       externalAssets.routeLinkedPlacements >= (minimumRolePlacements.route ?? 0) &&
       externalAssets.waterLinkedPlacements >= (minimumRolePlacements.water ?? 0) &&
@@ -3789,6 +3806,16 @@ async function checkPublicAssetOnlyPlayer(browser) {
           mapTextureRoles: snapshot?.world?.mapTextureRoles,
           mapTextureUrls: snapshot?.world?.mapTextureUrls
         },
+        naturalPathPlacementIds,
+        naturalPathPlacementFiles,
+        naturalPathPlacementKeys,
+        publicGeneratedRuntime: {
+          decorativeObjects: snapshot?.world?.decorativeObjects,
+          roadSegments: snapshot?.world?.roadSegments,
+          routeSurfaceObjects: snapshot?.world?.routeSurfaceObjects,
+          trail: snapshot?.trail,
+          surfaceFxObjectCapacity: snapshot?.material?.surfaceFxObjectCapacity
+        },
         capture: proof.relativePath
       });
     } else {
@@ -3811,6 +3838,18 @@ async function checkPublicAssetOnlyPlayer(browser) {
           forbiddenPlacementFiles,
           forbiddenPublicPaths,
           missingRolePlacementCounts,
+          naturalPathPlacementOk,
+          naturalPathPlacementIds,
+          naturalPathPlacementFiles,
+          naturalPathPlacementKeys,
+          publicGeneratedRuntimeOk,
+          publicGeneratedRuntime: {
+            decorativeObjects: snapshot?.world?.decorativeObjects,
+            roadSegments: snapshot?.world?.roadSegments,
+            routeSurfaceObjects: snapshot?.world?.routeSurfaceObjects,
+            trail: snapshot?.trail,
+            surfaceFxObjectCapacity: snapshot?.material?.surfaceFxObjectCapacity
+          },
           forbiddenHeroPlacements
         }
       });
@@ -10688,7 +10727,7 @@ async function writeReport() {
     }`,
     `- Public terrain core: ${
       publicTerrainCoreScenario?.details?.externalAssets
-        ? `${publicTerrainCoreScenario.status}, placements ${publicTerrainCoreScenario.details.externalAssets.placements}, unique files ${publicTerrainCoreScenario.details.externalAssets.uniqueFiles}, roles ${publicTerrainCoreScenario.details.externalAssets.terrainRoles.join("/")}, terrain layers ${publicTerrainCoreScenario.details.terrainShell?.terrainLayers ?? "n/a"}, height ${publicTerrainCoreScenario.details.terrainShell?.terrainHeightRange ?? "n/a"}, hero placements ${publicTerrainCoreScenario.details.externalAssets.heroLocationPlacements}, cluster density ${publicTerrainCoreScenario.details.externalAssets.maxNonHeroClusterDensity}, coverage ${publicTerrainCoreScenario.details.externalAssets.mapCoverageWidth}x${publicTerrainCoreScenario.details.externalAssets.mapCoverageDepth}, capture ${publicTerrainCoreScenario.details.capture ?? "n/a"}`
+        ? `${publicTerrainCoreScenario.status}, placements ${publicTerrainCoreScenario.details.externalAssets.placements}, unique files ${publicTerrainCoreScenario.details.externalAssets.uniqueFiles}, roles ${publicTerrainCoreScenario.details.externalAssets.terrainRoles.join("/")}, natural paths ${publicTerrainCoreScenario.details.naturalPathPlacementIds?.length ?? "n/a"}, terrain layers ${publicTerrainCoreScenario.details.terrainShell?.terrainLayers ?? "n/a"}, height ${publicTerrainCoreScenario.details.terrainShell?.terrainHeightRange ?? "n/a"}, hero placements ${publicTerrainCoreScenario.details.externalAssets.heroLocationPlacements}, cluster density ${publicTerrainCoreScenario.details.externalAssets.maxNonHeroClusterDensity}, coverage ${publicTerrainCoreScenario.details.externalAssets.mapCoverageWidth}x${publicTerrainCoreScenario.details.externalAssets.mapCoverageDepth}, capture ${publicTerrainCoreScenario.details.capture ?? "n/a"}`
         : (publicTerrainCoreScenario?.status ?? "n/a")
     }`,
     `- Public no-QA runtime: ${

@@ -47,6 +47,7 @@ export type ExternalAssetPreviewTelemetry = {
   publicPaths: string[];
   placementIds: string[];
   placementFiles: string[];
+  placementAssetKeys: string[];
   premiumPromotionFiles: string[];
   premiumPromotionPlacementIds: string[];
   errors: string[];
@@ -193,6 +194,7 @@ export function createExternalAssetTelemetry(enabled: boolean, mode: ExternalAss
     publicPaths: [],
     placementIds: [],
     placementFiles: [],
+    placementAssetKeys: [],
     premiumPromotionFiles: [],
     premiumPromotionPlacementIds: [],
     errors: [],
@@ -423,6 +425,7 @@ async function createExternalAssetPlacementLayer(mode: "core" | "map", placement
       telemetry.publicPaths.push(url);
       telemetry.placementIds.push(spec.id);
       telemetry.placementFiles.push(spec.preferredFile);
+      telemetry.placementAssetKeys.push(`${asset.id}::${spec.id}::${spec.preferredFile}`);
       if (asset.id === promotedAssetId && promotedFiles.has(spec.preferredFile) && promotedPlacementIds.has(spec.id)) {
         telemetry.premiumPromotionFiles.push(spec.preferredFile);
         telemetry.premiumPromotionPlacementIds.push(spec.id);
@@ -550,6 +553,7 @@ function finalizeTelemetry(group: THREE.Object3D, telemetry: ExternalAssetPrevie
   telemetry.publicPaths = [...new Set(telemetry.publicPaths)].sort();
   telemetry.placementIds = [...new Set(telemetry.placementIds)].sort();
   telemetry.placementFiles = [...new Set(telemetry.placementFiles)].sort();
+  telemetry.placementAssetKeys = [...new Set(telemetry.placementAssetKeys)].sort();
   telemetry.premiumPromotionFiles = [...new Set(telemetry.premiumPromotionFiles)].sort();
   telemetry.premiumPromotionPlacementIds = [...new Set(telemetry.premiumPromotionPlacementIds)].sort();
   telemetry.uniqueFiles = telemetry.publicPaths.length;
@@ -602,7 +606,17 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
   if (spec.assetId === "accepted-nature-path-core") {
     const remapPathMaterial = (material: THREE.Material) => {
       const name = material.name.toLowerCase();
-      const color = name.includes("grass") ? 0x314d37 : name.includes("dark") ? 0x3e342a : 0x755b44;
+      if (name.includes("grass")) {
+        return new THREE.MeshStandardMaterial({
+          color: 0x314d37,
+          roughness: 1,
+          metalness: 0,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false
+        });
+      }
+      const color = name.includes("dark") ? 0x3e342a : 0x755b44;
       return new THREE.MeshStandardMaterial({
         color,
         roughness: 0.96,
@@ -740,6 +754,7 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
 
   return [
     ...curatedTerrain,
+    ...createTerrainPathContinuitySpecs(),
     createPlacement("terrain-core:studio-crossing-path-proof", "terrain-core:studio-crossing-path-proof", "route", "primary", true, "road", "ground_pathSide.glb", [0.6, 4.8], 1.42, -0.18, {
       assetId: "accepted-nature-path-core"
     }),
@@ -824,6 +839,64 @@ function createTerrainCorePlacementSpecs(): MapPlacementSpec[] {
     createPlacement("terrain-core:north-bush", "terrain-core:north-marker", "vegetation", "support", true, "vegetation", "plant_bushLarge.glb", [10.6, 8.35], 0.98, 0.12),
     createPlacement("terrain-core:north-tree-detailed", "terrain-core:north-marker", "vegetation", "support", true, "vegetation", "tree_detailed.glb", [12.35, 6.4], 1.18, -0.22),
     createPlacement("terrain-core:north-rock", "terrain-core:north-marker", "relief", "support", true, "relief", "rock_largeE.glb", [12.1, 10.2], 0.86, 0.24)
+  ];
+}
+
+function createTerrainPathContinuitySpecs(): MapPlacementSpec[] {
+  const pathAsset = { assetId: "accepted-nature-path-core" };
+  return [
+    createPlacement(
+      "terrain-core:path-continuity-pond-corner",
+      "terrain-core:path-continuity-pond",
+      "route",
+      "support",
+      true,
+      "road",
+      "ground_pathCorner.glb",
+      [-2.25, 2.55],
+      1.34,
+      Math.PI * 0.36,
+      pathAsset
+    ),
+    createPlacement(
+      "terrain-core:path-continuity-studio-side",
+      "terrain-core:path-continuity-studio",
+      "route",
+      "support",
+      true,
+      "road",
+      "ground_pathBendBank.glb",
+      [1.95, 3.42],
+      1.42,
+      Math.PI * 0.28,
+      pathAsset
+    ),
+    createPlacement(
+      "terrain-core:path-continuity-spawn-bend",
+      "terrain-core:path-continuity-spawn",
+      "route",
+      "support",
+      true,
+      "road",
+      "ground_pathEnd.glb",
+      [4.8, 1.4],
+      1.36,
+      Math.PI * 0.46,
+      pathAsset
+    ),
+    createPlacement(
+      "terrain-core:path-continuity-east-corner",
+      "terrain-core:path-continuity-east",
+      "route",
+      "support",
+      true,
+      "road",
+      "ground_pathBendBank.glb",
+      [10.9, 1.5],
+      1.32,
+      Math.PI * 0.2,
+      pathAsset
+    )
   ];
 }
 

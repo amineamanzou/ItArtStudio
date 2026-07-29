@@ -47,7 +47,6 @@ const externalAssetRuntimeMode = !externalAssetDisabledMode;
 const assetOnlyPlayerPath = "assets/models/vendor/kenney/car-kit/vehicles/sedan-sports.glb";
 const assetOnlyGroundTexturePath = "assets/textures/vendor/polyhaven/forrest_ground_01/forrest_ground_01_diff_1k.jpg";
 const assetOnlyReliefTexturePath = "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg";
-const assetOnlyRoadTexturePath = "assets/textures/vendor/polyhaven/aerial_ground_rock/aerial_ground_rock_diff_1k.jpg";
 const playerMaxForwardSpeed = qaMode ? 12.8 : 10.5;
 const playerMaxReverseSpeed = qaMode ? 6.4 : 4.2;
 const playerAcceleration = qaMode ? 38 : 24;
@@ -86,6 +85,7 @@ function createDefaultExternalAssetTelemetry(enabled: boolean): ExternalAssetPre
     publicPaths: [],
     placementIds: [],
     placementFiles: [],
+    placementAssetKeys: [],
     premiumPromotionFiles: [],
     premiumPromotionPlacementIds: [],
     errors: [],
@@ -305,7 +305,8 @@ function createDownloadedTexture(path: string, repeat = 1) {
   return texture;
 }
 
-type AssetOnlyTerrainKind = "field" | "road" | "water" | "relief";
+type AssetOnlyTerrainKind = "field" | "water" | "relief";
+type AssetOnlyTerrainClassification = AssetOnlyTerrainKind | "road";
 
 type AssetOnlyTerrainMetrics = {
   heightRange: number;
@@ -320,7 +321,6 @@ type AssetOnlyTerrainMetrics = {
 function createAssetOnlyTerrainMaterials(): Record<AssetOnlyTerrainKind, THREE.MeshStandardMaterial> {
   const fieldMap = createDownloadedTexture(assetOnlyGroundTexturePath, 8);
   const reliefMap = createDownloadedTexture(assetOnlyReliefTexturePath, 5);
-  const roadMap = createDownloadedTexture(assetOnlyRoadTexturePath, 6);
 
   return {
     field: new THREE.MeshStandardMaterial({
@@ -329,13 +329,6 @@ function createAssetOnlyTerrainMaterials(): Record<AssetOnlyTerrainKind, THREE.M
       vertexColors: true,
       roughness: 0.98,
       metalness: 0.01
-    }),
-    road: new THREE.MeshStandardMaterial({
-      color: 0x8d9086,
-      map: roadMap,
-      vertexColors: true,
-      roughness: 0.92,
-      metalness: 0.02
     }),
     relief: new THREE.MeshStandardMaterial({
       color: 0x625f52,
@@ -355,7 +348,7 @@ function createAssetOnlyTerrainMaterials(): Record<AssetOnlyTerrainKind, THREE.M
   };
 }
 
-function classifyAssetOnlyTerrainCell(position: THREE.Vector3): AssetOnlyTerrainKind {
+function classifyAssetOnlyTerrainCell(position: THREE.Vector3): AssetOnlyTerrainClassification {
   const route = sampleDriveSurface(position);
   const worldMaterial = sampleWorldMaterial(position, route.onRoute);
   const terrain = sampleTerrain(position);
@@ -377,11 +370,9 @@ function colorForAssetOnlyTerrain(kind: AssetOnlyTerrainKind, terrain: TerrainSa
   const color =
     kind === "water"
       ? new THREE.Color(0x236b73).lerp(new THREE.Color(0x6ca7a2), clamp(terrain.wetness, 0.18, 0.82))
-      : kind === "road"
-        ? new THREE.Color(0x777b72).lerp(new THREE.Color(0xb2aea0), heightT * 0.52)
-        : kind === "relief"
-          ? new THREE.Color(0x4f5045).lerp(new THREE.Color(0x8a806c), Math.max(heightT, gradeT * 0.72))
-          : new THREE.Color(0x2f513e).lerp(new THREE.Color(0x678264), heightT * 0.78);
+      : kind === "relief"
+        ? new THREE.Color(0x4f5045).lerp(new THREE.Color(0x8a806c), Math.max(heightT, gradeT * 0.72))
+        : new THREE.Color(0x2f513e).lerp(new THREE.Color(0x678264), heightT * 0.78);
   if (kind !== "water") {
     color.lerp(new THREE.Color(0x161d19), gradeT * 0.18);
   }
@@ -395,7 +386,6 @@ function createAssetOnlyTerrainShell() {
   const half = size / 2;
   const buckets: Record<AssetOnlyTerrainKind, { positions: number[]; uvs: number[]; colors: number[] }> = {
     field: { positions: [], uvs: [], colors: [] },
-    road: { positions: [], uvs: [], colors: [] },
     water: { positions: [], uvs: [], colors: [] },
     relief: { positions: [], uvs: [], colors: [] }
   };
@@ -426,7 +416,8 @@ function createAssetOnlyTerrainShell() {
       const x0 = -half + (xIndex / segments) * size;
       const x1 = -half + ((xIndex + 1) / segments) * size;
       const center = new THREE.Vector3((x0 + x1) * 0.5, 0, (z0 + z1) * 0.5);
-      const kind = classifyAssetOnlyTerrainCell(center);
+      const classification = classifyAssetOnlyTerrainCell(center);
+      const kind = classification === "road" ? "field" : classification;
       pushVertex(kind, x0, z0);
       pushVertex(kind, x0, z1);
       pushVertex(kind, x1, z0);
@@ -437,7 +428,7 @@ function createAssetOnlyTerrainShell() {
   }
 
   const materialRoles: AssetOnlyTerrainKind[] = [];
-  for (const kind of ["field", "road", "water", "relief"] as const) {
+  for (const kind of ["field", "water", "relief"] as const) {
     const bucket = buckets[kind];
     if (bucket.positions.length === 0) {
       continue;
@@ -464,7 +455,7 @@ function createAssetOnlyTerrainShell() {
     gradeMax: Number(gradeMax.toFixed(3)),
     vertexCount,
     materialRoles,
-    textureUrls: [assetOnlyGroundTexturePath, assetOnlyReliefTexturePath, assetOnlyRoadTexturePath]
+    textureUrls: [assetOnlyGroundTexturePath, assetOnlyReliefTexturePath]
   };
 
   return { group, metrics };

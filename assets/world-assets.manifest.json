@@ -66,7 +66,7 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v112",
+    "id": "public-terrain-core-v113",
     "phase": "public-terrain-first-runtime",
     "purpose": "Prove the public asset-only world as terrain before bases: downloaded car, vendor ground texture and GLB roles for road, bridge, rail, water, relief and vegetation with no generated decorative primitives or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
@@ -87,7 +87,11 @@
       "bridge_stoneRoundNarrow.glb",
       "pond-2.glb",
       "ground_pathBend.glb",
+      "ground_pathBendBank.glb",
+      "ground_pathCorner.glb",
+      "ground_pathEnd.glb",
       "ground_pathRocks.glb",
+      "ground_pathSide.glb",
       "ground_pathSplit.glb",
       "ground_pathStraight.glb",
       "rock_09_1k.gltf",
@@ -110,27 +114,27 @@
       "top-large-checkerboard.glb",
       "tree_cone.glb"
     ],
-    "minimumPlacements": 32,
-    "minimumUniqueFiles": 26,
+    "minimumPlacements": 36,
+    "minimumUniqueFiles": 29,
     "minimumRolePlacements": {
-      "route": 7,
+      "route": 11,
       "water": 6,
       "relief": 8,
       "vegetation": 12
     },
+    "minimumNaturalPathPlacements": 9,
     "minimumCoverage": { "width": 18, "depth": 12 },
-    "requiredTerrainMaterialRoles": ["field", "relief", "road", "water"],
+    "requiredTerrainMaterialRoles": ["field", "relief", "water"],
     "requiredTerrainTextureFiles": [
       "assets/textures/vendor/polyhaven/forrest_ground_01/forrest_ground_01_diff_1k.jpg",
-      "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg",
-      "assets/textures/vendor/polyhaven/aerial_ground_rock/aerial_ground_rock_diff_1k.jpg"
+      "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg"
     ],
-    "minimumTerrainLayers": 4,
+    "minimumTerrainLayers": 3,
     "minimumTerrainHeightRange": 0.5,
     "minimumTerrainVertexCount": 90000,
     "maximumNonHeroClusterDensity": 4,
     "maximumHeroLocationPlacements": 0,
-    "allowedGeneratedSubstrate": "multi-material terrain heightfield only, using downloaded vendor textures and vertex colors for field/relief/road/water; visible public decor must come from downloaded vendor GLB/glTF.",
+    "allowedGeneratedSubstrate": "multi-material terrain heightfield only, using downloaded vendor textures and vertex colors for field/relief/water; visible public routes and decor must come from downloaded vendor GLB/glTF.",
     "fallback": "If a terrain GLB fails, omit that placement and keep the public world sparse rather than replacing it with a generated rectangle, cone, halo, plate or abstract primitive.",
     "nextAction": "Source stronger terrain packs before expanding the public map beyond this proof core; do not densify Cloud Dock, Design Atelier or Observability Tower until this terrain gate stays green."
   },
@@ -668,17 +672,18 @@
     },
     {
       "id": "accepted-nature-path-core",
-      "status": "accepted",
+      "status": "integrated",
       "sourceId": "kenney-nature-kit",
       "kind": "model-collection",
       "target": "map",
       "terrainRole": "road",
-      "narrativeRole": "Accepted natural ground-path vocabulary for replacing generic hard road tiles in the public terrain-first map where the route should read as an authored landscape path.",
+      "narrativeRole": "Integrated natural ground-path vocabulary for replacing generic hard road tiles in the public terrain-first map where the route should read as an authored landscape path.",
       "preferredFormat": "GLB",
       "localPath": "public/assets/models/vendor/kenney/nature-kit/paths",
       "publicPath": "assets/models/vendor/kenney/nature-kit/paths",
       "fileKb": 39.9,
       "triangles": 410,
+      "qaProof": "qa/artifacts/2026-07-29T13-06-15-021Z/report.md#public-terrain-core",
       "selectedFiles": [
         "ground_pathBend.glb",
         "ground_pathBendBank.glb",
@@ -692,7 +697,7 @@
       "budget": { "maxKb": 160, "targetTriangles": 800 },
       "styleFit": "high",
       "proceduralFallback": "No generated road plate is allowed in the public asset-only world; if these GLB paths fail, the terrain keeps the downloaded ground texture and omits the path.",
-      "nextAction": "Use a few path pieces as broad route language, then replace the remaining grey road tiles only where screenshots prove the natural path reads better."
+      "nextAction": "Source a stronger irregular terrain/path kit next; keep these pieces only as temporary route language where screenshots prove they read as landscape rather than square tiles."
     },
     {
       "id": "accepted-nature-stone-bridge-core",
