@@ -77,12 +77,18 @@ function createDefaultExternalAssetTelemetry(enabled: boolean): ExternalAssetPre
     assetIds: [],
     terrainRoles: [],
     publicPaths: [],
+    placementIds: [],
+    placementFiles: [],
+    premiumPromotionFiles: [],
+    premiumPromotionPlacementIds: [],
     errors: [],
     heroLocationPlacements: 0,
     heroLocationIds: [],
     heroLocationPlacementCounts: {},
     heroLocationRoles: {},
     heroLocationScreenRects: {},
+    placementScreenRects: {},
+    fileScreenRects: {},
     placements: 0,
     clusters: 0,
     placementGroups: 0,
@@ -4649,7 +4655,9 @@ class StudioGame {
       ...this.externalAssetsTelemetry,
       bounds: this.externalAssetPreviewGroup ? this.measureObject(this.externalAssetPreviewGroup) : { width: 0, height: 0, depth: 0 },
       roleScreenRects: this.externalAssetPreviewGroup ? this.createExternalAssetRoleScreenRects() : {},
-      heroLocationScreenRects: this.externalAssetPreviewGroup ? this.createExternalAssetHeroLocationScreenRects() : {}
+      heroLocationScreenRects: this.externalAssetPreviewGroup ? this.createExternalAssetHeroLocationScreenRects() : {},
+      placementScreenRects: this.externalAssetPreviewGroup ? this.createExternalAssetPlacementScreenRects() : {},
+      fileScreenRects: this.externalAssetPreviewGroup ? this.createExternalAssetFileScreenRects() : {}
     };
     this.qaSnapshot.frameCount = this.frameCount;
     this.qaSnapshot.averageFrameMs = Number(averageFrameMs.toFixed(2));
@@ -5262,6 +5270,51 @@ class StudioGame {
     }
 
     return Object.fromEntries(locationRects.entries());
+  }
+
+  private createExternalAssetPlacementScreenRects() {
+    if (!this.externalAssetPreviewGroup) {
+      return {};
+    }
+
+    const placementRects = new Map<string, ScreenRectQa>();
+    for (const child of this.externalAssetPreviewGroup.children) {
+      const placementId = child.userData.externalAssetPlacementId;
+      if (typeof placementId !== "string") {
+        continue;
+      }
+      const rect = this.projectObjectToScreenRect(child);
+      if (!rect.visible || rect.clippedArea <= 0) {
+        continue;
+      }
+      placementRects.set(placementId, rect);
+    }
+
+    return Object.fromEntries(placementRects.entries());
+  }
+
+  private createExternalAssetFileScreenRects() {
+    if (!this.externalAssetPreviewGroup) {
+      return {};
+    }
+
+    const fileRects = new Map<string, ScreenRectQa>();
+    for (const child of this.externalAssetPreviewGroup.children) {
+      const file = child.userData.externalAssetFile;
+      if (typeof file !== "string") {
+        continue;
+      }
+      const rect = this.projectObjectToScreenRect(child);
+      if (!rect.visible || rect.clippedArea <= 0) {
+        continue;
+      }
+      const existing = fileRects.get(file);
+      if (!existing || rect.clippedArea > existing.clippedArea) {
+        fileRects.set(file, rect);
+      }
+    }
+
+    return Object.fromEntries(fileRects.entries());
   }
 
   private emptyAssetEnvelope(zone: StudioZone): AssetEnvelopeQa {

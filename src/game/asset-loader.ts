@@ -18,8 +18,15 @@ type ManifestAsset = {
   selectedFiles?: string[];
 };
 
+type CorePromotionContract = {
+  assetId: string;
+  requiredFiles?: string[];
+  requiredPlacementIds?: string[];
+};
+
 type WorldAssetManifest = {
   assets: ManifestAsset[];
+  corePromotion?: CorePromotionContract;
 };
 
 export type ExternalAssetPreviewTelemetry = {
@@ -38,12 +45,18 @@ export type ExternalAssetPreviewTelemetry = {
   assetIds: string[];
   terrainRoles: string[];
   publicPaths: string[];
+  placementIds: string[];
+  placementFiles: string[];
+  premiumPromotionFiles: string[];
+  premiumPromotionPlacementIds: string[];
   errors: string[];
   heroLocationPlacements: number;
   heroLocationIds: string[];
   heroLocationPlacementCounts: Record<string, number>;
   heroLocationRoles: Record<string, string[]>;
   heroLocationScreenRects: Record<string, { visible: boolean; visibleRatio: number; clippedArea: number; width: number; height: number }>;
+  placementScreenRects: Record<string, { visible: boolean; visibleRatio: number; clippedArea: number; width: number; height: number }>;
+  fileScreenRects: Record<string, { visible: boolean; visibleRatio: number; clippedArea: number; width: number; height: number }>;
   placements: number;
   clusters: number;
   placementGroups: number;
@@ -178,12 +191,18 @@ export function createExternalAssetTelemetry(enabled: boolean, mode: ExternalAss
     assetIds: [],
     terrainRoles: [],
     publicPaths: [],
+    placementIds: [],
+    placementFiles: [],
+    premiumPromotionFiles: [],
+    premiumPromotionPlacementIds: [],
     errors: [],
     heroLocationPlacements: 0,
     heroLocationIds: [],
     heroLocationPlacementCounts: {},
     heroLocationRoles: {},
     heroLocationScreenRects: {},
+    placementScreenRects: {},
+    fileScreenRects: {},
     placements: 0,
     clusters: 0,
     placementGroups: 0,
@@ -297,6 +316,9 @@ async function createExternalAssetPlacementLayer(mode: "core" | "map", placement
   const cache = new Map<string, Promise<THREE.Object3D>>();
   const acceptedAssets = getAcceptedModelCollections();
   const meteredAssetIds = new Set<string>();
+  const promotedAssetId = manifest.corePromotion?.assetId;
+  const promotedFiles = new Set(manifest.corePromotion?.requiredFiles ?? []);
+  const promotedPlacementIds = new Set(manifest.corePromotion?.requiredPlacementIds ?? []);
 
   const jobs = placements
     .map((spec) => {
@@ -395,6 +417,12 @@ async function createExternalAssetPlacementLayer(mode: "core" | "map", placement
       telemetry.assetIds.push(asset.id);
       telemetry.terrainRoles.push(asset.terrainRole);
       telemetry.publicPaths.push(url);
+      telemetry.placementIds.push(spec.id);
+      telemetry.placementFiles.push(spec.preferredFile);
+      if (asset.id === promotedAssetId && promotedFiles.has(spec.preferredFile) && promotedPlacementIds.has(spec.id)) {
+        telemetry.premiumPromotionFiles.push(spec.preferredFile);
+        telemetry.premiumPromotionPlacementIds.push(spec.id);
+      }
       if (asset.terrainRole === "road" || asset.terrainRole === "route-edge" || asset.terrainRole === "bridge") {
         telemetry.routePlacements += 1;
       }
@@ -516,6 +544,10 @@ function finalizeTelemetry(group: THREE.Object3D, telemetry: ExternalAssetPrevie
   telemetry.assetIds = [...new Set(telemetry.assetIds)].sort();
   telemetry.terrainRoles = [...new Set(telemetry.terrainRoles)].sort();
   telemetry.publicPaths = [...new Set(telemetry.publicPaths)].sort();
+  telemetry.placementIds = [...new Set(telemetry.placementIds)].sort();
+  telemetry.placementFiles = [...new Set(telemetry.placementFiles)].sort();
+  telemetry.premiumPromotionFiles = [...new Set(telemetry.premiumPromotionFiles)].sort();
+  telemetry.premiumPromotionPlacementIds = [...new Set(telemetry.premiumPromotionPlacementIds)].sort();
   telemetry.uniqueFiles = telemetry.publicPaths.length;
 }
 
@@ -581,6 +613,9 @@ function createCorePlacementSpecs(): MapPlacementSpec[] {
     "hero:observability-tower:signal-pylon",
     "hero:observability-tower:screen-wall"
   ]);
+  for (const placementId of manifest.corePromotion?.requiredPlacementIds ?? []) {
+    corePlacementIds.add(placementId);
+  }
 
   return createMapPlacementSpecs().filter((spec) => corePlacementIds.has(spec.id));
 }

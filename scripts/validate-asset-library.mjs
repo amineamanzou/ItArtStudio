@@ -175,6 +175,7 @@ const heroLocations = new Set(asArray(manifest.heroLocations));
 const heroLocationCuration = manifest.heroLocationCuration ?? {};
 const terrainRoles = new Set(asArray(manifest.terrainRoles));
 const mapExpansionKits = asArray(manifest.mapExpansionKits);
+const corePromotion = manifest.corePromotion ?? null;
 const productionLicenseAssets = [];
 const declaredRuntimeGlbs = new Set();
 const declaredRuntimeTextures = new Set();
@@ -641,6 +642,112 @@ for (const requiredRole of ["road", "water", "relief", "vegetation", "route-edge
   }
 }
 
+if (!corePromotion) {
+  fail("Core runtime promotion contract is required before premium anchors enter the public build.");
+} else {
+  const promotedAsset = acceptedRuntimeAssets.get(corePromotion.assetId);
+  const requiredFiles = asArray(corePromotion.requiredFiles);
+  const requiredPlacementIds = asArray(corePromotion.requiredPlacementIds);
+  const requiredHeroRoles = corePromotion.requiredHeroRoles ?? {};
+
+  if (corePromotion.phase !== "core-runtime-promotion") {
+    fail("Core promotion must declare phase core-runtime-promotion.", { phase: corePromotion.phase });
+  }
+  if (!corePromotion.id || corePromotion.id.length < 8) {
+    fail("Core promotion must declare a stable id.", { id: corePromotion.id });
+  }
+  if (!corePromotion.purpose || corePromotion.purpose.length < 96) {
+    fail("Core promotion must explain the visual purpose and QA contract.", { purpose: corePromotion.purpose });
+  }
+  if (!corePromotion.fallback || corePromotion.fallback.length < 72) {
+    fail("Core promotion must declare a demotion fallback.", { fallback: corePromotion.fallback });
+  }
+  if (!corePromotion.nextAction || corePromotion.nextAction.length < 72) {
+    fail("Core promotion must declare the next asset-first action.", { nextAction: corePromotion.nextAction });
+  }
+  if (!promotedAsset) {
+    fail("Core promotion assetId must point to an accepted or integrated asset.", { assetId: corePromotion.assetId });
+  } else {
+    if (!promotedAsset.kind.includes("model") || promotedAsset.target !== "map" || promotedAsset.terrainRole !== "hero-location") {
+      fail("Core promotion asset must be a map hero-location model collection.", {
+        assetId: promotedAsset.id,
+        kind: promotedAsset.kind,
+        target: promotedAsset.target,
+        terrainRole: promotedAsset.terrainRole
+      });
+    }
+    for (const file of requiredFiles) {
+      if (!asArray(promotedAsset.selectedFiles).includes(file)) {
+        fail("Core promotion requiredFiles must exist in the promoted asset selectedFiles.", {
+          assetId: promotedAsset.id,
+          file,
+          selectedFiles: promotedAsset.selectedFiles
+        });
+      }
+    }
+  }
+  if (requiredFiles.length !== heroLocations.size || new Set(requiredFiles).size !== requiredFiles.length) {
+    fail("Core promotion must declare exactly one unique premium file per hero location.", {
+      requiredFiles,
+      heroLocations: [...heroLocations]
+    });
+  }
+  if (requiredPlacementIds.length !== heroLocations.size || new Set(requiredPlacementIds).size !== requiredPlacementIds.length) {
+    fail("Core promotion must declare exactly one unique placement per hero location.", {
+      requiredPlacementIds,
+      heroLocations: [...heroLocations]
+    });
+  }
+  for (const zoneId of heroLocations) {
+    const roles = asArray(requiredHeroRoles[zoneId]);
+    if (roles.length !== 1) {
+      fail("Core promotion must declare one required premium hero role per hero location.", {
+        zoneId,
+        roles
+      });
+    }
+    const placementPrefix = `hero:${zoneId}:`;
+    if (!requiredPlacementIds.some((placementId) => typeof placementId === "string" && placementId.startsWith(placementPrefix))) {
+      fail("Core promotion requiredPlacementIds must include each hero location.", {
+        zoneId,
+        requiredPlacementIds
+      });
+    }
+  }
+  if (!Number.isInteger(corePromotion.minimumCorePlacements) || corePromotion.minimumCorePlacements < 18) {
+    fail("Core promotion must require the public core to include the premium anchors plus the existing foundation.", {
+      minimumCorePlacements: corePromotion.minimumCorePlacements
+    });
+  }
+  if (!Number.isInteger(corePromotion.minimumHeroLocationPlacements) || corePromotion.minimumHeroLocationPlacements < 12) {
+    fail("Core promotion must require enough hero-location placements to make the three places legible.", {
+      minimumHeroLocationPlacements: corePromotion.minimumHeroLocationPlacements
+    });
+  }
+  if (!Number.isInteger(corePromotion.minimumUniqueFiles) || corePromotion.minimumUniqueFiles < 18) {
+    fail("Core promotion must require a broad enough unique-file core layer.", {
+      minimumUniqueFiles: corePromotion.minimumUniqueFiles
+    });
+  }
+  if (!isPositiveNumber(corePromotion.minimumCoverage?.width) || !isPositiveNumber(corePromotion.minimumCoverage?.depth)) {
+    fail("Core promotion must declare positive minimumCoverage width/depth.", {
+      minimumCoverage: corePromotion.minimumCoverage
+    });
+  }
+  if (
+    !Number.isInteger(corePromotion.maximumHeroClusterDensity) ||
+    corePromotion.maximumHeroClusterDensity < 3 ||
+    corePromotion.maximumHeroClusterDensity > 4
+  ) {
+    fail("Core promotion must declare a tight maximumHeroClusterDensity.", {
+      maximumHeroClusterDensity: corePromotion.maximumHeroClusterDensity
+    });
+  }
+  if (corePromotion.qaGate !== "external-asset-core-premium-runtime") {
+    fail("Core promotion must bind to the premium runtime QA gate.", { qaGate: corePromotion.qaGate });
+  }
+}
+
 const ccByProductionAssets = productionLicenseAssets.filter((asset) => {
   const source = sources.find((item) => item.id === asset.sourceId);
   return source?.kind !== "pipeline-reference";
@@ -673,6 +780,15 @@ const summary = {
     minimumRuntimePlacements: mapExpansionRuntimePlacementBudget,
     minimumUniqueFiles: mapExpansionUniqueFileBudget
   },
+  corePromotion: corePromotion
+    ? {
+        id: corePromotion.id,
+        assetId: corePromotion.assetId,
+        requiredFiles: asArray(corePromotion.requiredFiles).length,
+        requiredPlacementIds: asArray(corePromotion.requiredPlacementIds).length,
+        qaGate: corePromotion.qaGate
+      }
+    : null,
   warnings,
   failures
 };

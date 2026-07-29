@@ -36,6 +36,35 @@
       "nextCustomAsset": "Upgrade the generated mast, trace station, signal spire and trace beacon into a taller Blender-authored observability beacon with animated scan arcs and trace-beam anchors."
     }
   },
+  "corePromotion": {
+    "id": "premium-anchor-core-v96",
+    "phase": "core-runtime-promotion",
+    "assetId": "accepted-itart-signature-premium-v93",
+    "purpose": "Promote exactly one premium authored anchor per hero location into the public core runtime, only when QA can prove the file, placement and hero role are visible.",
+    "requiredFiles": [
+      "cloud-infra-gateway.glb",
+      "atelier-garment-loom.glb",
+      "observability-signal-spire.glb"
+    ],
+    "requiredPlacementIds": [
+      "hero:cloud-dock:cloud-infra-gateway",
+      "hero:design-atelier:atelier-garment-loom",
+      "hero:observability-tower:observability-signal-spire"
+    ],
+    "requiredHeroRoles": {
+      "cloud-dock": ["cloud-infra-gateway"],
+      "design-atelier": ["atelier-garment-loom"],
+      "observability-tower": ["observability-signal-spire"]
+    },
+    "minimumCorePlacements": 18,
+    "minimumHeroLocationPlacements": 12,
+    "minimumUniqueFiles": 18,
+    "minimumCoverage": { "width": 42, "depth": 42 },
+    "maximumHeroClusterDensity": 4,
+    "qaGate": "external-asset-core-premium-runtime",
+    "fallback": "If any premium anchor fails or disappears in QA, keep the existing core layer and demote the failing anchor back to map-only preview.",
+    "nextAction": "Use the promoted premium anchors as the first authored silhouettes before enlarging the terrain shell around the three hero locations."
+  },
   "terrainRoles": ["road", "water", "relief", "vegetation", "route-edge", "bridge", "hero-location"],
   "mapExpansionKits": [
     {

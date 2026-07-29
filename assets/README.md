@@ -96,3 +96,14 @@ Map expansion kits:
 - Each kit must bind terrain roles to accepted model collections, accepted map
   textures, runtime fallback behavior, placement/coverage thresholds and a
   noise budget. This keeps the expansion asset-first instead of prop-first.
+
+Core promotion:
+
+- `corePromotion` is the contract for moving premium anchors from opt-in
+  inspection into the public `core` runtime.
+- V9.6 promotes exactly one premium GLB per hero location:
+  `cloud-infra-gateway.glb`, `atelier-garment-loom.glb`, and
+  `observability-signal-spire.glb`.
+- Promotion is manifest-driven: the loader reads `requiredPlacementIds`, while
+  QA proves the premium files, placements, hero roles, public paths and
+  screen-space rectangles before the change is considered public-ready.

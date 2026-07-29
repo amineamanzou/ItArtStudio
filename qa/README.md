@@ -151,6 +151,14 @@ The runner:
   `route-edge`, `vegetation`, and `water`, with at least 83 planned runtime
   placements, 18 unique files, accepted texture bindings, fallbacks, coverage
   thresholds, and noise budgets.
+- `core-promotion-contract` must prove that `corePromotion` promotes exactly
+  one premium GLB anchor per hero location into the public `core` runtime,
+  with manifest-bound files, placement ids, hero roles, coverage, density and
+  fallback rules.
+- `external-asset-core-premium-runtime` must prove that the three premium
+  anchors are not merely declared: their files, placement ids, public paths and
+  per-file/per-placement screen rectangles must be visible in the public core
+  runtime without asset load failures.
 - `external-asset-map-composition` must load an opt-in map layer with at least
   the manifest kit placement budget, 18 unique GLB files, 8 clusters, all seven
   visual terrain roles, route, water, relief and vegetation linkage,

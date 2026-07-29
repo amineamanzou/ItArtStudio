@@ -1370,6 +1370,21 @@ Gates V9.5:
   road/route-edge/vegetation/water`, et une couverture minimale 60x60 avant les
   gates historiques 70x70.
 
+Gates V9.6:
+
+- `corePromotion` devient le contrat de promotion premium public: un anchor GLB
+  par hero location, issu de `accepted-itart-signature-premium-v93`;
+- le runtime `core` lit les `requiredPlacementIds` du manifest et promeut
+  `cloud-infra-gateway.glb`, `atelier-garment-loom.glb` et
+  `observability-signal-spire.glb` sans dupliquer la logique dans la QA;
+- la telemetry expose maintenant les `placementIds`, `placementFiles`,
+  `premiumPromotionFiles`, `premiumPromotionPlacementIds` et les rectangles
+  ecran par fichier/placement;
+- Playwright ajoute `core-promotion-contract` et
+  `external-asset-core-premium-runtime`: la promotion n'est acceptee que si les
+  trois fichiers premium, leurs placements, leurs roles hero location, leurs
+  chemins publics et leur presence ecran sont prouves dans le runtime public.
+
 ## Components
 
 - `game-site`: surface principale.

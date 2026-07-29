@@ -73,6 +73,10 @@ const rendererCaps = {
 const manifestHeroLocationIds = worldAssetManifest.heroLocations ?? Object.keys(worldAssetManifest.heroLocationCuration ?? {});
 const manifestHeroLocationCuration = worldAssetManifest.heroLocationCuration ?? {};
 const manifestMapExpansionKits = worldAssetManifest.mapExpansionKits ?? [];
+const manifestCorePromotion = worldAssetManifest.corePromotion ?? {};
+const manifestCorePromotionRequiredFiles = manifestCorePromotion.requiredFiles ?? [];
+const manifestCorePromotionRequiredPlacementIds = manifestCorePromotion.requiredPlacementIds ?? [];
+const manifestCorePromotionRequiredHeroRoles = manifestCorePromotion.requiredHeroRoles ?? {};
 const manifestMapExpansionKitRoles = [
   ...new Set(manifestMapExpansionKits.flatMap((kit) => kit.requiredTerrainRoles ?? []))
 ].sort();
@@ -281,6 +285,65 @@ function checkMapExpansionKitsManifest() {
       minimumCoverage: manifestMapExpansionMinimumCoverage,
       failingKits: kitProofs.filter((proof) => !proof.ok),
       kitProofs
+    });
+  }
+}
+
+function checkCorePromotionManifest() {
+  const acceptedAssets = new Map(
+    worldAssetManifest.assets
+      ?.filter((asset) => asset.status === "accepted" || asset.status === "integrated")
+      .map((asset) => [asset.id, asset]) ?? []
+  );
+  const promotedAsset = acceptedAssets.get(manifestCorePromotion.assetId);
+  const requiredFiles = manifestCorePromotionRequiredFiles;
+  const requiredPlacementIds = manifestCorePromotionRequiredPlacementIds;
+  const requiredHeroRoles = manifestCorePromotionRequiredHeroRoles;
+  const missingFiles = requiredFiles.filter((file) => !promotedAsset?.selectedFiles?.includes(file));
+  const missingHeroLocations = manifestHeroLocationIds.filter((zoneId) => !requiredHeroRoles[zoneId]?.length);
+  const missingPlacementLocations = manifestHeroLocationIds.filter(
+    (zoneId) => !requiredPlacementIds.some((placementId) => placementId.startsWith(`hero:${zoneId}:`))
+  );
+  const ok =
+    manifestCorePromotion.phase === "core-runtime-promotion" &&
+    manifestCorePromotion.qaGate === "external-asset-core-premium-runtime" &&
+    (manifestCorePromotion.purpose?.length ?? 0) >= 96 &&
+    promotedAsset?.kind?.includes("model") &&
+    promotedAsset?.target === "map" &&
+    promotedAsset?.terrainRole === "hero-location" &&
+    requiredFiles.length === manifestHeroLocationIds.length &&
+    new Set(requiredFiles).size === requiredFiles.length &&
+    requiredPlacementIds.length === manifestHeroLocationIds.length &&
+    new Set(requiredPlacementIds).size === requiredPlacementIds.length &&
+    missingFiles.length === 0 &&
+    missingHeroLocations.length === 0 &&
+    missingPlacementLocations.length === 0 &&
+    (manifestCorePromotion.minimumCorePlacements ?? 0) >= 18 &&
+    (manifestCorePromotion.minimumHeroLocationPlacements ?? 0) >= 12 &&
+    (manifestCorePromotion.minimumUniqueFiles ?? 0) >= 18 &&
+    (manifestCorePromotion.minimumCoverage?.width ?? 0) >= 42 &&
+    (manifestCorePromotion.minimumCoverage?.depth ?? 0) >= 42 &&
+    (manifestCorePromotion.maximumHeroClusterDensity ?? 0) >= 3 &&
+    (manifestCorePromotion.maximumHeroClusterDensity ?? 0) <= 4;
+
+  if (ok) {
+    pass("core-promotion-contract", {
+      id: manifestCorePromotion.id,
+      assetId: manifestCorePromotion.assetId,
+      requiredFiles,
+      requiredPlacementIds,
+      requiredHeroRoles,
+      minimumCorePlacements: manifestCorePromotion.minimumCorePlacements,
+      minimumHeroLocationPlacements: manifestCorePromotion.minimumHeroLocationPlacements,
+      minimumUniqueFiles: manifestCorePromotion.minimumUniqueFiles
+    });
+  } else {
+    scenarioFail("core-promotion-contract", "Premium anchors do not have a strong enough core runtime promotion contract.", {
+      corePromotion: manifestCorePromotion,
+      promotedAsset,
+      missingFiles,
+      missingHeroLocations,
+      missingPlacementLocations
     });
   }
 }
@@ -5380,31 +5443,47 @@ async function checkExternalAssetOffRuntime(browser) {
 }
 
 async function checkExternalAssetCoreRuntime(page) {
+  const minimumCorePlacements = manifestCorePromotion.minimumCorePlacements ?? 18;
   await page.waitForFunction(
-    () => {
+    (minimumCorePlacements) => {
       const assets = window.__IT_ART_STUDIO_QA__?.externalAssets;
       return Boolean(
         document.documentElement.classList.contains("game-ready") &&
           window.__IT_ART_STUDIO_QA__?.ready === true &&
           assets?.enabled &&
           assets.mode === "core" &&
-          assets.requested >= 14 &&
+          assets.requested >= minimumCorePlacements &&
           assets.loaded + assets.failed >= assets.requested &&
           window.__IT_ART_STUDIO_QA__?.frameCount > 6
       );
     },
+    minimumCorePlacements,
     { timeout: assetModeReadyTimeoutMs }
   );
 
   const proof = await capture(page, "external-asset-core-runtime");
   const externalAssets = proof.snapshot?.externalAssets;
+  const minimumHeroLocationPlacements = manifestCorePromotion.minimumHeroLocationPlacements ?? 12;
+  const minimumUniqueFiles = manifestCorePromotion.minimumUniqueFiles ?? 18;
+  const minimumCoverage = manifestCorePromotion.minimumCoverage ?? { width: 42, depth: 42 };
+  const maximumHeroClusterDensity = manifestCorePromotion.maximumHeroClusterDensity ?? 4;
   const requiredRoles = ["bridge", "hero-location", "relief", "road", "route-edge", "vegetation", "water"];
   const missingRoles = requiredRoles.filter((role) => !externalAssets?.terrainRoles?.includes(role));
   const requiredHeroLocationIds = ["cloud-dock", "design-atelier", "observability-tower"];
   const requiredHeroLocationRoles = {
-    "cloud-dock": ["server-cloud-node", "cloud-circuit-bridge", "rack-core"],
-    "design-atelier": ["mannequin-fabric-rack", "atelier-drape-frame", "cutting-table"],
-    "observability-tower": ["telemetry-radar-mast", "telemetry-screen-array", "screen-wall"]
+    "cloud-dock": ["server-cloud-node", "cloud-circuit-bridge", "rack-core", ...(manifestCorePromotionRequiredHeroRoles["cloud-dock"] ?? [])],
+    "design-atelier": [
+      "mannequin-fabric-rack",
+      "atelier-drape-frame",
+      "cutting-table",
+      ...(manifestCorePromotionRequiredHeroRoles["design-atelier"] ?? [])
+    ],
+    "observability-tower": [
+      "telemetry-radar-mast",
+      "telemetry-screen-array",
+      "screen-wall",
+      ...(manifestCorePromotionRequiredHeroRoles["observability-tower"] ?? [])
+    ]
   };
   const weakHeroLocations = requiredHeroLocationIds.filter((zoneId) => {
     const placementCount = externalAssets?.heroLocationPlacementCounts?.[zoneId] ?? 0;
@@ -5424,17 +5503,40 @@ async function checkExternalAssetCoreRuntime(page) {
       return true;
     }
   });
+  const missingPremiumFiles = manifestCorePromotionRequiredFiles.filter(
+    (file) => !(externalAssets?.premiumPromotionFiles ?? []).includes(file)
+  );
+  const missingPremiumPlacementIds = manifestCorePromotionRequiredPlacementIds.filter(
+    (placementId) => !(externalAssets?.premiumPromotionPlacementIds ?? []).includes(placementId)
+  );
+  const missingPremiumPublicPaths = manifestCorePromotionRequiredFiles.filter(
+    (file) => !(externalAssets?.publicPaths ?? []).some((publicPath) => publicPath.endsWith(`/${file}`))
+  );
+  const premiumLocationProofs = await collectExternalAssetCorePremiumProofs(page);
+  const invisiblePremiumPlacements = premiumLocationProofs
+    .filter((proof) => !proof.placementOk)
+    .map((proof) => proof.placementId);
+  const invisiblePremiumFiles = premiumLocationProofs.filter((proof) => !proof.fileOk).map((proof) => proof.file);
+  const premiumRuntimeGate =
+    manifestCorePromotionRequiredFiles.length === 3 &&
+    manifestCorePromotionRequiredPlacementIds.length === 3 &&
+    missingPremiumFiles.length === 0 &&
+    missingPremiumPlacementIds.length === 0 &&
+    invisiblePremiumPlacements.length === 0 &&
+    invisiblePremiumFiles.length === 0 &&
+    missingPremiumPublicPaths.length === 0 &&
+    premiumLocationProofs.every((proof) => proof.ok);
 
   const gate =
     externalAssets?.enabled === true &&
     externalAssets.mode === "core" &&
-    externalAssets.requested >= 14 &&
+    externalAssets.requested >= minimumCorePlacements &&
     externalAssets.loaded >= externalAssets.requested &&
     externalAssets.failed === 0 &&
     externalAssets.visible >= externalAssets.requested &&
-    externalAssets.uniqueFiles >= 12 &&
+    externalAssets.uniqueFiles >= minimumUniqueFiles &&
     externalAssets.collections >= 7 &&
-    externalAssets.placements >= 14 &&
+    externalAssets.placements >= minimumCorePlacements &&
     externalAssets.clusters >= 9 &&
     externalAssets.routeLinkedPlacements >= 12 &&
     externalAssets.waterLinkedPlacements >= 1 &&
@@ -5444,14 +5546,14 @@ async function checkExternalAssetCoreRuntime(page) {
     externalAssets.supportPlacements >= 1 &&
     externalAssets.contextPlacements === 0 &&
     externalAssets.promotionCandidates >= externalAssets.requested &&
-    externalAssets.heroLocationPlacements >= 9 &&
+    externalAssets.heroLocationPlacements >= minimumHeroLocationPlacements &&
     requiredHeroLocationIds.every((zoneId) => externalAssets.heroLocationIds?.includes(zoneId)) &&
     (externalAssets.maxNonHeroClusterDensity ?? externalAssets.maxClusterDensity) <= 3 &&
-    (externalAssets.maxHeroLocationClusterDensity ?? 0) <= 3 &&
+    (externalAssets.maxHeroLocationClusterDensity ?? 0) <= maximumHeroClusterDensity &&
     externalAssets.actualMinGroundClearance >= 0.08 &&
     externalAssets.actualCoplanarRiskPlacements === 0 &&
-    externalAssets.mapCoverageWidth >= 42 &&
-    externalAssets.mapCoverageDepth >= 42 &&
+    externalAssets.mapCoverageWidth >= minimumCoverage.width &&
+    externalAssets.mapCoverageDepth >= minimumCoverage.depth &&
     missingRoles.length === 0 &&
     weakHeroLocations.length === 0 &&
     unsafePaths.length === 0 &&
@@ -5474,6 +5576,30 @@ async function checkExternalAssetCoreRuntime(page) {
       requiredHeroLocationRoles,
       unsafePaths,
       expectedAssetPathPrefixes
+    });
+  }
+
+  if (premiumRuntimeGate && gate) {
+    pass("external-asset-core-premium-runtime", {
+      externalAssets,
+      canvas: proof.canvas,
+      requiredFiles: manifestCorePromotionRequiredFiles,
+      requiredPlacementIds: manifestCorePromotionRequiredPlacementIds,
+      premiumLocationProofs
+    });
+  } else {
+    scenarioFail("external-asset-core-premium-runtime", "The public core runtime did not prove all three premium hero anchors.", {
+      externalAssets,
+      canvas: proof.canvas,
+      requiredFiles: manifestCorePromotionRequiredFiles,
+      requiredPlacementIds: manifestCorePromotionRequiredPlacementIds,
+      missingPremiumFiles,
+      missingPremiumPlacementIds,
+      invisiblePremiumPlacements,
+      invisiblePremiumFiles,
+      missingPremiumPublicPaths,
+      premiumLocationProofs,
+      baseRuntimeGate: gate
     });
   }
 }
@@ -5688,6 +5814,86 @@ async function collectExternalAssetHeroLocationProofs(page, zoneIds) {
       pass(label, proof);
     } else {
       scenarioFail(label, "Hero location GLB cluster is not visually readable in its map zone.", proof);
+    }
+  }
+  return proofs;
+}
+
+async function collectExternalAssetCorePremiumProofs(page) {
+  const proofs = [];
+  for (const zoneId of manifestHeroLocationIds) {
+    const placementId = manifestCorePromotionRequiredPlacementIds.find((id) => id.startsWith(`hero:${zoneId}:`));
+    const role = manifestCorePromotionRequiredHeroRoles[zoneId]?.[0] ?? "";
+    const file = manifestCorePromotionRequiredFiles.find((candidate) => candidate.replace(/\.glb$/iu, "") === role) ?? "";
+    const label = `external-asset-core-premium-location:${zoneId}`;
+    const actionability = await clickActionable(page, `.world-map [data-zone-jump="${zoneId}"]`, label, {
+      minWidth: 30,
+      minHeight: 30
+    });
+    if (!actionability) {
+      const snapshot = await getQaSnapshot(page, { refresh: true });
+      const proof = {
+        zoneId,
+        ok: false,
+        placementOk: false,
+        fileOk: false,
+        activeZoneId: snapshot?.activeZoneId ?? null,
+        placementId,
+        file,
+        role,
+        actionability: null
+      };
+      proofs.push(proof);
+      scenarioFail(label, "Premium core hero-location mini-map pin is not actionable.", proof);
+      continue;
+    }
+
+    await page
+      .waitForFunction((targetZoneId) => window.__IT_ART_STUDIO_QA__?.activeZoneId === targetZoneId, zoneId, { timeout: 10_000 })
+      .catch(() => {});
+    await page.waitForTimeout(420);
+    const captureEntry = await capture(page, `external-asset-core-premium-${zoneId}`, {
+      skipPremiumWorldDistribution: true
+    });
+    const snapshot = captureEntry.snapshot;
+    const externalAssets = snapshot?.externalAssets;
+    const placementRect = placementId ? externalAssets?.placementScreenRects?.[placementId] : null;
+    const fileRect = file ? externalAssets?.fileScreenRects?.[file] : null;
+    const roles = externalAssets?.heroLocationRoles?.[zoneId] ?? [];
+    const placementOk =
+      Boolean(placementId) &&
+      placementRect?.visible === true &&
+      placementRect.clippedArea >= 220 &&
+      placementRect.visibleRatio >= 0.008;
+    const fileOk =
+      Boolean(file) &&
+      fileRect?.visible === true &&
+      fileRect.clippedArea >= 220 &&
+      fileRect.visibleRatio >= 0.008;
+    const roleOk = Boolean(role) && roles.includes(role);
+    const ok = snapshot?.activeZoneId === zoneId && placementOk && fileOk && roleOk && captureEntry.canvas.ok;
+    const proof = {
+      zoneId,
+      ok,
+      activeZoneId: snapshot?.activeZoneId ?? null,
+      placementId,
+      file,
+      role,
+      placementOk,
+      fileOk,
+      roleOk,
+      placementRect,
+      fileRect,
+      roles,
+      canvas: captureEntry.canvas,
+      capture: captureEntry.relativePath,
+      actionability
+    };
+    proofs.push(proof);
+    if (ok) {
+      pass(label, proof);
+    } else {
+      scenarioFail(label, "Premium core anchor is not visually readable in its hero location.", proof);
     }
   }
   return proofs;
@@ -9503,9 +9709,11 @@ async function writeReport() {
   const worldScenario = scenarios.find((scenario) => scenario.name === "world-richness");
   const rendererBudgetScenario = scenarios.find((scenario) => scenario.name === "renderer-budget");
   const mapExpansionKitsScenario = scenarios.find((scenario) => scenario.name === "map-expansion-kits-manifest");
+  const corePromotionContractScenario = scenarios.find((scenario) => scenario.name === "core-promotion-contract");
   const mapTextureRuntimeScenario = scenarios.find((scenario) => scenario.name === "map-texture-runtime");
   const externalAssetOffScenario = scenarios.find((scenario) => scenario.name === "external-asset-off-runtime");
   const externalAssetCoreScenario = scenarios.find((scenario) => scenario.name === "external-asset-core-runtime");
+  const externalAssetCorePremiumScenario = scenarios.find((scenario) => scenario.name === "external-asset-core-premium-runtime");
   const externalAssetPreviewScenario = scenarios.find((scenario) => scenario.name === "external-asset-preview-runtime");
   const externalAssetMapScenario = scenarios.find((scenario) => scenario.name === "external-asset-map-composition");
   const visualScenario = scenarios.find((scenario) => scenario.name === "visual-specs-rendered");
@@ -9625,6 +9833,11 @@ async function writeReport() {
         ? `${mapExpansionKitsScenario.status}, kits ${mapExpansionKitsScenario.details.kits}, roles ${(mapExpansionKitsScenario.details.roles ?? []).join("/")}, runtime placements ${mapExpansionKitsScenario.details.minimumRuntimePlacements}, unique files ${mapExpansionKitsScenario.details.minimumUniqueFiles}, coverage ${mapExpansionKitsScenario.details.minimumCoverage?.width ?? "n/a"}x${mapExpansionKitsScenario.details.minimumCoverage?.depth ?? "n/a"}`
         : (mapExpansionKitsScenario?.status ?? "n/a")
     }`,
+    `- Core promotion contract: ${
+      corePromotionContractScenario?.details
+        ? `${corePromotionContractScenario.status}, asset ${corePromotionContractScenario.details.assetId}, files ${(corePromotionContractScenario.details.requiredFiles ?? []).join("/")}, placements ${(corePromotionContractScenario.details.requiredPlacementIds ?? []).join("/")}`
+        : (corePromotionContractScenario?.status ?? "n/a")
+    }`,
     `- External asset off runtime: ${
       externalAssetOffScenario?.details?.externalAssets
         ? `${externalAssetOffScenario.status}, mode ${externalAssetOffScenario.details.externalAssets.mode}, requested ${externalAssetOffScenario.details.externalAssets.requested}, loaded ${externalAssetOffScenario.details.externalAssets.loaded}`
@@ -9639,6 +9852,11 @@ async function writeReport() {
       externalAssetCoreScenario?.details?.externalAssets
         ? `${externalAssetCoreScenario.status}, placements ${externalAssetCoreScenario.details.externalAssets.placements}, unique files ${externalAssetCoreScenario.details.externalAssets.uniqueFiles}, roles ${externalAssetCoreScenario.details.externalAssets.terrainRoles.join("/")}, hero locations ${(externalAssetCoreScenario.details.externalAssets.heroLocationIds ?? []).join("/")}, coverage ${externalAssetCoreScenario.details.externalAssets.mapCoverageWidth}x${externalAssetCoreScenario.details.externalAssets.mapCoverageDepth}`
         : (externalAssetCoreScenario?.status ?? "n/a")
+    }`,
+    `- External asset core premium: ${
+      externalAssetCorePremiumScenario?.details?.externalAssets
+        ? `${externalAssetCorePremiumScenario.status}, files ${(externalAssetCorePremiumScenario.details.externalAssets.premiumPromotionFiles ?? []).join("/")}, placements ${(externalAssetCorePremiumScenario.details.externalAssets.premiumPromotionPlacementIds ?? []).join("/")}`
+        : (externalAssetCorePremiumScenario?.status ?? "n/a")
     }`,
     `- External asset map: ${
       externalAssetMapScenario?.details?.externalAssets
@@ -10026,6 +10244,7 @@ async function main() {
       }
       await checkWorldRichness(page);
       checkMapExpansionKitsManifest();
+      checkCorePromotionManifest();
       await checkExternalAssetOffRuntime(browser);
       await checkExternalAssetCoreRuntime(page);
       await checkExternalAssetPreview(browser);
@@ -10070,6 +10289,7 @@ async function main() {
     }
     await checkWorldRichness(page);
     checkMapExpansionKitsManifest();
+    checkCorePromotionManifest();
     await checkExternalAssetOffRuntime(browser);
     await checkExternalAssetCoreRuntime(page);
     await checkExternalAssetPreview(browser);
