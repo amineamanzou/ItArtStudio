@@ -327,6 +327,7 @@ type AssetOnlyTerrainMetrics = {
   visualSize: number;
   visualScale: number;
   materialRoles: AssetOnlyTerrainKind[];
+  materialCoverage: Record<AssetOnlyTerrainKind, number>;
   textureUrls: string[];
 };
 
@@ -464,8 +465,8 @@ function sampleOrganicPathMask(position: THREE.Vector3) {
     Math.sin(position.x * 0.61 + position.z * 0.37) * 0.16 +
     Math.sin(position.x * 1.17 - position.z * 0.53) * 0.1 +
     Math.cos(position.x * 0.29 + position.z * 0.91) * 0.08;
-  const width = 1.32 + grain * 0.62 - zoneSuppression * 0.24;
-  const feather = 0.72 + Math.abs(grain) * 0.42;
+  const width = 2.26 + grain * 0.78 - zoneSuppression * 0.12;
+  const feather = 0.98 + Math.abs(grain) * 0.5;
   return 1 - smoothstep(width, width + feather, routeDistance);
 }
 
@@ -473,7 +474,7 @@ function sampleAssetOnlyTerrainMasks(position: THREE.Vector3) {
   const worldMaterial = sampleWorldMaterial(position, false);
   const terrain = sampleTerrain(position);
   const path = worldMaterial.kind === "water" ? 0 : sampleOrganicPathMask(position);
-  const relief = terrain.dominantFeatureId ? clamp((Math.abs(terrain.height) - 0.045) / 0.22, 0, 1) : 0;
+  const relief = terrain.dominantFeatureId ? clamp((Math.abs(terrain.height) - 0.012) / 0.145, 0, 1) : 0;
   const water = worldMaterial.kind === "water" ? clamp(0.58 + worldMaterial.intensity * 0.42, 0, 1) : 0;
   return {
     path,
@@ -500,6 +501,11 @@ function createAssetOnlyTerrainShell() {
   let minHeight = Number.POSITIVE_INFINITY;
   let maxHeight = Number.NEGATIVE_INFINITY;
   let gradeMax = 0;
+  let fieldSamples = 0;
+  let pathSamples = 0;
+  let waterSamples = 0;
+  let reliefSamples = 0;
+  let totalSamples = 0;
 
   for (let zIndex = 0; zIndex <= segments; zIndex += 1) {
     const z = -half + (zIndex / segments) * size;
@@ -509,6 +515,19 @@ function createAssetOnlyTerrainShell() {
       const terrain = sampleTerrain(position);
       const masks = sampleAssetOnlyTerrainMasks(position);
       const y = masks.water > 0.44 ? Math.min(terrain.height, -0.055) + 0.018 : terrain.height - 0.018;
+      totalSamples += 1;
+      if (masks.path > 0.28) {
+        pathSamples += 1;
+      }
+      if (masks.water > 0.5) {
+        waterSamples += 1;
+      }
+      if (masks.relief > 0.22) {
+        reliefSamples += 1;
+      }
+      if (masks.path <= 0.18 && masks.water <= 0.35 && masks.relief <= 0.18) {
+        fieldSamples += 1;
+      }
       positions.push(x, y, z);
       uvs.push((x + half) / size, (z + half) / size);
       pathMasks.push(masks.path);
@@ -551,6 +570,7 @@ function createAssetOnlyTerrainShell() {
   group.add(mesh);
 
   const materialRoles: AssetOnlyTerrainKind[] = ["field", "path", "water", "relief"];
+  const ratio = (value: number) => Number((value / Math.max(totalSamples, 1)).toFixed(4));
   const metrics: AssetOnlyTerrainMetrics = {
     heightRange: Number((maxHeight - minHeight).toFixed(3)),
     minHeight: Number(minHeight.toFixed(3)),
@@ -560,6 +580,12 @@ function createAssetOnlyTerrainShell() {
     visualSize: Number(size.toFixed(2)),
     visualScale: assetOnlyTerrainVisualScale,
     materialRoles,
+    materialCoverage: {
+      field: ratio(fieldSamples),
+      path: ratio(pathSamples),
+      water: ratio(waterSamples),
+      relief: ratio(reliefSamples)
+    },
     textureUrls: [assetOnlyGroundTexturePath, assetOnlyPathTexturePath, assetOnlyReliefTexturePath, assetOnlyWaterTexturePath]
   };
 
@@ -1086,6 +1112,7 @@ type QaSnapshot = {
     mapTextureRoles: string[];
     mapTextureUrls: string[];
     mapTextureMaterialCount: number;
+    mapTextureCoverage: Record<string, number>;
     terrainFeatureMarkerObjects: number;
     terrainFeatureMarkerSceneObjects: number;
     terrainFeatureMarkerSignatures: number;
@@ -1276,6 +1303,7 @@ class StudioGame {
   private mapTextureRoles: string[] = [];
   private mapTextureUrls: string[] = [];
   private mapTextureMaterialCount = 0;
+  private mapTextureCoverage: Record<string, number> = {};
   private routeGuidanceObjectCount = 0;
   private routeGuidanceVisualizedSegments = 0;
   private routeEncounterObjectCount = 0;
@@ -1545,6 +1573,7 @@ class StudioGame {
       mapTextureRoles: [],
       mapTextureUrls: [],
       mapTextureMaterialCount: 0,
+      mapTextureCoverage: {},
       terrainFeatureMarkerObjects: 0,
       terrainFeatureMarkerSceneObjects: 0,
       terrainFeatureMarkerSignatures: 0,
@@ -2209,6 +2238,7 @@ class StudioGame {
     this.mapTextureRoles = metrics.materialRoles;
     this.mapTextureUrls = metrics.textureUrls;
     this.mapTextureMaterialCount = metrics.textureUrls.length;
+    this.mapTextureCoverage = metrics.materialCoverage;
   }
 
   private addRouteGuidance() {
@@ -4711,6 +4741,7 @@ class StudioGame {
         mapTextureRoles: this.mapTextureRoles,
         mapTextureUrls: this.mapTextureUrls,
         mapTextureMaterialCount: this.mapTextureMaterialCount,
+        mapTextureCoverage: this.mapTextureCoverage,
         terrainFeatureMarkerObjects,
         terrainFeatureMarkerSceneObjects,
         terrainFeatureMarkerSignatures: terrainFeatureMarkerSignatures.size,

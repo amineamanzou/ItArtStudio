@@ -66,9 +66,9 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v137",
+    "id": "public-terrain-core-v138",
     "phase": "public-terrain-first-runtime",
-    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor brown-mud-leaf/grass-path/relief/river-pebble water-edge textures, a readable spawn clearing with an integrated terrain water mask plus downloaded reed, lily, boardwalk, rock, grass and tree assets, subdued integrated pond surfaces that read as wet shoreline instead of blue plates, a visible central wetland composed from downloaded reeds, lilies, rocks and bank vegetation, and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across a larger 112-unit map with no generated decorative primitives, road tiles, river tiles, visible map-edge voids or hero/factory clutter.",
+    "purpose": "Prove the public asset-only world as a wider terrain shell before bases: downloaded car, vendor brown-mud-leaf/grass-path/relief/river-pebble water-edge textures with measured field/path/water/relief shader coverage, a readable spawn clearing with an integrated terrain water mask plus downloaded reed, lily, boardwalk, rock, grass and tree assets, subdued integrated pond surfaces that read as wet shoreline instead of blue plates, a visible central wetland composed from downloaded reeds, lilies, rocks and bank vegetation, and sparse GLB shoreline, bridge, rail, relief and vegetation anchors across a larger 112-unit map with no generated decorative primitives, road tiles, river tiles, visible map-edge voids or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
     "requiredPlayerAssetId": "accepted-car-vehicle-core",
     "requiredPlayerFile": "race.glb",
@@ -328,6 +328,12 @@
     "minimumTerrainHeightRange": 0.5,
     "minimumTerrainVertexCount": 90000,
     "minimumTerrainVisualSize": 180,
+    "minimumTerrainMaterialCoverage": {
+      "field": 0.55,
+      "path": 0.035,
+      "water": 0.02,
+      "relief": 0.045
+    },
     "maximumCanvasEdgeVoidRatio": 0.02,
     "maximumCanvasEdgeVoidRunRatio": 0.08,
     "maximumCanvasEdgeVoidTotalRatio": 0.08,
@@ -459,7 +465,7 @@
     "maximumHeroLocationPlacements": 0,
     "allowedGeneratedSubstrate": "single extended terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief/water-edge material; visible public decor must come from downloaded vendor GLB/glTF.",
     "fallback": "If a terrain GLB fails, omit that placement and keep the public world sparse rather than replacing it with a generated rectangle, cone, halo, plate or abstract primitive.",
-    "nextAction": "Review the v137 grass-path terrain shader, spawn clearing, central wetland and enlarged north/south/east/west edge screenshots for map scale and terrain readability before densifying Cloud Dock, Design Atelier or Observability Tower."
+    "nextAction": "Review the v138 material-coverage QA, grass-path terrain shader, spawn clearing, central wetland and enlarged north/south/east/west edge screenshots for map scale and terrain readability before densifying Cloud Dock, Design Atelier or Observability Tower."
   },
   "publicTerrainMaterialCore": {
     "id": "polyhaven-terrain-material-v112",
@@ -1409,7 +1415,7 @@
       "kind": "texture-set",
       "target": "map",
       "terrainRole": "path",
-      "narrativeRole": "Downloaded CC0 grass path diffuse texture integrated as the public route material in v137, tinted into the dark terrain shader so paths read as compacted natural ground without gray road plates or tire-like marks.",
+      "narrativeRole": "Downloaded CC0 grass path diffuse texture integrated as the public route material in v138, tinted into the dark terrain shader so paths read as compacted natural ground without gray road plates or tire-like marks.",
       "preferredFormat": "JPG",
       "assetPageUrl": "https://polyhaven.com/a/grass_path_2",
       "downloadUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grass_path_2/grass_path_2_diff_1k.jpg",
@@ -1422,9 +1428,9 @@
       "selectedFiles": ["grass_path_2_diff_1k.jpg"],
       "budget": { "maxKb": 900, "targetResolution": 1024 },
       "styleFit": "high",
-      "qaProof": "qa/artifacts/2026-07-29T14-41-51-225Z/report.md#public-terrain-core",
+      "qaProof": "qa/artifacts/2026-07-29T21-59-22-356Z/report.md#public-asset-only-terrain-core",
       "proceduralFallback": "If this downloaded texture fails to load, public terrain keeps the forest-ground material and no generated road plate, tire trace or path tile is drawn.",
-      "nextAction": "Review v137 public screenshots for path readability, then keep stony dirt only as a fallback if the grass path becomes too light."
+      "nextAction": "Review v138 public screenshots and material coverage ratios, then keep stony dirt only as a fallback if the grass path becomes too light."
     },
     {
       "id": "accepted-polyhaven-brown-mud-leaves-texture",
