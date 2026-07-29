@@ -109,6 +109,8 @@ type MapPlacementSpec = PreviewSpec & {
 
 const manifest = worldAssetManifest as WorldAssetManifest;
 const zoneById = new Map(zones.map((zone) => [zone.id, zone]));
+const publicWaterEdgeTexturePath = "assets/textures/vendor/polyhaven/low_tide_rocks/low_tide_rocks_diff_1k.jpg";
+let publicWaterEdgeTexture: THREE.Texture | null = null;
 
 const previewSpecs: PreviewSpec[] = [
   {
@@ -580,8 +582,9 @@ function applyMapCurationStyle(wrapper: THREE.Object3D, spec: MapPlacementSpec) 
 
 function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlacementSpec) {
   if (spec.assetId === "accepted-assetquest-pond-water-core") {
+    const isPondSurface = spec.preferredFile.startsWith("pond-");
     const materialColor = spec.preferredFile.startsWith("pond-")
-      ? 0x5f908a
+      ? 0x4b6862
       : spec.preferredFile.startsWith("rock-")
         ? 0x7a786c
         : 0x527b54;
@@ -592,7 +595,8 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
       }
       object.material = new THREE.MeshStandardMaterial({
         color: materialColor,
-        roughness: spec.preferredFile.startsWith("pond-") ? 0.62 : 0.82,
+        map: isPondSurface ? getPublicWaterEdgeTexture() : null,
+        roughness: isPondSurface ? 0.9 : 0.82,
         metalness: 0
       });
     });
@@ -651,6 +655,20 @@ function applyAssetSpecificMaterialStyle(wrapper: THREE.Object3D, spec: MapPlace
       metalness: 0
     });
   });
+}
+
+function getPublicWaterEdgeTexture() {
+  if (publicWaterEdgeTexture) {
+    return publicWaterEdgeTexture;
+  }
+  const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+  publicWaterEdgeTexture = new THREE.TextureLoader().load(`${base}${publicWaterEdgeTexturePath}`);
+  publicWaterEdgeTexture.colorSpace = THREE.SRGBColorSpace;
+  publicWaterEdgeTexture.wrapS = THREE.RepeatWrapping;
+  publicWaterEdgeTexture.wrapT = THREE.RepeatWrapping;
+  publicWaterEdgeTexture.repeat.set(3.2, 3.2);
+  publicWaterEdgeTexture.anisotropy = 4;
+  return publicWaterEdgeTexture;
 }
 
 function alignObjectBottomToGroundClearance(wrapper: THREE.Object3D, spec: MapPlacementSpec) {

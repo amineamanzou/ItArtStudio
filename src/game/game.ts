@@ -48,6 +48,7 @@ const assetOnlyPlayerPath = "assets/models/vendor/kenney/car-kit/vehicles/sedan-
 const assetOnlyGroundTexturePath = "assets/textures/vendor/polyhaven/forrest_ground_01/forrest_ground_01_diff_1k.jpg";
 const assetOnlyReliefTexturePath = "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg";
 const assetOnlyPathTexturePath = "assets/textures/vendor/polyhaven/stony_dirt_path/stony_dirt_path_diff_1k.jpg";
+const assetOnlyWaterTexturePath = "assets/textures/vendor/polyhaven/low_tide_rocks/low_tide_rocks_diff_1k.jpg";
 const terrainZoneById = new Map(zones.map((zone) => [zone.id, zone]));
 const playerMaxForwardSpeed = qaMode ? 12.8 : 10.5;
 const playerMaxReverseSpeed = qaMode ? 6.4 : 4.2;
@@ -323,12 +324,14 @@ function createAssetOnlyTerrainMaterial() {
   const fieldMap = createDownloadedTexture(assetOnlyGroundTexturePath, 8);
   const reliefMap = createDownloadedTexture(assetOnlyReliefTexturePath, 5);
   const pathMap = createDownloadedTexture(assetOnlyPathTexturePath, 7);
+  const waterMap = createDownloadedTexture(assetOnlyWaterTexturePath, 6);
 
   const material = new THREE.ShaderMaterial({
     uniforms: {
       fieldMap: { value: fieldMap },
       reliefMap: { value: reliefMap },
       pathMap: { value: pathMap },
+      waterMap: { value: waterMap },
       ambientColor: { value: new THREE.Color(0x1a231c) },
       keyLightColor: { value: new THREE.Color(0xfff1ce) },
       waterDeep: { value: new THREE.Color(0x123f47) },
@@ -360,6 +363,7 @@ function createAssetOnlyTerrainMaterial() {
       uniform sampler2D fieldMap;
       uniform sampler2D reliefMap;
       uniform sampler2D pathMap;
+      uniform sampler2D waterMap;
       uniform vec3 ambientColor;
       uniform vec3 keyLightColor;
       uniform vec3 waterDeep;
@@ -375,12 +379,16 @@ function createAssetOnlyTerrainMaterial() {
         vec3 fieldTex = texture2D(fieldMap, vUv * 8.0).rgb * vec3(0.58, 0.73, 0.54);
         vec3 reliefTex = texture2D(reliefMap, vUv * 5.2).rgb * vec3(0.72, 0.70, 0.63);
         vec3 pathTex = texture2D(pathMap, vUv * 7.0).rgb * vec3(0.82, 0.66, 0.50);
+        vec3 waterTex = texture2D(waterMap, vUv * 6.0).rgb;
         float relief = smoothstep(0.16, 0.82, vReliefMask) * (1.0 - vPathMask * 0.45);
         float path = smoothstep(0.10, 0.92, vPathMask);
         float water = smoothstep(0.44, 0.92, vWaterMask);
+        float shallow = 1.0 - smoothstep(0.72, 1.0, vWaterMask);
         vec3 land = mix(fieldTex, reliefTex, relief);
         land = mix(land, pathTex, path);
+        vec3 wetStone = waterTex * vec3(0.48, 0.68, 0.66);
         vec3 waterCol = mix(waterDeep, waterShallow, clamp(vWaterMask, 0.0, 1.0));
+        waterCol = mix(waterCol, wetStone, 0.34 + shallow * 0.28);
         vec3 base = mix(land, waterCol, water);
         float light = clamp(dot(normalize(vNormalView), normalize(vec3(-0.22, 0.82, 0.52))) * 0.48 + 0.58 + vShadeBias, 0.28, 1.18);
         vec3 lit = base * mix(ambientColor, keyLightColor, light);
@@ -531,7 +539,7 @@ function createAssetOnlyTerrainShell() {
     gradeMax: Number(gradeMax.toFixed(3)),
     vertexCount: positions.length / 3,
     materialRoles,
-    textureUrls: [assetOnlyGroundTexturePath, assetOnlyPathTexturePath, assetOnlyReliefTexturePath]
+    textureUrls: [assetOnlyGroundTexturePath, assetOnlyPathTexturePath, assetOnlyReliefTexturePath, assetOnlyWaterTexturePath]
   };
 
   return { group, metrics };

@@ -66,9 +66,9 @@
     "nextAction": "Replace the current generic vendor anchors only with downloaded library assets that have clear license, weight, fallback and QA proof."
   },
   "publicTerrainCore": {
-    "id": "public-terrain-core-v114",
+    "id": "public-terrain-core-v115",
     "phase": "public-terrain-first-runtime",
-    "purpose": "Prove the public asset-only world as terrain before bases: downloaded car, vendor field/path/relief textures and GLB roles for bridge, rail, water, relief and vegetation with no generated decorative primitives or hero/factory clutter.",
+    "purpose": "Prove the public asset-only world as terrain before bases: downloaded car, vendor field/path/relief/water-edge textures and GLB roles for bridge, rail, water, relief and vegetation with no generated decorative primitives or hero/factory clutter.",
     "qaGate": "public-asset-only-terrain-core",
     "requiredPlayerAssetId": "accepted-car-vehicle-core",
     "requiredPlayerFile": "sedan-sports.glb",
@@ -126,14 +126,15 @@
     "requiredTerrainTextureFiles": [
       "assets/textures/vendor/polyhaven/forrest_ground_01/forrest_ground_01_diff_1k.jpg",
       "assets/textures/vendor/polyhaven/stony_dirt_path/stony_dirt_path_diff_1k.jpg",
-      "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg"
+      "assets/textures/vendor/polyhaven/aerial_rocks_01/aerial_rocks_01_diff_1k.jpg",
+      "assets/textures/vendor/polyhaven/low_tide_rocks/low_tide_rocks_diff_1k.jpg"
     ],
     "minimumTerrainLayers": 4,
     "minimumTerrainHeightRange": 0.5,
     "minimumTerrainVertexCount": 90000,
     "maximumNonHeroClusterDensity": 4,
     "maximumHeroLocationPlacements": 0,
-    "allowedGeneratedSubstrate": "single terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief plus water material; visible public decor must come from downloaded vendor GLB/glTF.",
+    "allowedGeneratedSubstrate": "single terrain heightfield only, using shader masks over downloaded vendor textures for field/path/relief/water-edge material; visible public decor must come from downloaded vendor GLB/glTF.",
     "fallback": "If a terrain GLB fails, omit that placement and keep the public world sparse rather than replacing it with a generated rectangle, cone, halo, plate or abstract primitive.",
     "nextAction": "Source stronger terrain packs before expanding the public map beyond this proof core; do not densify Cloud Dock, Design Atelier or Observability Tower until this terrain gate stays green."
   },
@@ -1069,6 +1070,30 @@
       "qaProof": "qa/artifacts/2026-07-29T13-24-58-952Z/report.md#public-terrain-core",
       "proceduralFallback": "If this downloaded texture fails to load, public terrain keeps the forest-ground material and omits synthetic route markings rather than drawing generated plates.",
       "nextAction": "Source complementary downloaded path-edge and mud textures so future map expansion can vary route shoulders without reintroducing placed path tiles."
+    },
+    {
+      "id": "accepted-polyhaven-low-tide-rocks-water-texture",
+      "status": "integrated",
+      "sourceId": "polyhaven",
+      "kind": "texture-set",
+      "target": "map",
+      "terrainRole": "water",
+      "narrativeRole": "Downloaded CC0 low-tide rocks diffuse texture used to break the flat public water and shore material with a real wet-edge surface before fuller water asset work.",
+      "preferredFormat": "JPG",
+      "assetPageUrl": "https://polyhaven.com/a/low_tide_rocks",
+      "downloadUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/low_tide_rocks/low_tide_rocks_diff_1k.jpg",
+      "licenseUrl": "https://polyhaven.com/license",
+      "retrievedAt": "2026-07-29",
+      "sha256": "a70c52ea4eac9c4f85504eb5619c3f7f57c890ee71c55715b2b9da4077157cac",
+      "localPath": "public/assets/textures/vendor/polyhaven/low_tide_rocks",
+      "publicPath": "assets/textures/vendor/polyhaven/low_tide_rocks",
+      "fileKb": 1212,
+      "selectedFiles": ["low_tide_rocks_diff_1k.jpg"],
+      "budget": { "maxKb": 1400, "targetResolution": 1024 },
+      "styleFit": "medium",
+      "qaProof": "qa/artifacts/2026-07-29T13-36-38-867Z/report.md#public-terrain-core",
+      "proceduralFallback": "If this downloaded texture fails to load, public terrain keeps the darker water tint and no generated ripple or synthetic pattern is added.",
+      "nextAction": "Source dedicated water and shoreline GLB assets so the next pass can shape banks and crossings instead of relying on a single pond surface."
     },
     {
       "id": "accepted-polyhaven-stony-dirt-texture",
