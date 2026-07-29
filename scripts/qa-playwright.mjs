@@ -53,8 +53,12 @@ const requiresQaStep = (url) => {
   }
 };
 const qaProfile = process.env.QA_PROFILE === "quick" ? "quick" : "full";
+const isCi = process.env.GITHUB_ACTIONS === "true";
+const assetModeNavigationTimeoutMs = isCi ? 60_000 : 20_000;
+const assetModeLoadTimeoutMs = isCi ? 45_000 : 15_000;
+const assetModeReadyTimeoutMs = isCi ? 60_000 : 24_000;
 const staticProofScope = process.env.QA_STATIC_PROOF_SCOPE ?? (process.env.GITHUB_ACTIONS === "true" ? "ci" : "full");
-const browserChannel = process.env.QA_BROWSER_CHANNEL ?? (process.env.GITHUB_ACTIONS === "true" ? undefined : "chrome");
+const browserChannel = process.env.QA_BROWSER_CHANNEL ?? (isCi ? undefined : "chrome");
 const outputRoot = path.join(root, "qa", "artifacts", new Date().toISOString().replace(/[:.]/g, "-"));
 const screenshotsDir = path.join(outputRoot, "screenshots");
 const reportJsonPath = path.join(outputRoot, "report.json");
@@ -5114,8 +5118,8 @@ async function checkExternalAssetPreview(browser) {
   attachPageDiagnostics(previewPage, "external-assets");
 
   try {
-    await previewPage.goto(previewUrl, { waitUntil: "domcontentloaded", timeout: 20_000 });
-    await previewPage.waitForLoadState("load", { timeout: 15_000 }).catch(() => {});
+    await previewPage.goto(previewUrl, { waitUntil: "domcontentloaded", timeout: assetModeNavigationTimeoutMs });
+    await previewPage.waitForLoadState("load", { timeout: assetModeLoadTimeoutMs }).catch(() => {});
     await previewPage.waitForFunction(
       () => {
         const assets = window.__IT_ART_STUDIO_QA__?.externalAssets;
@@ -5128,7 +5132,7 @@ async function checkExternalAssetPreview(browser) {
             window.__IT_ART_STUDIO_QA__?.frameCount > 6
         );
       },
-      { timeout: 20_000 }
+      { timeout: assetModeReadyTimeoutMs }
     );
 
     const preview = await capture(previewPage, "external-asset-preview");
@@ -5191,15 +5195,15 @@ async function checkExternalAssetOffRuntime(browser) {
   attachPageDiagnostics(offPage, "external-asset-off");
 
   try {
-    await offPage.goto(offUrl, { waitUntil: "domcontentloaded", timeout: 20_000 });
-    await offPage.waitForLoadState("load", { timeout: 15_000 }).catch(() => {});
+    await offPage.goto(offUrl, { waitUntil: "domcontentloaded", timeout: assetModeNavigationTimeoutMs });
+    await offPage.waitForLoadState("load", { timeout: assetModeLoadTimeoutMs }).catch(() => {});
     await offPage.waitForFunction(
       () =>
         document.documentElement.classList.contains("game-ready") &&
         window.__IT_ART_STUDIO_QA__?.ready === true &&
         window.__IT_ART_STUDIO_QA__?.externalAssets?.mode === "off" &&
         window.__IT_ART_STUDIO_QA__?.frameCount > 6,
-      { timeout: 20_000 }
+      { timeout: assetModeReadyTimeoutMs }
     );
 
     const proof = await capture(offPage, "external-asset-off-runtime");
@@ -5250,7 +5254,7 @@ async function checkExternalAssetCoreRuntime(page) {
           window.__IT_ART_STUDIO_QA__?.frameCount > 6
       );
     },
-    { timeout: 24_000 }
+    { timeout: assetModeReadyTimeoutMs }
   );
 
   const proof = await capture(page, "external-asset-core-runtime");
@@ -5341,8 +5345,8 @@ async function checkExternalAssetMapComposition(browser) {
   attachPageDiagnostics(mapPage, "external-asset-map");
 
   try {
-    await mapPage.goto(mapUrl, { waitUntil: "domcontentloaded", timeout: 20_000 });
-    await mapPage.waitForLoadState("load", { timeout: 15_000 }).catch(() => {});
+    await mapPage.goto(mapUrl, { waitUntil: "domcontentloaded", timeout: assetModeNavigationTimeoutMs });
+    await mapPage.waitForLoadState("load", { timeout: assetModeLoadTimeoutMs }).catch(() => {});
     await mapPage.waitForFunction(
       () => {
         const assets = window.__IT_ART_STUDIO_QA__?.externalAssets;
@@ -5356,7 +5360,7 @@ async function checkExternalAssetMapComposition(browser) {
             window.__IT_ART_STUDIO_QA__?.frameCount > 6
         );
       },
-      { timeout: 24_000 }
+      { timeout: assetModeReadyTimeoutMs }
     );
 
     const proof = await capture(mapPage, "external-asset-map-composition");
