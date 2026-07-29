@@ -113,6 +113,9 @@ Public terrain-first runtime:
   `tree_pineGroundA.glb`, `tree_pineRoundC.glb` and `tree_pineTallA.glb`
   because their silhouette reads too close to cone primitives in distant
   screenshots.
+- V13.11 adds a visual-only public terrain capture. The QA hides the HUD,
+  panels, mini-map and 3D labels, then fails the public terrain core if any UI
+  or label remains visible over the map-only screenshot.
 
 Core promotion:
 

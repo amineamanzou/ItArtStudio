@@ -350,6 +350,8 @@
     "minimumTerrainHeightRange": 0.5,
     "minimumTerrainVertexCount": 90000,
     "minimumTerrainVisualSize": 205,
+    "maximumVisualOnlyVisibleUiElements": 0,
+    "maximumVisualOnlyVisibleLabels": 0,
     "minimumTerrainMaterialCoverage": {
       "field": 0.55,
       "path": 0.035,

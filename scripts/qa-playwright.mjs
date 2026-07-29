@@ -3759,6 +3759,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
       skipCanvasDetail: true,
       skipPremiumWorldDistribution: true
     });
+    const visualOnlyProof = await captureVisualOnly(page, "public-asset-only-terrain-visual-only");
     const snapshot = proof.snapshot ?? (await getQaSnapshot(page));
     const player = snapshot?.player;
     const asset = player?.asset;
@@ -4124,6 +4125,27 @@ async function checkPublicAssetOnlyPlayer(browser) {
         }
       );
     }
+    const visualOnlyMaxVisibleUiElements = manifestPublicTerrainCore.maximumVisualOnlyVisibleUiElements ?? 0;
+    const visualOnlyMaxVisibleLabels = manifestPublicTerrainCore.maximumVisualOnlyVisibleLabels ?? 0;
+    const visualOnlyUiVisibleCount = visualOnlyProof.qaVisualOnly?.visibleElementCount ?? Number.POSITIVE_INFINITY;
+    const visualOnlyVisibleLabelCount = visualOnlyProof.qaVisualOnly?.scene?.visibleLabels ?? Number.POSITIVE_INFINITY;
+    const visualOnlyOk =
+      visualOnlyProof.canvas.ok &&
+      visualOnlyUiVisibleCount <= visualOnlyMaxVisibleUiElements &&
+      visualOnlyVisibleLabelCount <= visualOnlyMaxVisibleLabels;
+    const visualOnlyDetails = {
+      capture: visualOnlyProof.relativePath,
+      canvas: visualOnlyProof.canvas,
+      qaVisualOnly: visualOnlyProof.qaVisualOnly,
+      maximumVisibleUiElements: visualOnlyMaxVisibleUiElements,
+      maximumVisibleLabels: visualOnlyMaxVisibleLabels,
+      ok: visualOnlyOk
+    };
+    if (visualOnlyOk) {
+      pass("public-asset-only-terrain-visual-only", visualOnlyDetails);
+    } else {
+      scenarioFail("public-asset-only-terrain-visual-only", "Public terrain-only visual proof still shows UI/labels or lacks canvas detail.", visualOnlyDetails);
+    }
     const expectedPlayerFile = manifestPublicTerrainCore.requiredPlayerFile ?? "race.glb";
     const expectedPlayerName = `vendor-player:${expectedPlayerFile.replace(/\.glb$/u, "")}`;
     const expectedPlayerPath = `assets/models/vendor/kenney/car-kit/vehicles/${expectedPlayerFile}`;
@@ -4169,6 +4191,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
       forbiddenPublicPaths.length === 0 &&
       missingRolePlacementCounts.length === 0 &&
       publicGeneratedRuntimeOk &&
+      visualOnlyOk &&
       forbiddenHeroPlacements <= (manifestPublicTerrainCore.maximumHeroLocationPlacements ?? 0) &&
       externalAssets.routeLinkedPlacements >= (minimumRolePlacements.route ?? 0) &&
       externalAssets.waterLinkedPlacements >= (minimumRolePlacements.water ?? 0) &&
@@ -4232,6 +4255,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
         centralWetlandProof,
         spawnClearingProof,
         introAssetOcclusion,
+        visualOnlyProof: visualOnlyDetails,
         terrainShell: {
           terrainLayers: snapshot?.world?.terrainLayers,
           terrainHeightRange: snapshot?.world?.terrainHeightRange,
@@ -4284,6 +4308,7 @@ async function checkPublicAssetOnlyPlayer(browser) {
           centralWetlandProof,
           spawnClearingProof,
           introAssetOcclusion,
+          visualOnlyProof: visualOnlyDetails,
           forbiddenPlacementFiles,
           forbiddenPublicPaths,
           missingRolePlacementCounts,
@@ -11288,6 +11313,7 @@ async function writeReport() {
   const externalAssetMapScenario = scenarios.find((scenario) => scenario.name === "external-asset-map-composition");
   const publicAssetOnlyPlayerScenario = scenarios.find((scenario) => scenario.name === "public-asset-only-player");
   const publicTerrainCoreScenario = scenarios.find((scenario) => scenario.name === "public-asset-only-terrain-core");
+  const publicTerrainVisualOnlyScenario = scenarios.find((scenario) => scenario.name === "public-asset-only-terrain-visual-only");
   const publicGeneratedRuntimeCleanScenario = scenarios.find(
     (scenario) => scenario.name === "public-asset-only-generated-runtime-clean"
   );
@@ -11576,6 +11602,11 @@ async function writeReport() {
       publicTerrainCoreScenario?.details?.externalAssets
         ? `${publicTerrainCoreScenario.status}, placements ${publicTerrainCoreScenario.details.externalAssets.placements}, unique files ${publicTerrainCoreScenario.details.externalAssets.uniqueFiles}, roles ${publicTerrainCoreScenario.details.externalAssets.terrainRoles.join("/")}, terrain roles ${(publicTerrainCoreScenario.details.availableTerrainRoles ?? []).join("/")}, forbidden hits ${(publicTerrainCoreScenario.details.forbiddenPlacementFiles ?? []).length}/${(publicTerrainCoreScenario.details.forbiddenPublicPaths ?? []).length}, material coverage ${Object.entries(publicTerrainCoreScenario.details.terrainShell?.mapTextureCoverage ?? {}).map(([role, value]) => `${role}:${value}`).join("/") || "n/a"}, spawn clearing ${publicTerrainCoreScenario.details.spawnClearingProof?.visibleSpawnClearingPlacements?.length ?? "n/a"}/${publicTerrainCoreScenario.details.spawnClearingProof?.minimumVisibleSpawnClearingPlacements ?? "n/a"}, central wetland ${publicTerrainCoreScenario.details.centralWetlandProof?.visibleCentralWetlandPlacements?.length ?? "n/a"}/${publicTerrainCoreScenario.details.centralWetlandProof?.minimumVisibleCentralWetlandPlacements ?? "n/a"}, terrain layers ${publicTerrainCoreScenario.details.terrainShell?.terrainLayers ?? "n/a"}, height ${publicTerrainCoreScenario.details.terrainShell?.terrainHeightRange ?? "n/a"}, hero placements ${publicTerrainCoreScenario.details.externalAssets.heroLocationPlacements}, cluster density ${publicTerrainCoreScenario.details.externalAssets.maxNonHeroClusterDensity}, coverage ${publicTerrainCoreScenario.details.externalAssets.mapCoverageWidth}x${publicTerrainCoreScenario.details.externalAssets.mapCoverageDepth}, capture ${publicTerrainCoreScenario.details.capture ?? "n/a"}`
         : (publicTerrainCoreScenario?.status ?? "n/a")
+    }`,
+    `- Public terrain visual-only: ${
+      publicTerrainVisualOnlyScenario?.details
+        ? `${publicTerrainVisualOnlyScenario.status}, hidden UI ${publicTerrainVisualOnlyScenario.details.qaVisualOnly?.hiddenElementCount ?? "n/a"}/${publicTerrainVisualOnlyScenario.details.qaVisualOnly?.trackedElementCount ?? "n/a"}, visible UI ${publicTerrainVisualOnlyScenario.details.qaVisualOnly?.visibleElementCount ?? "n/a"}, visible labels ${publicTerrainVisualOnlyScenario.details.qaVisualOnly?.scene?.visibleLabels ?? "n/a"}, capture ${publicTerrainVisualOnlyScenario.details.capture ?? "n/a"}`
+        : (publicTerrainVisualOnlyScenario?.status ?? "n/a")
     }`,
     `- Public asset-only generated runtime clean: ${
       publicGeneratedRuntimeCleanScenario?.details?.publicGeneratedRuntime
