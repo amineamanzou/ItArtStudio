@@ -1,15 +1,28 @@
 ---
+import "@fontsource/ibm-plex-sans/400.css";
+import "@fontsource/ibm-plex-sans/500.css";
+import "@fontsource/ibm-plex-sans/600.css";
+import "@fontsource/instrument-serif/400.css";
+import { company, navigation } from "../data/site";
 import "../styles/global.css";
 
 interface Props {
   title?: string;
   description?: string;
+  image?: string;
 }
 
 const {
-  title = "IT Art Studio",
-  description = "Studio de conseil et de creation pour projets exigeants."
+  title = "IT Art Studio — Conseil, conception et création",
+  description = "IT Art Studio réunit conseil IT, observabilité, architecture, IA, design 3D, contenu et collection pour transformer la complexité en exécution nette.",
+  image = "/assets/studio-artefacts.png"
 } = Astro.props;
+
+const siteUrl = "https://itart.studio";
+const canonical = new URL(Astro.url.pathname, siteUrl);
+const socialImage = new URL(image, siteUrl);
+const base = import.meta.env.BASE_URL;
+const homeHref = base.endsWith("/") ? base : `${base}/`;
 ---
 
 <!doctype html>
@@ -19,22 +32,52 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#030407" />
+    <meta name="theme-color" content="#090b10" />
+    <link rel="canonical" href={canonical} />
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23030407'/%3E%3Ctext x='8' y='28' fill='%2317d9ff' font-family='Arial,sans-serif' font-weight='700' font-size='16'%3EIT%3C/text%3E%3Ctext x='20' y='46' fill='%23ff6b7a' font-family='Arial,sans-serif' font-weight='700' font-size='16'%3EART%3C/text%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%23090b10'/%3E%3Cpath d='M14 17h7v30h-7zm12 0h24v7H26zm8 12h16v7H34zm-8 11h24v7H26z' fill='%23f1eee6'/%3E%3C/svg%3E"
     />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
-    <script is:inline>
-      document.documentElement.classList.add("js");
-    </script>
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={socialImage} />
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
+    <a class="skip-link" href="#contenu">Aller au contenu</a>
+
+    <header class="site-header">
+      <a class="brand" href={homeHref} aria-label="IT Art Studio — accueil">
+        <span class="brand__it">IT</span>
+        <strong>STUDIO</strong>
+        <span class="brand__art">ART</span>
+      </a>
+
+      <nav class="site-nav" aria-label="Navigation principale">
+        {navigation.map((item) => (
+          <a href={`${homeHref}${item.href}`}>{item.label}</a>
+        ))}
+      </nav>
+
+      <a class="header-contact" href={`mailto:${company.email}`}>Écrire au studio</a>
+    </header>
+
     <slot />
-    <script>
-      import "../game/game";
-    </script>
+
+    <footer class="site-footer">
+      <a class="brand brand--footer" href={homeHref} aria-label="IT Art Studio — accueil">
+        <span class="brand__it">IT</span>
+        <strong>STUDIO</strong>
+        <span class="brand__art">ART</span>
+      </a>
+      <p>{company.legalForm} au capital de {company.capital} · RCS {company.rcs}</p>
+      <div>
+        <a href={`mailto:${company.email}`}>{company.email}</a>
+        <a href={`${homeHref}mentions-legales/`}>Mentions légales</a>
+      </div>
+    </footer>
   </body>
 </html>

@@ -1,0 +1,80 @@
+---
+import { company } from "../data/site";
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Mentions légales — IT Art Studio"
+  description="Informations légales, éditeur, hébergeur et données personnelles du site IT Art Studio."
+>
+  <main id="contenu" class="legal-page">
+    <header class="legal-hero">
+      <p>Informations légales</p>
+      <h1>Mentions légales</h1>
+      <span>Mise à jour : 15 août 2026</span>
+    </header>
+
+    <div class="legal-content">
+      <section aria-labelledby="legal-editor">
+        <h2 id="legal-editor">Éditeur du site</h2>
+        <p>
+          <strong>{company.legalName}</strong><br />
+          {company.legalForm} au capital social de {company.capital}<br />
+          Siège social : {company.address}<br />
+          SIREN : {company.siren}<br />
+          RCS : {company.rcs}<br />
+          TVA intracommunautaire : {company.vat}
+        </p>
+        <p>Contact : <a href={`mailto:${company.email}`}>{company.email}</a></p>
+      </section>
+
+      <section aria-labelledby="legal-directors">
+        <h2 id="legal-directors">Direction de la publication</h2>
+        <p>{company.directors.join(" et ")}, gérants de la société.</p>
+      </section>
+
+      <section aria-labelledby="legal-host">
+        <h2 id="legal-host">Hébergement</h2>
+        <p>
+          Hetzner Online GmbH<br />
+          Industriestr. 25<br />
+          91710 Gunzenhausen, Allemagne<br />
+          Téléphone : +49 (0)9831 505-0<br />
+          Courriel : <a href="mailto:info@hetzner.com">info@hetzner.com</a>
+        </p>
+      </section>
+
+      <section aria-labelledby="legal-property">
+        <h2 id="legal-property">Propriété intellectuelle</h2>
+        <p>
+          Les textes, visuels, éléments graphiques et signes distinctifs présents sur ce site sont
+          protégés par le droit de la propriété intellectuelle. Toute reproduction ou utilisation
+          qui dépasse la consultation privée nécessite l'autorisation préalable d'IT Art Studio.
+        </p>
+      </section>
+
+      <section aria-labelledby="legal-data">
+        <h2 id="legal-data">Données personnelles</h2>
+        <p>
+          Ce site ne dépose aucun cookie de mesure d'audience, ne contient aucun traceur et ne
+          collecte aucune donnée au moyen d'un formulaire. Le lien de contact ouvre votre logiciel
+          de messagerie. Les informations envoyées par courriel sont utilisées uniquement pour
+          répondre à votre demande et assurer le suivi de la relation professionnelle.
+        </p>
+        <p>
+          Pour exercer vos droits d'accès, de rectification ou de suppression, écrivez à
+          <a href={`mailto:${company.email}`}>{company.email}</a>.
+        </p>
+      </section>
+
+      <section aria-labelledby="legal-liability">
+        <h2 id="legal-liability">Responsabilité</h2>
+        <p>
+          IT Art Studio veille à l'exactitude des informations publiées, sans garantir l'absence
+          totale d'erreur. Le contenu peut être mis à jour sans préavis. Les éventuels liens vers
+          des services tiers relèvent de la responsabilité de leurs éditeurs respectifs.
+        </p>
+      </section>
+    </div>
+  </main>
+</BaseLayout>

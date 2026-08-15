@@ -1,122 +1,119 @@
 ---
+import { company, methodSteps, services } from "../data/site";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { defaultZone, zones } from "../game/zones";
-import { worldSize } from "../game/world-config";
 
-const mapRange = worldSize;
-const mapCoordinate = (value: number) => `${((value + mapRange / 2) / mapRange) * 100}%`;
-const mapPinOffsets: Record<string, [number, number]> = {
-  "cloud-dock": [-10, -8],
-  "values-plaza": [0, 18],
-  "contact-portal": [10, 8]
-};
-const homeHref = import.meta.env.BASE_URL;
+const itServices = services.filter((service) => service.practice === "IT");
+const artServices = services.filter((service) => service.practice === "ART");
+const assetBase = import.meta.env.BASE_URL.endsWith("/")
+  ? `${import.meta.env.BASE_URL}assets`
+  : `${import.meta.env.BASE_URL}/assets`;
 ---
 
-<BaseLayout
-  title="IT Art Studio - agence tech creative jouable"
-  description="Explorez IT Art Studio comme une carte de jeu video: IA, observabilite, architecture, cloud, design, 3D, mode et valeurs communes."
->
-  <main class="game-site" data-game-root>
-    <section class="studio-game" aria-labelledby="game-title">
-      <canvas id="studio-map-canvas" class="studio-map-canvas" aria-hidden="true"></canvas>
-
-      <header class="game-hud" aria-label="Navigation principale">
-        <a class="game-brand" href={homeHref} aria-label="IT Art Studio">
-          <span>IT</span>
-          <strong>ART</strong>
-          <em>STUDIO</em>
-        </a>
-        <div class="game-status" aria-live="polite">
-          <span data-active-kind>{defaultZone.kind}</span>
-          <strong data-active-label>{defaultZone.label}</strong>
+<BaseLayout>
+  <main id="contenu">
+    <section class="hero" aria-labelledby="hero-title">
+      <article class="hero-practice hero-practice--it">
+        <picture class="hero-practice__media">
+          <source srcset={`${assetBase}/hero-it.avif`} type="image/avif" />
+          <source srcset={`${assetBase}/hero-it.webp`} type="image/webp" />
+          <img src={`${assetBase}/hero-it.jpg`} alt="Architecture technique sombre traversée de signaux cyan" width="1920" height="1080" />
+        </picture>
+        <div class="hero-practice__copy">
+          <p>IT</p>
+          <h2>Clarifier les systèmes. Fiabiliser l'exécution.</h2>
+          <a href="#expertises-it">Explorer la pratique IT</a>
         </div>
-        <button class="game-audio" type="button" data-audio-toggle aria-pressed="false" aria-label="Activer le son">
-          Son
-        </button>
-        <a class="game-contact" href="mailto:contact@itart.studio">Contact</a>
-      </header>
+      </article>
 
-      <div class="intro-plate" data-intro-plate>
-        <p>Carte jouable</p>
-        <h1 id="game-title">IT Art Studio</h1>
-        <span>Explorez la frontiere entre systemes robustes et formes sensibles.</span>
+      <article class="hero-practice hero-practice--art">
+        <picture class="hero-practice__media">
+          <source srcset={`${assetBase}/hero-art.avif`} type="image/avif" />
+          <source srcset={`${assetBase}/hero-art.webp`} type="image/webp" />
+          <img src={`${assetBase}/hero-art.jpg`} alt="Atelier sombre composé de matière, de volume et d'outils cuivrés" width="1920" height="1080" />
+        </picture>
+        <div class="hero-practice__copy">
+          <p>ART</p>
+          <h2>Donner une forme. Installer une présence.</h2>
+          <a href="#expertises-art">Explorer la pratique ART</a>
+        </div>
+      </article>
+
+      <div class="hero-core">
+        <h1 id="hero-title"><span>IT</span> <strong>STUDIO</strong> <span>ART</span></h1>
+        <p>Transformer la complexité en exécution nette.</p>
       </div>
-
-      <aside class="zone-panel" aria-labelledby="zone-title" data-zone-panel>
-        <p class="zone-panel__kind" data-zone-kind>{defaultZone.kind}</p>
-        <h2 id="zone-title" data-zone-title>{defaultZone.title}</h2>
-        <p class="zone-panel__summary" data-zone-summary>{defaultZone.summary}</p>
-        <p class="zone-panel__details" data-zone-details>{defaultZone.details}</p>
-        <ul class="zone-panel__signals" data-zone-signals>
-          {defaultZone.signals.map((signal) => <li>{signal}</li>)}
-        </ul>
-        <a
-          class="zone-panel__cta"
-          href={defaultZone.cta ?? "#"}
-          data-zone-cta
-          aria-hidden={defaultZone.cta ? "false" : "true"}
-        >
-          Contactez-nous
-        </a>
-      </aside>
-
-      <nav class="world-map" aria-label="Carte des zones">
-        <span class="world-map__axis world-map__axis--x" aria-hidden="true"></span>
-        <span class="world-map__axis world-map__axis--y" aria-hidden="true"></span>
-        <span class="world-map__player" data-map-player aria-hidden="true"></span>
-        {zones.map((zone, index) => {
-          const [offsetX, offsetY] = mapPinOffsets[zone.id] ?? [0, 0];
-          return (
-          <button
-            class={`world-map__pin world-map__pin--${zone.kind}`}
-            type="button"
-            data-zone-jump={zone.id}
-            aria-label={`Aller a ${zone.label}`}
-            aria-pressed={zone.id === defaultZone.id ? "true" : "false"}
-            style={`left: ${mapCoordinate(zone.position[0])}; top: ${mapCoordinate(zone.position[1])}; --map-order: ${index + 1}; --map-offset-x: ${offsetX}px; --map-offset-y: ${offsetY}px;`}
-          >
-            <span>{zone.shortLabel}</span>
-          </button>
-          );
-        })}
-      </nav>
-
-      <nav class="mobile-zone-nav" aria-label="Zones du studio">
-        {zones.map((zone) => (
-          <button
-            class={`mobile-zone-nav__item mobile-zone-nav__item--${zone.kind}`}
-            type="button"
-            data-zone-jump={zone.id}
-            aria-label={`Aller a ${zone.label}`}
-            aria-pressed={zone.id === defaultZone.id ? "true" : "false"}
-          >
-            {zone.shortLabel}
-          </button>
-        ))}
-      </nav>
-
-      <div class="mobile-drive" aria-label="Deplacement mobile">
-        <button type="button" data-drive="up" aria-label="Avancer">↑</button>
-        <button type="button" data-drive="left" aria-label="Tourner a gauche">←</button>
-        <button type="button" data-drive="down" aria-label="Reculer">↓</button>
-        <button type="button" data-drive="right" aria-label="Tourner a droite">→</button>
-      </div>
-
-      <div class="game-loader" data-game-loader aria-live="polite">Chargement de la carte</div>
     </section>
 
-    <section class="fallback-zone-list" aria-labelledby="fallback-title">
-      <h2 id="fallback-title">Explorer le studio sans WebGL</h2>
+    <section class="activity-section" aria-labelledby="activity-title">
+      <p class="activity-section__lead">Conseil · conception · création</p>
       <div>
-        {zones.map((zone) => (
-          <article>
-            <p>{zone.kind}</p>
-            <h3>{zone.title}</h3>
-            <p>{zone.summary}</p>
-          </article>
-        ))}
+        <h2 id="activity-title">Deux pratiques réunies par une même exigence de fond.</h2>
+        <p>
+          IT Art Studio accompagne les organisations et les porteurs de projets dans leurs sujets
+          informatiques et audiovisuels : conseil, formation, architecture, observabilité,
+          prototypes, design 3D, contenus et collections. Nous intervenons là où il faut comprendre,
+          construire et rendre la valeur visible.
+        </p>
       </div>
+    </section>
+
+    <section class="services-section" id="expertises" aria-labelledby="services-title">
+      <header class="section-heading">
+        <h2 id="services-title">Des interventions concrètes, du diagnostic au rendu.</h2>
+        <p>Une lecture senior des contraintes, puis le livrable utile pour avancer.</p>
+      </header>
+
+      <div class="practice-services practice-services--it" id="expertises-it">
+        <header>
+          <span>Pratique IT</span>
+          <p>Systèmes · produit · transmission</p>
+        </header>
+        <div class="service-list">
+          {itServices.map((service, index) => (
+            <article class="service-item">
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <h3>{service.title}</h3>
+              <p>{service.description}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      <div class="practice-services practice-services--art" id="expertises-art">
+        <header>
+          <span>Pratique ART</span>
+          <p>Volume · image · matière</p>
+        </header>
+        <div class="service-list">
+          {artServices.map((service, index) => (
+            <article class="service-item">
+              <span>{String(index + 5).padStart(2, "0")}</span>
+              <h3>{service.title}</h3>
+              <p>{service.description}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="method-section" id="approche" aria-labelledby="method-title">
+      <header>
+        <h2 id="method-title">Une méthode simple pour des sujets qui ne le sont pas.</h2>
+      </header>
+      <ol>
+        {methodSteps.map((step) => (
+          <li>
+            <h3>{step.title}</h3>
+            <p>{step.description}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="contact-section" id="contact" aria-labelledby="contact-title">
+      <p>Un sujet à clarifier, construire ou mettre en valeur ?</p>
+      <h2 id="contact-title">Parlons de votre projet.</h2>
+      <a href={`mailto:${company.email}`}>{company.email}</a>
     </section>
   </main>
 </BaseLayout>
