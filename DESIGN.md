@@ -45,10 +45,12 @@ dimensions explicites pour éviter les décalages de mise en page.
 - les prestations ART entrent depuis la gauche et les prestations IT depuis la
   droite ;
 - les logos de références apparaissent par masque, netteté et échelle, afin de
-  ne pas répéter le mouvement des prestations ;
-- la méthode alterne gauche, droite, gauche autour de l'axe ;
+  compléter leur entrée depuis la moitié ART ou IT ;
+- la méthode alterne gauche, droite, gauche sur trois rangées successives ;
 - la section contact présente une invitation et une adresse propres à chaque
   pratique ;
+- la méthode et le contact utilisent des halos diffus corail et cyan, bornés à
+  leur section et placés derrière le contenu ;
 - `prefers-reduced-motion` neutralise les transitions sans masquer de contenu.
 
 ## Règles de continuité

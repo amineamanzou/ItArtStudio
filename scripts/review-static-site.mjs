@@ -54,6 +54,10 @@ for (const phrase of [
   assert(home.includes(phrase), `Home missing concrete positioning: ${phrase}`);
 }
 assert(!home.includes("Chaque mission se termine"), "Redundant services introduction leaked into production");
+assert(!home.includes("Des organisations accompagnées sur des projets critiques qui nous font confiance."), "References introduction leaked into production");
+assert(!home.includes("<p>Références</p>"), "Visible references title leaked into production");
+assert(!home.includes("Axxès"), "Axxès leaked into production references");
+assert(!home.includes("Ylio"), "Ylio leaked into production references");
 assert(!home.includes("Navigation principale"), "Retired header menu leaked into production");
 assert(
   !home.includes("Conseil technique. Direction créative. Production."),

@@ -25,9 +25,10 @@ face sur une même rangée.
 ## Contact et ambiance
 
 La méthode et le contact reçoivent des halos diffus bornés : corail sur la
-moitié ART, cyan sur la moitié IT. Ils sont produits par des pseudo-éléments
-floutés derrière le contenu, sans ligne supplémentaire et sans affaiblir le
-fond sombre. Les deux blocs contact entrent depuis leur côté respectif.
+moitié ART, cyan sur la moitié IT. Ils sont produits par des pseudo-éléments à
+chute radiale derrière le contenu, sans filtre coûteux, sans ligne
+supplémentaire et sans affaiblir le fond sombre. Les deux blocs contact entrent
+depuis leur côté respectif.
 
 ## Vérification
 

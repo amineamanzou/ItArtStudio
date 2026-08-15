@@ -65,7 +65,8 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
             {artServices.map((service, index) => (
               <article
                 class="service-item"
-                data-reveal="service-art"
+                data-reveal="split-left"
+                data-reveal-kind="service"
                 style={`--reveal-index: ${index}`}
               >
                 <span>{String(index + 5).padStart(2, "0")}</span>
@@ -81,7 +82,8 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
             {itServices.map((service, index) => (
               <article
                 class="service-item"
-                data-reveal="service-it"
+                data-reveal="split-right"
+                data-reveal-kind="service"
                 style={`--reveal-index: ${index}`}
               >
                 <span>{String(index + 1).padStart(2, "0")}</span>
@@ -95,37 +97,40 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
     </section>
 
     <section class="references-section" id="references" aria-labelledby="references-title">
-      <header>
-        <p>Références</p>
-        <h2 id="references-title">Des organisations accompagnées sur des projets critiques qui nous font confiance.</h2>
-      </header>
+      <h2 class="visually-hidden" id="references-title">Références ART et IT</h2>
       <div class="references-practices">
         <section class="references-practice references-practice--art" aria-labelledby="references-art-title">
-          <h3 id="references-art-title">ART</h3>
+          <h3 id="references-art-title" data-reveal="split-left">ART</h3>
           <ul>
             {references.art.map((reference, index) => (
               <li
                 class:list={["reference-mark", reference.treatment && `reference-mark--${reference.treatment}`]}
-                data-reveal="reference"
+                data-reveal="split-left"
+                data-reveal-kind="logo"
                 style={`--reveal-index: ${index}`}
               >
-                <img src={reference.logo} alt={`Logo ${reference.name}`} loading="lazy" decoding="async" />
-                <span>{reference.name}</span>
+                <span class="reference-mark__visual">
+                  <img src={reference.logo} alt={`Logo ${reference.name}`} loading="eager" decoding="async" />
+                </span>
+                <span class="reference-mark__name">{reference.name}</span>
               </li>
             ))}
           </ul>
         </section>
         <section class="references-practice references-practice--it" aria-labelledby="references-it-title">
-          <h3 id="references-it-title">IT</h3>
+          <h3 id="references-it-title" data-reveal="split-right">IT</h3>
           <ul>
             {references.it.map((reference, index) => (
               <li
                 class:list={["reference-mark", reference.treatment && `reference-mark--${reference.treatment}`]}
-                data-reveal="reference"
+                data-reveal="split-right"
+                data-reveal-kind="logo"
                 style={`--reveal-index: ${index}`}
               >
-                <img src={reference.logo} alt={`Logo ${reference.name}`} loading="lazy" decoding="async" />
-                <span>{reference.name}</span>
+                <span class="reference-mark__visual">
+                  <img src={reference.logo} alt={`Logo ${reference.name}`} loading="eager" decoding="async" />
+                </span>
+                <span class="reference-mark__name">{reference.name}</span>
               </li>
             ))}
           </ul>
@@ -136,13 +141,17 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
     <section class="method-section" id="approche" aria-labelledby="method-title">
       <header>
         <h2 id="method-title">
-          <span class="method-title__left">Un déroulé lisible</span>
-          <span class="method-title__right">quel que soit le projet.</span>
+          <span class="method-title__left" data-reveal="split-left">Un déroulé lisible</span>
+          <span class="method-title__right" data-reveal="split-right">quel que soit le projet.</span>
         </h2>
       </header>
       <ol>
-        {methodSteps.map((step) => (
-          <li class={`method-step method-step--${step.side}`}>
+        {methodSteps.map((step, index) => (
+          <li
+            class={`method-step method-step--${step.side}`}
+            data-reveal={`split-${step.side}`}
+            style={`--reveal-index: ${index}`}
+          >
             <h3>{step.title}</h3>
             <p>{step.description}</p>
           </li>
@@ -151,11 +160,11 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
     </section>
 
     <section class="contact-section" id="contact" aria-label="Contacter IT Art Studio">
-      <article class="contact-practice contact-practice--art">
+      <article class="contact-practice contact-practice--art" data-reveal="split-left">
         <h2>Besoin de notre art ?</h2>
         <a href={`mailto:${company.artEmail}`}>{company.artEmail}</a>
       </article>
-      <article class="contact-practice contact-practice--it">
+      <article class="contact-practice contact-practice--it" data-reveal="split-right">
         <h2>Besoin de notre tech ?</h2>
         <a href={`mailto:${company.email}`}>{company.email}</a>
       </article>

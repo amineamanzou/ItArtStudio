@@ -50,11 +50,9 @@ export const references: { art: Reference[]; it: Reference[] } = {
   ],
   it: [
     { name: "bioMérieux", logo: "/assets/references/biomerieux.png", treatment: "invert" },
-    { name: "Axxès", logo: "/assets/references/axxes.png", treatment: "invert" },
     { name: "GCA Groupe Charles André", logo: "/assets/references/gca.jpg", treatment: "invert" },
     { name: "KeyIA", logo: "/assets/references/keyia.svg", treatment: "wide" },
     { name: "Enedis", logo: "/assets/references/enedis.jpg", treatment: "invert" },
-    { name: "Ylio", logo: "/assets/references/ylio.svg", treatment: "wide" },
     { name: "Odigo", logo: "/assets/references/odigo.svg", treatment: "invert" }
   ]
 };

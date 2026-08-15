@@ -59,11 +59,9 @@ for (const heroContract of [
 
 const clientReferences = [
   "bioMérieux",
-  "Axxès",
   "GCA Groupe Charles André",
   "KeyIA",
   "Enedis",
-  "Ylio",
   "Odigo"
 ];
 
@@ -75,9 +73,12 @@ const artReferences = [
 
 assert(homeSource.includes('id="references"'), "References section is missing");
 assert(
-  homeSource.includes("Des organisations accompagnées sur des projets critiques qui nous font confiance."),
-  "Approved references statement is missing"
+  !homeSource.includes("Des organisations accompagnées sur des projets critiques qui nous font confiance."),
+  "References statement must be removed"
 );
+assert(!homeSource.includes("<p>Références</p>"), "Visible references title must be removed");
+assert(!siteDataSource.includes("Axxès"), "Axxès must be removed from references");
+assert(!siteDataSource.includes("Ylio"), "Ylio must be removed from references");
 
 for (const clientReference of clientReferences) {
   assert(
@@ -116,9 +117,9 @@ assert(
   homeSource.indexOf("practice-services--art") < homeSource.indexOf("practice-services--it"),
   "ART services must render before IT services"
 );
-assert(homeSource.includes('data-reveal="service-art"'), "ART service entrance contract is missing");
-assert(homeSource.includes('data-reveal="service-it"'), "IT service entrance contract is missing");
-assert(homeSource.includes('data-reveal="reference"'), "Reference reveal contract is missing");
+assert(homeSource.includes('data-reveal="split-left"'), "Left-side entrance contract is missing");
+assert(homeSource.includes('data-reveal="split-right"'), "Right-side entrance contract is missing");
+assert(homeSource.includes('data-reveal-kind="logo"'), "Logo reveal treatment is missing");
 assert(
   homeSource.includes("method-step--${step.side}") && siteDataSource.includes('side: "left"'),
   "Left method step contract is missing"
@@ -132,6 +133,10 @@ assert(homeSource.includes("Besoin de notre tech ?"), "IT contact title is missi
 assert(styleSource.includes("body::before"), "Continuous document axis is missing");
 assert(styleSource.includes("left: 50%"), "Continuous document axis must align to the midpoint");
 assert(styleSource.includes("clip-path"), "References must use a masked reveal distinct from services");
+assert(styleSource.includes(".method-section::before"), "ART method ambience light is missing");
+assert(styleSource.includes(".method-section::after"), "IT method ambience light is missing");
+assert(styleSource.includes(".contact-section::before"), "ART contact ambience light is missing");
+assert(styleSource.includes(".contact-section::after"), "IT contact ambience light is missing");
 assert(revealSource.includes("IntersectionObserver"), "Section reveal controller is missing");
 
 for (const selector of [

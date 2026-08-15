@@ -95,7 +95,7 @@ Fixer Cadrer en rangée 1 colonne 1, Produire en rangée 2 colonne 2 et Transmet
 
 - [ ] **Step 4: Ajouter les halos bornés**
 
-Positionner quatre pseudo-éléments diffus derrière méthode/contact : corail à gauche et cyan à droite. Utiliser des surfaces solides floutées, une opacité basse et `isolation: isolate`; garder le texte au-dessus et l'axe central visible.
+Positionner quatre pseudo-éléments diffus derrière méthode/contact : corail à gauche et cyan à droite. Utiliser une chute radiale bornée sans filtre de flou coûteux et `isolation: isolate`; garder le texte au-dessus et l'axe central visible.
 
 - [ ] **Step 5: Préserver l'accessibilité**
 

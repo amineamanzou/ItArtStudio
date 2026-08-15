@@ -138,10 +138,20 @@ try {
           },
           methodTitleLeft: rect(".method-title__left"),
           methodTitleRight: rect(".method-title__right"),
+          methodCadrer: rect(".method-step:nth-child(1)"),
+          methodProduire: rect(".method-step:nth-child(2)"),
+          methodTransmettre: rect(".method-step:nth-child(3)"),
           methodStepsLeft: rects(".method-step--left"),
           methodStepsRight: rects(".method-step--right"),
           contactArt: rect(".contact-practice--art"),
           contactIt: rect(".contact-practice--it"),
+          ambience: [".method-section", ".contact-section"].map((selector) => {
+            const section = document.querySelector(selector);
+            return ["::before", "::after"].map((pseudo) => {
+              const style = getComputedStyle(section, pseudo);
+              return { content: style.content, backgroundImage: style.backgroundImage, filter: style.filter };
+            });
+          }),
           crossingBorders
         };
       });
@@ -154,8 +164,14 @@ try {
       assert(splitGeometry.methodTitleRight?.left >= splitGeometry.midpoint - 1, `${viewport.name}: method title right is on the wrong side`);
       assert(splitGeometry.methodStepsLeft.every((box) => box.right <= splitGeometry.midpoint + 1), `${viewport.name}: a left method step crosses the axis`);
       assert(splitGeometry.methodStepsRight.every((box) => box.left >= splitGeometry.midpoint - 1), `${viewport.name}: a right method step crosses the axis`);
+      assert(splitGeometry.methodProduire?.top > splitGeometry.methodCadrer?.bottom + 24, `${viewport.name}: Produire must sit below Cadrer`);
+      assert(splitGeometry.methodTransmettre?.top > splitGeometry.methodProduire?.bottom + 24, `${viewport.name}: Transmettre must sit below Produire`);
       assert(splitGeometry.contactArt?.right <= splitGeometry.midpoint + 1, `${viewport.name}: ART contact is on the wrong side`);
       assert(splitGeometry.contactIt?.left >= splitGeometry.midpoint - 1, `${viewport.name}: IT contact is on the wrong side`);
+      assert(
+        splitGeometry.ambience.flat().every((light) => light.content !== "none" && light.backgroundImage.includes("radial-gradient") && light.filter === "none"),
+        `${viewport.name}: method and contact ambient lights must be rendered`
+      );
     }
 
     const heroVideo = page.locator("[data-hero-video]");
@@ -169,12 +185,24 @@ try {
     assert(await heroVideo.evaluate((video) => Math.abs(video.currentTime - video.duration) < 0.12), `${viewport.name}: reduced-motion hero must show its final frame`);
 
     const referenceLogos = page.locator(".reference-mark img");
-    assert.equal(await referenceLogos.count(), 10, `${viewport.name}: expected ten reference logos`);
+    assert.equal(await referenceLogos.count(), 8, `${viewport.name}: expected eight reference logos`);
+    assert.equal(await page.getByText("Des organisations accompagnées sur des projets critiques qui nous font confiance.").count(), 0, `${viewport.name}: references statement must be removed`);
+    assert(
+      await page.locator(".reference-mark__visual").evaluateAll((visuals) => visuals.every((visual) => {
+        const style = getComputedStyle(visual);
+        return style.clipPath === "none" && style.filter === "none" && style.transform === "none";
+      })),
+      `${viewport.name}: reduced-motion reference logos must remain immediately visible`
+    );
     for (let index = 0; index < await referenceLogos.count(); index += 1) {
       const logo = referenceLogos.nth(index);
       await logo.scrollIntoViewIfNeeded();
       await logo.evaluate((image) => new Promise((resolve, reject) => {
-        if (image.complete && image.naturalWidth > 0) return resolve();
+        if (image.complete) {
+          return image.naturalWidth > 0
+            ? resolve()
+            : reject(new Error(`reference logo completed without pixels: ${image.src}`));
+        }
         image.addEventListener("load", resolve, { once: true });
         image.addEventListener("error", () => reject(new Error(`reference logo failed to load: ${image.src}`)), { once: true });
       }));
@@ -210,6 +238,20 @@ try {
   }));
   await motionPage.evaluate(() => window.scrollTo(0, 0));
   await motionPage.waitForTimeout(250);
+  const initialSideRevealState = await motionPage.locator('[data-reveal="split-left"], [data-reveal="split-right"]').evaluateAll((elements) => elements.map((element) => ({
+    reveal: element.getAttribute("data-reveal"),
+    offset: new DOMMatrixReadOnly(getComputedStyle(element).transform).m41,
+    opacity: getComputedStyle(element).opacity
+  })));
+  assert(initialSideRevealState.length > 0, "Motion QA: expected side-aware reveal elements");
+  for (const state of initialSideRevealState) {
+    assert.equal(state.opacity, "0", `Motion QA: ${state.reveal} element must start hidden`);
+    if (state.reveal === "split-left") {
+      assert(state.offset < 0, `Motion QA: split-left element must start from the left, got ${state.offset}px`);
+    } else {
+      assert(state.offset > 0, `Motion QA: split-right element must start from the right, got ${state.offset}px`);
+    }
+  }
   const startTime = await motionVideo.evaluate((video) => video.currentTime);
   await motionPage.screenshot({ path: join(artifactDirectory, "motion-start.png") });
   const scrollRange = await motionPage.locator("[data-hero-scroll]").evaluate((section) => section.offsetHeight - window.innerHeight);
@@ -227,8 +269,8 @@ try {
   assert(startTime < middleTime && middleTime < endTime, "Motion QA: scrub time must increase monotonically");
   assert(await motionVideo.evaluate((video) => video.paused), "Motion QA: hero video must not autoplay");
 
-  const artService = motionPage.locator('[data-reveal="service-art"]').first();
-  const itService = motionPage.locator('[data-reveal="service-it"]').first();
+  const artService = motionPage.locator('.service-item[data-reveal="split-left"]').first();
+  const itService = motionPage.locator('.service-item[data-reveal="split-right"]').first();
   const [artOffset, itOffset] = await Promise.all([
     artService.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41),
     itService.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41)
@@ -241,11 +283,19 @@ try {
   assert(await artService.evaluate((element) => element.classList.contains("is-revealed")), "Motion QA: ART service did not reveal");
   assert(await itService.evaluate((element) => element.classList.contains("is-revealed")), "Motion QA: IT service did not reveal");
 
-  const referenceMark = motionPage.locator('[data-reveal="reference"]').first();
-  assert.equal(await referenceMark.evaluate((element) => getComputedStyle(element).clipPath), "inset(100% 0px 0px)", "Motion QA: reference must start masked");
-  await referenceMark.scrollIntoViewIfNeeded();
+  const artReferenceMark = motionPage.locator('.references-practice--art [data-reveal-kind="logo"]').first();
+  const itReferenceMark = motionPage.locator('.references-practice--it [data-reveal-kind="logo"]').first();
+  const [artReferenceOffset, itReferenceOffset] = await Promise.all([
+    artReferenceMark.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41),
+    itReferenceMark.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41)
+  ]);
+  assert(artReferenceOffset < 0, `Motion QA: ART logos must start from the left, got ${artReferenceOffset}px`);
+  assert(itReferenceOffset > 0, `Motion QA: IT logos must start from the right, got ${itReferenceOffset}px`);
+  assert.equal(await artReferenceMark.locator(".reference-mark__visual").evaluate((element) => getComputedStyle(element).clipPath), "inset(100% 0px 0px)", "Motion QA: reference must start masked");
+  await artReferenceMark.scrollIntoViewIfNeeded();
+  await itReferenceMark.scrollIntoViewIfNeeded();
   await motionPage.waitForTimeout(1100);
-  const referenceRevealState = await referenceMark.evaluate((element) => ({
+  const referenceRevealState = await artReferenceMark.evaluate((element) => ({
     className: element.className,
     documentClassName: document.documentElement.className,
     rect: element.getBoundingClientRect().toJSON(),
@@ -253,10 +303,26 @@ try {
     viewportHeight: window.innerHeight
   }));
   assert(
-    await referenceMark.evaluate((element) => element.classList.contains("is-revealed")),
+    await artReferenceMark.evaluate((element) => element.classList.contains("is-revealed")),
     `Motion QA: reference did not reveal: ${JSON.stringify(referenceRevealState)}`
   );
-  assert.equal(await referenceMark.evaluate((element) => getComputedStyle(element).clipPath), "inset(0px)", "Motion QA: reference mask did not open");
+  assert(await itReferenceMark.evaluate((element) => element.classList.contains("is-revealed")), "Motion QA: IT reference did not reveal");
+  assert.equal(await artReferenceMark.locator(".reference-mark__visual").evaluate((element) => getComputedStyle(element).clipPath), "inset(0px)", "Motion QA: reference mask did not open");
+
+  for (const selector of [
+    ".method-title__left",
+    ".method-title__right",
+    ".method-step:nth-child(1)",
+    ".method-step:nth-child(2)",
+    ".method-step:nth-child(3)",
+    ".contact-practice--art",
+    ".contact-practice--it"
+  ]) {
+    const item = motionPage.locator(selector);
+    await item.scrollIntoViewIfNeeded();
+    await motionPage.waitForTimeout(900);
+    assert(await item.evaluate((element) => element.classList.contains("is-revealed")), `Motion QA: ${selector} did not reveal on scroll`);
+  }
   await motionContext.close();
 
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
