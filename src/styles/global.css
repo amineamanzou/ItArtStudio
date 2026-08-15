@@ -353,6 +353,7 @@ p {
 
 .activity-section,
 .services-section,
+.references-section,
 .method-section,
 .contact-section,
 .legal-page,
@@ -478,6 +479,60 @@ p {
   margin-bottom: 0;
   color: var(--ink-soft);
   line-height: 1.65;
+}
+
+.references-section {
+  padding-block: var(--section-pad);
+  border-top: 1px solid var(--line-strong);
+}
+
+.references-section header {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.4fr) minmax(0, 1.6fr);
+  gap: clamp(2rem, 5vw, 6rem);
+  align-items: start;
+  padding-bottom: clamp(3.5rem, 7vw, 7rem);
+}
+
+.references-section header > p {
+  margin-bottom: 0;
+  color: var(--it);
+  font-size: clamp(1.25rem, 2vw, 1.8rem);
+  font-weight: 500;
+}
+
+.references-section h2 {
+  max-width: 17ch;
+  margin-bottom: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 5.8vw, 5.75rem);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+}
+
+.references-section ul {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0 clamp(1.5rem, 3vw, 3.5rem);
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line-strong);
+  list-style: none;
+}
+
+.references-section li {
+  display: flex;
+  min-height: clamp(6rem, 9vw, 8.5rem);
+  align-items: flex-end;
+  padding-block: 1.5rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--studio);
+  font-size: clamp(1.25rem, 2.2vw, 2.15rem);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  text-wrap: balance;
 }
 
 .method-section {
@@ -667,6 +722,7 @@ p {
   .activity-section,
   .section-heading,
   .practice-services,
+  .references-section header,
   .method-section {
     grid-template-columns: 1fr;
   }
@@ -674,8 +730,13 @@ p {
   .activity-section,
   .section-heading,
   .practice-services,
+  .references-section header,
   .method-section {
     gap: 2.5rem;
+  }
+
+  .references-section ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .method-section h2 {
@@ -795,6 +856,7 @@ p {
 
   .activity-section,
   .services-section,
+  .references-section,
   .method-section,
   .contact-section,
   .legal-page {
@@ -803,6 +865,7 @@ p {
 
   .activity-section h2,
   .section-heading h2,
+  .references-section h2,
   .method-section h2,
   .contact-section h2,
   .legal-hero h1 {
@@ -815,6 +878,10 @@ p {
 
   .practice-services {
     padding-block: 3rem;
+  }
+
+  .references-section header {
+    padding-bottom: 3.5rem;
   }
 
   .method-section li {
@@ -883,6 +950,14 @@ p {
   .service-item {
     grid-template-columns: 2rem 1fr;
     gap: 0 0.75rem;
+  }
+
+  .references-section ul {
+    grid-template-columns: 1fr;
+  }
+
+  .references-section li {
+    min-height: 5rem;
   }
 
   .contact-section > a {

@@ -17,6 +17,8 @@ await assert.rejects(
 
 const sources = await Promise.all(requiredFiles.map((path) => readFile(path, "utf8")));
 const source = sources.join("\n");
+const siteDataSource = await readFile("src/data/site.ts", "utf8");
+const homeSource = await readFile("src/pages/index.astro", "utf8");
 
 for (const phrase of [
   "IT Art Studio",
@@ -49,6 +51,29 @@ for (const heroContract of [
   ".pause()"
 ]) {
   assert(source.includes(heroContract), `Hero scroll contract is missing: ${heroContract}`);
+}
+
+const clientReferences = [
+  "bioMérieux",
+  "Axxès",
+  "GCA Groupe Charles André",
+  "KeyIA",
+  "Enedis",
+  "Ylio",
+  "Odigo"
+];
+
+assert(homeSource.includes('id="references"'), "References section is missing");
+assert(
+  homeSource.includes("Des organisations accompagnées sur des projets critiques qui nous font confiance."),
+  "Approved references statement is missing"
+);
+
+for (const clientReference of clientReferences) {
+  assert(
+    siteDataSource.includes(clientReference),
+    `Approved client reference is missing: ${clientReference}`
+  );
 }
 
 console.log("Static source contract is complete.");
