@@ -7,7 +7,6 @@
     "dev": "astro dev",
     "start": "astro dev",
     "build": "astro build && node scripts/assert-production-bundle.mjs && npm run review:site",
-    "build:pages": "GITHUB_PAGES=true SITE_URL=https://amineamanzou.github.io BASE_PATH=/ItArtStudio npm run build",
     "preview": "astro preview",
     "check": "astro check && npm run review:source",
     "review:source": "node scripts/review-static-source.mjs",

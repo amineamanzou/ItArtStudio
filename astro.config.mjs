@@ -1,8 +1,7 @@
 import { defineConfig } from "astro/config";
 
-const isGitHubPages = process.env.GITHUB_PAGES === "true";
-const site = process.env.SITE_URL ?? (isGitHubPages ? "https://amineamanzou.github.io" : undefined);
-const base = process.env.BASE_PATH ?? (isGitHubPages ? "/ItArtStudio" : undefined);
+const site = process.env.SITE_URL;
+const base = process.env.BASE_PATH;
 
 export default defineConfig({
   output: "static",
