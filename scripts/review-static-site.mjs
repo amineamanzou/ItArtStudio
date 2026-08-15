@@ -32,8 +32,15 @@ const bundle = Object.values(output).join("\n");
 const home = output["index.html"] ?? "";
 const legal = output[join("mentions-legales", "index.html")] ?? "";
 
+assert(home.trimEnd().endsWith("</html>"), "Home emits markup after the closing html element");
 assert(home.includes("IT Art Studio"), "Home missing legal name");
 assert(home.includes("mailto:amine@itart.studio"), "Home missing canonical contact");
+assert(home.includes("data-hero-scroll"), "Home missing scroll-driven hero");
+assert(home.includes("hero-scroll.webm"), "Home missing WebM hero source");
+assert(home.includes("hero-scroll.mp4"), "Home missing MP4 hero source");
+assert(home.includes("hero-scroll-poster.jpg"), "Home missing hero poster");
+assert(home.includes("muted"), "Hero video must be muted");
+assert(home.includes("playsinline"), "Hero video must play inline");
 for (const phrase of [
   "Conseil technique. Direction créative. Production.",
   "une architecture, un prototype, une équipe formée, une image ou une collection",

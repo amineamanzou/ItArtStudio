@@ -31,7 +31,7 @@
 
 - [ ] Encode exactly 96 silent frames to H.264 with `yuv420p`, faststart and a 12-frame GOP.
 - [ ] Encode exactly 96 silent frames to VP9 with a 12-frame GOP.
-- [ ] Extract the final portrait frame as the static poster.
+- [ ] Extract the first low-angle frame as the static poster so first paint matches scroll position zero; reduced motion seeks to the final portrait after metadata loads.
 - [ ] Verify dimensions, frame rate, frame count, duration and absence of audio with `ffprobe`.
 
 ### Task 2: Failing hero contract

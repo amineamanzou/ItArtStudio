@@ -166,127 +166,100 @@ p {
   border-color: var(--it);
 }
 
-.hero {
+.hero-scroll {
+  --hero-progress: 0;
   position: relative;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  min-height: 100svh;
-  overflow: hidden;
+  height: 240svh;
+  min-height: calc(100svh + 42rem);
   background: var(--void);
 }
 
-.hero::after {
-  position: absolute;
-  inset: 0 auto 0 50%;
-  z-index: 7;
-  width: 1px;
-  background: linear-gradient(180deg, transparent, var(--studio) 20% 80%, transparent);
-  box-shadow: -1.5rem 0 3rem oklch(79% 0.15 220 / 18%), 1.5rem 0 3rem oklch(74% 0.16 30 / 18%);
-  content: "";
-}
-
-.hero-practice {
-  position: relative;
-  min-width: 0;
+.hero-scroll__stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  min-height: 36rem;
   overflow: hidden;
   isolation: isolate;
+  background: var(--void);
 }
 
-.hero-practice__media,
-.hero-practice__media::after {
+.hero-scroll__media,
+.hero-scroll__shade {
   position: absolute;
   inset: 0;
 }
 
-.hero-practice__media {
-  z-index: -2;
-  margin: 0;
-  background: var(--surface);
-}
-
-.hero-practice__media::after {
-  content: "";
-}
-
-.hero-practice--it .hero-practice__media::after {
-  background: linear-gradient(90deg, oklch(5% 0.025 238 / 62%), oklch(9% 0.04 235 / 26%) 62%, oklch(5% 0.02 250 / 78%));
-}
-
-.hero-practice--art .hero-practice__media::after {
-  background: linear-gradient(270deg, oklch(6% 0.03 22 / 64%), oklch(10% 0.045 25 / 24%) 62%, oklch(5% 0.02 250 / 78%));
-}
-
-.hero-practice__media img {
+.hero-scroll__media {
+  z-index: -3;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  animation: hero-image-enter 1200ms var(--ease-out) both;
+  object-position: center;
+  background: var(--void);
 }
 
-.hero-practice--it .hero-practice__media img {
-  object-position: 52% center;
+.hero-scroll__shade {
+  z-index: -2;
+  background:
+    linear-gradient(180deg, oklch(5% 0.02 255 / 72%), transparent 22% 64%, oklch(5% 0.02 255 / 76%)),
+    linear-gradient(90deg, oklch(8% 0.05 25 / 20%), transparent 35% 65%, oklch(8% 0.05 235 / 20%));
+  pointer-events: none;
 }
 
-.hero-practice--art .hero-practice__media img {
-  object-position: 48% center;
-}
-
-@keyframes hero-image-enter {
-  from {
-    opacity: 0.62;
-    transform: scale(1.035);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.hero-practice__copy {
+.hero-scroll__stage::after {
   position: absolute;
-  right: var(--page-pad);
-  bottom: clamp(2rem, 7vh, 5rem);
-  left: var(--page-pad);
-  z-index: 5;
-  max-width: 31rem;
+  inset: 0 auto 0 50%;
+  z-index: 3;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--studio) 18% 82%, transparent);
+  box-shadow: -1.5rem 0 3rem oklch(74% 0.16 30 / 14%), 1.5rem 0 3rem oklch(79% 0.15 220 / 14%);
+  content: "";
+  opacity: calc(0.4 + var(--hero-progress) * 0.6);
 }
 
-.hero-practice--art .hero-practice__copy {
-  margin-left: auto;
+.hero-scroll__practice {
+  position: absolute;
+  bottom: clamp(3.5rem, 7vh, 6rem);
+  z-index: 5;
+  width: min(25rem, calc(42vw - var(--page-pad)));
+}
+
+.hero-scroll__practice--art {
+  left: var(--page-pad);
+}
+
+.hero-scroll__practice--it {
+  right: var(--page-pad);
   text-align: right;
 }
 
-.hero-practice__copy > p {
-  margin-bottom: 1.25rem;
-  font-size: clamp(2.4rem, 5vw, 5.5rem);
+.hero-scroll__practice > p {
+  margin-bottom: 0.8rem;
+  font-size: clamp(2.3rem, 4.8vw, 5rem);
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 0.85;
 }
 
-.hero-practice--it .hero-practice__copy > p {
-  color: var(--it);
-}
-
-.hero-practice--art .hero-practice__copy > p {
+.hero-scroll__practice--art > p {
   color: var(--art);
 }
 
-.hero-practice h2 {
-  max-width: 16ch;
-  margin-bottom: 1.5rem;
+.hero-scroll__practice--it > p {
+  color: var(--it);
+}
+
+.hero-scroll__practice h2 {
+  margin-bottom: 1rem;
   font-family: var(--font-display);
-  font-size: clamp(1.75rem, 3vw, 3.4rem);
+  font-size: clamp(1.35rem, 2.1vw, 2.3rem);
   font-weight: 400;
   letter-spacing: -0.02em;
-  line-height: 1;
+  line-height: 1.04;
 }
 
-.hero-practice--art h2 {
-  margin-left: auto;
-}
-
-.hero-practice__copy a {
+.hero-scroll__practice a {
   display: inline-flex;
   min-height: 2.75rem;
   align-items: center;
@@ -295,18 +268,18 @@ p {
   font-size: 0.9rem;
 }
 
-.hero-core {
+.hero-scroll__core {
   position: absolute;
-  top: 46%;
+  top: 45%;
   left: 50%;
-  z-index: 10;
+  z-index: 6;
   width: min(44rem, calc(100% - 2rem));
   padding: 1.25rem 2rem 1.4rem;
   text-align: center;
   transform: translate(-50%, -50%);
 }
 
-.hero-core h1 {
+.hero-scroll__core h1 {
   display: flex;
   align-items: baseline;
   justify-content: center;
@@ -320,33 +293,62 @@ p {
   text-shadow: 0 2px 8px oklch(0% 0 0 / 72%);
 }
 
-.hero-core h1 span {
+.hero-scroll__core h1 span {
   font-family: var(--font-body);
   font-size: 0.43em;
   font-weight: 600;
   letter-spacing: 0;
 }
 
-.hero-core h1 span:first-child {
-  color: var(--it);
-}
-
-.hero-core h1 span:last-child {
+.hero-scroll__core h1 span:first-child {
   color: var(--art);
 }
 
-.hero-core h1 strong {
+.hero-scroll__core h1 span:last-child {
+  color: var(--it);
+}
+
+.hero-scroll__core h1 strong {
   font-family: var(--font-display);
   font-weight: 400;
 }
 
-.hero-core > p {
+.hero-scroll__core > p {
   width: fit-content;
   margin: 1rem auto 0;
   padding: 0.4rem 0.75rem;
   color: var(--ink);
   font-size: clamp(0.9rem, 1.4vw, 1.05rem);
   background: oklch(6% 0.018 255 / 82%);
+}
+
+.hero-scroll__progress {
+  position: absolute;
+  right: var(--page-pad);
+  bottom: 1.25rem;
+  z-index: 6;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.hero-scroll__progress i {
+  display: block;
+  width: 4.5rem;
+  height: 1px;
+  overflow: hidden;
+  background: var(--line-strong);
+}
+
+.hero-scroll__progress b {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--studio);
+  transform: scaleX(var(--hero-progress));
+  transform-origin: left;
 }
 
 .activity-section,
@@ -719,58 +721,76 @@ p {
     font-size: 0.82rem;
   }
 
-  .hero {
-    grid-template-columns: 1fr;
-    grid-template-rows: repeat(2, minmax(32rem, 58svh));
-    min-height: 116svh;
+  .hero-scroll {
+    height: 210svh;
+    min-height: calc(100svh + 34rem);
   }
 
-  .hero::after {
-    inset: 50% 0 auto;
-    width: auto;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--studio) 20% 80%, transparent);
-    box-shadow: 0 -1rem 2.5rem oklch(79% 0.15 220 / 15%), 0 1rem 2.5rem oklch(74% 0.16 30 / 15%);
+  .hero-scroll__stage {
+    min-height: 100svh;
   }
 
-  .hero-practice__copy {
-    bottom: 5.5rem;
+  .hero-scroll__media {
+    object-fit: contain;
   }
 
-  .hero-practice--art .hero-practice__copy {
-    top: 6rem;
-    bottom: auto;
+  .hero-scroll__shade {
+    background:
+      linear-gradient(180deg, var(--void) 0 17%, transparent 38% 62%, var(--void) 83% 100%),
+      linear-gradient(90deg, oklch(8% 0.05 25 / 16%), transparent 36% 64%, oklch(8% 0.05 235 / 16%));
   }
 
-  .hero-practice--art .hero-practice__copy,
-  .hero-practice--art h2 {
-    margin-left: 0;
-    text-align: left;
+  .hero-scroll__practice {
+    bottom: 4.5rem;
+    width: calc(50% - 1.5rem);
   }
 
-  .hero-practice__copy > p {
-    font-size: 3rem;
+  .hero-scroll__practice--art {
+    left: 1rem;
   }
 
-  .hero-practice h2 {
-    font-size: clamp(1.8rem, 8vw, 2.7rem);
+  .hero-scroll__practice--it {
+    right: 1rem;
   }
 
-  .hero-core {
+  .hero-scroll__practice > p {
+    margin-bottom: 0.55rem;
+    font-size: 2.25rem;
+  }
+
+  .hero-scroll__practice h2 {
+    display: none;
+  }
+
+  .hero-scroll__practice a {
+    min-height: 2.5rem;
+    font-size: 0.76rem;
+  }
+
+  .hero-scroll__core {
     top: 50%;
     width: 100%;
     padding: 1rem;
-    background: oklch(6% 0.018 255 / 88%);
   }
 
-  .hero-core h1 {
+  .hero-scroll__core h1 {
     font-size: clamp(2.4rem, 13vw, 4.25rem);
   }
 
-  .hero-core > p {
+  .hero-scroll__core > p {
+    max-width: 28ch;
     margin-top: 0.65rem;
-    padding: 0;
-    background: transparent;
+  }
+
+  .hero-scroll__progress {
+    right: auto;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .hero-scroll__progress span {
+    display: none;
   }
 
   .activity-section,
@@ -855,9 +875,9 @@ p {
     min-height: 2.5rem;
   }
 
-  .hero-practice__copy {
-    right: 1rem;
-    left: 1rem;
+  .hero-scroll__practice a {
+    max-width: 9rem;
+    line-height: 1.25;
   }
 
   .service-item {
@@ -882,5 +902,14 @@ p {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  .hero-scroll {
+    height: 100svh;
+    min-height: 36rem;
+  }
+
+  .hero-scroll__progress {
+    display: none;
   }
 }

@@ -11,6 +11,7 @@ const moduleSources = [...html.matchAll(/<script\b[^>]*type=["']module["'][^>]*s
   (match) => match[1]
 );
 const rawTypeScriptModules = moduleSources.filter((source) => /\.tsx?(?:[?#].*)?$/i.test(source));
+const inlineModules = [...html.matchAll(/<script\b[^>]*type=["']module["'][^>]*>([\s\S]*?)<\/script>/gi)];
 
 async function listFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -34,10 +35,10 @@ const emittedJavaScript = distFiles
   .filter((path) => [".js", ".mjs"].includes(extname(path)))
   .map((path) => path.replace(distPath, ""));
 
-if (rawTypeScriptModules.length > 0 || emittedTypeScript.length > 0 || emittedJavaScript.length > 0) {
-  console.error("Production bundle contains client-side script assets.");
-  console.error(JSON.stringify({ rawTypeScriptModules, emittedTypeScript, emittedJavaScript }, null, 2));
+if (rawTypeScriptModules.length > 0 || emittedTypeScript.length > 0 || emittedJavaScript.length > 0 || inlineModules.length !== 1) {
+  console.error("Production bundle must contain exactly one inline hero controller and no script asset or raw TypeScript.");
+  console.error(JSON.stringify({ rawTypeScriptModules, emittedTypeScript, emittedJavaScript, inlineModules: inlineModules.length }, null, 2));
   process.exit(1);
 }
 
-console.log("Production bundle is static and JavaScript-free.");
+console.log("Production bundle contains one inline hero controller and no raw TypeScript.");

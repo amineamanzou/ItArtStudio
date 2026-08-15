@@ -11,36 +11,45 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
 
 <BaseLayout>
   <main id="contenu">
-    <section class="hero" aria-labelledby="hero-title">
-      <article class="hero-practice hero-practice--it">
-        <picture class="hero-practice__media">
-          <source srcset={`${assetBase}/hero-it.avif`} type="image/avif" />
-          <source srcset={`${assetBase}/hero-it.webp`} type="image/webp" />
-          <img src={`${assetBase}/hero-it.jpg`} alt="Architecture technique sombre traversée de signaux cyan" width="1920" height="1080" />
-        </picture>
-        <div class="hero-practice__copy">
-          <p>IT</p>
-          <h2>Comprendre le système. Construire ce qui doit fonctionner.</h2>
-          <a href="#expertises-it">Voir la pratique IT</a>
-        </div>
-      </article>
+    <section class="hero-scroll" data-hero-scroll aria-labelledby="hero-title">
+      <div class="hero-scroll__stage">
+        <video
+          class="hero-scroll__media"
+          data-hero-video
+          muted
+          playsinline
+          preload="metadata"
+          poster={`${assetBase}/hero-scroll-poster.jpg`}
+          aria-hidden="true"
+          tabindex="-1"
+        >
+          <source src={`${assetBase}/hero-scroll.webm`} type="video/webm" />
+          <source src={`${assetBase}/hero-scroll.mp4`} type="video/mp4" />
+        </video>
 
-      <article class="hero-practice hero-practice--art">
-        <picture class="hero-practice__media">
-          <source srcset={`${assetBase}/hero-art.avif`} type="image/avif" />
-          <source srcset={`${assetBase}/hero-art.webp`} type="image/webp" />
-          <img src={`${assetBase}/hero-art.jpg`} alt="Atelier sombre composé de matière, de volume et d'outils cuivrés" width="1920" height="1080" />
-        </picture>
-        <div class="hero-practice__copy">
+        <div class="hero-scroll__shade" aria-hidden="true"></div>
+
+        <article class="hero-scroll__practice hero-scroll__practice--art">
           <p>ART</p>
           <h2>Définir un langage visuel. Produire les images, les films et les objets.</h2>
           <a href="#expertises-art">Voir la pratique ART</a>
-        </div>
-      </article>
+        </article>
 
-      <div class="hero-core">
-        <h1 id="hero-title"><span>IT</span> <strong>STUDIO</strong> <span>ART</span></h1>
-        <p>Conseil technique. Direction créative. Production.</p>
+        <article class="hero-scroll__practice hero-scroll__practice--it">
+          <p>IT</p>
+          <h2>Comprendre le système. Construire ce qui doit fonctionner.</h2>
+          <a href="#expertises-it">Voir la pratique IT</a>
+        </article>
+
+        <div class="hero-scroll__core">
+          <h1 id="hero-title"><span>ART</span> <strong>STUDIO</strong> <span>IT</span></h1>
+          <p>Conseil technique. Direction créative. Production.</p>
+        </div>
+
+        <div class="hero-scroll__progress" aria-hidden="true">
+          <span>Défiler</span>
+          <i><b></b></i>
+        </div>
       </div>
     </section>
 
@@ -117,4 +126,10 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
       <a href={`mailto:${company.email}`}>{company.email}</a>
     </section>
   </main>
+
+  <script>
+    import { initHeroScroll } from "../scripts/hero-scroll";
+
+    initHeroScroll();
+  </script>
 </BaseLayout>

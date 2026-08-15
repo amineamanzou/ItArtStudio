@@ -5,6 +5,7 @@ const requiredFiles = [
   "src/data/site.ts",
   "src/layouts/BaseLayout.astro",
   "src/pages/index.astro",
+  "src/scripts/hero-scroll.ts",
   "src/pages/mentions-legales.astro"
 ];
 
@@ -37,5 +38,17 @@ for (const phrase of [
 assert(!/from\s+["'][^"']*(?:game|three)[^"']*["']/i.test(source), "Interactive runtime import found");
 assert(!/href=["']#["']/i.test(source), "Placeholder href found");
 assert(!source.includes("contact@itart.studio"), "Legacy contact found");
+
+for (const heroContract of [
+  "data-hero-scroll",
+  "hero-scroll.webm",
+  "hero-scroll.mp4",
+  "hero-scroll-poster.jpg",
+  "prefers-reduced-motion",
+  "currentTime",
+  ".pause()"
+]) {
+  assert(source.includes(heroContract), `Hero scroll contract is missing: ${heroContract}`);
+}
 
 console.log("Static source contract is complete.");

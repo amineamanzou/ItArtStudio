@@ -15,10 +15,12 @@ const mimeTypes = {
   ".html": "text/html; charset=utf-8",
   ".ico": "image/x-icon",
   ".jpg": "image/jpeg",
+  ".mp4": "video/mp4",
   ".png": "image/png",
   ".svg": "image/svg+xml",
   ".txt": "text/plain; charset=utf-8",
   ".webp": "image/webp",
+  ".webm": "video/webm",
   ".xml": "application/xml; charset=utf-8"
 };
 
@@ -32,10 +34,34 @@ function resolveRequestPath(url) {
 const server = createServer(async (request, response) => {
   try {
     let filePath = resolveRequestPath(request.url ?? "/");
-    const metadata = await stat(filePath);
-    if (metadata.isDirectory()) filePath = join(filePath, "index.html");
+    let metadata = await stat(filePath);
+    if (metadata.isDirectory()) {
+      filePath = join(filePath, "index.html");
+      metadata = await stat(filePath);
+    }
     const body = await readFile(filePath);
-    response.writeHead(200, { "content-type": mimeTypes[extname(filePath)] ?? "application/octet-stream" });
+    const contentType = mimeTypes[extname(filePath)] ?? "application/octet-stream";
+    const range = request.headers.range?.match(/^bytes=(\d*)-(\d*)$/);
+
+    if (range) {
+      const start = range[1] ? Number(range[1]) : 0;
+      const end = range[2] ? Math.min(Number(range[2]), metadata.size - 1) : metadata.size - 1;
+      assert(start >= 0 && start <= end && end < metadata.size, `Invalid byte range: ${request.headers.range}`);
+      response.writeHead(206, {
+        "accept-ranges": "bytes",
+        "content-length": end - start + 1,
+        "content-range": `bytes ${start}-${end}/${metadata.size}`,
+        "content-type": contentType
+      });
+      response.end(body.subarray(start, end + 1));
+      return;
+    }
+
+    response.writeHead(200, {
+      "accept-ranges": "bytes",
+      "content-length": metadata.size,
+      "content-type": contentType
+    });
     response.end(body);
   } catch {
     response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
@@ -86,16 +112,54 @@ try {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert(overflow <= 1, `${viewport.name}: horizontal overflow of ${overflow}px`);
 
-    const heroImages = page.locator(".hero-practice__media img");
-    assert.equal(await heroImages.count(), 2, `${viewport.name}: expected two hero images`);
-    for (let index = 0; index < 2; index += 1) {
-      assert(await heroImages.nth(index).evaluate((image) => image.complete && image.naturalWidth > 0), `${viewport.name}: hero image ${index + 1} did not load`);
-    }
+    const heroVideo = page.locator("[data-hero-video]");
+    assert.equal(await heroVideo.count(), 1, `${viewport.name}: expected one hero video`);
+    await heroVideo.evaluate((video) => new Promise((resolve, reject) => {
+      if (video.readyState >= 1) return resolve();
+      video.addEventListener("loadedmetadata", resolve, { once: true });
+      video.addEventListener("error", () => reject(new Error("hero video failed to load")), { once: true });
+    }));
+    assert(await heroVideo.evaluate((video) => video.paused), `${viewport.name}: hero video must remain paused`);
+    assert(await heroVideo.evaluate((video) => Math.abs(video.currentTime - video.duration) < 0.12), `${viewport.name}: reduced-motion hero must show its final frame`);
 
     await page.screenshot({ path: join(artifactDirectory, `${viewport.name}-home.png`), fullPage: true });
     report.push({ ...viewport, page: "/", overflow, browserErrors });
     await context.close();
   }
+
+  const motionContext = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    deviceScaleFactor: 1,
+    reducedMotion: "no-preference"
+  });
+  const motionPage = await motionContext.newPage();
+  const motionResponse = await motionPage.goto(origin, { waitUntil: "networkidle" });
+  assert.equal(motionResponse?.status(), 200, "Motion QA: home did not return 200");
+  const motionVideo = motionPage.locator("[data-hero-video]");
+  await motionVideo.evaluate((video) => new Promise((resolve, reject) => {
+    if (video.readyState >= 1) return resolve();
+    video.addEventListener("loadedmetadata", resolve, { once: true });
+    video.addEventListener("error", () => reject(new Error("hero video failed to load")), { once: true });
+  }));
+  await motionPage.evaluate(() => window.scrollTo(0, 0));
+  await motionPage.waitForTimeout(250);
+  const startTime = await motionVideo.evaluate((video) => video.currentTime);
+  await motionPage.screenshot({ path: join(artifactDirectory, "motion-start.png") });
+  const scrollRange = await motionPage.locator("[data-hero-scroll]").evaluate((section) => section.offsetHeight - window.innerHeight);
+  await motionPage.evaluate((distance) => window.scrollTo(0, distance * 0.55), scrollRange);
+  await motionPage.waitForTimeout(650);
+  const middleTime = await motionVideo.evaluate((video) => video.currentTime);
+  await motionPage.screenshot({ path: join(artifactDirectory, "motion-middle.png") });
+  await motionPage.evaluate((distance) => window.scrollTo(0, distance), scrollRange);
+  await motionPage.waitForTimeout(650);
+  const endTime = await motionVideo.evaluate((video) => video.currentTime);
+  await motionPage.screenshot({ path: join(artifactDirectory, "motion-end.png") });
+  assert(startTime < 0.12, `Motion QA: expected start frame, got ${startTime}`);
+  assert(middleTime > 1.3 && middleTime < 3.2, `Motion QA: expected middle frame, got ${middleTime}`);
+  assert(endTime > 3.72, `Motion QA: expected final frame, got ${endTime}`);
+  assert(startTime < middleTime && middleTime < endTime, "Motion QA: scrub time must increase monotonically");
+  assert(await motionVideo.evaluate((video) => video.paused), "Motion QA: hero video must not autoplay");
+  await motionContext.close();
 
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
   const legalPage = await context.newPage();
@@ -110,7 +174,7 @@ try {
   report.push({ width: 390, height: 844, page: "/mentions-legales/", overflow: legalOverflow, browserErrors: [] });
   await context.close();
 
-  for (const path of ["/", "/mentions-legales/", "/robots.txt", "/sitemap.xml", "/assets/hero-it.avif", "/assets/hero-art.avif"]) {
+  for (const path of ["/", "/mentions-legales/", "/robots.txt", "/sitemap.xml", "/assets/hero-scroll.mp4", "/assets/hero-scroll.webm", "/assets/hero-scroll-poster.jpg"]) {
     const response = await fetch(`${origin}${path}`);
     assert.equal(response.status, 200, `${path} returned ${response.status}`);
   }
