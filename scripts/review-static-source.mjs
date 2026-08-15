@@ -20,10 +20,13 @@ const source = sources.join("\n");
 const siteDataSource = await readFile("src/data/site.ts", "utf8");
 const homeSource = await readFile("src/pages/index.astro", "utf8");
 const styleSource = await readFile("src/styles/global.css", "utf8");
+const layoutSource = await readFile("src/layouts/BaseLayout.astro", "utf8");
+const revealSource = await readFile("src/scripts/section-reveals.ts", "utf8").catch(() => "");
 
 for (const phrase of [
   "IT Art Studio",
   "amine@itart.studio",
+  "carine@itart.studio",
   "Observabilité et fiabilité",
   "Architecture, cloud et delivery",
   "IA et prototypes",
@@ -64,6 +67,12 @@ const clientReferences = [
   "Odigo"
 ];
 
+const artReferences = [
+  "HWE — Hard Work Easy Everything",
+  "Léo Urban",
+  "Aminespired"
+];
+
 assert(homeSource.includes('id="references"'), "References section is missing");
 assert(
   homeSource.includes("Des organisations accompagnées sur des projets critiques qui nous font confiance."),
@@ -74,6 +83,13 @@ for (const clientReference of clientReferences) {
   assert(
     siteDataSource.includes(clientReference),
     `Approved client reference is missing: ${clientReference}`
+  );
+}
+
+for (const artReference of artReferences) {
+  assert(
+    siteDataSource.includes(artReference),
+    `Approved ART reference is missing: ${artReference}`
   );
 }
 
@@ -93,12 +109,44 @@ assert(
   !homeSource.includes("Conseil technique. Direction créative. Production."),
   "Legacy hero strapline must be removed"
 );
+assert(!homeSource.includes("activity-section"), "Redundant activity section must be removed");
+assert(!homeSource.includes("section-heading"), "Redundant services introduction must be removed");
+assert(!layoutSource.includes("site-nav"), "Header section menu must be removed");
 assert(
   homeSource.indexOf("practice-services--art") < homeSource.indexOf("practice-services--it"),
   "ART services must render before IT services"
 );
-assert(siteDataSource.includes("art: []"), "ART references must have a dedicated empty collection");
+assert(homeSource.includes('data-reveal="service-art"'), "ART service entrance contract is missing");
+assert(homeSource.includes('data-reveal="service-it"'), "IT service entrance contract is missing");
+assert(homeSource.includes('data-reveal="reference"'), "Reference reveal contract is missing");
+assert(
+  homeSource.includes("method-step--${step.side}") && siteDataSource.includes('side: "left"'),
+  "Left method step contract is missing"
+);
+assert(
+  homeSource.includes("method-step--${step.side}") && siteDataSource.includes('side: "right"'),
+  "Right method step contract is missing"
+);
+assert(homeSource.includes("Besoin de notre art ?"), "ART contact title is missing");
+assert(homeSource.includes("Besoin de notre tech ?"), "IT contact title is missing");
 assert(styleSource.includes("body::before"), "Continuous document axis is missing");
 assert(styleSource.includes("left: 50%"), "Continuous document axis must align to the midpoint");
+assert(styleSource.includes("clip-path"), "References must use a masked reveal distinct from services");
+assert(revealSource.includes("IntersectionObserver"), "Section reveal controller is missing");
+
+for (const selector of [
+  "site-header",
+  "services-section",
+  "references-section",
+  "method-section",
+  "contact-section",
+  "site-footer"
+]) {
+  const block = styleSource.match(new RegExp(`\\.${selector}\\s*\\{[^}]*}`, "s"))?.[0] ?? "";
+  assert(
+    !/border-(?:top|bottom)\s*:/.test(block),
+    `Horizontal rule must not cross the central axis: ${selector}`
+  );
+}
 
 console.log("Static source contract is complete.");

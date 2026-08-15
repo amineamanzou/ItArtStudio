@@ -8,6 +8,13 @@ export interface Service {
 export interface MethodStep {
   title: string;
   description: string;
+  side: "left" | "right";
+}
+
+export interface Reference {
+  name: string;
+  logo: string;
+  treatment?: "portrait" | "invert" | "wide";
 }
 
 export const company = {
@@ -19,27 +26,38 @@ export const company = {
   rcs: "Lyon 915 019 129",
   vat: "FR79 915019129",
   email: "amine@itart.studio",
+  artEmail: "carine@itart.studio",
   directors: ["Carine Cléon-Amanzou", "Amine Amanzou"]
 } as const;
 
-export const navigation = [
-  { label: "Expertises", href: "#expertises" },
-  { label: "Approche", href: "#approche" },
-  { label: "Contact", href: "#contact" }
-] as const;
-
-export const references = {
-  art: [],
+export const references: { art: Reference[]; it: Reference[] } = {
+  art: [
+    {
+      name: "HWE — Hard Work Easy Everything",
+      logo: "/assets/references/hwe-logo.png",
+      treatment: "invert"
+    },
+    {
+      name: "Léo Urban",
+      logo: "/assets/references/leo-urban.jpg",
+      treatment: "portrait"
+    },
+    {
+      name: "Aminespired",
+      logo: "/assets/references/aminespired.webp",
+      treatment: "portrait"
+    }
+  ],
   it: [
-    "bioMérieux",
-    "Axxès",
-    "GCA Groupe Charles André",
-    "KeyIA",
-    "Enedis",
-    "Ylio",
-    "Odigo"
+    { name: "bioMérieux", logo: "/assets/references/biomerieux.png", treatment: "invert" },
+    { name: "Axxès", logo: "/assets/references/axxes.png", treatment: "invert" },
+    { name: "GCA Groupe Charles André", logo: "/assets/references/gca.jpg", treatment: "invert" },
+    { name: "KeyIA", logo: "/assets/references/keyia.svg", treatment: "wide" },
+    { name: "Enedis", logo: "/assets/references/enedis.jpg", treatment: "invert" },
+    { name: "Ylio", logo: "/assets/references/ylio.svg", treatment: "wide" },
+    { name: "Odigo", logo: "/assets/references/odigo.svg", treatment: "invert" }
   ]
-} as const;
+};
 
 export const services: Service[] = [
   {
@@ -83,14 +101,17 @@ export const services: Service[] = [
 export const methodSteps: MethodStep[] = [
   {
     title: "Cadrer",
+    side: "left",
     description: "Analyser l'existant, le contexte d'usage, les contraintes et la décision à prendre. Sortie : un périmètre et des critères de réussite."
   },
   {
     title: "Produire",
+    side: "right",
     description: "Réaliser l'audit, l'architecture, le prototype, la direction ou la série d'images, avec des points de validation courts. Sortie : un livrable testable ou présentable."
   },
   {
     title: "Transmettre",
+    side: "left",
     description: "Livrer les fichiers, la documentation et les choix effectués. Sortie : un travail que le client peut exploiter, déployer ou faire évoluer."
   }
 ];

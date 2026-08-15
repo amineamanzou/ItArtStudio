@@ -14,7 +14,8 @@ Publier immédiatement une vitrine statique crédible sur `https://itart.studio`
 
 - expliquer concrètement les deux pratiques ;
 - présenter des services sans preuve client inventée ;
-- offrir un unique contact, `amine@itart.studio` ;
+- orienter directement les demandes artistiques vers `carine@itart.studio` et
+  les demandes techniques vers `amine@itart.studio` ;
 - afficher des mentions légales complètes et conformes à la SARL ;
 - rester rapide, accessible et lisible sur mobile comme sur ordinateur ;
 - ne contenir aucun placeholder, lien cassé, formulaire factice ou promesse
@@ -30,8 +31,9 @@ tout en donnant à ART une identité propre et immédiatement reconnaissable.
 
 Le ton est calme, précis, senior et concret. La marque évite les codes d'ESN,
 les faux dashboards, les chiffres non sourcés et les références client non
-validées. Aucun tracker ni collecte par formulaire n'est nécessaire dans cette
-version.
+validées. Les références approuvées sont présentées par leurs logos, séparées
+entre ART et IT. Aucun tracker ni collecte par formulaire n'est nécessaire dans
+cette version.
 
 ## Suite possible
 

@@ -35,6 +35,7 @@ const legal = output[join("mentions-legales", "index.html")] ?? "";
 assert(home.trimEnd().endsWith("</html>"), "Home emits markup after the closing html element");
 assert(home.includes("IT Art Studio"), "Home missing legal name");
 assert(home.includes("mailto:amine@itart.studio"), "Home missing canonical contact");
+assert(home.includes("mailto:carine@itart.studio"), "Home missing ART contact");
 assert(home.includes("data-hero-scroll"), "Home missing scroll-driven hero");
 assert(home.includes("hero-scroll.webm"), "Home missing WebM hero source");
 assert(home.includes("hero-scroll.mp4"), "Home missing MP4 hero source");
@@ -42,12 +43,18 @@ assert(home.includes("hero-scroll-poster.jpg"), "Home missing hero poster");
 assert(home.includes("muted"), "Hero video must be muted");
 assert(home.includes("playsinline"), "Hero video must play inline");
 for (const phrase of [
-  "une architecture, un prototype, une équipe formée, une image ou une collection",
   "Comprendre le système. Construire ce qui doit fonctionner.",
-  "Définir un langage visuel. Produire les images, les films et les objets."
+  "Définir un langage visuel. Produire les images, les films et les objets.",
+  "HWE — Hard Work Easy Everything",
+  "Léo Urban",
+  "Aminespired",
+  "Besoin de notre art ?",
+  "Besoin de notre tech ?"
 ]) {
   assert(home.includes(phrase), `Home missing concrete positioning: ${phrase}`);
 }
+assert(!home.includes("Chaque mission se termine"), "Redundant services introduction leaked into production");
+assert(!home.includes("Navigation principale"), "Retired header menu leaked into production");
 assert(
   !home.includes("Conseil technique. Direction créative. Production."),
   "Retired hero strapline leaked into the production bundle"

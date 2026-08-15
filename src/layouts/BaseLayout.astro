@@ -3,7 +3,7 @@ import "@fontsource/ibm-plex-sans/400.css";
 import "@fontsource/ibm-plex-sans/500.css";
 import "@fontsource/ibm-plex-sans/600.css";
 import "@fontsource/instrument-serif/400.css";
-import { company, navigation } from "../data/site";
+import { company } from "../data/site";
 import "../styles/global.css";
 
 interface Props {
@@ -57,12 +57,6 @@ const homeHref = base.endsWith("/") ? base : `${base}/`;
         <strong>STUDIO</strong>
         <span class="brand__art">ART</span>
       </a>
-
-      <nav class="site-nav" aria-label="Navigation principale">
-        {navigation.map((item) => (
-          <a href={`${homeHref}${item.href}`}>{item.label}</a>
-        ))}
-      </nav>
 
       <a class="header-contact" href={`mailto:${company.email}`}>Écrire au studio</a>
     </header>

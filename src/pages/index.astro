@@ -56,40 +56,18 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
       </div>
     </section>
 
-    <section class="activity-section" aria-label="Les deux pratiques du studio">
-      <article class="activity-practice activity-practice--art">
-        <p class="activity-section__lead">ART</p>
-        <h2>Direction et production visuelles.</h2>
-        <p>
-          La pratique ART conçoit des directions visuelles, des images, des films et des animations
-          3D, ainsi que des pièces et des collections capsules.
-        </p>
-      </article>
-      <article class="activity-practice activity-practice--it">
-        <p class="activity-section__lead">IT</p>
-        <h2>Conseil technique.</h2>
-        <p>
-          IT Art Studio est un studio indépendant de conseil et de production. La pratique IT
-          intervient sur l'architecture cloud, l'observabilité, l'IA appliquée et la formation.
-        </p>
-      </article>
-    </section>
-
     <section class="services-section" id="expertises" aria-labelledby="services-title">
-      <header class="section-heading">
-        <h2 id="services-title">Chaque mission se termine par quelque chose d'utilisable.</h2>
-        <p>Le livrable peut être une architecture, un prototype, une équipe formée, une image ou une collection.</p>
-      </header>
+      <h2 class="visually-hidden" id="services-title">Prestations ART et IT</h2>
 
       <div class="practice-columns">
         <div class="practice-services practice-services--art" id="expertises-art">
-          <header>
-            <span>Pratique ART</span>
-            <p>Direction visuelle · 3D · contenus · collections</p>
-          </header>
           <div class="service-list">
             {artServices.map((service, index) => (
-              <article class="service-item">
+              <article
+                class="service-item"
+                data-reveal="service-art"
+                style={`--reveal-index: ${index}`}
+              >
                 <span>{String(index + 5).padStart(2, "0")}</span>
                 <h3>{service.title}</h3>
                 <p>{service.description}</p>
@@ -99,13 +77,13 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
         </div>
 
         <div class="practice-services practice-services--it" id="expertises-it">
-          <header>
-            <span>Pratique IT</span>
-            <p>Architecture · observabilité · cloud · IA</p>
-          </header>
           <div class="service-list">
             {itServices.map((service, index) => (
-              <article class="service-item">
+              <article
+                class="service-item"
+                data-reveal="service-it"
+                style={`--reveal-index: ${index}`}
+              >
                 <span>{String(index + 1).padStart(2, "0")}</span>
                 <h3>{service.title}</h3>
                 <p>{service.description}</p>
@@ -124,11 +102,32 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
       <div class="references-practices">
         <section class="references-practice references-practice--art" aria-labelledby="references-art-title">
           <h3 id="references-art-title">ART</h3>
+          <ul>
+            {references.art.map((reference, index) => (
+              <li
+                class:list={["reference-mark", reference.treatment && `reference-mark--${reference.treatment}`]}
+                data-reveal="reference"
+                style={`--reveal-index: ${index}`}
+              >
+                <img src={reference.logo} alt={`Logo ${reference.name}`} loading="lazy" decoding="async" />
+                <span>{reference.name}</span>
+              </li>
+            ))}
+          </ul>
         </section>
         <section class="references-practice references-practice--it" aria-labelledby="references-it-title">
           <h3 id="references-it-title">IT</h3>
           <ul>
-            {references.it.map((reference) => <li>{reference}</li>)}
+            {references.it.map((reference, index) => (
+              <li
+                class:list={["reference-mark", reference.treatment && `reference-mark--${reference.treatment}`]}
+                data-reveal="reference"
+                style={`--reveal-index: ${index}`}
+              >
+                <img src={reference.logo} alt={`Logo ${reference.name}`} loading="lazy" decoding="async" />
+                <span>{reference.name}</span>
+              </li>
+            ))}
           </ul>
         </section>
       </div>
@@ -136,11 +135,14 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
 
     <section class="method-section" id="approche" aria-labelledby="method-title">
       <header>
-        <h2 id="method-title">Un déroulé lisible, quel que soit le projet.</h2>
+        <h2 id="method-title">
+          <span class="method-title__left">Un déroulé lisible</span>
+          <span class="method-title__right">quel que soit le projet.</span>
+        </h2>
       </header>
       <ol>
         {methodSteps.map((step) => (
-          <li>
+          <li class={`method-step method-step--${step.side}`}>
             <h3>{step.title}</h3>
             <p>{step.description}</p>
           </li>
@@ -148,21 +150,23 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
       </ol>
     </section>
 
-    <section class="contact-section" id="contact" aria-labelledby="contact-title">
-      <div class="contact-section__intro">
-        <p>Un système à fiabiliser, un prototype à tester ou une direction visuelle à produire ?</p>
-        <h2 id="contact-title">Écrire au studio.</h2>
-      </div>
-      <div class="contact-section__action">
-        <p>Quelques lignes suffisent : le contexte, l'échéance et le livrable attendu.</p>
+    <section class="contact-section" id="contact" aria-label="Contacter IT Art Studio">
+      <article class="contact-practice contact-practice--art">
+        <h2>Besoin de notre art ?</h2>
+        <a href={`mailto:${company.artEmail}`}>{company.artEmail}</a>
+      </article>
+      <article class="contact-practice contact-practice--it">
+        <h2>Besoin de notre tech ?</h2>
         <a href={`mailto:${company.email}`}>{company.email}</a>
-      </div>
+      </article>
     </section>
   </main>
 
   <script>
     import { initHeroScroll } from "../scripts/hero-scroll";
+    import { initSectionReveals } from "../scripts/section-reveals";
 
     initHeroScroll();
+    initSectionReveals();
   </script>
 </BaseLayout>

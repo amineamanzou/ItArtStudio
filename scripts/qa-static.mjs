@@ -112,6 +112,52 @@ try {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert(overflow <= 1, `${viewport.name}: horizontal overflow of ${overflow}px`);
 
+    if (viewport.width >= 768) {
+      const splitGeometry = await page.evaluate(() => {
+        const midpoint = window.innerWidth / 2;
+        const rect = (selector) => document.querySelector(selector)?.getBoundingClientRect().toJSON();
+        const rects = (selector) => Array.from(document.querySelectorAll(selector), (element) => element.getBoundingClientRect().toJSON());
+        const axis = getComputedStyle(document.body, "::before");
+        const crossingBorders = Array.from(document.querySelectorAll("body *")).flatMap((element) => {
+          const box = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+          const crossesMidpoint = box.left < midpoint && box.right > midpoint;
+          const hasHorizontalBorder = parseFloat(style.borderTopWidth) > 0 || parseFloat(style.borderBottomWidth) > 0;
+          return crossesMidpoint && hasHorizontalBorder
+            ? [{ tag: element.tagName, className: element.className, borderTop: style.borderTopWidth, borderBottom: style.borderBottomWidth }]
+            : [];
+        });
+
+        return {
+          midpoint,
+          axis: {
+            display: axis.display,
+            left: parseFloat(axis.left),
+            height: parseFloat(axis.height),
+            bodyHeight: document.body.scrollHeight
+          },
+          methodTitleLeft: rect(".method-title__left"),
+          methodTitleRight: rect(".method-title__right"),
+          methodStepsLeft: rects(".method-step--left"),
+          methodStepsRight: rects(".method-step--right"),
+          contactArt: rect(".contact-practice--art"),
+          contactIt: rect(".contact-practice--it"),
+          crossingBorders
+        };
+      });
+
+      assert.equal(splitGeometry.axis.display, "block", `${viewport.name}: central axis must be displayed`);
+      assert(Math.abs(splitGeometry.axis.left - splitGeometry.midpoint) <= 1, `${viewport.name}: central axis is not aligned to 50%`);
+      assert(splitGeometry.axis.height >= splitGeometry.axis.bodyHeight - 1, `${viewport.name}: central axis does not span the document`);
+      assert.deepEqual(splitGeometry.crossingBorders, [], `${viewport.name}: horizontal border crosses the central axis`);
+      assert(splitGeometry.methodTitleLeft?.right <= splitGeometry.midpoint + 1, `${viewport.name}: method title left is on the wrong side`);
+      assert(splitGeometry.methodTitleRight?.left >= splitGeometry.midpoint - 1, `${viewport.name}: method title right is on the wrong side`);
+      assert(splitGeometry.methodStepsLeft.every((box) => box.right <= splitGeometry.midpoint + 1), `${viewport.name}: a left method step crosses the axis`);
+      assert(splitGeometry.methodStepsRight.every((box) => box.left >= splitGeometry.midpoint - 1), `${viewport.name}: a right method step crosses the axis`);
+      assert(splitGeometry.contactArt?.right <= splitGeometry.midpoint + 1, `${viewport.name}: ART contact is on the wrong side`);
+      assert(splitGeometry.contactIt?.left >= splitGeometry.midpoint - 1, `${viewport.name}: IT contact is on the wrong side`);
+    }
+
     const heroVideo = page.locator("[data-hero-video]");
     assert.equal(await heroVideo.count(), 1, `${viewport.name}: expected one hero video`);
     await heroVideo.evaluate((video) => new Promise((resolve, reject) => {
@@ -121,6 +167,27 @@ try {
     }));
     assert(await heroVideo.evaluate((video) => video.paused), `${viewport.name}: hero video must remain paused`);
     assert(await heroVideo.evaluate((video) => Math.abs(video.currentTime - video.duration) < 0.12), `${viewport.name}: reduced-motion hero must show its final frame`);
+
+    const referenceLogos = page.locator(".reference-mark img");
+    assert.equal(await referenceLogos.count(), 10, `${viewport.name}: expected ten reference logos`);
+    for (let index = 0; index < await referenceLogos.count(); index += 1) {
+      const logo = referenceLogos.nth(index);
+      await logo.scrollIntoViewIfNeeded();
+      await logo.evaluate((image) => new Promise((resolve, reject) => {
+        if (image.complete && image.naturalWidth > 0) return resolve();
+        image.addEventListener("load", resolve, { once: true });
+        image.addEventListener("error", () => reject(new Error(`reference logo failed to load: ${image.src}`)), { once: true });
+      }));
+    }
+    assert(
+      await referenceLogos.evaluateAll((images) => images.every((image) => image.complete && image.naturalWidth > 0)),
+      `${viewport.name}: every reference logo must decode successfully`
+    );
+    await page.evaluate(() => {
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      window.scrollTo(0, 0);
+    });
+    await page.waitForTimeout(50);
 
     await page.screenshot({ path: join(artifactDirectory, `${viewport.name}-home.png`), fullPage: true });
     report.push({ ...viewport, page: "/", overflow, browserErrors });
@@ -159,6 +226,37 @@ try {
   assert(endTime > 3.72, `Motion QA: expected final frame, got ${endTime}`);
   assert(startTime < middleTime && middleTime < endTime, "Motion QA: scrub time must increase monotonically");
   assert(await motionVideo.evaluate((video) => video.paused), "Motion QA: hero video must not autoplay");
+
+  const artService = motionPage.locator('[data-reveal="service-art"]').first();
+  const itService = motionPage.locator('[data-reveal="service-it"]').first();
+  const [artOffset, itOffset] = await Promise.all([
+    artService.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41),
+    itService.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41)
+  ]);
+  assert(artOffset < 0, `Motion QA: ART services must start from the left, got ${artOffset}px`);
+  assert(itOffset > 0, `Motion QA: IT services must start from the right, got ${itOffset}px`);
+  await artService.scrollIntoViewIfNeeded();
+  await itService.scrollIntoViewIfNeeded();
+  await motionPage.waitForTimeout(1100);
+  assert(await artService.evaluate((element) => element.classList.contains("is-revealed")), "Motion QA: ART service did not reveal");
+  assert(await itService.evaluate((element) => element.classList.contains("is-revealed")), "Motion QA: IT service did not reveal");
+
+  const referenceMark = motionPage.locator('[data-reveal="reference"]').first();
+  assert.equal(await referenceMark.evaluate((element) => getComputedStyle(element).clipPath), "inset(100% 0px 0px)", "Motion QA: reference must start masked");
+  await referenceMark.scrollIntoViewIfNeeded();
+  await motionPage.waitForTimeout(1100);
+  const referenceRevealState = await referenceMark.evaluate((element) => ({
+    className: element.className,
+    documentClassName: document.documentElement.className,
+    rect: element.getBoundingClientRect().toJSON(),
+    scrollY: window.scrollY,
+    viewportHeight: window.innerHeight
+  }));
+  assert(
+    await referenceMark.evaluate((element) => element.classList.contains("is-revealed")),
+    `Motion QA: reference did not reveal: ${JSON.stringify(referenceRevealState)}`
+  );
+  assert.equal(await referenceMark.evaluate((element) => getComputedStyle(element).clipPath), "inset(0px)", "Motion QA: reference mask did not open");
   await motionContext.close();
 
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });

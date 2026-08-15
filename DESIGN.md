@@ -16,6 +16,10 @@ occupe la couture centrale et matérialise ce qui rassemble les deux disciplines
 - traits fins, grandes respirations, angles francs, aucune carte vitrée ;
 - une image documentaire sombre par pratique, générée sans texte ni logo.
 
+L'axe vertical est le seul trait autorisé à traverser la page. Aucun séparateur
+horizontal ne peut le couper. Les séparateurs internes éventuels restent
+strictement contenus dans leur moitié ART ou IT.
+
 ## Hero
 
 Le desktop présente deux panneaux 50/50 sur une hauteur d'écran. ART reste à
@@ -35,6 +39,17 @@ dimensions explicites pour éviter les décalages de mise en page.
 - focus clavier visible et liens identifiables sans dépendre de la couleur ;
 - HTML sémantique, un seul `h1`, textes alternatifs descriptifs ;
 - aucune fonctionnalité essentielle liée au mouvement ou au JavaScript.
+
+## Chorégraphie des sections
+
+- les prestations ART entrent depuis la gauche et les prestations IT depuis la
+  droite ;
+- les logos de références apparaissent par masque, netteté et échelle, afin de
+  ne pas répéter le mouvement des prestations ;
+- la méthode alterne gauche, droite, gauche autour de l'axe ;
+- la section contact présente une invitation et une adresse propres à chaque
+  pratique ;
+- `prefers-reduced-motion` neutralise les transitions sans masquer de contenu.
 
 ## Règles de continuité
 
