@@ -9,7 +9,7 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
   : `${import.meta.env.BASE_URL}/assets`;
 ---
 
-<BaseLayout>
+<BaseLayout splitAxis>
   <main id="contenu">
     <section class="hero-scroll" data-hero-scroll aria-labelledby="hero-title">
       <div class="hero-scroll__stage">
@@ -42,8 +42,11 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
         </article>
 
         <div class="hero-scroll__core">
-          <h1 id="hero-title"><span>ART</span> <strong>STUDIO</strong> <span>IT</span></h1>
-          <p>Conseil technique. Direction créative. Production.</p>
+          <h1 id="hero-title">
+            <span class="hero-title__it">IT</span>
+            <span class="hero-title__art">ART</span>
+            <strong class="hero-title__studio">STUDIO</strong>
+          </h1>
         </div>
 
         <div class="hero-scroll__progress" aria-hidden="true">
@@ -53,17 +56,23 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
       </div>
     </section>
 
-    <section class="activity-section" aria-labelledby="activity-title">
-      <p class="activity-section__lead">IT + ART · un même studio</p>
-      <div>
-        <h2 id="activity-title">Conseil technique d'un côté. Direction et production visuelles de l'autre.</h2>
+    <section class="activity-section" aria-label="Les deux pratiques du studio">
+      <article class="activity-practice activity-practice--art">
+        <p class="activity-section__lead">ART</p>
+        <h2>Direction et production visuelles.</h2>
+        <p>
+          La pratique ART conçoit des directions visuelles, des images, des films et des animations
+          3D, ainsi que des pièces et des collections capsules.
+        </p>
+      </article>
+      <article class="activity-practice activity-practice--it">
+        <p class="activity-section__lead">IT</p>
+        <h2>Conseil technique.</h2>
         <p>
           IT Art Studio est un studio indépendant de conseil et de production. La pratique IT
-          intervient sur l'architecture cloud, l'observabilité, l'IA appliquée et la formation. La
-          pratique ART conçoit des directions visuelles, des images, des films et des animations 3D,
-          ainsi que des pièces et des collections capsules.
+          intervient sur l'architecture cloud, l'observabilité, l'IA appliquée et la formation.
         </p>
-      </div>
+      </article>
     </section>
 
     <section class="services-section" id="expertises" aria-labelledby="services-title">
@@ -72,35 +81,37 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
         <p>Le livrable peut être une architecture, un prototype, une équipe formée, une image ou une collection.</p>
       </header>
 
-      <div class="practice-services practice-services--it" id="expertises-it">
-        <header>
-          <span>Pratique IT</span>
-          <p>Architecture · observabilité · cloud · IA</p>
-        </header>
-        <div class="service-list">
-          {itServices.map((service, index) => (
-            <article class="service-item">
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <h3>{service.title}</h3>
-              <p>{service.description}</p>
-            </article>
-          ))}
+      <div class="practice-columns">
+        <div class="practice-services practice-services--art" id="expertises-art">
+          <header>
+            <span>Pratique ART</span>
+            <p>Direction visuelle · 3D · contenus · collections</p>
+          </header>
+          <div class="service-list">
+            {artServices.map((service, index) => (
+              <article class="service-item">
+                <span>{String(index + 5).padStart(2, "0")}</span>
+                <h3>{service.title}</h3>
+                <p>{service.description}</p>
+              </article>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div class="practice-services practice-services--art" id="expertises-art">
-        <header>
-          <span>Pratique ART</span>
-          <p>Direction visuelle · 3D · contenus · collections</p>
-        </header>
-        <div class="service-list">
-          {artServices.map((service, index) => (
-            <article class="service-item">
-              <span>{String(index + 5).padStart(2, "0")}</span>
-              <h3>{service.title}</h3>
-              <p>{service.description}</p>
-            </article>
-          ))}
+        <div class="practice-services practice-services--it" id="expertises-it">
+          <header>
+            <span>Pratique IT</span>
+            <p>Architecture · observabilité · cloud · IA</p>
+          </header>
+          <div class="service-list">
+            {itServices.map((service, index) => (
+              <article class="service-item">
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <h3>{service.title}</h3>
+                <p>{service.description}</p>
+              </article>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -110,9 +121,17 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
         <p>Références</p>
         <h2 id="references-title">Des organisations accompagnées sur des projets critiques qui nous font confiance.</h2>
       </header>
-      <ul>
-        {references.map((reference) => <li>{reference}</li>)}
-      </ul>
+      <div class="references-practices">
+        <section class="references-practice references-practice--art" aria-labelledby="references-art-title">
+          <h3 id="references-art-title">ART</h3>
+        </section>
+        <section class="references-practice references-practice--it" aria-labelledby="references-it-title">
+          <h3 id="references-it-title">IT</h3>
+          <ul>
+            {references.it.map((reference) => <li>{reference}</li>)}
+          </ul>
+        </section>
+      </div>
     </section>
 
     <section class="method-section" id="approche" aria-labelledby="method-title">
@@ -130,10 +149,14 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
     </section>
 
     <section class="contact-section" id="contact" aria-labelledby="contact-title">
-      <p>Un système à fiabiliser, un prototype à tester ou une direction visuelle à produire ?</p>
-      <h2 id="contact-title">Écrire au studio.</h2>
-      <p>Quelques lignes suffisent : le contexte, l'échéance et le livrable attendu.</p>
-      <a href={`mailto:${company.email}`}>{company.email}</a>
+      <div class="contact-section__intro">
+        <p>Un système à fiabiliser, un prototype à tester ou une direction visuelle à produire ?</p>
+        <h2 id="contact-title">Écrire au studio.</h2>
+      </div>
+      <div class="contact-section__action">
+        <p>Quelques lignes suffisent : le contexte, l'échéance et le livrable attendu.</p>
+        <a href={`mailto:${company.email}`}>{company.email}</a>
+      </div>
     </section>
   </main>
 

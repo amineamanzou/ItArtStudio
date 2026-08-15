@@ -42,13 +42,16 @@ assert(home.includes("hero-scroll-poster.jpg"), "Home missing hero poster");
 assert(home.includes("muted"), "Hero video must be muted");
 assert(home.includes("playsinline"), "Hero video must play inline");
 for (const phrase of [
-  "Conseil technique. Direction créative. Production.",
   "une architecture, un prototype, une équipe formée, une image ou une collection",
   "Comprendre le système. Construire ce qui doit fonctionner.",
   "Définir un langage visuel. Produire les images, les films et les objets."
 ]) {
   assert(home.includes(phrase), `Home missing concrete positioning: ${phrase}`);
 }
+assert(
+  !home.includes("Conseil technique. Direction créative. Production."),
+  "Retired hero strapline leaked into the production bundle"
+);
 for (const phrase of [
   "Transformer la complexité",
   "même exigence de fond",

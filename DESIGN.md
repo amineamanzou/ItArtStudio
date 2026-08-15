@@ -2,26 +2,26 @@
 
 ## Direction
 
-Une vitrine éditoriale sombre, divisée en deux pratiques : IT à gauche, ART à
-droite. Le mot STUDIO occupe la couture centrale et matérialise ce qui rassemble
-les deux disciplines. Sur mobile, la séparation devient une séquence verticale
-IT → STUDIO → ART.
+Une vitrine sombre, divisée par un axe vertical continu : ART occupe la moitié
+gauche et IT la moitié droite, du haut jusqu'au bas de la page. Le mot STUDIO
+occupe la couture centrale et matérialise ce qui rassemble les deux disciplines.
 
 ## Système visuel
 
 - fond graphite profond, sans gradients décoratifs ;
 - cyan électrique réservé à IT ;
 - corail cuivré réservé à ART ;
-- ivoire chaud pour STUDIO, les grands titres et la section méthode ;
+- ivoire chaud pour STUDIO, les grands titres et la méthode, sur fond sombre ;
 - IBM Plex Sans pour la structure et Instrument Serif pour les titres ;
 - traits fins, grandes respirations, angles francs, aucune carte vitrée ;
 - une image documentaire sombre par pratique, générée sans texte ni logo.
 
 ## Hero
 
-Le desktop présente deux panneaux 50/50 sur une hauteur d'écran. Les visuels se
-répondent : architecture technique et signaux cyan côté IT, atelier de matière
-et outils cuivrés côté ART. Une couche sombre garantit la lisibilité du texte.
+Le desktop présente deux panneaux 50/50 sur une hauteur d'écran. ART reste à
+gauche et IT à droite. Dans le titre central, IT apparaît en premier à droite de
+l'axe, ART vient ensuite à gauche et STUDIO reste centré sous les deux. Une
+couche sombre garantit la lisibilité du texte.
 
 Les fichiers AVIF sont servis en priorité, puis WebP et JPEG. Ils portent des
 dimensions explicites pour éviter les décalages de mise en page.
@@ -29,7 +29,8 @@ dimensions explicites pour éviter les décalages de mise en page.
 ## Responsive et accessibilité
 
 - navigation secondaire masquée sur petit écran, contact toujours visible ;
-- sections et services ramenés sur une colonne sous `760px` ;
+- composition desktop et tablette maintenue en deux moitiés autour du même axe ;
+- fallback mobile fonctionnel sous `760px`, dont l'art direction sera reprise séparément ;
 - largeur minimale validée à `320px` sans défilement horizontal ;
 - focus clavier visible et liens identifiables sans dépendre de la couleur ;
 - HTML sémantique, un seul `h1`, textes alternatifs descriptifs ;
@@ -40,3 +41,4 @@ dimensions explicites pour éviter les décalages de mise en page.
 Ne pas ajouter de gradients marketing, métriques sans source, faux témoignages,
 carrousels automatiques, formulaires non fonctionnels ni dépendance client lourde.
 Une future vidéo doit conserver l'image actuelle comme poster et fallback.
+L'axe central est unique : aucune section ne crée sa propre variante du trait.

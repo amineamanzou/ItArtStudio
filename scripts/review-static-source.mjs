@@ -19,6 +19,7 @@ const sources = await Promise.all(requiredFiles.map((path) => readFile(path, "ut
 const source = sources.join("\n");
 const siteDataSource = await readFile("src/data/site.ts", "utf8");
 const homeSource = await readFile("src/pages/index.astro", "utf8");
+const styleSource = await readFile("src/styles/global.css", "utf8");
 
 for (const phrase of [
   "IT Art Studio",
@@ -75,5 +76,29 @@ for (const clientReference of clientReferences) {
     `Approved client reference is missing: ${clientReference}`
   );
 }
+
+assert(
+  homeSource.includes('<span class="hero-title__it">IT</span>'),
+  "Hero title must begin with IT on the right"
+);
+assert(
+  homeSource.includes('<span class="hero-title__art">ART</span>'),
+  "Hero title must place ART on the left"
+);
+assert(
+  homeSource.includes('<strong class="hero-title__studio">STUDIO</strong>'),
+  "Hero title must keep STUDIO centered below ART"
+);
+assert(
+  !homeSource.includes("Conseil technique. Direction créative. Production."),
+  "Legacy hero strapline must be removed"
+);
+assert(
+  homeSource.indexOf("practice-services--art") < homeSource.indexOf("practice-services--it"),
+  "ART services must render before IT services"
+);
+assert(siteDataSource.includes("art: []"), "ART references must have a dedicated empty collection");
+assert(styleSource.includes("body::before"), "Continuous document axis is missing");
+assert(styleSource.includes("left: 50%"), "Continuous document axis must align to the midpoint");
 
 console.log("Static source contract is complete.");

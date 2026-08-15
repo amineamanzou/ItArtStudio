@@ -28,15 +28,18 @@ export const navigation = [
   { label: "Contact", href: "#contact" }
 ] as const;
 
-export const references = [
-  "bioMérieux",
-  "Axxès",
-  "GCA Groupe Charles André",
-  "KeyIA",
-  "Enedis",
-  "Ylio",
-  "Odigo"
-] as const;
+export const references = {
+  art: [],
+  it: [
+    "bioMérieux",
+    "Axxès",
+    "GCA Groupe Charles André",
+    "KeyIA",
+    "Enedis",
+    "Ylio",
+    "Odigo"
+  ]
+} as const;
 
 export const services: Service[] = [
   {
