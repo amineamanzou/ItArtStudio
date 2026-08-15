@@ -34,6 +34,24 @@ const legal = output[join("mentions-legales", "index.html")] ?? "";
 
 assert(home.includes("IT Art Studio"), "Home missing legal name");
 assert(home.includes("mailto:amine@itart.studio"), "Home missing canonical contact");
+for (const phrase of [
+  "Conseil technique. Direction créative. Production.",
+  "une architecture, un prototype, une équipe formée, une image ou une collection",
+  "Comprendre le système. Construire ce qui doit fonctionner.",
+  "Définir un langage visuel. Produire les images, les films et les objets."
+]) {
+  assert(home.includes(phrase), `Home missing concrete positioning: ${phrase}`);
+}
+for (const phrase of [
+  "Transformer la complexité",
+  "même exigence de fond",
+  "rendre la valeur visible",
+  "lecture senior",
+  "qualité perçue",
+  "Mettre en valeur"
+]) {
+  assert(!bundle.toLowerCase().includes(phrase.toLowerCase()), `Retired generic copy leaked into bundle: ${phrase}`);
+}
 assert(legal.includes("Société à responsabilité limitée"), "Legal page missing SARL form");
 assert(legal.includes("915 019 129"), "Legal page missing SIREN");
 assert(legal.includes("Hetzner Online GmbH"), "Legal page missing hosting provider");

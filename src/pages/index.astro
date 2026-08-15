@@ -20,8 +20,8 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
         </picture>
         <div class="hero-practice__copy">
           <p>IT</p>
-          <h2>Clarifier les systèmes. Fiabiliser l'exécution.</h2>
-          <a href="#expertises-it">Explorer la pratique IT</a>
+          <h2>Comprendre le système. Construire ce qui doit fonctionner.</h2>
+          <a href="#expertises-it">Voir la pratique IT</a>
         </div>
       </article>
 
@@ -33,40 +33,40 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
         </picture>
         <div class="hero-practice__copy">
           <p>ART</p>
-          <h2>Donner une forme. Installer une présence.</h2>
-          <a href="#expertises-art">Explorer la pratique ART</a>
+          <h2>Définir un langage visuel. Produire les images, les films et les objets.</h2>
+          <a href="#expertises-art">Voir la pratique ART</a>
         </div>
       </article>
 
       <div class="hero-core">
         <h1 id="hero-title"><span>IT</span> <strong>STUDIO</strong> <span>ART</span></h1>
-        <p>Transformer la complexité en exécution nette.</p>
+        <p>Conseil technique. Direction créative. Production.</p>
       </div>
     </section>
 
     <section class="activity-section" aria-labelledby="activity-title">
-      <p class="activity-section__lead">Conseil · conception · création</p>
+      <p class="activity-section__lead">IT + ART · un même studio</p>
       <div>
-        <h2 id="activity-title">Deux pratiques réunies par une même exigence de fond.</h2>
+        <h2 id="activity-title">Conseil technique d'un côté. Direction et production visuelles de l'autre.</h2>
         <p>
-          IT Art Studio accompagne les organisations et les porteurs de projets dans leurs sujets
-          informatiques et audiovisuels : conseil, formation, architecture, observabilité,
-          prototypes, design 3D, contenus et collections. Nous intervenons là où il faut comprendre,
-          construire et rendre la valeur visible.
+          IT Art Studio est un studio indépendant de conseil et de production. La pratique IT
+          intervient sur l'architecture cloud, l'observabilité, l'IA appliquée et la formation. La
+          pratique ART conçoit des directions visuelles, des images, des films et des animations 3D,
+          ainsi que des pièces et des collections capsules.
         </p>
       </div>
     </section>
 
     <section class="services-section" id="expertises" aria-labelledby="services-title">
       <header class="section-heading">
-        <h2 id="services-title">Des interventions concrètes, du diagnostic au rendu.</h2>
-        <p>Une lecture senior des contraintes, puis le livrable utile pour avancer.</p>
+        <h2 id="services-title">Chaque mission se termine par quelque chose d'utilisable.</h2>
+        <p>Le livrable peut être une architecture, un prototype, une équipe formée, une image ou une collection.</p>
       </header>
 
       <div class="practice-services practice-services--it" id="expertises-it">
         <header>
           <span>Pratique IT</span>
-          <p>Systèmes · produit · transmission</p>
+          <p>Architecture · observabilité · cloud · IA</p>
         </header>
         <div class="service-list">
           {itServices.map((service, index) => (
@@ -82,7 +82,7 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
       <div class="practice-services practice-services--art" id="expertises-art">
         <header>
           <span>Pratique ART</span>
-          <p>Volume · image · matière</p>
+          <p>Direction visuelle · 3D · contenus · collections</p>
         </header>
         <div class="service-list">
           {artServices.map((service, index) => (
@@ -98,7 +98,7 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
 
     <section class="method-section" id="approche" aria-labelledby="method-title">
       <header>
-        <h2 id="method-title">Une méthode simple pour des sujets qui ne le sont pas.</h2>
+        <h2 id="method-title">Un déroulé lisible, quel que soit le projet.</h2>
       </header>
       <ol>
         {methodSteps.map((step) => (
@@ -111,8 +111,9 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
     </section>
 
     <section class="contact-section" id="contact" aria-labelledby="contact-title">
-      <p>Un sujet à clarifier, construire ou mettre en valeur ?</p>
-      <h2 id="contact-title">Parlons de votre projet.</h2>
+      <p>Un système à fiabiliser, un prototype à tester ou une direction visuelle à produire ?</p>
+      <h2 id="contact-title">Écrire au studio.</h2>
+      <p>Quelques lignes suffisent : le contexte, l'échéance et le livrable attendu.</p>
       <a href={`mailto:${company.email}`}>{company.email}</a>
     </section>
   </main>

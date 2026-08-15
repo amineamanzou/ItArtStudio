@@ -33,51 +33,51 @@ export const services: Service[] = [
     id: "observabilite",
     practice: "IT",
     title: "Observabilité et fiabilité",
-    description: "Stratégie de télémétrie, diagnostic de systèmes et industrialisation OpenTelemetry pour rendre les signaux réellement exploitables."
+    description: "Instrumenter applications et plateformes, corréler logs, métriques et traces, puis construire les tableaux de bord et les alertes utiles à l'exploitation."
   },
   {
     id: "architecture",
     practice: "IT",
-    title: "Architecture, cloud et scaling",
-    description: "Cadrage, revues de systèmes, arbitrages techniques et trajectoires de delivery adaptées aux contraintes du terrain."
+    title: "Architecture, cloud et delivery",
+    description: "Cartographier l'existant, trancher les choix structurants et livrer un schéma cible, des priorités et une trajectoire de mise en production."
   },
   {
     id: "ia-produit",
     practice: "IT",
-    title: "IA, produit et prototypes",
-    description: "Clarification du besoin, preuve de concept et passage d'une intuition à un produit testable, utile et exploitable."
+    title: "IA et prototypes",
+    description: "Formuler le cas d'usage, construire un prototype testable, définir son jeu d'évaluation et préparer son passage en production."
   },
   {
     id: "formation",
     practice: "IT",
     title: "Formation et accompagnement",
-    description: "Sessions ciblées, coaching technique et transfert de compétences pour faire progresser les équipes sans créer de dépendance."
+    description: "Travailler sur les systèmes et les cas d'usage de l'équipe, puis laisser des exemples, des supports et des pratiques qu'elle peut reprendre seule."
   },
   {
     id: "design-3d",
     practice: "ART",
-    title: "Design 3D et direction visuelle",
-    description: "Conception de volumes, d'objets, d'univers et de rendus qui donnent une forme lisible et singulière au projet."
+    title: "Direction visuelle et design 3D",
+    description: "Concevoir les volumes, les décors, les objets et les images fixes ou animées, puis diriger la lumière, la matière, le cadrage et le mouvement jusqu'au rendu final."
   },
   {
     id: "contenu-collection",
     practice: "ART",
-    title: "Contenu et collection",
-    description: "Conception de contenus audiovisuels, de pièces et de collections capsules, du concept jusqu'à une présentation cohérente."
+    title: "Contenus et collections",
+    description: "Construire une série cohérente — concept, silhouettes ou objets, images et formats de diffusion — puis préparer les éléments de présentation et de lancement."
   }
 ];
 
 export const methodSteps: MethodStep[] = [
   {
-    title: "Clarifier",
-    description: "Comprendre le besoin, les contraintes et les décisions qui comptent avant d'ajouter de la complexité."
+    title: "Cadrer",
+    description: "Analyser l'existant, le contexte d'usage, les contraintes et la décision à prendre. Sortie : un périmètre et des critères de réussite."
   },
   {
-    title: "Construire",
-    description: "Produire le cadrage, le prototype, le dispositif ou le livrable qui permet réellement d'avancer."
+    title: "Produire",
+    description: "Réaliser l'audit, l'architecture, le prototype, la direction ou la série d'images, avec des points de validation courts. Sortie : un livrable testable ou présentable."
   },
   {
-    title: "Mettre en valeur",
-    description: "Soigner la lisibilité, la cohérence et la qualité perçue pour que le résultat soit compris et retenu."
+    title: "Transmettre",
+    description: "Livrer les fichiers, la documentation et les choix effectués. Sortie : un travail que le client peut exploiter, déployer ou faire évoluer."
   }
 ];
