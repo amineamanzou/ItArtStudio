@@ -9,6 +9,10 @@ const requiredFiles = [
 ];
 
 await Promise.all(requiredFiles.map((path) => access(path)));
+await assert.rejects(
+  access("src/game"),
+  "Legacy interactive sources must remain only in codex/interactive-world-v10-archive"
+);
 
 const sources = await Promise.all(requiredFiles.map((path) => readFile(path, "utf8")));
 const source = sources.join("\n");
