@@ -30,11 +30,14 @@ const distFiles = await listFiles(distPath);
 const emittedTypeScript = distFiles
   .filter((path) => [".ts", ".tsx"].includes(extname(path)))
   .map((path) => path.replace(distPath, ""));
+const emittedJavaScript = distFiles
+  .filter((path) => [".js", ".mjs"].includes(extname(path)))
+  .map((path) => path.replace(distPath, ""));
 
-if (rawTypeScriptModules.length > 0 || emittedTypeScript.length > 0) {
-  console.error("Production bundle contains raw TypeScript assets.");
-  console.error(JSON.stringify({ rawTypeScriptModules, emittedTypeScript }, null, 2));
+if (rawTypeScriptModules.length > 0 || emittedTypeScript.length > 0 || emittedJavaScript.length > 0) {
+  console.error("Production bundle contains client-side script assets.");
+  console.error(JSON.stringify({ rawTypeScriptModules, emittedTypeScript, emittedJavaScript }, null, 2));
   process.exit(1);
 }
 
-console.log("Production bundle assets are browser-ready JavaScript.");
+console.log("Production bundle is static and JavaScript-free.");
