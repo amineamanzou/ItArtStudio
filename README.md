@@ -1,33 +1,35 @@
 # IT Art Studio
 
-Site one-page public d'IT Art Studio, studio de conseil et de creation pour
-projets exigeants.
+Site vitrine public d'IT Art Studio, société de conseil et de création réunissant
+une pratique informatique et une pratique visuelle.
 
-La V1 reste un site Astro statique: pas de backend, pas de base de donnees. Le
-site est une experience jouable WebGL, servie en fichiers statiques. Le
-container final sert les fichiers generes avec Nginx unprivileged sur le port
-`8080`, derriere le reverse proxy de l'infra.
+La version de production est volontairement statique : HTML et CSS générés par
+Astro, images optimisées, aucun JavaScript côté client, aucun formulaire, cookie
+de mesure d'audience ou traceur.
 
 ## Stack
 
-- Astro en output statique
-- CSS sur mesure
-- Three.js pour la carte jouable
-- Donnees de zones dans `src/game/zones.ts`
-- Fallback HTML pour les contextes sans WebGL
-- Runtime production `nginxinc/nginx-unprivileged:alpine`
+- Astro en sortie statique
+- CSS sur mesure et polices locales
+- images AVIF, WebP et JPEG avec fallback
+- Caddy non privilégié sur le port `8080`
+- image publiée sur GHCR puis déployée par le runtime Argo partagé
 
 ## Commandes locales
 
 ```bash
 npm ci
 npm run dev
-npm run assets:validate
 npm run check
 npm run build
-npm run qa:game
+npm run qa:static
 npm run preview
 ```
+
+`npm run qa:static` contrôle la home et les mentions légales en desktop,
+tablette et mobile, vérifie les images, les liens publics, les erreurs navigateur
+et les débordements horizontaux. Les captures sont écrites dans
+`qa/artifacts/static/`.
 
 ## Container
 
@@ -36,50 +38,20 @@ docker build -t it-art-studio .
 docker run --rm -p 8080:8080 it-art-studio
 ```
 
-Puis ouvrir `http://127.0.0.1:8080/`.
+Puis ouvrir `http://127.0.0.1:8080/`. La sonde de santé répond sur
+`http://127.0.0.1:8080/healthz`.
 
-## CI
+## Structure active
 
-Le workflow GitHub Actions `.github/workflows/ci.yml` lance:
+- `src/pages/index.astro` : vitrine split IT / ART
+- `src/pages/mentions-legales.astro` : informations légales de la SARL
+- `src/data/site.ts` : contenu public et données société
+- `src/layouts/BaseLayout.astro` : structure, navigation et métadonnées SEO
+- `src/styles/global.css` : direction visuelle responsive
+- `public/assets/hero-*` : visuels optimisés et fallbacks
+- `scripts/review-static-source.mjs` : contrat des sources
+- `scripts/review-static-site.mjs` : contrat du build
+- `scripts/qa-static.mjs` : QA navigateur responsive
 
-- `npm ci`
-- `npm run check`
-- `npm run build`
-- upload de `dist`
-- build Docker
-- smoke test HTTP du container sur `8080`
-
-## Preview GitHub Pages
-
-Le workflow `.github/workflows/deploy-pages.yml` publie la version statique sur
-GitHub Pages pour previsualisation:
-
-`https://amineamanzou.github.io/ItArtStudio/`
-
-Avant la premiere publication, ouvrir les settings du repository sur GitHub,
-aller dans **Pages**, puis choisir **GitHub Actions** comme source. Le workflow
-se lance a chaque push sur `main` et peut aussi etre lance manuellement depuis
-l'onglet **Actions**.
-
-## Structure
-
-- `src/pages/index.astro` : shell HTML de l'experience jouable
-- `src/layouts/BaseLayout.astro` : layout HTML, SEO de base, runtime client
-- `src/game/game.ts` : moteur Three.js leger, deplacement et interactions
-- `src/game/asset-loader.ts` : loader GLB asset-first, URLs compatibles Pages,
-  preview runtime et couche map opt-in
-- `src/game/procedural-assets.ts` : landmarks 3D proceduraux par zone
-- `src/game/zones.ts` : contenu editorial de la cartographie
-- `src/styles/global.css` : design system, HUD, carte, mobile et fallback
-- `assets/world-assets.manifest.json` : bibliotheque GLB/glTF candidate et
-  acceptee, textures, licences, budgets et roles narratifs
-- `public/assets/models` : modeles runtime acceptes par le manifest
-- `public/assets/textures` : futures textures runtime optimisees
-- `scripts/validate-asset-library.mjs` : validation de la bibliotheque
-  asset-first
-- `qa/README.md` : protocole QA Playwright avec screenshots et rapport
-- `PRODUCT.md` : contexte strategique pour agents et design
-- `DESIGN.md` : systeme visuel courant
-
-Les documents de strategie historiques restent dans `docs/` en local et sont
-ignores par Git.
+L'ancienne expérience WebGL reste conservée dans la branche
+`codex/interactive-world-v10-archive` pour une reprise ultérieure.
