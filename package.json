@@ -8,8 +8,9 @@
     "start": "astro dev",
     "build": "astro build && node scripts/assert-production-bundle.mjs && npm run review:site",
     "preview": "astro preview",
-    "check": "astro check && npm run review:source",
+    "check": "astro check && npm run review:source && npm run review:deployment",
     "review:source": "node scripts/review-static-source.mjs",
+    "review:deployment": "node scripts/review-deployment-contract.mjs",
     "review:site": "node scripts/review-static-site.mjs",
     "qa:static": "node scripts/qa-static.mjs",
     "qa:container": "node scripts/qa-container.mjs"
