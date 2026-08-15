@@ -57,11 +57,11 @@ const viewports = [
 ];
 
 const report = [];
-const browser = await chromium.launch({
-  headless: true,
-  executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
-    ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-});
+const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+  ?? (process.platform === "darwin"
+    ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    : undefined);
+const browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) });
 
 try {
   for (const viewport of viewports) {
