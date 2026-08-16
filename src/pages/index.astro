@@ -13,19 +13,78 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
   <main id="contenu">
     <section class="hero-scroll" data-hero-scroll aria-labelledby="hero-title">
       <div class="hero-scroll__stage">
-        <video
-          class="hero-scroll__media"
-          data-hero-video
-          muted
-          playsinline
-          preload="metadata"
-          poster={`${assetBase}/hero-scroll-poster.jpg`}
+        <div
+          class="hero-scroll__media-group hero-scroll__media-group--wide"
+          data-hero-video-group="wide"
           aria-hidden="true"
-          tabindex="-1"
         >
-          <source src={`${assetBase}/hero-scroll.webm`} type="video/webm" />
-          <source src={`${assetBase}/hero-scroll.mp4`} type="video/mp4" />
-        </video>
+          <video
+            class="hero-scroll__media"
+            data-hero-video
+            muted
+            playsinline
+            preload="metadata"
+            poster={`${assetBase}/hero-scroll-poster.jpg`}
+            tabindex="-1"
+          >
+            <source src={`${assetBase}/hero-scroll.webm`} type="video/webm" />
+            <source src={`${assetBase}/hero-scroll.mp4`} type="video/mp4" />
+          </video>
+        </div>
+
+        <div
+          class="hero-scroll__media-group hero-scroll__media-group--split"
+          data-hero-video-group="split"
+          aria-hidden="true"
+        >
+          <div class="hero-scroll__pane hero-scroll__pane--art">
+            <video
+              class="hero-scroll__media"
+              data-hero-video
+              muted
+              playsinline
+              preload="metadata"
+              poster={`${assetBase}/hero-scroll-poster.jpg`}
+              tabindex="-1"
+            >
+              <source src={`${assetBase}/hero-scroll.webm`} type="video/webm" />
+              <source src={`${assetBase}/hero-scroll.mp4`} type="video/mp4" />
+            </video>
+          </div>
+          <div class="hero-scroll__pane hero-scroll__pane--it">
+            <video
+              class="hero-scroll__media"
+              data-hero-video
+              muted
+              playsinline
+              preload="metadata"
+              poster={`${assetBase}/hero-scroll-poster.jpg`}
+              tabindex="-1"
+            >
+              <source src={`${assetBase}/hero-scroll.webm`} type="video/webm" />
+              <source src={`${assetBase}/hero-scroll.mp4`} type="video/mp4" />
+            </video>
+          </div>
+        </div>
+
+        <div
+          class="hero-scroll__media-group hero-scroll__media-group--mobile"
+          data-hero-video-group="mobile"
+          aria-hidden="true"
+        >
+          <video
+            class="hero-scroll__media"
+            data-hero-video
+            muted
+            playsinline
+            preload="metadata"
+            poster={`${assetBase}/hero-scroll-mobile-poster.jpg`}
+            tabindex="-1"
+          >
+            <source src={`${assetBase}/hero-scroll-mobile.webm`} type="video/webm" />
+            <source src={`${assetBase}/hero-scroll-mobile.mp4`} type="video/mp4" />
+          </video>
+        </div>
 
         <div class="hero-scroll__shade" aria-hidden="true"></div>
 
@@ -41,18 +100,18 @@ const assetBase = import.meta.env.BASE_URL.endsWith("/")
           <a href="#expertises-it">Voir la pratique IT</a>
         </article>
 
-        <div class="hero-scroll__core">
-          <h1 id="hero-title">
-            <span class="hero-title__it">IT</span>
-            <span class="hero-title__art">ART</span>
-            <strong class="hero-title__studio">STUDIO</strong>
-          </h1>
-        </div>
-
         <div class="hero-scroll__progress" aria-hidden="true">
           <span>Défiler</span>
           <i><b></b></i>
         </div>
+      </div>
+
+      <div class="hero-scroll__core" data-hero-signature>
+        <h1 id="hero-title">
+          <span class="hero-title__it">IT</span>
+          <span class="hero-title__art">ART</span>
+          <strong class="hero-title__studio">STUDIO</strong>
+        </h1>
       </div>
     </section>
 

@@ -76,6 +76,7 @@ assert(address && typeof address === "object", "Static QA server did not start")
 const origin = `http://127.0.0.1:${address.port}`;
 
 const viewports = [
+  { name: "wide-desktop", width: 1920, height: 1080 },
   { name: "desktop", width: 1440, height: 1000 },
   { name: "tablet", width: 768, height: 1024 },
   { name: "mobile", width: 390, height: 844 },
@@ -106,11 +107,28 @@ try {
     const response = await page.goto(origin, { waitUntil: "networkidle" });
     assert.equal(response?.status(), 200, `${viewport.name}: home did not return 200`);
     assert.equal(await page.locator("h1").count(), 1, `${viewport.name}: expected one h1`);
+    assert.equal(await page.locator(".site-header").count(), 0, `${viewport.name}: decorative header must be absent`);
+    assert.equal(await page.getByText("Écrire au studio", { exact: true }).count(), 0, `${viewport.name}: redundant header contact must be absent`);
     assert(await page.locator('a[href="mailto:amine@itart.studio"]').count() > 0, `${viewport.name}: contact link missing`);
     assert.equal(browserErrors.length, 0, `${viewport.name}: browser errors: ${browserErrors.join(" | ")}`);
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert(overflow <= 1, `${viewport.name}: horizontal overflow of ${overflow}px`);
+
+    const fullBleedSections = await page.evaluate(() => [
+      ".services-section",
+      ".references-section",
+      ".method-section",
+      ".contact-section",
+      ".site-footer"
+    ].map((selector) => {
+      const box = document.querySelector(selector)?.getBoundingClientRect();
+      return { selector, left: box?.left, right: box?.right, viewport: window.innerWidth };
+    }));
+    for (const section of fullBleedSections) {
+      assert(Math.abs(section.left ?? Number.POSITIVE_INFINITY) <= 1, `${viewport.name}: ${section.selector} must touch the left viewport edge`);
+      assert(Math.abs((section.right ?? 0) - section.viewport) <= 1, `${viewport.name}: ${section.selector} must touch the right viewport edge`);
+    }
 
     if (viewport.width >= 768) {
       const splitGeometry = await page.evaluate(() => {
@@ -174,15 +192,32 @@ try {
       );
     }
 
-    const heroVideo = page.locator("[data-hero-video]");
-    assert.equal(await heroVideo.count(), 1, `${viewport.name}: expected one hero video`);
-    await heroVideo.evaluate((video) => new Promise((resolve, reject) => {
-      if (video.readyState >= 1) return resolve();
-      video.addEventListener("loadedmetadata", resolve, { once: true });
-      video.addEventListener("error", () => reject(new Error("hero video failed to load")), { once: true });
-    }));
-    assert(await heroVideo.evaluate((video) => video.paused), `${viewport.name}: hero video must remain paused`);
-    assert(await heroVideo.evaluate((video) => Math.abs(video.currentTime - video.duration) < 0.12), `${viewport.name}: reduced-motion hero must show its final frame`);
+    const expectedHeroGroup = viewport.width > 1100 ? "wide" : viewport.width > 760 ? "split" : "mobile";
+    const activeHeroGroup = page.locator(`[data-hero-video-group="${expectedHeroGroup}"]`);
+    assert.equal(await activeHeroGroup.count(), 1, `${viewport.name}: expected ${expectedHeroGroup} hero group`);
+    assert(await activeHeroGroup.evaluate((element) => getComputedStyle(element).display !== "none"), `${viewport.name}: ${expectedHeroGroup} hero group must be visible`);
+    const activeHeroVideos = activeHeroGroup.locator("[data-hero-video]");
+    assert.equal(await activeHeroVideos.count(), expectedHeroGroup === "split" ? 2 : 1, `${viewport.name}: unexpected active hero video count`);
+    for (let videoIndex = 0; videoIndex < await activeHeroVideos.count(); videoIndex += 1) {
+      const heroVideo = activeHeroVideos.nth(videoIndex);
+      await heroVideo.evaluate((video) => new Promise((resolve, reject) => {
+        if (video.readyState >= 1) return resolve();
+        video.addEventListener("loadedmetadata", resolve, { once: true });
+        video.addEventListener("error", () => reject(new Error("hero video failed to load")), { once: true });
+      }));
+      assert(await heroVideo.evaluate((video) => video.paused), `${viewport.name}: hero video must remain paused`);
+      assert(await heroVideo.evaluate((video) => Math.abs(video.currentTime - video.duration) < 0.12), `${viewport.name}: reduced-motion hero must show its final frame`);
+    }
+    if (expectedHeroGroup === "mobile") {
+      const mobileDimensions = await activeHeroVideos.first().evaluate((video) => ({ width: video.videoWidth, height: video.videoHeight }));
+      assert(mobileDimensions.height > mobileDimensions.width, `${viewport.name}: mobile hero must use a vertical source`);
+      assert(Math.abs(mobileDimensions.width / mobileDimensions.height - 9 / 16) < 0.01, `${viewport.name}: mobile hero must use a 9:16 source`);
+    }
+
+    const reducedSignature = page.locator("[data-hero-signature]");
+    assert.equal(await reducedSignature.count(), 1, `${viewport.name}: persistent hero signature is missing`);
+    const reducedSignatureBox = await reducedSignature.boundingBox();
+    assert((reducedSignatureBox?.y ?? Number.POSITIVE_INFINITY) < 72, `${viewport.name}: reduced-motion signature must be compact at the top`);
 
     const referenceLogos = page.locator(".reference-mark img");
     assert.equal(await referenceLogos.count(), 8, `${viewport.name}: expected eight reference logos`);
@@ -230,7 +265,7 @@ try {
   const motionPage = await motionContext.newPage();
   const motionResponse = await motionPage.goto(origin, { waitUntil: "networkidle" });
   assert.equal(motionResponse?.status(), 200, "Motion QA: home did not return 200");
-  const motionVideo = motionPage.locator("[data-hero-video]");
+  const motionVideo = motionPage.locator('[data-hero-video-group="wide"] [data-hero-video]');
   await motionVideo.evaluate((video) => new Promise((resolve, reject) => {
     if (video.readyState >= 1) return resolve();
     video.addEventListener("loadedmetadata", resolve, { once: true });
@@ -245,7 +280,7 @@ try {
   })));
   assert(initialSideRevealState.length > 0, "Motion QA: expected side-aware reveal elements");
   for (const state of initialSideRevealState) {
-    assert.equal(state.opacity, "0", `Motion QA: ${state.reveal} element must start hidden`);
+    assert(Number(state.opacity) < 0.01, `Motion QA: ${state.reveal} element must start hidden`);
     if (state.reveal === "split-left") {
       assert(state.offset < 0, `Motion QA: split-left element must start from the left, got ${state.offset}px`);
     } else {
@@ -268,6 +303,14 @@ try {
   assert(endTime > 3.72, `Motion QA: expected final frame, got ${endTime}`);
   assert(startTime < middleTime && middleTime < endTime, "Motion QA: scrub time must increase monotonically");
   assert(await motionVideo.evaluate((video) => video.paused), "Motion QA: hero video must not autoplay");
+
+  const signature = motionPage.locator("[data-hero-signature]");
+  const signatureAtHeroEnd = await signature.boundingBox();
+  assert((signatureAtHeroEnd?.y ?? Number.POSITIVE_INFINITY) < 72, "Motion QA: hero signature must compact to the top at the end of the scrub");
+  await motionPage.evaluate((distance) => window.scrollTo(0, distance + window.innerHeight * 0.75), scrollRange);
+  await motionPage.waitForTimeout(200);
+  const signatureAfterHero = await signature.boundingBox();
+  assert(Math.abs((signatureAfterHero?.y ?? 9999) - (signatureAtHeroEnd?.y ?? 0)) < 2, "Motion QA: compact hero signature must remain fixed after the hero");
 
   const artService = motionPage.locator('.service-item[data-reveal="split-left"]').first();
   const itService = motionPage.locator('.service-item[data-reveal="split-right"]').first();
@@ -338,7 +381,7 @@ try {
   report.push({ width: 390, height: 844, page: "/mentions-legales/", overflow: legalOverflow, browserErrors: [] });
   await context.close();
 
-  for (const path of ["/", "/mentions-legales/", "/robots.txt", "/sitemap.xml", "/assets/hero-scroll.mp4", "/assets/hero-scroll.webm", "/assets/hero-scroll-poster.jpg"]) {
+  for (const path of ["/", "/mentions-legales/", "/robots.txt", "/sitemap.xml", "/assets/hero-scroll.mp4", "/assets/hero-scroll.webm", "/assets/hero-scroll-poster.jpg", "/assets/hero-scroll-mobile.mp4", "/assets/hero-scroll-mobile.webm", "/assets/hero-scroll-mobile-poster.jpg"]) {
     const response = await fetch(`${origin}${path}`);
     assert.equal(response.status, 200, `${path} returned ${response.status}`);
   }

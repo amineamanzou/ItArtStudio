@@ -113,6 +113,22 @@ assert(
 assert(!homeSource.includes("activity-section"), "Redundant activity section must be removed");
 assert(!homeSource.includes("section-heading"), "Redundant services introduction must be removed");
 assert(!layoutSource.includes("site-nav"), "Header section menu must be removed");
+assert(!layoutSource.includes("site-header"), "Decorative homepage header must be removed");
+assert(!layoutSource.includes("Écrire au studio"), "Redundant studio contact must be removed from the header");
+assert(homeSource.includes("data-hero-signature"), "Persistent hero signature contract is missing");
+for (const group of ["wide", "split", "mobile"]) {
+  assert(
+    homeSource.includes(`data-hero-video-group="${group}"`),
+    `Responsive hero video group is missing: ${group}`
+  );
+}
+for (const mobileAsset of [
+  "hero-scroll-mobile.webm",
+  "hero-scroll-mobile.mp4",
+  "hero-scroll-mobile-poster.jpg"
+]) {
+  assert(homeSource.includes(mobileAsset), `Mobile hero asset is missing: ${mobileAsset}`);
+}
 assert(
   homeSource.indexOf("practice-services--art") < homeSource.indexOf("practice-services--it"),
   "ART services must render before IT services"

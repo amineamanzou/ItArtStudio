@@ -51,16 +51,6 @@ const homeHref = base.endsWith("/") ? base : `${base}/`;
   <body class:list={{ "has-split-axis": splitAxis }}>
     <a class="skip-link" href="#contenu">Aller au contenu</a>
 
-    <header class="site-header">
-      <a class="brand" href={homeHref} aria-label="IT Art Studio — accueil">
-        <span class="brand__it">IT</span>
-        <strong>STUDIO</strong>
-        <span class="brand__art">ART</span>
-      </a>
-
-      <a class="header-contact" href={`mailto:${company.email}`}>Écrire au studio</a>
-    </header>
-
     <slot />
 
     <footer class="site-footer">
