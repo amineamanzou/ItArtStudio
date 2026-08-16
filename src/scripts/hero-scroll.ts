@@ -131,6 +131,7 @@ export function initHeroScroll(): () => void {
   };
 
   const handleMetadata = () => applyMotionPreference();
+  const handleViewportGroupChange = () => applyMotionPreference();
   allVideos.forEach((video) => {
     video.pause();
     if (video.readyState < 1) video.addEventListener("loadedmetadata", handleMetadata, { once: true });
@@ -138,11 +139,15 @@ export function initHeroScroll(): () => void {
 
   if (activeVideos().some((video) => video.readyState >= 1)) applyMotionPreference();
   motionPreference.addEventListener("change", applyMotionPreference);
+  mobileViewport.addEventListener("change", handleViewportGroupChange);
+  splitViewport.addEventListener("change", handleViewportGroupChange);
 
   return () => {
     window.cancelAnimationFrame(animationFrame);
     removeScrollListeners();
     motionPreference.removeEventListener("change", applyMotionPreference);
+    mobileViewport.removeEventListener("change", handleViewportGroupChange);
+    splitViewport.removeEventListener("change", handleViewportGroupChange);
     allVideos.forEach((video) => video.removeEventListener("loadedmetadata", handleMetadata));
   };
 }

@@ -368,6 +368,61 @@ try {
   }
   await motionContext.close();
 
+  for (const responsiveMotionViewport of [
+    { name: "tablet-motion", width: 768, height: 1024, group: "split", videos: 2 },
+    { name: "mobile-motion", width: 390, height: 844, group: "mobile", videos: 1 }
+  ]) {
+    const responsiveMotionContext = await browser.newContext({
+      viewport: { width: responsiveMotionViewport.width, height: responsiveMotionViewport.height },
+      deviceScaleFactor: 1,
+      reducedMotion: "no-preference"
+    });
+    const responsiveMotionPage = await responsiveMotionContext.newPage();
+    const response = await responsiveMotionPage.goto(origin, { waitUntil: "networkidle" });
+    assert.equal(response?.status(), 200, `${responsiveMotionViewport.name}: home did not return 200`);
+    const group = responsiveMotionPage.locator(`[data-hero-video-group="${responsiveMotionViewport.group}"]`);
+    const videos = group.locator("[data-hero-video]");
+    assert.equal(await videos.count(), responsiveMotionViewport.videos, `${responsiveMotionViewport.name}: unexpected video count`);
+    for (let index = 0; index < await videos.count(); index += 1) {
+      await videos.nth(index).evaluate((video) => new Promise((resolve, reject) => {
+        if (video.readyState >= 1) return resolve();
+        video.addEventListener("loadedmetadata", resolve, { once: true });
+        video.addEventListener("error", () => reject(new Error("responsive hero video failed to load")), { once: true });
+      }));
+    }
+    const range = await responsiveMotionPage.locator("[data-hero-scroll]").evaluate((section) => section.offsetHeight - window.innerHeight);
+    await responsiveMotionPage.evaluate((distance) => window.scrollTo(0, distance * 0.55), range);
+    await responsiveMotionPage.waitForTimeout(700);
+    const times = await videos.evaluateAll((elements) => elements.map((video) => video.currentTime));
+    assert(times.every((time) => time > 1.3 && time < 3.2), `${responsiveMotionViewport.name}: active videos did not scrub to the middle frame: ${times.join(", ")}`);
+    if (times.length === 2) {
+      assert(Math.abs(times[0] - times[1]) < 0.05, `${responsiveMotionViewport.name}: split videos are not synchronized: ${times.join(", ")}`);
+    }
+    await responsiveMotionContext.close();
+  }
+
+  const reducedResizeContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 1,
+    reducedMotion: "reduce"
+  });
+  const reducedResizePage = await reducedResizeContext.newPage();
+  const reducedResizeResponse = await reducedResizePage.goto(origin, { waitUntil: "networkidle" });
+  assert.equal(reducedResizeResponse?.status(), 200, "Reduced resize QA: home did not return 200");
+  await reducedResizePage.setViewportSize({ width: 768, height: 1024 });
+  await reducedResizePage.waitForTimeout(350);
+  const resizedSplitVideos = reducedResizePage.locator('[data-hero-video-group="split"] [data-hero-video]');
+  const resizedTimes = await resizedSplitVideos.evaluateAll((videos) => videos.map((video) => ({
+    currentTime: video.currentTime,
+    duration: video.duration
+  })));
+  assert.equal(resizedTimes.length, 2, "Reduced resize QA: split pair is missing after breakpoint change");
+  assert(
+    resizedTimes.every(({ currentTime, duration }) => Number.isFinite(duration) && Math.abs(currentTime - duration) < 0.12),
+    `Reduced resize QA: newly active split videos must show the final frame: ${JSON.stringify(resizedTimes)}`
+  );
+  await reducedResizeContext.close();
+
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
   const legalPage = await context.newPage();
   const legalResponse = await legalPage.goto(`${origin}/mentions-legales/`, { waitUntil: "networkidle" });
