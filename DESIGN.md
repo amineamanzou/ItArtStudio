@@ -69,3 +69,9 @@ L'axe central est unique : aucune section ne crée sa propre variante du trait.
 Les sections de l'accueil restent pleine largeur ; seuls leurs contenus internes
 reçoivent le padding latéral, afin que fonds et halos touchent toujours les bords
 du viewport.
+
+Sur desktop et tablette, les contenus textuels s'ancrent vers l'axe plutôt que
+vers les bords extérieurs : prestations ART à droite de leur moitié, prestations
+IT à gauche, méthode et contact en miroir. Les couleurs et les halos continuent
+de remplir le viewport. Le footer prolonge les halos du contact, reprend la
+signature composée de la hero et ne répète aucune adresse email.

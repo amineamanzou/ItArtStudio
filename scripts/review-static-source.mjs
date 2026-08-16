@@ -115,6 +115,10 @@ assert(!homeSource.includes("section-heading"), "Redundant services introduction
 assert(!layoutSource.includes("site-nav"), "Header section menu must be removed");
 assert(!layoutSource.includes("site-header"), "Decorative homepage header must be removed");
 assert(!layoutSource.includes("Écrire au studio"), "Redundant studio contact must be removed from the header");
+assert(layoutSource.includes("split-signature--footer"), "Footer must reuse the multi-line split signature");
+const footerSource = layoutSource.match(/<footer[\s\S]*?<\/footer>/)?.[0] ?? "";
+assert(!footerSource.includes("mailto:"), "Footer must not repeat a contact email");
+assert(footerSource.includes("company.legalForm"), "Footer must retain the legal company form");
 assert(homeSource.includes("data-hero-signature"), "Persistent hero signature contract is missing");
 for (const group of ["wide", "split", "mobile"]) {
   assert(

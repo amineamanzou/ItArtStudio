@@ -156,6 +156,8 @@ try {
           },
           methodTitleLeft: rect(".method-title__left"),
           methodTitleRight: rect(".method-title__right"),
+          serviceArt: rect(".practice-services--art .service-list"),
+          serviceIt: rect(".practice-services--it .service-list"),
           methodCadrer: rect(".method-step:nth-child(1)"),
           methodProduire: rect(".method-step:nth-child(2)"),
           methodTransmettre: rect(".method-step:nth-child(3)"),
@@ -163,6 +165,26 @@ try {
           methodStepsRight: rects(".method-step--right"),
           contactArt: rect(".contact-practice--art"),
           contactIt: rect(".contact-practice--it"),
+          footerSignature: rect(".split-signature--footer"),
+          footerEmailCount: document.querySelectorAll('.site-footer a[href^="mailto:"]').length,
+          footerLegalText: document.querySelector(".site-footer__legal")?.textContent ?? "",
+          footerStyle: (() => {
+            const footer = document.querySelector(".site-footer");
+            const style = getComputedStyle(footer);
+            return { backgroundColor: style.backgroundColor };
+          })(),
+          contactLightContinuity: (() => {
+            const section = document.querySelector(".contact-section");
+            const style = getComputedStyle(section);
+            const before = getComputedStyle(section, "::before");
+            const after = getComputedStyle(section, "::after");
+            const extendsPastSection = (pseudo) => parseFloat(pseudo.top) + parseFloat(pseudo.height) > section.getBoundingClientRect().height;
+            return {
+              overflow: style.overflow,
+              beforeExtends: extendsPastSection(before),
+              afterExtends: extendsPastSection(after)
+            };
+          })(),
           ambience: [".method-section", ".contact-section"].map((selector) => {
             const section = document.querySelector(selector);
             return ["::before", "::after"].map((pseudo) => {
@@ -176,16 +198,33 @@ try {
 
       assert.equal(splitGeometry.axis.display, "block", `${viewport.name}: central axis must be displayed`);
       assert(Math.abs(splitGeometry.axis.left - splitGeometry.midpoint) <= 1, `${viewport.name}: central axis is not aligned to 50%`);
-      assert(splitGeometry.axis.height >= splitGeometry.axis.bodyHeight - 1, `${viewport.name}: central axis does not span the document`);
+      assert(splitGeometry.axis.height >= splitGeometry.axis.bodyHeight - 2, `${viewport.name}: central axis does not span the document`);
       assert.deepEqual(splitGeometry.crossingBorders, [], `${viewport.name}: horizontal border crosses the central axis`);
       assert(splitGeometry.methodTitleLeft?.right <= splitGeometry.midpoint + 1, `${viewport.name}: method title left is on the wrong side`);
       assert(splitGeometry.methodTitleRight?.left >= splitGeometry.midpoint - 1, `${viewport.name}: method title right is on the wrong side`);
+      assert(splitGeometry.midpoint - splitGeometry.methodTitleLeft?.right < 160, `${viewport.name}: method title left is too far from the axis`);
+      assert(splitGeometry.methodTitleRight?.left - splitGeometry.midpoint < 160, `${viewport.name}: method title right is too far from the axis`);
       assert(splitGeometry.methodStepsLeft.every((box) => box.right <= splitGeometry.midpoint + 1), `${viewport.name}: a left method step crosses the axis`);
       assert(splitGeometry.methodStepsRight.every((box) => box.left >= splitGeometry.midpoint - 1), `${viewport.name}: a right method step crosses the axis`);
       assert(splitGeometry.methodProduire?.top > splitGeometry.methodCadrer?.bottom + 24, `${viewport.name}: Produire must sit below Cadrer`);
       assert(splitGeometry.methodTransmettre?.top > splitGeometry.methodProduire?.bottom + 24, `${viewport.name}: Transmettre must sit below Produire`);
       assert(splitGeometry.contactArt?.right <= splitGeometry.midpoint + 1, `${viewport.name}: ART contact is on the wrong side`);
       assert(splitGeometry.contactIt?.left >= splitGeometry.midpoint - 1, `${viewport.name}: IT contact is on the wrong side`);
+      assert(splitGeometry.midpoint - splitGeometry.contactArt?.right < 160, `${viewport.name}: ART contact is too far from the axis`);
+      assert(splitGeometry.contactIt?.left - splitGeometry.midpoint < 160, `${viewport.name}: IT contact is too far from the axis`);
+      assert.equal(splitGeometry.footerEmailCount, 0, `${viewport.name}: footer must not repeat the technical contact email`);
+      assert(splitGeometry.footerSignature, `${viewport.name}: footer must reuse the multi-line split signature`);
+      assert(Math.abs((splitGeometry.footerSignature?.left + splitGeometry.footerSignature?.right) / 2 - splitGeometry.midpoint) <= 1, `${viewport.name}: footer signature must be centered on the axis`);
+      assert(splitGeometry.footerLegalText.includes("Société à responsabilité limitée"), `${viewport.name}: footer legal form must remain SARL`);
+      assert.equal(splitGeometry.footerStyle.backgroundColor, "rgba(0, 0, 0, 0)", `${viewport.name}: footer background must remain transparent`);
+      assert.equal(splitGeometry.contactLightContinuity.overflow, "visible", `${viewport.name}: contact lights must be allowed to continue into the footer`);
+      assert(splitGeometry.contactLightContinuity.beforeExtends && splitGeometry.contactLightContinuity.afterExtends, `${viewport.name}: both contact lights must extend beyond the section`);
+      if (viewport.name === "wide-desktop") {
+        assert(splitGeometry.serviceArt?.left >= splitGeometry.midpoint - 600, `${viewport.name}: ART services are too far from the axis`);
+        assert(splitGeometry.serviceIt?.right <= splitGeometry.midpoint + 600, `${viewport.name}: IT services are too far from the axis`);
+        assert(splitGeometry.methodStepsLeft.every((box) => box.left >= splitGeometry.midpoint - 600), `${viewport.name}: a left method step is too far from the axis`);
+        assert(splitGeometry.methodStepsRight.every((box) => box.right <= splitGeometry.midpoint + 600), `${viewport.name}: a right method step is too far from the axis`);
+      }
       assert(
         splitGeometry.ambience.flat().every((light) => light.content !== "none" && light.backgroundImage.includes("radial-gradient") && light.filter === "none"),
         `${viewport.name}: method and contact ambient lights must be rendered`

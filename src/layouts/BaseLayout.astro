@@ -54,14 +54,13 @@ const homeHref = base.endsWith("/") ? base : `${base}/`;
     <slot />
 
     <footer class="site-footer">
-      <a class="brand brand--footer" href={homeHref} aria-label="IT Art Studio — accueil">
-        <span class="brand__it">IT</span>
-        <strong>STUDIO</strong>
-        <span class="brand__art">ART</span>
+      <a class="split-signature split-signature--footer" href={homeHref} aria-label="IT Art Studio — accueil">
+        <span class="hero-title__it">IT</span>
+        <span class="hero-title__art">ART</span>
+        <strong class="hero-title__studio">STUDIO</strong>
       </a>
       <p class="site-footer__legal">{company.legalForm} au capital de {company.capital} · RCS {company.rcs}</p>
       <div class="site-footer__contact">
-        <a href={`mailto:${company.email}`}>{company.email}</a>
         <a href={`${homeHref}mentions-legales/`}>Mentions légales</a>
       </div>
     </footer>
