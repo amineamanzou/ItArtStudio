@@ -1,0 +1,104 @@
+{
+  "title": "Politique de confidentialité de Media Review",
+  "updatedAt": "2026-10-12",
+  "updatedLabel": "12 octobre 2026",
+  "introduction": "Media Review permet de consulter des contenus audio et vidéo, de les annoter et de partager les retours avec les agents que vous autorisez. Cette politique décrit les traitements de l’application iPhone et iPad et du service hébergé par IT Art Studio, y compris pendant la phase de test.",
+  "sections": [
+    {
+      "id": "responsable",
+      "title": "Responsable et contact",
+      "paragraphs": [
+        "IT Art Studio, société à responsabilité limitée, est responsable des traitements nécessaires au fonctionnement de son service Media Review. Son siège social est situé au 143 rue René Tachon, 69250 Curis-au-Mont-d’Or, France. SIREN : 915 019 129 ; RCS Lyon 915 019 129.",
+        "Pour toute question sur vos données, une demande d’accès ou de suppression, écrivez à amine@itart.studio en précisant « Media Review ». Si vous configurez l’application pour un serveur exploité par un autre organisme, celui-ci est responsable des traitements qu’il réalise ; consultez également sa politique."
+      ]
+    },
+    {
+      "id": "donnees",
+      "title": "Données traitées",
+      "paragraphs": [
+        "Compte et accès : nom, adresse e-mail, identifiant de compte, données d’authentification, sessions, dates de connexion, adresse IP et informations de client technique lorsqu’elles sont transmises. Les mots de passe sont conservés sous une forme hachée. Les autorisations accordées aux agents sont associées à des jetons et à un périmètre d’accès.",
+        "Contenus et retours : fichiers audio et vidéo déposés, titres, textes et transcriptions fournis, aperçus, remarques écrites, enregistrements vocaux, passages annotés, position de lecture et état des reviews. Ces données peuvent être apportées directement par vous ou par un agent que vous avez autorisé.",
+        "Fonctionnement technique : résultats des requêtes, durées de traitement, erreurs et informations nécessaires à la synchronisation, à la sécurité et au diagnostic. Si vous contactez le support, nous traitons également le contenu de votre demande."
+      ]
+    },
+    {
+      "id": "finalites",
+      "title": "Utilisation et bases légales",
+      "paragraphs": [
+        "La gestion du compte, la lecture des médias, l’enregistrement des remarques, leur synchronisation et les échanges avec les agents autorisés permettent d’exécuter le service demandé. Le traitement des données indispensables à ces fonctions repose sur l’exécution de ce service.",
+        "La protection des accès, la prévention des abus, la résolution des incidents et l’assistance reposent sur notre intérêt légitime à exploiter un service fiable et sécurisé. Une conservation imposée par la loi ou nécessaire à la défense d’un droit peut s’appliquer lorsque la situation le justifie.",
+        "Les informations de compte et de connexion sont nécessaires à l’accès au service. Vous choisissez les contenus à déposer et pouvez rédiger une remarque sans enregistrer votre voix. Refuser le microphone empêche uniquement la capture vocale."
+      ]
+    },
+    {
+      "id": "appareil",
+      "title": "Microphone et données sur l’appareil",
+      "paragraphs": [
+        "L’application demande l’autorisation d’utiliser le microphone pour enregistrer une remarque vocale. Vous pouvez modifier cette permission dans les réglages iOS. Les enregistrements destinés à une review sont envoyés au serveur lors de leur synchronisation.",
+        "Des brouillons, enregistrements et données de consultation peuvent être conservés localement pour protéger le travail en cours et permettre sa reprise. Les informations de session de l’application native sont stockées dans le trousseau sécurisé du système. La suppression d’une version sur le serveur ne supprime pas automatiquement les brouillons non synchronisés ou les copies déjà présentes sur un autre appareil."
+      ]
+    },
+    {
+      "id": "agents",
+      "title": "Agents et transcription",
+      "paragraphs": [
+        "Un agent disposant d’un jeton autorisé peut déposer des contenus ou accéder aux reviews et aux retours dans les limites de ses droits. Vous pouvez révoquer ses accès. Cette révocation empêche les accès suivants ; les données que l’agent a déjà récupérées restent soumises aux règles de son environnement.",
+        "Le serveur Media Review vérifie les fichiers audio et conserve les textes qui lui sont fournis. La transcription éventuelle des remarques vocales est effectuée dans l’environnement de l’agent qui récupère l’enregistrement. Selon votre configuration, cet environnement peut utiliser un traitement local ou un prestataire externe.",
+        "Les conditions de confidentialité, les lieux de traitement et les durées de conservation de ces prestataires dépendent des agents et services que vous utilisez. Avant de leur donner accès à un contenu, vérifiez leurs conditions et assurez-vous de disposer des autorisations nécessaires pour les personnes qui y figurent."
+      ]
+    },
+    {
+      "id": "hebergement",
+      "title": "Hébergement et destinataires",
+      "paragraphs": [
+        "Le service hébergé utilise un serveur Kimsufi/OVHcloud pour la base de données et les fichiers médias, stockés sur le disque du serveur. Les sauvegardes applicatives utilisent Kopia et un stockage objet Hetzner. Les diagnostics du serveur sont traités sur une infrastructure privée d’observabilité hébergée chez Hetzner.",
+        "L’accès est limité aux personnes habilitées d’IT Art Studio pour l’exploitation et l’assistance, aux prestataires d’infrastructure dans le cadre de leurs missions et aux agents auxquels vous accordez un accès. Des informations peuvent être communiquées aux autorités compétentes lorsqu’une obligation légale l’exige.",
+        "Les agents et les prestataires de transcription que vous choisissez peuvent traiter des données dans d’autres pays, y compris hors de l’Union européenne. Les garanties et conditions de ces traitements doivent être vérifiées auprès de ces services. Cette politique ne promet pas un traitement exclusivement local de tous les contenus récupérés par un agent."
+      ]
+    },
+    {
+      "id": "conservation",
+      "title": "Conservation des données",
+      "paragraphs": [
+        "Vidéos : le stockage actif conserve au maximum les deux versions validées les plus récentes d’une même vidéo. Toute version créée depuis plus de sept jours, soit 168 heures, devient éligible au nettoyage, même s’il s’agit de la dernière version. Le délai part de la création de la version et n’est pas prolongé par une lecture ou un commentaire. Un traitement en cours ou un incident technique peut retarder l’effacement effectif.",
+        "Lorsqu’une version vidéo est retirée, le nettoyage couvre les médias source, aperçus, remarques, transcriptions et enregistrements associés. Des identifiants et événements techniques sans contenu peuvent rester nécessaires à la cohérence des opérations et à leur diagnostic.",
+        "Articles audio : la règle automatique des vidéos ne s’applique pas aux articles accompagnés d’audio ni à leurs retours. Ils restent conservés pour permettre leur consultation et le suivi du travail jusqu’à une suppression demandée ou à la fermeture de l’espace concerné. Le compte et ses données de gestion sont conservés pendant son utilisation puis traités dans le cadre de sa fermeture, sous réserve des besoins légaux applicables.",
+        "Sauvegardes : elles suivent une rotation distincte avec sept dernières sauvegardes, sept quotidiennes, quatre hebdomadaires et trois mensuelles. Les anciennes copies expirent selon cette rotation et la maintenance du stockage. Une suppression dans l’application ne les efface donc pas immédiatement et cette rotation ne constitue pas une durée maximale absolue. Les sauvegardes servent à la restauration ; après restauration, la politique de rétention vidéo est réappliquée avant la réouverture du service.",
+        "Diagnostics : les tables de télémétrie du serveur sont configurées pour une conservation de trente jours dans le stockage actif. Les journaux locaux sont soumis à une rotation par taille. Des copies de sauvegarde peuvent subsister suivant leur propre rotation. Les échanges de support sont conservés le temps de traiter la demande et, si nécessaire, de suivre un incident ou de défendre un droit.",
+        "Les copies conservées par vos appareils, vos agents ou les services que vous utilisez suivent leurs propres mécanismes de conservation. Contactez-nous pour demander l’effacement des données détenues par IT Art Studio."
+      ]
+    },
+    {
+      "id": "diagnostics",
+      "title": "Sessions, diagnostic et suivi",
+      "paragraphs": [
+        "L’application iOS n’intègre pas de SDK publicitaire ou de mesure d’audience et ne déclare pas de suivi publicitaire. Le service utilise les informations techniques nécessaires à l’authentification et à son fonctionnement. Les sessions ont une validité de trente jours, renouvelable pendant l’utilisation ; leur expiration d’accès ne signifie pas l’effacement immédiat de toutes les données techniques associées.",
+        "Le serveur produit des journaux, traces et mesures de fonctionnement. Les diagnostics applicatifs sont limités à des catégories techniques, résultats, durées et identifiants de requête ; ils ne doivent pas contenir les médias, les textes des remarques, les mots de passe ou les jetons d’accès. L’interface web utilise une session nécessaire à la connexion et peut signaler des erreurs techniques limitées."
+      ]
+    },
+    {
+      "id": "securite",
+      "title": "Protection des données",
+      "paragraphs": [
+        "Les échanges avec le service hébergé utilisent HTTPS. L’accès aux contenus dépend du compte et des autorisations associées ; les ressources média utilisent des accès temporaires. Les bases de données et les outils d’observabilité sont isolés des accès publics, et les sauvegardes Kopia sont chiffrées.",
+        "Protégez vos identifiants et les jetons confiés à vos agents. Une révocation d’accès, une déconnexion ou la désinstallation de l’application ne remplace pas une demande d’effacement des données conservées sur le serveur."
+      ]
+    },
+    {
+      "id": "droits",
+      "title": "Vos droits et la suppression",
+      "paragraphs": [
+        "Selon les conditions prévues par le RGPD, vous pouvez demander l’accès à vos données, leur rectification, leur effacement, la limitation du traitement ou leur portabilité, et vous opposer aux traitements fondés sur l’intérêt légitime. Lorsqu’un traitement repose sur votre consentement, vous pouvez le retirer pour l’avenir.",
+        "Pour exercer ces droits ou demander la fermeture de votre compte et l’effacement des données qui lui sont associées, écrivez à amine@itart.studio. Nous pouvons demander les informations nécessaires à la vérification de votre identité, sans exiger systématiquement une pièce d’identité. Nous répondons en principe dans un délai d’un mois ; si une prolongation autorisée est nécessaire, nous vous en expliquons la raison.",
+        "L’effacement peut être limité lorsqu’une obligation légale, la sécurité ou la défense d’un droit justifie encore une conservation proportionnée. Nous vous informons des limites applicables à votre demande, notamment pour les sauvegardes. Vous pouvez aussi adresser une réclamation à la Commission nationale de l’informatique et des libertés sur cnil.fr."
+      ]
+    },
+    {
+      "id": "modifications",
+      "title": "Évolution de cette politique",
+      "paragraphs": [
+        "Cette page est mise à jour lorsque le fonctionnement du service ou les traitements décrits évoluent. Sa date permet d’identifier la version applicable. En cas de changement substantiel affectant vos données, une information adaptée vous sera fournie."
+      ]
+    }
+  ]
+}

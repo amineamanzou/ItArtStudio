@@ -1,0 +1,81 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import policy from "../../data/media-review-privacy.fr.json";
+
+const policyLinks: Record<string, string> = {
+  "amine@itart.studio": "mailto:amine@itart.studio?subject=Media%20Review%20%E2%80%94%20Donn%C3%A9es%20personnelles",
+  "cnil.fr": "https://www.cnil.fr/fr/adresser-une-plainte"
+};
+---
+
+<BaseLayout
+  title={`${policy.title} — IT Art Studio`}
+  description="Les données utilisées par Media Review, leur conservation, les accès des agents et les moyens d’exercer vos droits."
+>
+  <main id="contenu" class="legal-page privacy-page">
+    <header class="legal-hero">
+      <p>Media Review · Vos données</p>
+      <h1>{policy.title}</h1>
+      <span>Mise à jour : <time datetime={policy.updatedAt}>{policy.updatedLabel}</time></span>
+    </header>
+
+    <div class="legal-content">
+      <p class="privacy-introduction">{policy.introduction}</p>
+      <nav class="privacy-contents" aria-label="Sommaire de la politique">
+        {policy.sections.map((section) => <a href={`#${section.id}`}>{section.title}</a>)}
+      </nav>
+
+      {policy.sections.map((section) => (
+        <section aria-labelledby={section.id}>
+          <h2 id={section.id}>{section.title}</h2>
+          <div>
+            {section.paragraphs.map((paragraph) => (
+              <p>{paragraph.split(/(amine@itart\.studio|cnil\.fr)/g).map((part) =>
+                policyLinks[part] ? <a href={policyLinks[part]}>{part}</a> : part
+              )}</p>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .privacy-page {
+    padding-top: clamp(3rem, 7vw, 7rem);
+  }
+
+  .privacy-page .legal-hero {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    padding-bottom: clamp(2.5rem, 5vw, 4rem);
+  }
+
+  .privacy-page h1 {
+    max-width: 22ch;
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    line-height: 1.08;
+  }
+
+  .privacy-page .privacy-introduction {
+    margin: 2.5rem 0 1.5rem;
+    font-size: 1.1rem;
+  }
+
+  .privacy-contents {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+    padding-bottom: 2rem;
+    font-size: 0.9rem;
+  }
+
+  .privacy-page h2 {
+    scroll-margin-top: 2rem;
+  }
+
+  .privacy-page .legal-content p {
+    overflow-wrap: anywhere;
+  }
+</style>
