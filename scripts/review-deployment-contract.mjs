@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const workflow = await readFile(".github/workflows/deploy-production.yml", "utf8");
+const packageMetadata = JSON.parse(await readFile("package.json", "utf8"));
 
 for (const contract of [
   "Emit production CI/CD event",
@@ -53,9 +54,11 @@ try {
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
   const event = JSON.parse(await readFile(output, "utf8"));
+  assert.match(event.version ?? "", /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/, "Deployment poller requires a SemVer release version");
   assert.deepEqual(
     {
       schemaVersion: event.schemaVersion,
+      version: event.version,
       eventType: event.eventType,
       repository: event.repository,
       workflow: event.workflow,
@@ -70,7 +73,8 @@ try {
       checks: event.checks
     },
     {
-      schemaVersion: "1.0",
+      schemaVersion: "2.0",
+      version: packageMetadata.version,
       eventType: "production-deploy",
       repository: "amineamanzou/ItArtStudio",
       workflow: "Deploy Production",

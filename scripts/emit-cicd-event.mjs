@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 const args = process.argv.slice(2);
@@ -55,7 +55,8 @@ const imageDigest = readOption("image-digest");
 const imageRef = readOption("image-ref", imageName && imageDigest ? `${imageName}@${imageDigest}` : "");
 
 const event = cleanEmpty({
-  schemaVersion: "1.0",
+  schemaVersion: "2.0",
+  version: JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version,
   eventType,
   repository,
   workflow: process.env.GITHUB_WORKFLOW || readOption("workflow"),
