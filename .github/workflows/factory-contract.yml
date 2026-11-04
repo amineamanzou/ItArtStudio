@@ -1,0 +1,22 @@
+name: Factory contract
+on:
+  pull_request:
+    branches: [main, dev]
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+  merge_group:
+permissions:
+  contents: read
+concurrency:
+  group: factory-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  contract:
+    name: Factory contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Check the branch and validation contract
+        run: python3 .github/scripts/factory_contract.py
