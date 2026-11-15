@@ -73,7 +73,10 @@ await mkdir(artifactDirectory, { recursive: true });
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const address = server.address();
 assert(address && typeof address === "object", "Static QA server did not start");
-const origin = `http://127.0.0.1:${address.port}`;
+const origin = process.env.QA_ORIGIN ?? `http://127.0.0.1:${address.port}`;
+const remote = new URL(origin);
+assert(!remote.username && !remote.password && remote.pathname === "/" && !remote.search && !remote.hash, "Invalid QA origin");
+assert(remote.protocol === "https:" || (remote.protocol === "http:" && ["localhost", "127.0.0.1"].includes(remote.hostname)), "QA requires HTTPS or loopback");
 
 const viewports = [
   { name: "wide-desktop", width: 1920, height: 1080 },
@@ -89,6 +92,41 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
     ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
     : undefined);
 const browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) });
+
+const originalNewContext = browser.newContext.bind(browser);
+browser.newContext = async (options = {}) => {
+  const context = await originalNewContext({...options, serviceWorkers: "block", extraHTTPHeaders: {
+    ...(options.extraHTTPHeaders ?? {}), ...(process.env.STAGING_SESSION_ID ? {"X-Staging-Session": process.env.STAGING_SESSION_ID} : {})
+  }});
+  await context.routeWebSocket("**/*", socket => socket.close());
+  const pending = new Set();
+  await context.route("**/*", route => {
+    const task = (async () => {
+      const request = route.request();
+      assert.equal(new URL(request.url()).origin, origin, "External QA request refused");
+      assert(["GET", "HEAD"].includes(request.method()), "Mutating QA request refused");
+      const upstream = await route.fetch({maxRedirects: 0, timeout: 20000});
+      try {
+        assert(!(upstream.status() >= 300 && upstream.status() < 400), "QA redirect refused");
+        if (process.env.STAGING_SESSION_ID) assert.equal(upstream.headers()["x-staging-session"], process.env.STAGING_SESSION_ID);
+        await route.fulfill({response: upstream});
+      } finally { await upstream.dispose(); }
+    })();
+    pending.add(task);
+    return task.finally(() => pending.delete(task));
+  });
+  const close = context.close.bind(context);
+  context.close = async () => {
+    let timer;
+    try {
+      await Promise.race([
+        (async () => {while(pending.size) await Promise.all([...pending]);})(),
+        new Promise((_, reject) => {timer = setTimeout(() => reject(new Error("QA handler drain timed out")), 25000);})
+      ]);
+    } finally {clearTimeout(timer); await close();}
+  };
+  return context;
+};
 
 try {
   for (const viewport of viewports) {
@@ -476,7 +514,7 @@ try {
   await context.close();
 
   for (const path of ["/", "/mentions-legales/", "/robots.txt", "/sitemap.xml", "/assets/hero-scroll.mp4", "/assets/hero-scroll.webm", "/assets/hero-scroll-poster.jpg", "/assets/hero-scroll-mobile.mp4", "/assets/hero-scroll-mobile.webm", "/assets/hero-scroll-mobile-poster.jpg"]) {
-    const response = await fetch(`${origin}${path}`);
+    const response = await fetch(`${origin}${path}`, {redirect: "manual", ...(process.env.STAGING_SESSION_ID ? {headers: {"X-Staging-Session": process.env.STAGING_SESSION_ID}} : {})});
     assert.equal(response.status, 200, `${path} returned ${response.status}`);
   }
 

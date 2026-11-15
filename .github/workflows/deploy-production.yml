@@ -4,196 +4,195 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      qualification_ref:
+        description: Signed factory-qualification tag for an already tested digest
+        required: false
+        type: string
+      browser_observability:
+        description: Request consent-gated browser observability
+        type: boolean
+        default: false
+      product_analytics:
+        description: Request consent-gated product analytics
+        type: boolean
+        default: false
 
 concurrency:
   group: production-it-art-studio
   cancel-in-progress: false
-
 permissions:
   contents: read
-
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/it-art-studio
+  IMAGE_NAME: ghcr.io/amineamanzou/it-art-studio
 
 jobs:
-  release:
-    name: Verify and publish immutable production image
+  route:
+    if: github.repository == 'amineamanzou/ItArtStudio' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      mode: ${{ steps.route.outputs.mode }}
+      qualification_ref: ${{ steps.route.outputs.qualificationRef }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 22.23.4
+      - name: Resolve qualified publication or request
+        id: route
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QUALIFICATION_REF: ${{ inputs.qualification_ref }}
+        run: node scripts/qa/release-qualification.mjs route
+      - name: Emit qualification request
+        if: steps.route.outputs.mode == 'request'
+        env:
+          REQUEST_RUM: ${{ inputs.browser_observability || false }}
+          REQUEST_ANALYTICS: ${{ inputs.product_analytics || false }}
+        run: |
+          node --input-type=module -e 'import {writeFileSync} from "node:fs"; import {parisDate} from "./scripts/qa/release-candidate.mjs"; writeFileSync("request.json",JSON.stringify({publicationDate:parisDate(),browserObservability:process.env.REQUEST_RUM==="true",productAnalytics:process.env.REQUEST_ANALYTICS==="true"}));'
+          node scripts/qa/emit-cicd-event.mjs --kind factory-promotion-request --status completed --conclusion success --payload-file request.json --out factory-promotion-request.json
+      - name: Upload qualification request
+        if: steps.route.outputs.mode == 'request'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: factory-promotion-request
+          path: factory-promotion-request.json
+          if-no-files-found: error
+
+  release:
+    name: Verify and publish the qualified immutable digest
+    needs: route
+    if: needs.route.outputs.mode == 'publish'
+    runs-on: ubuntu-latest
     environment: production
     permissions:
       contents: read
+      actions: read
       packages: write
       id-token: write
-      security-events: write
       attestations: write
       artifact-metadata: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      QUALIFICATION_REF: ${{ needs.route.outputs.qualification_ref }}
+      PUBLIC_BROWSER_OBSERVABILITY_URL: ${{ vars.PUBLIC_BROWSER_OBSERVABILITY_URL }}
+      PUBLIC_POSTHOG_KEY: ${{ vars.PUBLIC_POSTHOG_KEY }}
     outputs:
-      image: ${{ steps.release.outputs.image }}
-      digest: ${{ steps.push.outputs.digest }}
-      image_ref: ${{ steps.release.outputs.image_ref }}
+      image: ${{ env.IMAGE_NAME }}
+      digest: ${{ steps.qualified.outputs.digest }}
+      image_ref: ${{ steps.qualified.outputs.image_ref }}
     steps:
-      - name: Checkout app
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-
-      - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: 22.23.4
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Reject dependency vulnerabilities
-        run: npm audit --audit-level=moderate
-
-      - name: Verify source and static build
-        run: npm run check && npm run build
-
+      - name: Verify release contracts and public boundary
+        run: |
+          node --test tests/*.test.mjs
+      - name: Verify signed qualification, original build and exact main merge
+        id: qualified
+        run: node scripts/qa/release-qualification.mjs prepare
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
-
-      - name: Docker image metadata
-        id: docker_meta
-        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
-        with:
-          images: ${{ env.IMAGE_NAME }}
-          tags: type=raw,value=${{ github.sha }}
-          labels: |
-            org.opencontainers.image.title=IT Art Studio
-            org.opencontainers.image.description=Static Astro showcase for itart.studio
-            org.opencontainers.image.url=https://itart.studio
-            org.opencontainers.image.revision=${{ github.sha }}
-
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
       - name: Login to GHCR
-        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push SHA-tagged release candidate
-        id: push
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.docker_meta.outputs.tags }}
-          labels: ${{ steps.docker_meta.outputs.labels }}
-          provenance: true
-          sbom: true
-          build-args: |
-            SITE_URL=https://itart.studio
-            BASE_PATH=/
-            VCS_REF=${{ github.sha }}
-
-      - name: Gate exact digest on critical vulnerabilities
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532
+      - name: Verify original candidate signature
+        env:
+          IMAGE_REF: ${{ steps.qualified.outputs.image_ref }}
+          SOURCE_REF: ${{ steps.qualified.outputs.source_ref }}
+        run: |
+          cosign verify "$IMAGE_REF" \
+            --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+            --certificate-identity="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/build-staging.yml@${SOURCE_REF}"
+      - name: Verify original candidate SLSA provenance
+        id: verify_attestation
+        env:
+          IMAGE_REF: ${{ steps.qualified.outputs.image_ref }}
+          SOURCE_REF: ${{ steps.qualified.outputs.source_ref }}
+          CANDIDATE_SHA: ${{ steps.qualified.outputs.candidate_sha }}
+        run: |
+          gh attestation verify "oci://${IMAGE_REF}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/build-staging.yml" \
+            --source-ref "$SOURCE_REF" --source-digest "$CANDIDATE_SHA" \
+            --predicate-type https://slsa.dev/provenance/v1 --format json > verified-provenance.json
+          node scripts/qa/release-qualification.mjs provenance
+      - name: Gate exact qualified digest on current critical vulnerabilities
         id: trivy_pushed_digest
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         env:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         with:
-          image-ref: ${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}
+          image-ref: ${{ steps.qualified.outputs.image_ref }}
           format: table
           severity: CRITICAL
           vuln-type: os,library
           exit-code: "1"
-
-      - name: Generate SBOM from exact digest
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        env:
-          TRIVY_USERNAME: ${{ github.actor }}
-          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          image-ref: ${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}
-          format: cyclonedx
-          output: image-sbom.cdx.json
-          vuln-type: os,library
-
-      - name: Upload image SBOM
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
-        with:
-          name: image-sbom-cyclonedx
-          path: image-sbom.cdx.json
-          if-no-files-found: error
-
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
-
-      - name: Sign pushed digest
+      - name: Recheck freshness and create honest promotion predicate
+        run: node scripts/qa/release-qualification.mjs recheck
+      - name: Sign same digest from exact main workflow
         id: cosign_sign
         env:
-          COSIGN_EXPERIMENTAL: "1"
-          IMAGE_REF: ${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}
+          IMAGE_REF: ${{ steps.qualified.outputs.image_ref }}
         run: cosign sign --yes "$IMAGE_REF"
-
-      - name: Verify pushed digest signature
+      - name: Verify main release signature
         id: cosign_verify
         env:
-          COSIGN_EXPERIMENTAL: "1"
-          IMAGE_REF: ${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}
+          IMAGE_REF: ${{ steps.qualified.outputs.image_ref }}
         run: |
           cosign verify "$IMAGE_REF" \
             --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
-            --certificate-identity-regexp="^https://github.com/${{ github.repository }}/\\.github/workflows/deploy-production\\.yml@refs/heads/main$"
-
-      - name: Attest image provenance
-        id: attest_provenance
-        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+            --certificate-identity="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/deploy-production.yml@refs/heads/main"
+      - name: Attest qualified promotion of the original image
+        id: attest_promotion
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
         with:
           subject-name: ${{ env.IMAGE_NAME }}
-          subject-digest: ${{ steps.push.outputs.digest }}
+          subject-digest: ${{ steps.qualified.outputs.digest }}
+          predicate-type: https://theunreliable.engineer/attestations/factory-promotion/v1
+          predicate-path: promotion-predicate.json
           push-to-registry: true
-
-      - name: Attest image SBOM
-        id: attest_sbom
-        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
-        with:
-          subject-name: ${{ env.IMAGE_NAME }}
-          subject-digest: ${{ steps.push.outputs.digest }}
-          sbom-path: image-sbom.cdx.json
-          push-to-registry: true
-
-      - name: Promote verified digest to main without rebuilding
+      - name: Verify exact main promotion attestation
         env:
-          IMAGE_REF: ${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}
+          IMAGE_REF: ${{ steps.qualified.outputs.image_ref }}
         run: |
-          docker buildx imagetools create --tag "${IMAGE_NAME}:main" "$IMAGE_REF"
-          docker buildx imagetools inspect "${IMAGE_NAME}:main"
-
-      - name: Release digest
-        id: release
+          gh attestation verify "oci://${IMAGE_REF}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/deploy-production.yml" \
+            --source-ref refs/heads/main --source-digest "$GITHUB_SHA" \
+            --predicate-type https://theunreliable.engineer/attestations/factory-promotion/v1
+      - name: Promote same digest without rebuilding
+        env:
+          IMAGE_REF: ${{ steps.qualified.outputs.image_ref }}
+          IMAGE_DIGEST: ${{ steps.qualified.outputs.digest }}
         run: |
-          test -n "${{ steps.push.outputs.digest }}"
-          echo "image=${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
-          echo "image_ref=${IMAGE_NAME}@${{ steps.push.outputs.digest }}" >> "$GITHUB_OUTPUT"
-
+          node scripts/qa/release-qualification.mjs recheck
+          docker buildx imagetools create --prefer-index=false --tag "${IMAGE_NAME}:main" "$IMAGE_REF"
+          actual=$(docker buildx imagetools inspect "${IMAGE_NAME}:main" --format '{{json .Manifest}}' | jq -r .digest)
+          test "$actual" = "$IMAGE_DIGEST"
       - name: Emit production CI/CD event
-        if: always()
         env:
-          IMAGE_DIGEST: ${{ steps.push.outputs.digest }}
-          IMAGE_REF: ${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}
-          TRIVY_STATUS: ${{ steps.trivy_pushed_digest.outcome || 'unknown' }}
-          COSIGN_STATUS: ${{ steps.cosign_verify.outcome || steps.cosign_sign.outcome || 'unknown' }}
-          ATTESTATION_STATUS: ${{ steps.attest_provenance.outcome || 'unknown' }}
+          QUALIFICATION_REF: ${{ needs.route.outputs.qualification_ref }}
+          IMAGE_REF: ${{ steps.qualified.outputs.image_ref }}
+          IMAGE_DIGEST: ${{ steps.qualified.outputs.digest }}
         run: |
-          node scripts/emit-cicd-event.mjs \
-            --kind production-deploy \
-            --status completed \
-            --conclusion "${{ job.status }}" \
-            --image-name "${IMAGE_NAME}" \
-            --image-digest "${IMAGE_DIGEST}" \
-            --image-ref "${IMAGE_REF}" \
-            --check trivy="${TRIVY_STATUS}" \
-            --check cosign="${COSIGN_STATUS}" \
-            --check attestation="${ATTESTATION_STATUS}" \
-            --out cicd-event-production.json
-
+          node --input-type=module -e 'import {readFileSync,writeFileSync} from "node:fs"; const q=JSON.parse(readFileSync("qualified-release.json")); const {candidateSha,buildRunId,buildAttempt,treeSha,configurationSha256,publicationDate}=q;writeFileSync("event-payload.json",JSON.stringify({factoryPromotion:{qualificationRef:process.env.QUALIFICATION_REF,candidateSha,buildRunId,buildAttempt,treeSha,configurationSha256,publicationDate}}));'
+          node scripts/qa/emit-cicd-event.mjs --kind production-deploy --status completed --conclusion success --image-name "$IMAGE_NAME" --image-digest "$IMAGE_DIGEST" --image-ref "$IMAGE_REF" --check trivy=success --check cosign=success --check attestation=success --payload-file event-payload.json --out cicd-event-production.json
       - name: Upload production CI/CD event
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: cicd-event-production
           path: cicd-event-production.json
