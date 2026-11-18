@@ -34,6 +34,15 @@ export function initHeroScroll(): () => void {
       : [];
   };
 
+  const loadActiveVideos = () => {
+    for (const video of activeVideos()) {
+      const sources = video.querySelectorAll<HTMLSourceElement>("source[data-src]:not([src])");
+      if (sources.length === 0) continue;
+      sources.forEach((source) => { source.src = source.dataset.src!; });
+      video.load();
+    }
+  };
+
   const finalTime = () => {
     const duration = activeVideos()
       .map((video) => video.duration)
@@ -108,6 +117,7 @@ export function initHeroScroll(): () => void {
   };
 
   const applyMotionPreference = () => {
+    loadActiveVideos();
     window.cancelAnimationFrame(animationFrame);
     animationFrame = 0;
     allVideos.forEach((video) => video.pause());
@@ -137,7 +147,7 @@ export function initHeroScroll(): () => void {
     if (video.readyState < 1) video.addEventListener("loadedmetadata", handleMetadata, { once: true });
   });
 
-  if (activeVideos().some((video) => video.readyState >= 1)) applyMotionPreference();
+  applyMotionPreference();
   motionPreference.addEventListener("change", applyMotionPreference);
   mobileViewport.addEventListener("change", handleViewportGroupChange);
   splitViewport.addEventListener("change", handleViewportGroupChange);

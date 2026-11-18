@@ -128,6 +128,11 @@ browser.newContext = async (options = {}) => {
   return context;
 };
 
+async function assertInactiveHeroSourcesAreDeferred(page, activeGroup) {
+  const sources = page.locator(`[data-hero-video-group]:not([data-hero-video-group="${activeGroup}"]) source[src]`);
+  assert.equal(await sources.count(), 0, `${activeGroup}: inactive hero video sources must be deferred on load`);
+}
+
 try {
   for (const viewport of viewports) {
     const context = await browser.newContext({
@@ -270,6 +275,7 @@ try {
     }
 
     const expectedHeroGroup = viewport.width > 1100 ? "wide" : viewport.width > 760 ? "split" : "mobile";
+    await assertInactiveHeroSourcesAreDeferred(page, expectedHeroGroup);
     const activeHeroGroup = page.locator(`[data-hero-video-group="${expectedHeroGroup}"]`);
     assert.equal(await activeHeroGroup.count(), 1, `${viewport.name}: expected ${expectedHeroGroup} hero group`);
     assert(await activeHeroGroup.evaluate((element) => getComputedStyle(element).display !== "none"), `${viewport.name}: ${expectedHeroGroup} hero group must be visible`);
@@ -342,6 +348,7 @@ try {
   const motionPage = await motionContext.newPage();
   const motionResponse = await motionPage.goto(origin, { waitUntil: "networkidle" });
   assert.equal(motionResponse?.status(), 200, "Motion QA: home did not return 200");
+  await assertInactiveHeroSourcesAreDeferred(motionPage, "wide");
   const motionVideo = motionPage.locator('[data-hero-video-group="wide"] [data-hero-video]');
   await motionVideo.evaluate((video) => new Promise((resolve, reject) => {
     if (video.readyState >= 1) return resolve();
@@ -459,6 +466,7 @@ try {
     assert.equal(response?.status(), 200, `${responsiveMotionViewport.name}: home did not return 200`);
     const overflow = await responsiveMotionPage.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert(overflow <= 1, `${responsiveMotionViewport.name}: horizontal overflow of ${overflow}px before reveal`);
+    await assertInactiveHeroSourcesAreDeferred(responsiveMotionPage, responsiveMotionViewport.group);
     const group = responsiveMotionPage.locator(`[data-hero-video-group="${responsiveMotionViewport.group}"]`);
     const videos = group.locator("[data-hero-video]");
     assert.equal(await videos.count(), responsiveMotionViewport.videos, `${responsiveMotionViewport.name}: unexpected video count`);
