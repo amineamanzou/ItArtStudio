@@ -6,6 +6,8 @@ on:
     paths-ignore:
       - '.github/workflows/build-staging.yml'
       - '.github/workflows/deploy-production.yml'
+      - 'package.json'
+      - 'package-lock.json'
   workflow_dispatch:
 
 concurrency:
