@@ -457,6 +457,8 @@ try {
     const responsiveMotionPage = await responsiveMotionContext.newPage();
     const response = await responsiveMotionPage.goto(origin, { waitUntil: "networkidle" });
     assert.equal(response?.status(), 200, `${responsiveMotionViewport.name}: home did not return 200`);
+    const overflow = await responsiveMotionPage.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert(overflow <= 1, `${responsiveMotionViewport.name}: horizontal overflow of ${overflow}px before reveal`);
     const group = responsiveMotionPage.locator(`[data-hero-video-group="${responsiveMotionViewport.group}"]`);
     const videos = group.locator("[data-hero-video]");
     assert.equal(await videos.count(), responsiveMotionViewport.videos, `${responsiveMotionViewport.name}: unexpected video count`);
