@@ -4,6 +4,12 @@ WORKDIR /app
 ARG SITE_URL=https://itart.studio
 ARG BASE_PATH=/
 ARG VCS_REF=unknown
+ARG TREE_SHA
+ARG BUILD_RUN_ID
+ARG BUILD_ATTEMPT
+ARG PUBLICATION_DATE
+ARG RELEASE_VARIANT
+ARG RELEASE_CONFIGURATION
 
 COPY package.json package-lock.json ./
 RUN npm ci && npm audit --audit-level=moderate
@@ -13,7 +19,8 @@ COPY public ./public
 COPY scripts ./scripts
 COPY src ./src
 
-RUN SITE_URL="${SITE_URL}" BASE_PATH="${BASE_PATH}" npm run build
+RUN SITE_URL="${SITE_URL}" BASE_PATH="${BASE_PATH}" npm run build \
+  && if [ -n "$RELEASE_CONFIGURATION" ]; then node scripts/qa/release-candidate.mjs metadata; fi
 
 FROM golang:1.26.5-alpine@sha256:0178a641fbb4858c5f1b48e34bdaabe0350a330a1b1149aabd498d0699ff5fb2 AS caddy-build
 WORKDIR /src
