@@ -44,6 +44,11 @@ body {
   background: var(--void);
 }
 
+.has-split-axis > main {
+  /* Contain side reveals without changing the vertical scroll container. */
+  overflow-x: clip;
+}
+
 body::before {
   position: absolute;
   inset: 0 auto 0 50%;
