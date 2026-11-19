@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "branches": {
+    "integration": "dev",
+    "stable": "main"
+  },
+  "product_merge": "human_approval",
+  "dependabot_merge": "qualified_tests_and_remote_ci_green",
+  "local_validation": {
+    "executor": "native_factory",
+    "publish_or_deploy": false,
+    "qualification": "pending",
+    "validation_ref": "dev",
+    "commands": [
+      [
+        "npm",
+        "ci",
+        "--ignore-scripts"
+      ],
+      [
+        "npm",
+        "audit",
+        "--audit-level=moderate"
+      ],
+      [
+        "npm",
+        "run",
+        "check"
+      ],
+      [
+        "npm",
+        "run",
+        "build"
+      ],
+      [
+        "npm",
+        "run",
+        "qa:static"
+      ]
+    ],
+    "receipt_binding": [
+      "repository",
+      "head_sha",
+      "base_sha",
+      "recipe_sha256",
+      "toolchain",
+      "results",
+      "artifact_digests"
+    ],
+    "disposable_database_required": false
+  },
+  "linux_validation": {
+    "preserve_existing_required_checks": true,
+    "lightweight_check": "Factory contract",
+    "retain_delivery_security_jobs": true
+  }
+}
