@@ -73,10 +73,10 @@ await mkdir(artifactDirectory, { recursive: true });
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const address = server.address();
 assert(address && typeof address === "object", "Static QA server did not start");
-const origin = process.env.QA_ORIGIN ?? `http://127.0.0.1:${address.port}`;
-const remote = new URL(origin);
+const remote = new URL(process.env.QA_ORIGIN ?? `http://127.0.0.1:${address.port}`);
 assert(!remote.username && !remote.password && remote.pathname === "/" && !remote.search && !remote.hash, "Invalid QA origin");
 assert(remote.protocol === "https:" || (remote.protocol === "http:" && ["localhost", "127.0.0.1"].includes(remote.hostname)), "QA requires HTTPS or loopback");
+const origin = remote.origin;
 
 const viewports = [
   { name: "wide-desktop", width: 1920, height: 1080 },

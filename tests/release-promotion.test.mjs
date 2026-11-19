@@ -55,11 +55,14 @@ test('main release mapping checks actual merge parents and tree in Git',()=>{
 test('original verified SLSA must bind candidate subject, ref, run and attempt',()=>{
   assert.equal(typeof qualification.verifyBuildProvenance,'function');
   const q=payload();const statement={subject:[{name:q.imageRef.split('@')[0],digest:{sha256:hash}}],predicateType:'https://slsa.dev/provenance/v1',predicate:{buildDefinition:{externalParameters:{workflow:{repository:'https://github.com/'+q.repository,path:'.github/workflows/build-staging.yml',ref:q.sourceRef}},resolvedDependencies:[{uri:`git+https://github.com/${q.repository}@${q.sourceRef}`,digest:{gitCommit:q.candidateSha}}]},runDetails:{metadata:{invocationId:`https://github.com/${q.repository}/actions/runs/${q.buildRunId}/attempts/${q.buildAttempt}`}}}};
-  const certificate={issuer:'https://token.actions.githubusercontent.com',subjectAlternativeName:`https://github.com/${q.repository}/.github/workflows/build-staging.yml@${q.sourceRef}`,sourceRepositoryURI:`https://github.com/${q.repository}`,sourceRepositoryDigest:q.candidateSha,sourceRepositoryRef:q.sourceRef,runInvocationURI:`https://github.com/${q.repository}/actions/runs/${q.buildRunId}/attempts/${q.buildAttempt}`};
+  const certificate={issuer:'https://token.actions.githubusercontent.com',certificateIssuer:'CN=sigstore-intermediate,O=sigstore.dev',subjectAlternativeName:`https://github.com/${q.repository}/.github/workflows/build-staging.yml@${q.sourceRef}`,sourceRepositoryURI:`https://github.com/${q.repository}`,sourceRepositoryDigest:q.candidateSha,sourceRepositoryRef:q.sourceRef,runInvocationURI:`https://github.com/${q.repository}/actions/runs/${q.buildRunId}/attempts/${q.buildAttempt}`};
   const result=s=>[{verificationResult:{statement:s,signature:{certificate}}}];
   qualification.verifyBuildProvenance(result(statement),q);
   const badCertificate=structuredClone(result(statement));badCertificate[0].verificationResult.signature.certificate.runInvocationURI=certificate.runInvocationURI.replace('/1234/','/999/');
   assert.throws(()=>qualification.verifyBuildProvenance(badCertificate,q));
+  const wrongOidcIssuer=structuredClone(result(statement));
+  wrongOidcIssuer[0].verificationResult.signature.certificate.issuer='https://unexpected.invalid';
+  assert.throws(()=>qualification.verifyBuildProvenance(wrongOidcIssuer,q));
   for(const mutate of [s=>s.subject[0].digest.sha256='b'.repeat(64),s=>s.predicate.buildDefinition.externalParameters.workflow.ref='refs/heads/main',s=>s.predicate.buildDefinition.resolvedDependencies[0].digest.gitCommit=sha(9),s=>s.predicate.runDetails.metadata.invocationId=s.predicate.runDetails.metadata.invocationId.replace('/1234/','/999/'),s=>s.predicate.runDetails.metadata.invocationId=s.predicate.runDetails.metadata.invocationId.replace('/2','/3')]) {const bad=structuredClone(statement);mutate(bad);assert.throws(()=>qualification.verifyBuildProvenance(result(bad),q));}
 });
 test('schedule and ordinary pushes request qualification; owned merged PR selects only its tag',()=>{
