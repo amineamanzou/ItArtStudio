@@ -9,7 +9,7 @@ const packageMetadata = JSON.parse(await readFile("package.json", "utf8"));
 
 for (const contract of [
   "Emit production CI/CD event",
-  "scripts/emit-cicd-event.mjs",
+  "scripts/qa/emit-cicd-event.mjs",
   "cicd-event-production.json",
   "name: cicd-event-production"
 ]) {
@@ -23,7 +23,7 @@ try {
   const result = spawnSync(
     process.execPath,
     [
-      "scripts/emit-cicd-event.mjs",
+      "scripts/qa/emit-cicd-event.mjs",
       "--kind", "production-deploy",
       "--status", "completed",
       "--conclusion", "success",
