@@ -49,6 +49,7 @@ export function verifyBuildProvenance(results,q) {
   requireValue(Array.isArray(results),'Expected verified attestation results');
   const ok=results.some(result=>{
     const s=result.verificationResult?.statement,p=s?.predicate,b=p?.buildDefinition,w=b?.externalParameters?.workflow;
+    // `issuer` is the GitHub OIDC issuer. `certificateIssuer` is the signing CA distinguished name.
     const c=result.verificationResult?.signature?.certificate;
     const invocation=`https://github.com/${REPOSITORY}/actions/runs/${q.buildRunId}/attempts/${q.buildAttempt}`;
     if(c?.issuer!=='https://token.actions.githubusercontent.com'||c?.subjectAlternativeName!==`https://github.com/${REPOSITORY}/.github/workflows/build-staging.yml@${q.sourceRef}`||c?.sourceRepositoryURI!==`https://github.com/${REPOSITORY}`||c?.sourceRepositoryDigest!==q.candidateSha||c?.sourceRepositoryRef!==q.sourceRef||c?.runInvocationURI!==invocation)return false;
