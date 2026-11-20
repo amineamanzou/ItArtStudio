@@ -155,7 +155,7 @@ jobs:
           exit-code: "0"
 
       - name: Upload Trivy SARIF to code scanning
-        uses: github/codeql-action/upload-sarif@e9c4b4b153701845b921f167180044d14fe89b94 # v4.33.0
+        uses: github/codeql-action/upload-sarif@e9c4b4b153701845b921f167180044d14fe89b94 # codeql-bundle-v2.27.5 update
         with:
           sarif_file: trivy-results.sarif
 
