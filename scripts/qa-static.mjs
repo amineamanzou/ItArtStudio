@@ -81,12 +81,15 @@ const origin = remote.origin;
 const viewports = [
   { name: "wide-desktop", width: 1920, height: 1080 },
   { name: "desktop", width: 1440, height: 1000 },
+  { name: "short-laptop", width: 1440, height: 650 },
   { name: "tablet", width: 768, height: 1024 },
   { name: "mobile", width: 390, height: 844 },
   { name: "mobile-320", width: 320, height: 800 }
 ];
 
 const report = [];
+const contrastReport = [];
+const beatSampling = { samples: 8, intervalMs: 650 };
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
   ?? (process.platform === "darwin"
     ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
@@ -211,6 +214,84 @@ async function readStratumTransforms(page) {
     document.querySelectorAll(`[data-hero-field-side="${side}"] .hero-stratum__track`),
     (track) => getComputedStyle(track).transform
   )));
+}
+
+const practiceCopySelectors = [
+  ".hero-scroll__practice--art > p",
+  ".hero-scroll__practice--art h2",
+  ".hero-scroll__practice--art a",
+  ".hero-scroll__practice--it > p",
+  ".hero-scroll__practice--it h2",
+  ".hero-scroll__practice--it a"
+];
+
+/*
+ * Samples the hero practice copy over several beats. For each sample the glyphs
+ * are hidden, each copy box is captured with the moving strata behind it, and
+ * the text colour is compared with the 99.5th-percentile brightest background
+ * pixel of that box (WCAG relative luminance).
+ */
+async function assertPracticeCopyContrast(page, name, { samples, intervalMs, minimum = 4.5 }) {
+  const copies = await page.evaluate((selectors) => selectors.flatMap((selector) => {
+    const element = document.querySelector(selector);
+    if (!element) return [];
+    const box = element.getBoundingClientRect();
+    if (box.width === 0 || box.height === 0 || getComputedStyle(element).display === "none") return [];
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    const context = canvas.getContext("2d");
+    context.fillStyle = getComputedStyle(element).color;
+    context.fillRect(0, 0, 1, 1);
+    const [red, green, blue] = context.getImageData(0, 0, 1, 1).data;
+    return [{ selector, rgb: [red, green, blue] }];
+  }), practiceCopySelectors);
+  assert(copies.some((copy) => copy.selector.endsWith("--art > p")), `${name}: ART label must be measured`);
+  assert(copies.some((copy) => copy.selector.endsWith("--it > p")), `${name}: IT label must be measured`);
+
+  const worst = Object.fromEntries(copies.map((copy) => [copy.selector, Number.POSITIVE_INFINITY]));
+  for (let sample = 0; sample < samples; sample += 1) {
+    if (sample > 0) await page.waitForTimeout(intervalMs);
+    const style = await page.addStyleTag({
+      content: ".hero-scroll__practice > p, .hero-scroll__practice h2, .hero-scroll__practice a { color: transparent !important; text-shadow: none !important; border-color: transparent !important; outline: none !important; }"
+    });
+    for (const copy of copies) {
+      const box = await page.locator(copy.selector).boundingBox();
+      const capture = await page.screenshot({ clip: box, animations: "allow" });
+      const contrast = await page.evaluate(async ({ image, rgb }) => {
+        const luminance = (channels) => {
+          const [r, g, b] = channels.map((value) => {
+            const channel = value / 255;
+            return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+          });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const picture = new Image();
+        picture.src = `data:image/png;base64,${image}`;
+        await picture.decode();
+        const canvas = document.createElement("canvas");
+        canvas.width = picture.naturalWidth;
+        canvas.height = picture.naturalHeight;
+        const context = canvas.getContext("2d");
+        context.drawImage(picture, 0, 0);
+        const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+        const backgrounds = [];
+        for (let index = 0; index < data.length; index += 4) {
+          backgrounds.push(luminance([data[index], data[index + 1], data[index + 2]]));
+        }
+        backgrounds.sort((left, right) => left - right);
+        const brightest = backgrounds[Math.min(backgrounds.length - 1, Math.floor(backgrounds.length * 0.995))];
+        return (luminance(rgb) + 0.05) / (brightest + 0.05);
+      }, { image: capture.toString("base64"), rgb: copy.rgb });
+      worst[copy.selector] = Math.min(worst[copy.selector], contrast);
+    }
+    await style.evaluate((element) => element.remove());
+  }
+
+  for (const [selector, contrast] of Object.entries(worst)) {
+    assert(contrast >= minimum, `${name}: ${selector} contrast fell to ${contrast.toFixed(2)}:1 (minimum ${minimum}:1 over ${samples} samples)`);
+  }
+  return Object.fromEntries(Object.entries(worst).map(([selector, contrast]) => [selector, Number(contrast.toFixed(2))]));
 }
 
 async function assertHeroMovesUnprompted(page, name) {
@@ -374,6 +455,7 @@ try {
     const reducedTransforms = await readStratumTransforms(page);
     await page.waitForTimeout(1300);
     assert.deepEqual(await readStratumTransforms(page), reducedTransforms, `${viewport.name}: reduced-motion strata must not move`);
+    contrastReport.push({ name: viewport.name, motion: "reduce", worst: await assertPracticeCopyContrast(page, viewport.name, { samples: 1, intervalMs: 0 }) });
     await page.screenshot({ path: join(artifactDirectory, `${viewport.name}-hero-reduced.png`) });
 
     const reducedSignature = page.locator("[data-hero-signature]");
@@ -452,6 +534,7 @@ try {
   await motionPage.screenshot({ path: join(artifactDirectory, "motion-start.png") });
   await assertHeroMovesUnprompted(motionPage, "Motion QA");
   await motionPage.screenshot({ path: join(artifactDirectory, "motion-later.png") });
+  contrastReport.push({ name: "desktop-motion", motion: "no-preference", worst: await assertPracticeCopyContrast(motionPage, "Motion QA", beatSampling) });
 
   const scrollRange = await motionPage.locator("[data-hero-scroll]").evaluate((section) => section.offsetHeight - window.innerHeight);
   const signatureAtArrival = await motionPage.locator("[data-hero-signature]").boundingBox();
@@ -539,6 +622,8 @@ try {
   await motionContext.close();
 
   for (const responsiveMotionViewport of [
+    /* Short laptop: the strata rise behind the practice labels (Astra, #28). */
+    { name: "short-laptop-motion", width: 1440, height: 650 },
     { name: "tablet-motion", width: 768, height: 1024 },
     { name: "mobile-motion", width: 390, height: 844 },
     { name: "mobile-320-motion", width: 320, height: 640 }
@@ -559,6 +644,11 @@ try {
     assert(responsiveHero.art.runningAnimations > 0 && responsiveHero.it.runningAnimations > 0, `${responsiveMotionViewport.name}: both halves must animate on arrival`);
     await assertHeroMovesUnprompted(responsiveMotionPage, responsiveMotionViewport.name);
     await responsiveMotionPage.screenshot({ path: join(artifactDirectory, `${responsiveMotionViewport.name}-hero.png`) });
+    contrastReport.push({
+      name: responsiveMotionViewport.name,
+      motion: "no-preference",
+      worst: await assertPracticeCopyContrast(responsiveMotionPage, responsiveMotionViewport.name, beatSampling)
+    });
     const range = await responsiveMotionPage.locator("[data-hero-scroll]").evaluate((section) => section.offsetHeight - window.innerHeight);
     await responsiveMotionPage.evaluate((distance) => window.scrollTo(0, distance), range);
     await responsiveMotionPage.waitForTimeout(300);
@@ -657,7 +747,8 @@ try {
   }
 
   await writeFile(join(artifactDirectory, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
-  console.log(JSON.stringify({ passed: true, screenshots: report.length, report }, null, 2));
+  await writeFile(join(artifactDirectory, "hero-contrast.json"), `${JSON.stringify(contrastReport, null, 2)}\n`);
+  console.log(JSON.stringify({ passed: true, screenshots: report.length, report, heroContrast: contrastReport }, null, 2));
 } finally {
   await browser.close();
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));

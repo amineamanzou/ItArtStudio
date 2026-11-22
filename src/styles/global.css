@@ -397,19 +397,49 @@ p {
 }
 
 .hero-scroll__practice {
+  --practice-edge: var(--page-pad);
+  --practice-bottom: clamp(3.5rem, 7vh, 6rem);
+  --practice-fade: 7rem;
+  --practice-veil: oklch(6% 0.02 255 / 92%);
   position: absolute;
-  bottom: clamp(3.5rem, 7vh, 6rem);
+  bottom: var(--practice-bottom);
   z-index: 5;
   width: min(25rem, calc(42vw - var(--page-pad)));
 }
 
+/*
+ * A stable dusk pools from the outer and lower edges of each half behind the
+ * practice copy. It reaches full depth at the label, fades out above it and
+ * toward the axis, and never crosses the axis. The strata keep moving behind it.
+ */
+.hero-scroll__practice::before {
+  position: absolute;
+  top: -4.5rem;
+  bottom: calc(-1 * var(--practice-bottom));
+  z-index: -1;
+  width: min(calc(100% + var(--practice-edge) + var(--practice-fade)), calc(50vw - 1px));
+  background: linear-gradient(180deg, transparent, var(--practice-veil) 4.5rem);
+  content: "";
+  pointer-events: none;
+}
+
 .hero-scroll__practice--art {
-  left: var(--page-pad);
+  left: var(--practice-edge);
+}
+
+.hero-scroll__practice--art::before {
+  left: calc(-1 * var(--practice-edge));
+  mask-image: linear-gradient(90deg, #000 calc(100% - var(--practice-fade)), transparent);
 }
 
 .hero-scroll__practice--it {
-  right: var(--page-pad);
+  right: var(--practice-edge);
   text-align: right;
+}
+
+.hero-scroll__practice--it::before {
+  right: calc(-1 * var(--practice-edge));
+  mask-image: linear-gradient(270deg, #000 calc(100% - var(--practice-fade)), transparent);
 }
 
 .hero-scroll__practice > p {
@@ -1212,16 +1242,10 @@ p {
   }
 
   .hero-scroll__practice {
-    bottom: 4.5rem;
+    --practice-edge: 1rem;
+    --practice-bottom: 4.5rem;
+    --practice-fade: 3rem;
     width: calc(50% - 1.5rem);
-  }
-
-  .hero-scroll__practice--art {
-    left: 1rem;
-  }
-
-  .hero-scroll__practice--it {
-    right: 1rem;
   }
 
   .hero-scroll__practice > p {
