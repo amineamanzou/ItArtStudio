@@ -3,6 +3,7 @@ import { access, readFile } from "node:fs/promises";
 
 const requiredFiles = [
   "src/data/site.ts",
+  "src/data/hero-field.ts",
   "src/layouts/BaseLayout.astro",
   "src/pages/index.astro",
   "src/scripts/hero-scroll.ts",
@@ -47,15 +48,37 @@ assert(!source.includes("contact@itart.studio"), "Legacy contact found");
 
 for (const heroContract of [
   "data-hero-scroll",
-  "hero-scroll.webm",
-  "hero-scroll.mp4",
-  "hero-scroll-poster.jpg",
+  "data-hero-field",
+  "data-hero-field-side={side}",
   "prefers-reduced-motion",
-  "currentTime",
-  ".pause()"
+  "IntersectionObserver"
 ]) {
-  assert(source.includes(heroContract), `Hero scroll contract is missing: ${heroContract}`);
+  assert(source.includes(heroContract), `Hero composition contract is missing: ${heroContract}`);
 }
+
+const heroFieldSource = await readFile("src/data/hero-field.ts", "utf8");
+const heroControllerSource = await readFile("src/scripts/hero-scroll.ts", "utf8");
+assert(!/<video\b/i.test(homeSource), "Home must not render a background video");
+for (const retiredVideoContract of [".mp4", ".webm", "hero-scroll-poster", "data-hero-video"]) {
+  assert(!homeSource.includes(retiredVideoContract), `Retired hero video contract remains: ${retiredVideoContract}`);
+}
+for (const retiredVideoControl of ["currentTime", "HTMLVideoElement", ".load()"]) {
+  assert(!heroControllerSource.includes(retiredVideoControl), `Hero controller still drives video: ${retiredVideoControl}`);
+}
+assert(
+  homeSource.includes('(["art", "it"] as const)'),
+  "Hero composition must render ART before IT, left then right"
+);
+assert(heroFieldSource.includes("heroBeatSeconds"), "Hero halves must share one beat");
+assert(heroFieldSource.includes("organicPoints") && heroFieldSource.includes("sampledPoints"), "Hero must read the same signal organically (ART) and sampled (IT)");
+for (const motionRule of ["@keyframes stratum-flow", "@keyframes stratum-swell", "@keyframes sample-cursor", "steps(var(--samples)"]) {
+  assert(styleSource.includes(motionRule), `Hero motion rule is missing: ${motionRule}`);
+}
+const reducedMotionBlocks = styleSource.match(/@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\n\}/g) ?? [];
+assert(
+  reducedMotionBlocks.some((block) => block.includes(".hero-field") && block.includes("animation: none")),
+  "Reduced motion must hold the hero composition still"
+);
 
 const clientReferences = [
   "bioMérieux",
@@ -120,19 +143,6 @@ const footerSource = layoutSource.match(/<footer[\s\S]*?<\/footer>/)?.[0] ?? "";
 assert(!footerSource.includes("mailto:"), "Footer must not repeat a contact email");
 assert(footerSource.includes("company.legalForm"), "Footer must retain the legal company form");
 assert(homeSource.includes("data-hero-signature"), "Persistent hero signature contract is missing");
-for (const group of ["wide", "split", "mobile"]) {
-  assert(
-    homeSource.includes(`data-hero-video-group="${group}"`),
-    `Responsive hero video group is missing: ${group}`
-  );
-}
-for (const mobileAsset of [
-  "hero-scroll-mobile.webm",
-  "hero-scroll-mobile.mp4",
-  "hero-scroll-mobile-poster.jpg"
-]) {
-  assert(homeSource.includes(mobileAsset), `Mobile hero asset is missing: ${mobileAsset}`);
-}
 assert(
   homeSource.indexOf("practice-services--art") < homeSource.indexOf("practice-services--it"),
   "ART services must render before IT services"

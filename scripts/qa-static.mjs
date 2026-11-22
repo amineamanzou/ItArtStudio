@@ -81,12 +81,15 @@ const origin = remote.origin;
 const viewports = [
   { name: "wide-desktop", width: 1920, height: 1080 },
   { name: "desktop", width: 1440, height: 1000 },
+  { name: "short-laptop", width: 1440, height: 650 },
   { name: "tablet", width: 768, height: 1024 },
   { name: "mobile", width: 390, height: 844 },
   { name: "mobile-320", width: 320, height: 800 }
 ];
 
 const report = [];
+const contrastReport = [];
+const beatSampling = { samples: 8, intervalMs: 650 };
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
   ?? (process.platform === "darwin"
     ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
@@ -128,9 +131,180 @@ browser.newContext = async (options = {}) => {
   return context;
 };
 
-async function assertInactiveHeroSourcesAreDeferred(page, activeGroup) {
-  const sources = page.locator(`[data-hero-video-group]:not([data-hero-video-group="${activeGroup}"]) source[src]`);
-  assert.equal(await sources.count(), 0, `${activeGroup}: inactive hero video sources must be deferred on load`);
+const retiredHeroVideoPaths = [
+  "/assets/hero-scroll.mp4",
+  "/assets/hero-scroll.webm",
+  "/assets/hero-scroll-poster.jpg",
+  "/assets/hero-scroll-mobile.mp4",
+  "/assets/hero-scroll-mobile.webm",
+  "/assets/hero-scroll-mobile-poster.jpg"
+];
+
+function trackMediaRequests(page) {
+  const requests = [];
+  page.on("request", (request) => {
+    if (request.resourceType() === "media" || /\.(?:mp4|webm)(?:[?#]|$)/i.test(request.url())) {
+      requests.push(request.url());
+    }
+  });
+  return requests;
+}
+
+async function readHeroComposition(page) {
+  return page.evaluate(() => {
+    const rect = (element) => element?.getBoundingClientRect().toJSON();
+    const hero = document.querySelector("[data-hero-scroll]");
+    const side = (name) => {
+      const field = document.querySelector(`[data-hero-field-side="${name}"]`);
+      const visibleStrata = Array.from(field?.querySelectorAll(".hero-stratum") ?? []).filter((stratum) => {
+        const box = stratum.getBoundingClientRect();
+        return box.width > 0 && box.height > 0 && getComputedStyle(stratum).visibility !== "hidden";
+      });
+      return {
+        rect: rect(field),
+        bodies: visibleStrata.filter((stratum) => stratum.classList.contains("hero-stratum--body")).length,
+        echoes: visibleStrata.filter((stratum) => stratum.classList.contains("hero-stratum--ghost")).length,
+        runningAnimations: (field?.getAnimations({ subtree: true }) ?? []).filter((animation) => animation.playState === "running").length
+      };
+    };
+    const links = Array.from(document.querySelectorAll(".hero-scroll__practice a"), (link) => {
+      const box = link.getBoundingClientRect();
+      const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+      return { href: link.getAttribute("href"), rect: box.toJSON(), unobscured: hit === link || link.contains(hit) };
+    });
+    return {
+      midpoint: window.innerWidth / 2,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      videoCount: document.querySelectorAll("video").length,
+      fieldState: hero?.getAttribute("data-hero-field"),
+      art: side("art"),
+      it: side("it"),
+      practiceArt: rect(document.querySelector(".hero-scroll__practice--art")),
+      practiceIt: rect(document.querySelector(".hero-scroll__practice--it")),
+      signature: rect(document.querySelector("[data-hero-signature] h1")),
+      links
+    };
+  });
+}
+
+function assertHeroHalves(name, hero) {
+  const { art, it, midpoint, viewportWidth } = hero;
+  assert.equal(hero.videoCount, 0, `${name}: the home must not render a background video`);
+  assert(art.rect && it.rect, `${name}: both hero halves must render`);
+  assert(Math.abs(art.rect.left) <= 1 && Math.abs(art.rect.right - midpoint) <= 1, `${name}: ART field must fill the left half`);
+  assert(Math.abs(it.rect.left - midpoint) <= 1 && Math.abs(it.rect.right - viewportWidth) <= 1, `${name}: IT field must fill the right half`);
+  assert(Math.abs(art.rect.width - it.rect.width) <= 1, `${name}: hero halves must carry equal weight`);
+  assert(art.bodies === 4 && it.bodies === 4, `${name}: each half must show four strata (${art.bodies}/${it.bodies})`);
+  assert(art.echoes === 2 && it.echoes === 2, `${name}: each half must show two echo lines (${art.echoes}/${it.echoes})`);
+  assert(hero.practiceArt?.right <= midpoint + 1, `${name}: ART practice text crosses into IT`);
+  assert(hero.practiceIt?.left >= midpoint - 1, `${name}: IT practice text crosses into ART`);
+  assert(hero.signature, `${name}: hero signature is missing`);
+  assert(Math.abs((hero.signature.left + hero.signature.right) / 2 - midpoint) <= 2, `${name}: signature must sit on the seam`);
+  assert(hero.signature.left >= 0 && hero.signature.right <= viewportWidth && hero.signature.top >= 0, `${name}: signature must stay inside the viewport`);
+  assert.equal(hero.links.length, 2, `${name}: both practice links must render`);
+  for (const link of hero.links) {
+    assert(link.rect.bottom <= hero.viewportHeight && link.rect.right <= viewportWidth && link.rect.left >= 0, `${name}: ${link.href} must be visible in the first screen`);
+    assert(link.unobscured, `${name}: ${link.href} is covered by the hero composition`);
+  }
+}
+
+async function readStratumTransforms(page) {
+  return page.evaluate(() => ["art", "it"].map((side) => Array.from(
+    document.querySelectorAll(`[data-hero-field-side="${side}"] .hero-stratum__track`),
+    (track) => getComputedStyle(track).transform
+  )));
+}
+
+const practiceCopySelectors = [
+  ".hero-scroll__practice--art > p",
+  ".hero-scroll__practice--art h2",
+  ".hero-scroll__practice--art a",
+  ".hero-scroll__practice--it > p",
+  ".hero-scroll__practice--it h2",
+  ".hero-scroll__practice--it a"
+];
+
+/*
+ * Samples the hero practice copy over several beats. For each sample the glyphs
+ * are hidden, each copy box is captured with the moving strata behind it, and
+ * the text colour is compared with the 99.5th-percentile brightest background
+ * pixel of that box (WCAG relative luminance).
+ */
+async function assertPracticeCopyContrast(page, name, { samples, intervalMs, minimum = 4.5 }) {
+  const copies = await page.evaluate((selectors) => selectors.flatMap((selector) => {
+    const element = document.querySelector(selector);
+    if (!element) return [];
+    const box = element.getBoundingClientRect();
+    if (box.width === 0 || box.height === 0 || getComputedStyle(element).display === "none") return [];
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    const context = canvas.getContext("2d");
+    context.fillStyle = getComputedStyle(element).color;
+    context.fillRect(0, 0, 1, 1);
+    const [red, green, blue] = context.getImageData(0, 0, 1, 1).data;
+    return [{ selector, rgb: [red, green, blue] }];
+  }), practiceCopySelectors);
+  assert(copies.some((copy) => copy.selector.endsWith("--art > p")), `${name}: ART label must be measured`);
+  assert(copies.some((copy) => copy.selector.endsWith("--it > p")), `${name}: IT label must be measured`);
+
+  const worst = Object.fromEntries(copies.map((copy) => [copy.selector, Number.POSITIVE_INFINITY]));
+  for (let sample = 0; sample < samples; sample += 1) {
+    if (sample > 0) await page.waitForTimeout(intervalMs);
+    const style = await page.addStyleTag({
+      content: ".hero-scroll__practice > p, .hero-scroll__practice h2, .hero-scroll__practice a { color: transparent !important; text-shadow: none !important; border-color: transparent !important; outline: none !important; }"
+    });
+    for (const copy of copies) {
+      const box = await page.locator(copy.selector).boundingBox();
+      const capture = await page.screenshot({ clip: box, animations: "allow" });
+      const contrast = await page.evaluate(async ({ image, rgb }) => {
+        const luminance = (channels) => {
+          const [r, g, b] = channels.map((value) => {
+            const channel = value / 255;
+            return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+          });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const picture = new Image();
+        picture.src = `data:image/png;base64,${image}`;
+        await picture.decode();
+        const canvas = document.createElement("canvas");
+        canvas.width = picture.naturalWidth;
+        canvas.height = picture.naturalHeight;
+        const context = canvas.getContext("2d");
+        context.drawImage(picture, 0, 0);
+        const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+        const backgrounds = [];
+        for (let index = 0; index < data.length; index += 4) {
+          backgrounds.push(luminance([data[index], data[index + 1], data[index + 2]]));
+        }
+        backgrounds.sort((left, right) => left - right);
+        const brightest = backgrounds[Math.min(backgrounds.length - 1, Math.floor(backgrounds.length * 0.995))];
+        return (luminance(rgb) + 0.05) / (brightest + 0.05);
+      }, { image: capture.toString("base64"), rgb: copy.rgb });
+      worst[copy.selector] = Math.min(worst[copy.selector], contrast);
+    }
+    await style.evaluate((element) => element.remove());
+  }
+
+  for (const [selector, contrast] of Object.entries(worst)) {
+    assert(contrast >= minimum, `${name}: ${selector} contrast fell to ${contrast.toFixed(2)}:1 (minimum ${minimum}:1 over ${samples} samples)`);
+  }
+  return Object.fromEntries(Object.entries(worst).map(([selector, contrast]) => [selector, Number(contrast.toFixed(2))]));
+}
+
+async function assertHeroMovesUnprompted(page, name) {
+  const before = await readStratumTransforms(page);
+  /* Longer than one shared beat, so the stepped IT strata must have advanced. */
+  await page.waitForTimeout(1600);
+  const after = await readStratumTransforms(page);
+  for (const [index, side] of ["art", "it"].entries()) {
+    assert(
+      before[index].some((transform, stratum) => transform !== after[index][stratum]),
+      `${name}: ${side.toUpperCase()} strata must move without interaction`
+    );
+  }
 }
 
 try {
@@ -141,6 +315,7 @@ try {
       reducedMotion: "reduce"
     });
     const page = await context.newPage();
+    const mediaRequests = trackMediaRequests(page);
     const browserErrors = [];
     page.on("console", (message) => {
       if (message.type() === "error") browserErrors.push(message.text());
@@ -274,28 +449,14 @@ try {
       );
     }
 
-    const expectedHeroGroup = viewport.width > 1100 ? "wide" : viewport.width > 760 ? "split" : "mobile";
-    await assertInactiveHeroSourcesAreDeferred(page, expectedHeroGroup);
-    const activeHeroGroup = page.locator(`[data-hero-video-group="${expectedHeroGroup}"]`);
-    assert.equal(await activeHeroGroup.count(), 1, `${viewport.name}: expected ${expectedHeroGroup} hero group`);
-    assert(await activeHeroGroup.evaluate((element) => getComputedStyle(element).display !== "none"), `${viewport.name}: ${expectedHeroGroup} hero group must be visible`);
-    const activeHeroVideos = activeHeroGroup.locator("[data-hero-video]");
-    assert.equal(await activeHeroVideos.count(), expectedHeroGroup === "split" ? 2 : 1, `${viewport.name}: unexpected active hero video count`);
-    for (let videoIndex = 0; videoIndex < await activeHeroVideos.count(); videoIndex += 1) {
-      const heroVideo = activeHeroVideos.nth(videoIndex);
-      await heroVideo.evaluate((video) => new Promise((resolve, reject) => {
-        if (video.readyState >= 1) return resolve();
-        video.addEventListener("loadedmetadata", resolve, { once: true });
-        video.addEventListener("error", () => reject(new Error("hero video failed to load")), { once: true });
-      }));
-      assert(await heroVideo.evaluate((video) => video.paused), `${viewport.name}: hero video must remain paused`);
-      assert(await heroVideo.evaluate((video) => Math.abs(video.currentTime - video.duration) < 0.12), `${viewport.name}: reduced-motion hero must show its final frame`);
-    }
-    if (expectedHeroGroup === "mobile") {
-      const mobileDimensions = await activeHeroVideos.first().evaluate((video) => ({ width: video.videoWidth, height: video.videoHeight }));
-      assert(mobileDimensions.height > mobileDimensions.width, `${viewport.name}: mobile hero must use a vertical source`);
-      assert(Math.abs(mobileDimensions.width / mobileDimensions.height - 9 / 16) < 0.01, `${viewport.name}: mobile hero must use a 9:16 source`);
-    }
+    const reducedHero = await readHeroComposition(page);
+    assertHeroHalves(viewport.name, reducedHero);
+    assert.equal(reducedHero.art.runningAnimations + reducedHero.it.runningAnimations, 0, `${viewport.name}: reduced-motion hero must hold a fixed composition`);
+    const reducedTransforms = await readStratumTransforms(page);
+    await page.waitForTimeout(1300);
+    assert.deepEqual(await readStratumTransforms(page), reducedTransforms, `${viewport.name}: reduced-motion strata must not move`);
+    contrastReport.push({ name: viewport.name, motion: "reduce", worst: await assertPracticeCopyContrast(page, viewport.name, { samples: 1, intervalMs: 0 }) });
+    await page.screenshot({ path: join(artifactDirectory, `${viewport.name}-hero-reduced.png`) });
 
     const reducedSignature = page.locator("[data-hero-signature]");
     assert.equal(await reducedSignature.count(), 1, `${viewport.name}: persistent hero signature is missing`);
@@ -335,8 +496,9 @@ try {
     });
     await page.waitForTimeout(50);
 
+    assert.deepEqual(mediaRequests, [], `${viewport.name}: the home must not request video media`);
     await page.screenshot({ path: join(artifactDirectory, `${viewport.name}-home.png`), fullPage: true });
-    report.push({ ...viewport, page: "/", overflow, browserErrors });
+    report.push({ ...viewport, page: "/", overflow, browserErrors, mediaRequests: mediaRequests.length });
     await context.close();
   }
 
@@ -346,15 +508,9 @@ try {
     reducedMotion: "no-preference"
   });
   const motionPage = await motionContext.newPage();
+  const motionMediaRequests = trackMediaRequests(motionPage);
   const motionResponse = await motionPage.goto(origin, { waitUntil: "networkidle" });
   assert.equal(motionResponse?.status(), 200, "Motion QA: home did not return 200");
-  await assertInactiveHeroSourcesAreDeferred(motionPage, "wide");
-  const motionVideo = motionPage.locator('[data-hero-video-group="wide"] [data-hero-video]');
-  await motionVideo.evaluate((video) => new Promise((resolve, reject) => {
-    if (video.readyState >= 1) return resolve();
-    video.addEventListener("loadedmetadata", resolve, { once: true });
-    video.addEventListener("error", () => reject(new Error("hero video failed to load")), { once: true });
-  }));
   await motionPage.evaluate(() => window.scrollTo(0, 0));
   await motionPage.waitForTimeout(250);
   const initialSideRevealState = await motionPage.locator('[data-reveal="split-left"], [data-reveal="split-right"]').evaluateAll((elements) => elements.map((element) => ({
@@ -371,26 +527,32 @@ try {
       assert(state.offset > 0, `Motion QA: split-right element must start from the right, got ${state.offset}px`);
     }
   }
-  const startTime = await motionVideo.evaluate((video) => video.currentTime);
+  const motionHero = await readHeroComposition(motionPage);
+  assertHeroHalves("Motion QA", motionHero);
+  assert(motionHero.art.runningAnimations > 0 && motionHero.it.runningAnimations > 0, "Motion QA: both halves must animate on arrival");
+  assert.equal(motionHero.fieldState, "running", "Motion QA: hero composition must run while visible");
   await motionPage.screenshot({ path: join(artifactDirectory, "motion-start.png") });
+  await assertHeroMovesUnprompted(motionPage, "Motion QA");
+  await motionPage.screenshot({ path: join(artifactDirectory, "motion-later.png") });
+  contrastReport.push({ name: "desktop-motion", motion: "no-preference", worst: await assertPracticeCopyContrast(motionPage, "Motion QA", beatSampling) });
+
   const scrollRange = await motionPage.locator("[data-hero-scroll]").evaluate((section) => section.offsetHeight - window.innerHeight);
+  const signatureAtArrival = await motionPage.locator("[data-hero-signature]").boundingBox();
   await motionPage.evaluate((distance) => window.scrollTo(0, distance * 0.55), scrollRange);
-  await motionPage.waitForTimeout(650);
-  const middleTime = await motionVideo.evaluate((video) => video.currentTime);
+  await motionPage.waitForTimeout(300);
+  const signatureMidway = await motionPage.locator("[data-hero-signature]").boundingBox();
   await motionPage.screenshot({ path: join(artifactDirectory, "motion-middle.png") });
   await motionPage.evaluate((distance) => window.scrollTo(0, distance), scrollRange);
-  await motionPage.waitForTimeout(650);
-  const endTime = await motionVideo.evaluate((video) => video.currentTime);
+  await motionPage.waitForTimeout(300);
   await motionPage.screenshot({ path: join(artifactDirectory, "motion-end.png") });
-  assert(startTime < 0.12, `Motion QA: expected start frame, got ${startTime}`);
-  assert(middleTime > 1.3 && middleTime < 3.2, `Motion QA: expected middle frame, got ${middleTime}`);
-  assert(endTime > 3.72, `Motion QA: expected final frame, got ${endTime}`);
-  assert(startTime < middleTime && middleTime < endTime, "Motion QA: scrub time must increase monotonically");
-  assert(await motionVideo.evaluate((video) => video.paused), "Motion QA: hero video must not autoplay");
+  assert(
+    (signatureAtArrival?.y ?? 0) > (signatureMidway?.y ?? 0),
+    "Motion QA: hero signature must rise while the stage is pinned"
+  );
 
   const signature = motionPage.locator("[data-hero-signature]");
   const signatureAtHeroEnd = await signature.boundingBox();
-  assert((signatureAtHeroEnd?.y ?? Number.POSITIVE_INFINITY) < 72, "Motion QA: hero signature must compact to the top at the end of the scrub");
+  assert((signatureAtHeroEnd?.y ?? Number.POSITIVE_INFINITY) < 72, "Motion QA: hero signature must compact to the top at the end of the pinned hero");
   await motionPage.evaluate((distance) => window.scrollTo(0, distance + window.innerHeight * 0.75), scrollRange);
   await motionPage.waitForTimeout(200);
   const signatureAfterHero = await signature.boundingBox();
@@ -450,11 +612,21 @@ try {
     await motionPage.waitForTimeout(900);
     assert(await item.evaluate((element) => element.classList.contains("is-revealed")), `Motion QA: ${selector} did not reveal on scroll`);
   }
+  await motionPage.waitForTimeout(200);
+  assert.equal(
+    await motionPage.locator("[data-hero-scroll]").getAttribute("data-hero-field"),
+    "paused",
+    "Motion QA: hero composition must pause once it has left the viewport"
+  );
+  assert.deepEqual(motionMediaRequests, [], "Motion QA: the home must not request video media");
   await motionContext.close();
 
   for (const responsiveMotionViewport of [
-    { name: "tablet-motion", width: 768, height: 1024, group: "split", videos: 2 },
-    { name: "mobile-motion", width: 390, height: 844, group: "mobile", videos: 1 }
+    /* Short laptop: the strata rise behind the practice labels (Astra, #28). */
+    { name: "short-laptop-motion", width: 1440, height: 650 },
+    { name: "tablet-motion", width: 768, height: 1024 },
+    { name: "mobile-motion", width: 390, height: 844 },
+    { name: "mobile-320-motion", width: 320, height: 640 }
   ]) {
     const responsiveMotionContext = await browser.newContext({
       viewport: { width: responsiveMotionViewport.width, height: responsiveMotionViewport.height },
@@ -462,30 +634,76 @@ try {
       reducedMotion: "no-preference"
     });
     const responsiveMotionPage = await responsiveMotionContext.newPage();
+    const responsiveMediaRequests = trackMediaRequests(responsiveMotionPage);
     const response = await responsiveMotionPage.goto(origin, { waitUntil: "networkidle" });
     assert.equal(response?.status(), 200, `${responsiveMotionViewport.name}: home did not return 200`);
     const overflow = await responsiveMotionPage.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert(overflow <= 1, `${responsiveMotionViewport.name}: horizontal overflow of ${overflow}px before reveal`);
-    await assertInactiveHeroSourcesAreDeferred(responsiveMotionPage, responsiveMotionViewport.group);
-    const group = responsiveMotionPage.locator(`[data-hero-video-group="${responsiveMotionViewport.group}"]`);
-    const videos = group.locator("[data-hero-video]");
-    assert.equal(await videos.count(), responsiveMotionViewport.videos, `${responsiveMotionViewport.name}: unexpected video count`);
-    for (let index = 0; index < await videos.count(); index += 1) {
-      await videos.nth(index).evaluate((video) => new Promise((resolve, reject) => {
-        if (video.readyState >= 1) return resolve();
-        video.addEventListener("loadedmetadata", resolve, { once: true });
-        video.addEventListener("error", () => reject(new Error("responsive hero video failed to load")), { once: true });
-      }));
-    }
+    const responsiveHero = await readHeroComposition(responsiveMotionPage);
+    assertHeroHalves(responsiveMotionViewport.name, responsiveHero);
+    assert(responsiveHero.art.runningAnimations > 0 && responsiveHero.it.runningAnimations > 0, `${responsiveMotionViewport.name}: both halves must animate on arrival`);
+    await assertHeroMovesUnprompted(responsiveMotionPage, responsiveMotionViewport.name);
+    await responsiveMotionPage.screenshot({ path: join(artifactDirectory, `${responsiveMotionViewport.name}-hero.png`) });
+    contrastReport.push({
+      name: responsiveMotionViewport.name,
+      motion: "no-preference",
+      worst: await assertPracticeCopyContrast(responsiveMotionPage, responsiveMotionViewport.name, beatSampling)
+    });
     const range = await responsiveMotionPage.locator("[data-hero-scroll]").evaluate((section) => section.offsetHeight - window.innerHeight);
-    await responsiveMotionPage.evaluate((distance) => window.scrollTo(0, distance * 0.55), range);
-    await responsiveMotionPage.waitForTimeout(700);
-    const times = await videos.evaluateAll((elements) => elements.map((video) => video.currentTime));
-    assert(times.every((time) => time > 1.3 && time < 3.2), `${responsiveMotionViewport.name}: active videos did not scrub to the middle frame: ${times.join(", ")}`);
-    if (times.length === 2) {
-      assert(Math.abs(times[0] - times[1]) < 0.05, `${responsiveMotionViewport.name}: split videos are not synchronized: ${times.join(", ")}`);
-    }
+    await responsiveMotionPage.evaluate((distance) => window.scrollTo(0, distance), range);
+    await responsiveMotionPage.waitForTimeout(300);
+    const compactSignature = await responsiveMotionPage.locator("[data-hero-signature]").boundingBox();
+    assert((compactSignature?.y ?? Number.POSITIVE_INFINITY) < 72, `${responsiveMotionViewport.name}: signature must compact to the top after the hero`);
+    const scrolledOverflow = await responsiveMotionPage.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert(scrolledOverflow <= 1, `${responsiveMotionViewport.name}: horizontal overflow of ${scrolledOverflow}px after scrolling`);
+    assert.deepEqual(responsiveMediaRequests, [], `${responsiveMotionViewport.name}: the home must not request video media`);
     await responsiveMotionContext.close();
+  }
+
+  for (const keyboardViewport of [
+    { name: "desktop-keyboard", width: 1440, height: 1000 },
+    { name: "mobile-keyboard", width: 390, height: 844 }
+  ]) {
+    const keyboardContext = await browser.newContext({
+      viewport: { width: keyboardViewport.width, height: keyboardViewport.height },
+      deviceScaleFactor: 1,
+      reducedMotion: "no-preference"
+    });
+    const keyboardPage = await keyboardContext.newPage();
+    const keyboardResponse = await keyboardPage.goto(origin, { waitUntil: "networkidle" });
+    assert.equal(keyboardResponse?.status(), 200, `${keyboardViewport.name}: home did not return 200`);
+    const focusState = () => keyboardPage.evaluate(() => {
+      const element = document.activeElement;
+      const box = element?.getBoundingClientRect();
+      const style = element ? getComputedStyle(element) : undefined;
+      const hit = box ? document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2) : null;
+      return {
+        text: element?.textContent?.trim(),
+        href: element?.getAttribute("href"),
+        outline: style ? `${style.outlineStyle} ${style.outlineWidth}` : "",
+        inViewport: Boolean(box && box.top >= 0 && box.bottom <= window.innerHeight && box.left >= 0 && box.right <= window.innerWidth),
+        unobscured: Boolean(element && hit && (hit === element || element.contains(hit)))
+      };
+    });
+    await keyboardPage.keyboard.press("Tab");
+    assert.equal((await focusState()).href, "#contenu", `${keyboardViewport.name}: first Tab must reach the skip link`);
+    for (const expected of ["#expertises-art", "#expertises-it"]) {
+      await keyboardPage.keyboard.press("Tab");
+      const state = await focusState();
+      assert.equal(state.href, expected, `${keyboardViewport.name}: expected focus on ${expected}, got ${state.href}`);
+      assert(state.inViewport && state.unobscured, `${keyboardViewport.name}: focused ${expected} must be visible above the composition`);
+      assert(!state.outline.startsWith("none") && !state.outline.endsWith(" 0px"), `${keyboardViewport.name}: focused ${expected} needs a visible outline`);
+    }
+    await keyboardPage.screenshot({ path: join(artifactDirectory, `${keyboardViewport.name}-focus.png`) });
+    await keyboardPage.keyboard.press("Enter");
+    await keyboardPage.waitForTimeout(1200);
+    const target = await keyboardPage.evaluate(() => ({
+      hash: window.location.hash,
+      top: document.querySelector("#expertises-it")?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY
+    }));
+    assert.equal(target.hash, "#expertises-it", `${keyboardViewport.name}: Enter must follow the IT practice link`);
+    assert(Math.abs(target.top) < keyboardViewport.height / 2, `${keyboardViewport.name}: IT services must scroll into view (top ${target.top}px)`);
+    await keyboardContext.close();
   }
 
   const reducedResizeContext = await browser.newContext({
@@ -498,16 +716,11 @@ try {
   assert.equal(reducedResizeResponse?.status(), 200, "Reduced resize QA: home did not return 200");
   await reducedResizePage.setViewportSize({ width: 768, height: 1024 });
   await reducedResizePage.waitForTimeout(350);
-  const resizedSplitVideos = reducedResizePage.locator('[data-hero-video-group="split"] [data-hero-video]');
-  const resizedTimes = await resizedSplitVideos.evaluateAll((videos) => videos.map((video) => ({
-    currentTime: video.currentTime,
-    duration: video.duration
-  })));
-  assert.equal(resizedTimes.length, 2, "Reduced resize QA: split pair is missing after breakpoint change");
-  assert(
-    resizedTimes.every(({ currentTime, duration }) => Number.isFinite(duration) && Math.abs(currentTime - duration) < 0.12),
-    `Reduced resize QA: newly active split videos must show the final frame: ${JSON.stringify(resizedTimes)}`
-  );
+  const resizedHero = await readHeroComposition(reducedResizePage);
+  assertHeroHalves("Reduced resize QA", resizedHero);
+  assert.equal(resizedHero.art.runningAnimations + resizedHero.it.runningAnimations, 0, "Reduced resize QA: composition must stay still across breakpoints");
+  const resizedSignature = await reducedResizePage.locator("[data-hero-signature]").boundingBox();
+  assert((resizedSignature?.y ?? Number.POSITIVE_INFINITY) < 72, "Reduced resize QA: signature must stay compact after a breakpoint change");
   await reducedResizeContext.close();
 
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
@@ -523,13 +736,19 @@ try {
   report.push({ width: 390, height: 844, page: "/mentions-legales/", overflow: legalOverflow, browserErrors: [] });
   await context.close();
 
-  for (const path of ["/", "/mentions-legales/", "/robots.txt", "/sitemap.xml", "/assets/hero-scroll.mp4", "/assets/hero-scroll.webm", "/assets/hero-scroll-poster.jpg", "/assets/hero-scroll-mobile.mp4", "/assets/hero-scroll-mobile.webm", "/assets/hero-scroll-mobile-poster.jpg"]) {
-    const response = await fetch(`${origin}${path}`, {redirect: "manual", ...(process.env.STAGING_SESSION_ID ? {headers: {"X-Staging-Session": process.env.STAGING_SESSION_ID}} : {})});
+  const fetchOptions = {redirect: "manual", ...(process.env.STAGING_SESSION_ID ? {headers: {"X-Staging-Session": process.env.STAGING_SESSION_ID}} : {})};
+  for (const path of ["/", "/mentions-legales/", "/robots.txt", "/sitemap.xml", "/assets/hero-it.jpg"]) {
+    const response = await fetch(`${origin}${path}`, fetchOptions);
     assert.equal(response.status, 200, `${path} returned ${response.status}`);
+  }
+  for (const path of retiredHeroVideoPaths) {
+    const response = await fetch(`${origin}${path}`, fetchOptions);
+    assert.equal(response.status, 404, `Retired hero media ${path} returned ${response.status}`);
   }
 
   await writeFile(join(artifactDirectory, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
-  console.log(JSON.stringify({ passed: true, screenshots: report.length, report }, null, 2));
+  await writeFile(join(artifactDirectory, "hero-contrast.json"), `${JSON.stringify(contrastReport, null, 2)}\n`);
+  console.log(JSON.stringify({ passed: true, screenshots: report.length, report, heroContrast: contrastReport }, null, 2));
 } finally {
   await browser.close();
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
