@@ -38,6 +38,7 @@ cette version.
 ## Suite possible
 
 L'expérience WebGL est archivée dans `codex/interactive-world-v10-archive`.
-Des vidéos Seedance pourront remplacer progressivement les images du hero,
-avec poster statique et respect de `prefers-reduced-motion`, sans retarder cette
-première mise en ligne.
+La hero vidéo d'août 2026 a été remplacée par une composition abstraite ART / IT
+générée au build ; ses sources restent consultables dans l'historique Git
+(révision `d81473c`). Les médias indépendants du premier écran, comme les vidéos
+sociales et l'image de partage, gardent leur usage.
