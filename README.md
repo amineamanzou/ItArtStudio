@@ -4,8 +4,9 @@ Site vitrine public d'IT Art Studio, société de conseil et de création réuni
 une pratique informatique et une pratique visuelle.
 
 La version de production est volontairement statique : HTML et CSS générés par
-Astro, images optimisées, aucun JavaScript côté client, aucun formulaire, cookie
-de mesure d'audience ou traceur.
+Astro, images optimisées, un seul petit script inline pour la signature et les
+apparitions, aucun formulaire, cookie de mesure d'audience ou traceur. La
+composition de la hero est animée en CSS et ne charge aucune vidéo.
 
 ## Stack
 
@@ -27,8 +28,10 @@ npm run preview
 ```
 
 `npm run qa:static` contrôle la home et les mentions légales en desktop,
-tablette et mobile, vérifie les images, les liens publics, les erreurs navigateur
-et les débordements horizontaux. Les captures sont écrites dans
+tablette et mobile jusqu'à 320 px, vérifie les images, les liens publics, les
+erreurs navigateur et les débordements horizontaux, ainsi que la hero : deux
+moitiés égales, animation sans interaction, composition figée en mouvement
+réduit, absence de requête vidéo, défilement et navigation au clavier. Les captures sont écrites dans
 `qa/artifacts/static/`.
 
 ## Container
@@ -47,8 +50,10 @@ Puis ouvrir `http://127.0.0.1:8080/`. La sonde de santé répond sur
 - `src/pages/mentions-legales.astro` : informations légales de la SARL
 - `src/data/site.ts` : contenu public et données société
 - `src/layouts/BaseLayout.astro` : structure, navigation et métadonnées SEO
-- `src/styles/global.css` : direction visuelle responsive
-- `public/assets/hero-*` : visuels optimisés et fallbacks
+- `src/data/hero-field.ts` : géométrie des strates ART / IT de la hero
+- `src/scripts/hero-scroll.ts` : signature épinglée et pause hors écran
+- `src/styles/global.css` : direction visuelle responsive et animation de la hero
+- `public/assets/hero-*` : visuels optimisés, dont l'image de partage
 - `scripts/review-static-source.mjs` : contrat des sources
 - `scripts/review-static-site.mjs` : contrat du build
 - `scripts/qa-static.mjs` : QA navigateur responsive

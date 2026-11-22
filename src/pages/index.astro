@@ -1,90 +1,68 @@
 ---
 import { company, methodSteps, references, services } from "../data/site";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { heroBeatSeconds, heroStrata } from "../data/hero-field";
 
 const itServices = services.filter((service) => service.practice === "IT");
 const artServices = services.filter((service) => service.practice === "ART");
-const assetBase = import.meta.env.BASE_URL.endsWith("/")
-  ? `${import.meta.env.BASE_URL}assets`
-  : `${import.meta.env.BASE_URL}/assets`;
 ---
 
 <BaseLayout splitAxis>
   <main id="contenu">
-    <section class="hero-scroll" data-hero-scroll aria-labelledby="hero-title">
+    <section
+      class="hero-scroll"
+      data-hero-scroll
+      data-hero-field="running"
+      aria-labelledby="hero-title"
+      style={`--beat: ${heroBeatSeconds}s;`}
+    >
       <div class="hero-scroll__stage">
-        <div
-          class="hero-scroll__media-group hero-scroll__media-group--wide"
-          data-hero-video-group="wide"
-          aria-hidden="true"
-        >
-          <video
-            class="hero-scroll__media"
-            data-hero-video
-            muted
-            playsinline
-            preload="metadata"
-            poster={`${assetBase}/hero-scroll-poster.jpg`}
-            tabindex="-1"
+        {(["art", "it"] as const).map((side) => (
+          <div
+            class={`hero-field hero-field--${side}`}
+            data-hero-field-side={side}
+            aria-hidden="true"
           >
-            <source data-src={`${assetBase}/hero-scroll.webm`} type="video/webm" />
-            <source data-src={`${assetBase}/hero-scroll.mp4`} type="video/mp4" />
-          </video>
-        </div>
-
-        <div
-          class="hero-scroll__media-group hero-scroll__media-group--split"
-          data-hero-video-group="split"
-          aria-hidden="true"
-        >
-          <div class="hero-scroll__pane hero-scroll__pane--art">
-            <video
-              class="hero-scroll__media"
-              data-hero-video
-              muted
-              playsinline
-              preload="metadata"
-              poster={`${assetBase}/hero-scroll-poster.jpg`}
-              tabindex="-1"
-            >
-              <source data-src={`${assetBase}/hero-scroll.webm`} type="video/webm" />
-              <source data-src={`${assetBase}/hero-scroll.mp4`} type="video/mp4" />
-            </video>
+            {heroStrata.map((stratum) => (
+              <div
+                class={`hero-stratum hero-stratum--${stratum.kind}`}
+                data-hero-stratum={stratum.index}
+                style={`--stratum: ${stratum.index}; --flow: ${stratum.flowSeconds}s; --samples: ${stratum.samples}; --swell: ${stratum.swell}; --band-top: ${stratum.bandTop}%; --band-bottom: ${stratum.bandBottom}%;`}
+              >
+                <div class="hero-stratum__track">
+                  <svg viewBox={stratum.viewBox} preserveAspectRatio="none" focusable="false">
+                    {side === "art" && stratum.kind === "body" && (
+                      <defs>
+                        <linearGradient
+                          id={`hero-art-sheen-${stratum.index}`}
+                          gradientUnits="userSpaceOnUse"
+                          x1="0"
+                          y1={stratum.crestTop}
+                          x2="0"
+                          y2={stratum.crestTop + 260}
+                        >
+                          <stop offset="0" class="hero-stratum__sheen-light" />
+                          <stop offset="1" class="hero-stratum__sheen-deep" />
+                        </linearGradient>
+                      </defs>
+                    )}
+                    {stratum.kind === "body" && (
+                      <path
+                        class="hero-stratum__body"
+                        d={stratum[side].body}
+                        fill={side === "art" ? `url(#hero-art-sheen-${stratum.index})` : undefined}
+                      />
+                    )}
+                    <path class="hero-stratum__crest" d={stratum[side].crest} vector-effect="non-scaling-stroke" />
+                  </svg>
+                </div>
+              </div>
+            ))}
+            {side === "art"
+              ? <div class="hero-field__grain"></div>
+              : <div class="hero-field__cursor"></div>}
           </div>
-          <div class="hero-scroll__pane hero-scroll__pane--it">
-            <video
-              class="hero-scroll__media"
-              data-hero-video
-              muted
-              playsinline
-              preload="metadata"
-              poster={`${assetBase}/hero-scroll-poster.jpg`}
-              tabindex="-1"
-            >
-              <source data-src={`${assetBase}/hero-scroll.webm`} type="video/webm" />
-              <source data-src={`${assetBase}/hero-scroll.mp4`} type="video/mp4" />
-            </video>
-          </div>
-        </div>
-
-        <div
-          class="hero-scroll__media-group hero-scroll__media-group--mobile"
-          data-hero-video-group="mobile"
-          aria-hidden="true"
-        >
-          <video
-            class="hero-scroll__media"
-            data-hero-video
-            muted
-            playsinline
-            preload="metadata"
-            poster={`${assetBase}/hero-scroll-mobile-poster.jpg`}
-            tabindex="-1"
-          >
-            <source data-src={`${assetBase}/hero-scroll-mobile.webm`} type="video/webm" />
-            <source data-src={`${assetBase}/hero-scroll-mobile.mp4`} type="video/mp4" />
-          </video>
-        </div>
+        ))}
 
         <div class="hero-scroll__shade" aria-hidden="true"></div>
 

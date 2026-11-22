@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, sign } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const candidate = await import('../scripts/qa/release-candidate.mjs').catch(() => ({}));
@@ -77,6 +77,39 @@ test('release metadata enumerates built published paths and binds configuration'
   assert.equal(typeof candidate.releaseMetadata,'function');const dir=mkdtempSync(join(tmpdir(),'release-metadata-'));
   try {writeFileSync(join(dir,'index.html'),'hello');const config=candidate.productionConfiguration({});const metadata=candidate.releaseMetadata({VCS_REF:sha(3),TREE_SHA:sha(4),BUILD_RUN_ID:'1234',BUILD_ATTEMPT:'2',PUBLICATION_DATE:'2026-11-15',RELEASE_VARIANT:'production',RELEASE_CONFIGURATION:JSON.stringify(config)},dir);assert.deepEqual(metadata.publishedPaths,['/']);assert.equal(metadata.configurationSha256,candidate.configurationHash(config));assert.equal(metadata.buildAttempt,2);assert.deepEqual(JSON.parse(readFileSync(join(dir,'.well-known/release.json'))),metadata);}finally{rmSync(dir,{recursive:true,force:true});}
 });
+test('staging and production images record the package manifest version', t => {
+  const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url)));
+  const dir = mkdtempSync(join(tmpdir(), 'product-version-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const date = candidate.parisDate();
+  const candidateId = 'b'.repeat(32);
+  for (const variant of ['staging', 'production']) {
+    const ref = variant === 'staging' ? 'refs/heads/dev' : `refs/heads/codex/factory-promotion/${candidateId}`;
+    const prepared = candidate.prepareCandidate({
+      GITHUB_REF: ref, GITHUB_EVENT_NAME: 'workflow_dispatch', INPUT_PROFILE: variant,
+      INPUT_CANDIDATE_ID: candidateId, INPUT_PUBLICATION_DATE: date,
+    });
+    assert.equal(prepared.PRODUCT_VERSION, version);
+    candidate.releaseMetadata({
+      ...prepared, VCS_REF: sha(3), TREE_SHA: sha(4), BUILD_RUN_ID: '1234', BUILD_ATTEMPT: '2',
+    }, dir);
+    const metadata = JSON.parse(readFileSync(join(dir, '.well-known/release.json')));
+    assert.equal(metadata.variant, variant);
+    assert.equal(metadata.productVersion, version);
+  }
+});
+test('candidate preparation rejects non-stable manifest versions', async t => {
+  const dir = mkdtempSync(join(tmpdir(), 'invalid-product-version-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const script = join(dir, 'scripts/qa/release-candidate.mjs');
+  mkdirSync(join(dir, 'scripts/qa'), { recursive: true });
+  copyFileSync(new URL('../scripts/qa/release-candidate.mjs', import.meta.url), script);
+  const { prepareCandidate } = await import(script);
+  for (const version of [undefined, 1, '01.2.3', '1.2.3-rc.1', '1.2.3+build', '1.2.3 ']) {
+    writeFileSync(join(dir, 'package.json'), JSON.stringify({ version }));
+    assert.throws(() => prepareCandidate({ GITHUB_REF: 'refs/heads/dev' }), /stable SemVer/);
+  }
+});
 test('publisher has no rebuild or fabricated main SLSA and tags the qualified digest only',()=>{
   const workflow=readFileSync('.github/workflows/deploy-production.yml','utf8');
   assert.doesNotMatch(workflow,/docker\/build-push-action|npm run build|id: attest_provenance/);
@@ -129,6 +162,10 @@ test('candidate raw event and publisher reader agree on top-level release metada
     const event=JSON.parse(execFileSync(process.execPath,['scripts/qa/staging-event.mjs'],{encoding:'utf8',env:{...process.env,GITHUB_REPOSITORY:payload().repository,GITHUB_REF:payload().sourceRef,GITHUB_SHA:sha(3),GITHUB_RUN_ID:'1234',GITHUB_RUN_ATTEMPT:'2',GITHUB_EVENT_NAME:'workflow_dispatch',IMAGE_REF:payload().imageRef,RELEASE_METADATA_PATH:join(dir,'.well-known/release.json')}}));
     assert.equal(event.payload,undefined);assert.deepEqual(event.releaseMetadata,m);assert.equal(event.buildAttempt,2);assert.equal(event.treeSha,m.treeSha);
     const q={...payload(),configurationSha256:m.configurationSha256};assert.deepEqual(qualification.verifyBuildEvent(event,q),m);
+    assert.equal(event.releaseMetadata.productVersion, event.version);
+    const legacyMetadata = { ...m };
+    delete legacyMetadata.productVersion;
+    assert.deepEqual(qualification.verifyBuildEvent({ ...event, releaseMetadata: legacyMetadata }, q), legacyMetadata);
     for(const patch of [{buildAttempt:3},{treeSha:sha(9)},{publicationDate:'2026-11-16'},{configurationSha256:hash},{releaseMetadata:{...m,sourceSha:sha(9)}}])assert.throws(()=>qualification.verifyBuildEvent({...event,...patch},q));
   }finally{rmSync(dir,{recursive:true,force:true});}
 });

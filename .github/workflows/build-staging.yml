@@ -53,6 +53,7 @@ jobs:
       - run: npm run build
       - run: npm run review:site
   release:
+    name: release
     if: github.repository == 'amineamanzou/ItArtStudio' && ((github.ref == 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')) || (github.event_name == 'workflow_dispatch' && inputs.profile == 'production' && startsWith(github.ref, 'refs/heads/codex/factory-promotion/')))
     needs: quality
     runs-on: ubuntu-latest
@@ -95,6 +96,7 @@ jobs:
             org.opencontainers.image.description=Static Astro showcase for itart.studio
             org.opencontainers.image.url=https://itart.studio
             org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ env.PRODUCT_VERSION }}
 
       - name: Login to GHCR
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
@@ -153,7 +155,7 @@ jobs:
           exit-code: "0"
 
       - name: Upload Trivy SARIF to code scanning
-        uses: github/codeql-action/upload-sarif@0911ee96d2d6c8def97122c36c5cadd93829a4b4 # v4.33.0
+        uses: github/codeql-action/upload-sarif@e9c4b4b153701845b921f167180044d14fe89b94 # codeql-bundle-v2.27.5 update
         with:
           sarif_file: trivy-results.sarif
 

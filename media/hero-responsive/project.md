@@ -2,8 +2,13 @@
 
 ## Session du 16 août 2026
 
-- Source validée : `public/assets/hero-scroll.mp4`, 1920×1080, 24 fps,
-  4,000 secondes, sans audio.
+> Journal historique. La hero vidéo a été retirée du site au profit d'une
+> composition abstraite (issue #27). Les six fichiers `public/assets/hero-scroll*`
+> cités ci-dessous restent consultables dans l'historique Git, à la révision
+> `d81473c` : `git show d81473c:public/assets/hero-scroll.mp4 > hero-scroll.mp4`.
+
+- Source validée : `public/assets/hero-scroll.mp4` (révision `d81473c`),
+  1920×1080, 24 fps, 4,000 secondes, sans audio.
 - Intention confirmée : conserver Carine à gauche (ART) et Amine à droite (IT),
   rapprocher les deux personnes lorsque la fenêtre se rétrécit et préparer un
   cadrage 9:16 pour le mobile.
