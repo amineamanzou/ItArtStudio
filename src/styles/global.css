@@ -130,9 +130,14 @@ p {
   --signature-progress: 0;
   --signature-scale: 1;
   --signature-y: 43svh;
+  --beat: 1.2s;
+  --strata-shift: 0%;
+  --columns: 16;
+  --track-start: -50%;
+  --track-width: 150%;
   position: relative;
-  height: 240svh;
-  min-height: calc(100svh + 42rem);
+  height: 165svh;
+  min-height: calc(100svh + 24rem);
   background: var(--void);
 }
 
@@ -146,55 +151,248 @@ p {
   background: var(--void);
 }
 
-.hero-scroll__media-group,
+/*
+ * One signal, two readings. Each half holds the same four strata: ART draws
+ * them as continuous copper curves, IT samples and holds them in cyan steps.
+ * Every IT step lands on the shared beat; ART breathes over four beats.
+ */
+.hero-field,
 .hero-scroll__shade {
   position: absolute;
   inset: 0;
 }
 
-.hero-scroll__media-group {
+.hero-field {
   z-index: -3;
-  display: none;
+  right: auto;
+  width: 50%;
   overflow: hidden;
-}
-
-.hero-scroll__media-group--wide {
-  display: block;
-}
-
-.hero-scroll__media {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
+  contain: paint;
+  /* The grain blends against this backdrop, so it vanishes in the void. */
   background: var(--void);
 }
 
-.hero-scroll__media-group--split {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.hero-field--art {
+  left: 0;
+  animation: seam-open-art calc(var(--beat) * 1.5) var(--ease-out) both;
 }
 
-.hero-scroll__pane {
-  position: relative;
-  min-width: 0;
-  overflow: hidden;
+.hero-field--it {
+  left: 50%;
+  animation: seam-open-it calc(var(--beat) * 1.5) var(--ease-out) both;
 }
 
-.hero-scroll__pane--art .hero-scroll__media {
-  object-position: 8% center;
+/* Sixteen sample columns per half: the grid the IT strata are held on. */
+.hero-field--it::before {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    oklch(79% 0.15 220 / 10%) 0 1px,
+    transparent 1px calc(100% / var(--columns))
+  );
+  content: "";
+  mask-image: linear-gradient(180deg, transparent 10%, #000 55%);
+  pointer-events: none;
 }
 
-.hero-scroll__pane--it .hero-scroll__media {
-  object-position: 92% center;
+.hero-stratum {
+  position: absolute;
+  top: calc(var(--band-top) + var(--strata-shift));
+  right: 0;
+  bottom: calc(var(--band-bottom) - var(--strata-shift));
+  left: 0;
+  transform-origin: 50% 100%;
+  animation: stratum-swell calc(var(--beat) * 4) ease-in-out infinite alternate;
+  animation-delay: calc(var(--stratum) * var(--beat) * -1);
+}
+
+.hero-field--it .hero-stratum {
+  animation-timing-function: steps(2, jump-end);
+}
+
+/* Three periods per track: two fill the half, the third loops the flow. */
+.hero-stratum__track {
+  position: absolute;
+  inset: 0 auto 0 var(--track-start);
+  width: var(--track-width);
+  animation: stratum-flow var(--flow) linear infinite;
+}
+
+.hero-field--it .hero-stratum__track {
+  animation-timing-function: steps(var(--samples), jump-end);
+}
+
+.hero-stratum__track svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.hero-stratum__crest {
+  fill: none;
+  stroke-width: 1.25px;
+}
+
+/* ART: copper and coral strata, lit at the crest and sinking into the void. */
+.hero-field--art .hero-stratum__crest {
+  stroke: oklch(88% 0.09 60 / var(--crest-alpha));
+}
+
+/* Echoes: outline-only strata that carry the beat behind the signature. */
+.hero-stratum--ghost {
+  --crest-alpha: 26%;
+  transform-origin: 50% 50%;
+}
+
+.hero-stratum--ghost[data-hero-stratum="0"] {
+  --crest-alpha: 16%;
+}
+
+.hero-field--art .hero-stratum__sheen-light {
+  stop-color: var(--sheen-light);
+}
+
+.hero-field--art .hero-stratum__sheen-deep {
+  stop-color: var(--sheen-deep);
+}
+
+.hero-field--art [data-hero-stratum="2"] {
+  --sheen-light: oklch(72% 0.15 34);
+  --sheen-deep: oklch(42% 0.12 30);
+  --crest-alpha: 80%;
+}
+
+.hero-field--art [data-hero-stratum="3"] {
+  --sheen-light: oklch(60% 0.13 48);
+  --sheen-deep: oklch(30% 0.08 40);
+  --crest-alpha: 62%;
+}
+
+.hero-field--art [data-hero-stratum="4"] {
+  --sheen-light: oklch(44% 0.1 42);
+  --sheen-deep: oklch(19% 0.05 35);
+  --crest-alpha: 44%;
+}
+
+.hero-field--art [data-hero-stratum="5"] {
+  --sheen-light: oklch(25% 0.06 36);
+  --sheen-deep: oklch(10% 0.02 270);
+  --crest-alpha: 30%;
+}
+
+/* IT: the same strata held on a grid, flat and exact. */
+.hero-field--it .hero-stratum__body {
+  fill: var(--stratum-fill);
+}
+
+.hero-field--it .hero-stratum__crest {
+  stroke: oklch(88% 0.1 210 / var(--crest-alpha));
+  stroke-linejoin: miter;
+}
+
+.hero-field--it [data-hero-stratum="2"] {
+  --stratum-fill: oklch(66% 0.13 222);
+  --crest-alpha: 85%;
+}
+
+.hero-field--it [data-hero-stratum="3"] {
+  --stratum-fill: oklch(47% 0.12 232);
+  --crest-alpha: 62%;
+}
+
+.hero-field--it [data-hero-stratum="4"] {
+  --stratum-fill: oklch(30% 0.09 240);
+  --crest-alpha: 44%;
+}
+
+.hero-field--it [data-hero-stratum="5"] {
+  --stratum-fill: oklch(15% 0.04 255);
+  --crest-alpha: 30%;
+}
+
+.hero-field__grain {
+  position: absolute;
+  inset: calc(48% + var(--strata-shift)) 0 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .78 0 0 0 0 .6 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  opacity: 0.32;
+  pointer-events: none;
+}
+
+/* The sampling cursor advances one grid column per beat. */
+.hero-field__cursor {
+  position: absolute;
+  top: calc(52% + var(--strata-shift));
+  bottom: 0;
+  left: 0;
+  width: calc(100% / var(--columns));
+  border-left: 1px solid oklch(90% 0.1 205 / 70%);
+  transform: translateX(500%);
+  animation: sample-cursor calc(var(--beat) * var(--columns)) steps(var(--columns), jump-end) infinite;
+}
+
+[data-hero-field="paused"] .hero-field,
+[data-hero-field="paused"] .hero-field * {
+  animation-play-state: paused;
+}
+
+@keyframes seam-open-art {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes seam-open-it {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0);
+  }
+}
+
+@keyframes stratum-flow {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(33.3333%);
+  }
+}
+
+@keyframes stratum-swell {
+  from {
+    transform: scaleY(1);
+  }
+
+  to {
+    transform: scaleY(var(--swell));
+  }
+}
+
+@keyframes sample-cursor {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(calc(var(--columns) * 100%));
+  }
 }
 
 .hero-scroll__shade {
   z-index: -2;
   background:
-    linear-gradient(180deg, oklch(5% 0.02 255 / 72%), transparent 22% 64%, oklch(5% 0.02 255 / 76%)),
-    linear-gradient(90deg, oklch(8% 0.05 25 / 20%), transparent 35% 65%, oklch(8% 0.05 235 / 20%));
+    radial-gradient(ellipse min(30rem, 46vw) min(14rem, 24svh) at 50% var(--signature-y), oklch(6% 0.02 255 / 72%), transparent),
+    linear-gradient(180deg, oklch(5% 0.02 255 / 70%), transparent 24% 66%, oklch(5% 0.02 255 / 82%));
   pointer-events: none;
 }
 
@@ -983,16 +1181,6 @@ p {
   }
 }
 
-@media (min-width: 761px) and (max-width: 1100px) {
-  .hero-scroll__media-group--wide {
-    display: none;
-  }
-
-  .hero-scroll__media-group--split {
-    display: grid;
-  }
-}
-
 @media (max-width: 760px) {
   body.has-split-axis::before {
     display: none;
@@ -1004,27 +1192,23 @@ p {
 
   .hero-scroll {
     --signature-y: 50svh;
-    height: 210svh;
-    min-height: calc(100svh + 34rem);
+    --strata-shift: 4%;
+    /* One period per half keeps the waves legible on a narrow screen. */
+    --columns: 8;
+    --track-start: -100%;
+    --track-width: 300%;
+    height: 155svh;
+    min-height: calc(100svh + 20rem);
   }
 
   .hero-scroll__stage {
     min-height: 100svh;
   }
 
-  .hero-scroll__media-group--wide,
-  .hero-scroll__media-group--split {
-    display: none;
-  }
-
-  .hero-scroll__media-group--mobile {
-    display: block;
-  }
-
   .hero-scroll__shade {
     background:
-      linear-gradient(180deg, var(--void) 0 17%, transparent 38% 62%, var(--void) 83% 100%),
-      linear-gradient(90deg, oklch(8% 0.05 25 / 16%), transparent 36% 64%, oklch(8% 0.05 235 / 16%));
+      radial-gradient(ellipse 60% 16svh at 50% var(--signature-y), oklch(6% 0.02 255 / 78%), transparent),
+      linear-gradient(180deg, var(--void) 0 14%, transparent 40% 66%, oklch(5% 0.02 255 / 88%) 90%);
   }
 
   .hero-scroll__practice {
@@ -1298,5 +1482,14 @@ p {
 
   .hero-scroll__progress {
     display: none;
+  }
+
+  /* A fixed composition: IT holds the sample that ART is drawing at the seam. */
+  .hero-field,
+  .hero-field *,
+  .hero-stratum,
+  .hero-stratum__track,
+  .hero-field__cursor {
+    animation: none !important;
   }
 }
