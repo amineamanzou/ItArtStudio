@@ -78,6 +78,11 @@ assert(!remote.username && !remote.password && remote.pathname === "/" && !remot
 assert(remote.protocol === "https:" || (remote.protocol === "http:" && ["localhost", "127.0.0.1"].includes(remote.hostname)), "QA requires HTTPS or loopback");
 const origin = remote.origin;
 
+const shortLandscapeViewports = [
+  { name: "landscape-844", width: 844, height: 390 },
+  { name: "landscape-568", width: 568, height: 320 }
+];
+
 const viewports = [
   { name: "wide-desktop", width: 1920, height: 1080 },
   { name: "desktop", width: 1440, height: 1000 },
@@ -151,7 +156,8 @@ function trackMediaRequests(page) {
 }
 
 async function readHeroComposition(page) {
-  return page.evaluate(() => {
+  return page.evaluate(async () => {
+    await document.fonts.ready;
     const rect = (element) => element?.getBoundingClientRect().toJSON();
     const hero = document.querySelector("[data-hero]");
     const side = (name) => {
@@ -184,6 +190,11 @@ async function readHeroComposition(page) {
       art: side("art"),
       practiceIt: rect(hero.querySelector(".hero__practice--it")),
       practiceArt: rect(hero.querySelector(".hero__practice--art")),
+      taglines: Array.from(hero.querySelectorAll(".hero__practice h2"), (element) => {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        return rect(range);
+      }),
       signature: rect(signature),
       words,
       links
@@ -193,6 +204,8 @@ async function readHeroComposition(page) {
 
 function assertHeroHalves(name, hero) {
   const { it, art, midpoint, viewportWidth, viewportHeight } = hero;
+  const fitsViewport = (rect) => rect.width > 0 && rect.height > 0
+    && rect.left >= 0 && rect.right <= viewportWidth && rect.top >= 0 && rect.bottom <= viewportHeight;
   assert.equal(hero.videoCount, 0, `${name}: the home must not render a background video`);
   assert(Math.abs(it.rect.left) <= 1 && Math.abs(it.rect.right - midpoint) <= 1, `${name}: IT field must fill the left half`);
   assert(Math.abs(art.rect.left - midpoint) <= 1 && Math.abs(art.rect.right - viewportWidth) <= 1, `${name}: ART field must fill the right half`);
@@ -207,12 +220,14 @@ function assertHeroHalves(name, hero) {
   assert(Math.abs((studioWord.left + studioWord.right) / 2 - midpoint) <= 2, `${name}: STUDIO must sit on the seam`);
   assert(studioWord.width >= viewportWidth * 0.32, `${name}: STUDIO must take up at least a third of the frame`);
   for (const { text, rect } of hero.words) {
-    assert(rect.left >= 0 && rect.right <= viewportWidth && rect.top >= 0 && rect.bottom <= viewportHeight, `${name}: ${text} must fit inside the first screen`);
+    assert(fitsViewport(rect), `${name}: ${text} must fit inside the first screen`);
   }
+  assert.equal(hero.taglines.length, 2, `${name}: both practice taglines must render`);
   assert.deepEqual(hero.links.map(({ href }) => href), ["#expertises-it", "#expertises-art"], `${name}: links must follow IT then ART`);
-  for (const link of hero.links) {
-    assert(link.rect.top >= hero.signature.bottom, `${name}: ${link.href} must be below the signature`);
-    assert(link.rect.bottom <= viewportHeight && link.rect.right <= viewportWidth && link.rect.left >= 0, `${name}: ${link.href} must be visible in the first screen`);
+  for (const [index, link] of hero.links.entries()) {
+    const tagline = hero.taglines[index];
+    assert(fitsViewport(tagline) && tagline.top >= hero.signature.bottom && tagline.bottom <= link.rect.top, `${name}: ${link.href} tagline must fit between the signature and its link`);
+    assert(fitsViewport(link.rect), `${name}: ${link.href} must be visible in the first screen`);
     assert(link.rect.height >= 44 && link.unobscured, `${name}: ${link.href} must have a clear 44px hit target`);
   }
 }
@@ -233,6 +248,13 @@ const heroCopySelectors = [
   ".hero__practice--art h2",
   ".hero__practice--art a"
 ];
+
+async function waitForPaint(page) {
+  // The second callback runs after the preceding frame had a chance to paint.
+  await page.evaluate(() => new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined)));
+  }));
+}
 
 /*
  * Hides the copy for each captured frame and compares every text color with the
@@ -263,8 +285,14 @@ async function assertHeroCopyContrast(page, name, { samples, intervalMs, minimum
     const style = await page.addStyleTag({
       content: `${heroCopySelectors.join(", ")} { color: transparent !important; text-shadow: none !important; text-decoration: none !important; }`
     });
-    const capture = await page.screenshot({ animations: "allow", scale: "css" });
-    await style.evaluate((element) => element.remove());
+    let capture;
+    try {
+      await waitForPaint(page);
+      capture = await page.screenshot({ animations: "allow", scale: "css" });
+    } finally {
+      await style.evaluate((element) => element.remove());
+      await waitForPaint(page);
+    }
     const ratios = await page.evaluate(async ({ image, copies }) => {
       const linear = Array.from({ length: 256 }, (_, value) => {
         const channel = value / 255;
@@ -336,6 +364,26 @@ async function assertFirstScroll(page, name) {
   assert(scroll >= 200 && scroll <= 350, `${name}: a single normal wheel step must reveal services`);
   assert(Math.abs(before.y - after.y - scroll) <= 2, `${name}: signature must scroll with the document`);
   await page.screenshot({ path: join(artifactDirectory, `${name}-first-scroll.png`) });
+}
+
+async function assertReferenceCaptionGaps(page, name) {
+  const marks = await page.locator(".reference-mark").evaluateAll((elements) => elements.map((element) => {
+    const image = element.querySelector("img");
+    const caption = element.querySelector(".reference-mark__name");
+    const tile = element.getBoundingClientRect();
+    const imageBox = image.getBoundingClientRect();
+    const captionBox = caption.getBoundingClientRect();
+    return {
+      name: caption.textContent.trim(),
+      gap: captionBox.top - imageBox.bottom,
+      fits: imageBox.width > 0 && imageBox.height > 0 && captionBox.height > 0
+        && imageBox.top >= tile.top && captionBox.bottom <= tile.bottom
+    };
+  }));
+  assert.equal(marks.length, 9, `${name}: expected nine sets of logo and caption bounds`);
+  for (const mark of marks) {
+    assert(mark.fits && mark.gap >= 8, `${name}: ${mark.name} must keep an 8px logo-to-caption gap inside its tile (got ${mark.gap.toFixed(2)}px)`);
+  }
 }
 
 try {
@@ -486,8 +534,9 @@ try {
     const reducedTransforms = await readFieldTransforms(page);
     await page.waitForTimeout(1300);
     assert.deepEqual(await readFieldTransforms(page), reducedTransforms, `${viewport.name}: reduced-motion geometry must not move`);
-    contrastReport.push({ name: viewport.name, motion: "reduce", worst: await assertHeroCopyContrast(page, viewport.name, { samples: 1, intervalMs: 0 }) });
+    await waitForPaint(page);
     await page.screenshot({ path: join(artifactDirectory, `${viewport.name}-hero-reduced.png`) });
+    contrastReport.push({ name: viewport.name, motion: "reduce", worst: await assertHeroCopyContrast(page, viewport.name, { samples: 1, intervalMs: 0 }) });
 
     const referenceLogos = page.locator(".reference-mark img");
     assert.equal(await referenceLogos.count(), 9, `${viewport.name}: expected nine reference logos`);
@@ -530,11 +579,15 @@ try {
       await referenceLogos.evaluateAll((images) => images.every((image) => image.complete && image.naturalWidth > 0)),
       `${viewport.name}: every reference logo must decode successfully`
     );
+    await assertReferenceCaptionGaps(page, viewport.name);
+    if (viewport.name === "mobile") {
+      await orange.locator("xpath=ancestor::li").screenshot({ path: join(artifactDirectory, "mobile-orange-reference.png") });
+    }
     await page.evaluate(() => {
       if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
       window.scrollTo(0, 0);
     });
-    await page.waitForTimeout(50);
+    await waitForPaint(page);
 
     assert.deepEqual(mediaRequests, [], `${viewport.name}: the home must not request video media`);
     await page.screenshot({ path: join(artifactDirectory, `${viewport.name}-home.png`), fullPage: true });
@@ -646,7 +699,8 @@ try {
     { name: "short-laptop-motion", width: 1440, height: 650 },
     { name: "tablet-motion", width: 768, height: 1024 },
     { name: "mobile-motion", width: 390, height: 844 },
-    { name: "mobile-320-motion", width: 320, height: 640 }
+    { name: "mobile-320-motion", width: 320, height: 640 },
+    ...shortLandscapeViewports
   ]) {
     const responsiveMotionContext = await browser.newContext({
       viewport: { width: responsiveMotionViewport.width, height: responsiveMotionViewport.height },
@@ -682,7 +736,8 @@ try {
   for (const keyboardViewport of [
     { name: "desktop-keyboard", width: 1440, height: 1000 },
     { name: "mobile-keyboard", width: 390, height: 844 },
-    { name: "mobile-320-reduced-keyboard", width: 320, height: 640, reducedMotion: "reduce" }
+    { name: "mobile-320-reduced-keyboard", width: 320, height: 640, reducedMotion: "reduce" },
+    ...shortLandscapeViewports.map((viewport) => ({ ...viewport, name: `${viewport.name}-keyboard` }))
   ]) {
     const keyboardContext = await browser.newContext({
       viewport: { width: keyboardViewport.width, height: keyboardViewport.height },
@@ -700,6 +755,7 @@ try {
       return {
         text: element?.textContent?.trim(),
         href: element?.getAttribute("href"),
+        scrollY: window.scrollY,
         outline: style ? `${style.outlineStyle} ${style.outlineWidth}` : "",
         inViewport: Boolean(box && box.top >= 0 && box.bottom <= window.innerHeight && box.left >= 0 && box.right <= window.innerWidth),
         unobscured: Boolean(element && hit && (hit === element || element.contains(hit)))
@@ -708,6 +764,7 @@ try {
     const destinations = ["#expertises-it", "#expertises-art"];
     for (const [index, expected] of destinations.entries()) {
       if (index > 0) await keyboardPage.goto(origin, { waitUntil: "networkidle" });
+      assertHeroHalves(keyboardViewport.name, await readHeroComposition(keyboardPage));
       await keyboardPage.keyboard.press("Tab");
       assert.equal((await focusState()).href, "#contenu", `${keyboardViewport.name}: first Tab must reach the skip link`);
       for (const href of destinations.slice(0, index + 1)) {
@@ -716,6 +773,7 @@ try {
         assert.equal(state.href, href, `${keyboardViewport.name}: expected focus on ${href}, got ${state.href}`);
         assert(state.inViewport && state.unobscured, `${keyboardViewport.name}: focused ${href} must be visible above the composition`);
         assert(!state.outline.startsWith("none") && !state.outline.endsWith(" 0px"), `${keyboardViewport.name}: focused ${href} needs a visible outline`);
+        assert.equal(state.scrollY, 0, `${keyboardViewport.name}: Tab must reach ${href} without scrolling the first screen`);
       }
       await keyboardPage.screenshot({ path: join(artifactDirectory, `${keyboardViewport.name}-${expected.endsWith("-it") ? "it" : "art"}-focus.png`) });
       await keyboardPage.keyboard.press("Enter");
@@ -740,6 +798,11 @@ try {
   const resizedHero = await readHeroComposition(reducedResizePage);
   assertHeroHalves("Reduced resize QA", resizedHero);
   assert.equal(resizedHero.art.runningAnimations + resizedHero.it.runningAnimations, 0, "Reduced resize QA: composition must stay still across breakpoints");
+  for (const width of [420, 421, 760, 761, 900, 901]) {
+    await reducedResizePage.setViewportSize({ width, height: 844 });
+    await waitForPaint(reducedResizePage);
+    await assertReferenceCaptionGaps(reducedResizePage, `Reference breakpoint QA at ${width}px`);
+  }
   await reducedResizeContext.close();
 
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });

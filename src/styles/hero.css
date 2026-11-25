@@ -185,6 +185,36 @@
   }
 }
 
+@media (orientation: landscape) and (max-height: 34rem) {
+  .hero {
+    grid-template-rows: minmax(min-content, 1fr) auto;
+    min-height: 100svh;
+    padding-bottom: 0.75rem;
+  }
+
+  .hero__shade {
+    background:
+      radial-gradient(ellipse 57% 55% at 50% 35%, rgb(8 7 12 / 96%) 22%, rgb(8 7 12 / 78%) 56%, transparent 100%),
+      linear-gradient(180deg, transparent 42%, rgb(8 7 12 / 77%) 73%, var(--void) 99%);
+  }
+
+  .hero__core {
+    padding-block: 0.75rem 0.5rem;
+  }
+
+  .hero__core .split-signature {
+    font-size: clamp(3rem, min(13.7vw, 22svh), 13rem);
+  }
+
+  .hero__practice {
+    padding-top: 0.55rem;
+  }
+
+  .hero__practice h2 {
+    font-size: clamp(0.86rem, 2.1vw, 1.1rem);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-field * {
     animation: none;

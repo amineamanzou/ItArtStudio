@@ -407,10 +407,12 @@ p {
 }
 
 .reference-mark {
-  position: relative;
   display: grid;
+  grid-template-rows: minmax(min-content, 1fr) auto;
+  row-gap: 0.65rem;
   min-height: clamp(9rem, 14vw, 13rem);
   padding: clamp(1.25rem, 2.5vw, 2.25rem);
+  padding-block-end: 0.65rem;
   overflow: hidden;
   place-items: center;
   color: var(--studio);
@@ -452,10 +454,6 @@ p {
 }
 
 .reference-mark__name {
-  position: absolute;
-  right: 0.8rem;
-  bottom: 0.65rem;
-  left: 0.8rem;
   color: var(--muted);
   font-size: 0.82rem;
   font-weight: 500;

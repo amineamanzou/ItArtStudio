@@ -50,9 +50,11 @@ Puis ouvrir `http://127.0.0.1:8080/`. La sonde de santé répond sur
 - `src/pages/mentions-legales.astro` : informations légales de la SARL
 - `src/data/site.ts` : contenu public et données société
 - `src/layouts/BaseLayout.astro` : structure, navigation et métadonnées SEO
-- `src/data/hero-field.ts` : géométrie des strates ART / IT de la hero
-- `src/scripts/hero-scroll.ts` : signature épinglée et pause hors écran
-- `src/styles/global.css` : direction visuelle responsive et animation de la hero
+- `src/components/HeroField.astro` pour les deux compositions SVG du premier écran
+- `src/data/hero-geometry.ts` pour la géométrie ramifiée du champ IT
+- `src/scripts/hero-motion.ts` pour la pause de l'animation hors écran
+- `src/styles/hero.css` pour la mise en page du premier écran et ses animations
+- `src/styles/global.css` pour les styles partagés et la mise en page des sections
 - `public/assets/hero-*` : visuels optimisés, dont l'image de partage
 - `scripts/review-static-source.mjs` : contrat des sources
 - `scripts/review-static-site.mjs` : contrat du build
