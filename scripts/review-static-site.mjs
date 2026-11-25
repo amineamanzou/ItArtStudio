@@ -36,13 +36,14 @@ assert(home.trimEnd().endsWith("</html>"), "Home emits markup after the closing 
 assert(home.includes("IT Art Studio"), "Home missing legal name");
 assert(home.includes("mailto:amine@itart.studio"), "Home missing canonical contact");
 assert(home.includes("mailto:carine@itart.studio"), "Home missing ART contact");
-assert(home.includes("data-hero-scroll"), "Home missing pinned hero");
+assert(home.includes("data-hero-signature"), "Home missing the hero signature");
 assert(home.includes('data-hero-field-side="art"'), "Home missing ART hero field");
 assert(home.includes('data-hero-field-side="it"'), "Home missing IT hero field");
 assert(
-  home.indexOf('data-hero-field-side="art"') < home.indexOf('data-hero-field-side="it"'),
-  "ART hero field must precede the IT field"
+  home.indexOf('data-hero-field-side="it"') < home.indexOf('data-hero-field-side="art"'),
+  "IT hero field must precede the ART field"
 );
+assert(home.includes('alt="Logo Orange"'), "Home must identify the Orange logo");
 assert(!/<video\b/i.test(home), "Home must not ship a background video");
 for (const retiredVideoAsset of ["hero-scroll.mp4", "hero-scroll.webm", "hero-scroll-poster.jpg", "hero-scroll-mobile"]) {
   assert(!home.includes(retiredVideoAsset), `Home still references a hero video asset: ${retiredVideoAsset}`);

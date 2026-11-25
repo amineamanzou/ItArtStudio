@@ -8,10 +8,8 @@
   --muted: oklch(71% 0.025 255);
   --line: oklch(96% 0.014 85 / 18%);
   --line-strong: oklch(96% 0.014 85 / 38%);
-  --it: oklch(79% 0.15 220);
-  --it-deep: oklch(35% 0.11 235);
-  --art: oklch(74% 0.16 30);
-  --art-deep: oklch(34% 0.11 22);
+  --it: #ffda57;
+  --art: #d5b5ff;
   --studio: oklch(93% 0.035 85);
   --page-pad: clamp(1rem, 3.6vw, 4rem);
   --section-pad: clamp(4.75rem, 9vw, 9.5rem);
@@ -30,7 +28,7 @@
 html {
   min-width: 320px;
   scroll-behavior: smooth;
-  scroll-padding-top: 5rem;
+  scroll-padding-top: 1.25rem;
   background: var(--void);
 }
 
@@ -125,451 +123,47 @@ p {
   color: var(--studio);
 }
 
-.hero-scroll {
-  --hero-progress: 0;
-  --signature-progress: 0;
-  --signature-scale: 1;
-  --signature-y: 43svh;
-  --beat: 1.2s;
-  --strata-shift: 0%;
-  --columns: 16;
-  --track-start: -50%;
-  --track-width: 150%;
-  position: relative;
-  height: 165svh;
-  min-height: calc(100svh + 24rem);
-  background: var(--void);
-}
-
-.hero-scroll__stage {
-  position: sticky;
-  top: 0;
-  height: 100svh;
-  min-height: 36rem;
-  overflow: hidden;
-  isolation: isolate;
-  background: var(--void);
-}
-
-/*
- * One signal, two readings. Each half holds the same four strata: ART draws
- * them as continuous copper curves, IT samples and holds them in cyan steps.
- * Every IT step lands on the shared beat; ART breathes over four beats.
- */
-.hero-field,
-.hero-scroll__shade {
-  position: absolute;
-  inset: 0;
-}
-
-.hero-field {
-  z-index: -3;
-  right: auto;
-  width: 50%;
-  overflow: hidden;
-  contain: paint;
-  /* The grain blends against this backdrop, so it vanishes in the void. */
-  background: var(--void);
-}
-
-.hero-field--art {
-  left: 0;
-  animation: seam-open-art calc(var(--beat) * 1.5) var(--ease-out) both;
-}
-
-.hero-field--it {
-  left: 50%;
-  animation: seam-open-it calc(var(--beat) * 1.5) var(--ease-out) both;
-}
-
-/* Sixteen sample columns per half: the grid the IT strata are held on. */
-.hero-field--it::before {
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    90deg,
-    oklch(79% 0.15 220 / 10%) 0 1px,
-    transparent 1px calc(100% / var(--columns))
-  );
-  content: "";
-  mask-image: linear-gradient(180deg, transparent 10%, #000 55%);
-  pointer-events: none;
-}
-
-.hero-stratum {
-  position: absolute;
-  top: calc(var(--band-top) + var(--strata-shift));
-  right: 0;
-  bottom: calc(var(--band-bottom) - var(--strata-shift));
-  left: 0;
-  transform-origin: 50% 100%;
-  animation: stratum-swell calc(var(--beat) * 4) ease-in-out infinite alternate;
-  animation-delay: calc(var(--stratum) * var(--beat) * -1);
-}
-
-.hero-field--it .hero-stratum {
-  animation-timing-function: steps(2, jump-end);
-}
-
-/* Three periods per track: two fill the half, the third loops the flow. */
-.hero-stratum__track {
-  position: absolute;
-  inset: 0 auto 0 var(--track-start);
-  width: var(--track-width);
-  animation: stratum-flow var(--flow) linear infinite;
-}
-
-.hero-field--it .hero-stratum__track {
-  animation-timing-function: steps(var(--samples), jump-end);
-}
-
-.hero-stratum__track svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-
-.hero-stratum__crest {
-  fill: none;
-  stroke-width: 1.25px;
-}
-
-/* ART: copper and coral strata, lit at the crest and sinking into the void. */
-.hero-field--art .hero-stratum__crest {
-  stroke: oklch(88% 0.09 60 / var(--crest-alpha));
-}
-
-/* Echoes: outline-only strata that carry the beat behind the signature. */
-.hero-stratum--ghost {
-  --crest-alpha: 26%;
-  transform-origin: 50% 50%;
-}
-
-.hero-stratum--ghost[data-hero-stratum="0"] {
-  --crest-alpha: 16%;
-}
-
-.hero-field--art .hero-stratum__sheen-light {
-  stop-color: var(--sheen-light);
-}
-
-.hero-field--art .hero-stratum__sheen-deep {
-  stop-color: var(--sheen-deep);
-}
-
-.hero-field--art [data-hero-stratum="2"] {
-  --sheen-light: oklch(72% 0.15 34);
-  --sheen-deep: oklch(42% 0.12 30);
-  --crest-alpha: 80%;
-}
-
-.hero-field--art [data-hero-stratum="3"] {
-  --sheen-light: oklch(60% 0.13 48);
-  --sheen-deep: oklch(30% 0.08 40);
-  --crest-alpha: 62%;
-}
-
-.hero-field--art [data-hero-stratum="4"] {
-  --sheen-light: oklch(44% 0.1 42);
-  --sheen-deep: oklch(19% 0.05 35);
-  --crest-alpha: 44%;
-}
-
-.hero-field--art [data-hero-stratum="5"] {
-  --sheen-light: oklch(25% 0.06 36);
-  --sheen-deep: oklch(10% 0.02 270);
-  --crest-alpha: 30%;
-}
-
-/* IT: the same strata held on a grid, flat and exact. */
-.hero-field--it .hero-stratum__body {
-  fill: var(--stratum-fill);
-}
-
-.hero-field--it .hero-stratum__crest {
-  stroke: oklch(88% 0.1 210 / var(--crest-alpha));
-  stroke-linejoin: miter;
-}
-
-.hero-field--it [data-hero-stratum="2"] {
-  --stratum-fill: oklch(66% 0.13 222);
-  --crest-alpha: 85%;
-}
-
-.hero-field--it [data-hero-stratum="3"] {
-  --stratum-fill: oklch(47% 0.12 232);
-  --crest-alpha: 62%;
-}
-
-.hero-field--it [data-hero-stratum="4"] {
-  --stratum-fill: oklch(30% 0.09 240);
-  --crest-alpha: 44%;
-}
-
-.hero-field--it [data-hero-stratum="5"] {
-  --stratum-fill: oklch(15% 0.04 255);
-  --crest-alpha: 30%;
-}
-
-.hero-field__grain {
-  position: absolute;
-  inset: calc(48% + var(--strata-shift)) 0 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .78 0 0 0 0 .6 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
-  mix-blend-mode: overlay;
-  opacity: 0.32;
-  pointer-events: none;
-}
-
-/* The sampling cursor advances one grid column per beat. */
-.hero-field__cursor {
-  position: absolute;
-  top: calc(52% + var(--strata-shift));
-  bottom: 0;
-  left: 0;
-  width: calc(100% / var(--columns));
-  border-left: 1px solid oklch(90% 0.1 205 / 70%);
-  transform: translateX(500%);
-  animation: sample-cursor calc(var(--beat) * var(--columns)) steps(var(--columns), jump-end) infinite;
-}
-
-[data-hero-field="paused"] .hero-field,
-[data-hero-field="paused"] .hero-field * {
-  animation-play-state: paused;
-}
-
-@keyframes seam-open-art {
-  from {
-    clip-path: inset(0 0 0 100%);
-  }
-
-  to {
-    clip-path: inset(0);
-  }
-}
-
-@keyframes seam-open-it {
-  from {
-    clip-path: inset(0 100% 0 0);
-  }
-
-  to {
-    clip-path: inset(0);
-  }
-}
-
-@keyframes stratum-flow {
-  from {
-    transform: translateX(0);
-  }
-
-  to {
-    transform: translateX(33.3333%);
-  }
-}
-
-@keyframes stratum-swell {
-  from {
-    transform: scaleY(1);
-  }
-
-  to {
-    transform: scaleY(var(--swell));
-  }
-}
-
-@keyframes sample-cursor {
-  from {
-    transform: translateX(0);
-  }
-
-  to {
-    transform: translateX(calc(var(--columns) * 100%));
-  }
-}
-
-.hero-scroll__shade {
-  z-index: -2;
-  background:
-    radial-gradient(ellipse min(30rem, 46vw) min(14rem, 24svh) at 50% var(--signature-y), oklch(6% 0.02 255 / 72%), transparent),
-    linear-gradient(180deg, oklch(5% 0.02 255 / 70%), transparent 24% 66%, oklch(5% 0.02 255 / 82%));
-  pointer-events: none;
-}
-
-.hero-scroll__practice {
-  --practice-edge: var(--page-pad);
-  --practice-bottom: clamp(3.5rem, 7vh, 6rem);
-  --practice-fade: 7rem;
-  --practice-veil: oklch(6% 0.02 255 / 92%);
-  position: absolute;
-  bottom: var(--practice-bottom);
-  z-index: 5;
-  width: min(25rem, calc(42vw - var(--page-pad)));
-}
-
-/*
- * A stable dusk pools from the outer and lower edges of each half behind the
- * practice copy. It reaches full depth at the label, fades out above it and
- * toward the axis, and never crosses the axis. The strata keep moving behind it.
- */
-.hero-scroll__practice::before {
-  position: absolute;
-  top: -4.5rem;
-  bottom: calc(-1 * var(--practice-bottom));
-  z-index: -1;
-  width: min(calc(100% + var(--practice-edge) + var(--practice-fade)), calc(50vw - 1px));
-  background: linear-gradient(180deg, transparent, var(--practice-veil) 4.5rem);
-  content: "";
-  pointer-events: none;
-}
-
-.hero-scroll__practice--art {
-  left: var(--practice-edge);
-}
-
-.hero-scroll__practice--art::before {
-  left: calc(-1 * var(--practice-edge));
-  mask-image: linear-gradient(90deg, #000 calc(100% - var(--practice-fade)), transparent);
-}
-
-.hero-scroll__practice--it {
-  right: var(--practice-edge);
-  text-align: right;
-}
-
-.hero-scroll__practice--it::before {
-  right: calc(-1 * var(--practice-edge));
-  mask-image: linear-gradient(270deg, #000 calc(100% - var(--practice-fade)), transparent);
-}
-
-.hero-scroll__practice > p {
-  margin-bottom: 0.8rem;
-  font-size: clamp(2.3rem, 4.8vw, 5rem);
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 0.85;
-}
-
-.hero-scroll__practice--art > p {
-  color: var(--art);
-}
-
-.hero-scroll__practice--it > p {
-  color: var(--it);
-}
-
-.hero-scroll__practice h2 {
-  margin-bottom: 1rem;
-  font-family: var(--font-display);
-  font-size: clamp(1.35rem, 2.1vw, 2.3rem);
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.04;
-}
-
-.hero-scroll__practice a {
-  display: inline-flex;
-  min-height: 2.75rem;
-  align-items: center;
-  border-bottom: 1px solid currentColor;
-  color: var(--ink-soft);
-  font-size: 0.9rem;
-}
-
-.hero-scroll__core {
-  position: fixed;
-  top: 0;
-  left: 50%;
-  z-index: 12;
-  width: min(34rem, calc(100% - 2rem));
-  padding: 1.25rem 0;
-  pointer-events: none;
-  text-align: center;
-  transform: translate3d(-50%, var(--signature-y), 0) translateY(-50%) scale(var(--signature-scale));
-  transform-origin: center;
-  will-change: transform;
-}
-
 .split-signature {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-areas:
-    ". it"
-    "art ."
+    "it art"
     "studio studio";
-  gap: 0.05em 0;
-  align-items: end;
+  gap: 0.075em 0;
+  width: max-content;
+  max-width: 100%;
   margin: 0;
   color: var(--studio);
-  font-weight: 400;
-  letter-spacing: -0.03em;
-  line-height: 0.9;
-  text-shadow: 0 2px 8px oklch(0% 0 0 / 72%);
-}
-
-.hero-scroll__core .split-signature {
-  font-size: clamp(2.5rem, 7vw, 6rem);
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 0.82;
+  text-align: center;
 }
 
 .split-signature > span {
-  font-family: var(--font-body);
-  font-size: 0.46em;
-  font-weight: 600;
-  letter-spacing: 0;
-  line-height: 0.9;
+  padding-inline: 0.22em;
+  font-size: 0.58em;
+  letter-spacing: -0.04em;
+  line-height: 1;
 }
 
 .hero-title__it {
   grid-area: it;
-  justify-self: start;
-  padding-left: clamp(0.75rem, 2vw, 1.5rem);
+  justify-self: end;
   color: var(--it);
 }
 
 .hero-title__art {
   grid-area: art;
-  justify-self: end;
-  padding-right: clamp(0.75rem, 2vw, 1.5rem);
+  justify-self: start;
   color: var(--art);
-}
-
-.split-signature > strong {
-  font-family: var(--font-display);
-  font-weight: 400;
 }
 
 .hero-title__studio {
   grid-area: studio;
   justify-self: center;
-}
-
-.hero-scroll__progress {
-  position: absolute;
-  right: var(--page-pad);
-  bottom: 1.25rem;
-  z-index: 6;
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  color: var(--muted);
-  font-size: 0.72rem;
-}
-
-.hero-scroll__progress i {
-  display: block;
-  width: 4.5rem;
-  height: 1px;
-  overflow: hidden;
-  background: var(--line-strong);
-}
-
-.hero-scroll__progress b {
-  display: block;
-  width: 100%;
-  height: 100%;
-  background: var(--studio);
-  transform: scaleX(var(--hero-progress));
-  transform-origin: left;
+  font: inherit;
 }
 
 .activity-section,
@@ -658,7 +252,7 @@ p {
 }
 
 .services-section {
-  padding-block: clamp(6.5rem, 12vw, 13rem);
+  padding-block: 0 clamp(3rem, 7vw, 7rem);
 }
 
 .practice-columns {
@@ -667,15 +261,32 @@ p {
 }
 
 .practice-services {
-  padding-block: clamp(2.5rem, 5vw, 5rem);
-}
-
-.practice-services--art {
-  padding-right: clamp(2rem, 5vw, 6rem);
+  padding-block: clamp(1.35rem, 3.5vw, 3.5rem);
 }
 
 .practice-services--it {
+  padding-right: clamp(2rem, 5vw, 6rem);
+}
+
+.practice-services--art {
   padding-left: clamp(2rem, 5vw, 6rem);
+}
+
+.practice-services__title {
+  width: min(100%, 28rem);
+  margin-bottom: 1.25rem;
+  color: var(--it);
+  font-size: clamp(1.15rem, 2.4vw, 2rem);
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.practice-services--it .practice-services__title {
+  margin-left: auto;
+}
+
+.practice-services--art .practice-services__title {
+  color: var(--art);
 }
 
 .service-list {
@@ -684,11 +295,11 @@ p {
   width: min(100%, 28rem);
 }
 
-.practice-services--art .service-list {
+.practice-services--it .service-list {
   margin-left: auto;
 }
 
-.practice-services--it .service-list {
+.practice-services--art .service-list {
   margin-right: auto;
 }
 
@@ -707,10 +318,10 @@ p {
   font-size: 0.8rem;
 }
 
-.service-item h3 {
-  margin-bottom: 0.75rem;
-  font-size: clamp(1.15rem, 2vw, 1.55rem);
-  font-weight: 500;
+.service-item h4 {
+  margin: 0 0 0.65rem;
+  font-size: clamp(1.2rem, 2.35vw, 1.9rem);
+  font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.2;
 }
@@ -763,11 +374,11 @@ p {
   padding-block: clamp(2.5rem, 5vw, 4.5rem);
 }
 
-.references-practice--art {
+.references-practice--it {
   padding-right: clamp(2rem, 5vw, 6rem);
 }
 
-.references-practice--it {
+.references-practice--art {
   padding-left: clamp(2rem, 5vw, 6rem);
 }
 
@@ -777,13 +388,13 @@ p {
   line-height: 1;
 }
 
-.references-practice--art h3 {
-  color: var(--art);
+.references-practice--it h3 {
+  color: var(--it);
   text-align: right;
 }
 
-.references-practice--it h3 {
-  color: var(--it);
+.references-practice--art h3 {
+  color: var(--art);
 }
 
 .references-practice ul {
@@ -796,10 +407,12 @@ p {
 }
 
 .reference-mark {
-  position: relative;
   display: grid;
+  grid-template-rows: minmax(min-content, 1fr) auto;
+  row-gap: 0.65rem;
   min-height: clamp(9rem, 14vw, 13rem);
   padding: clamp(1.25rem, 2.5vw, 2.25rem);
+  padding-block-end: 0.65rem;
   overflow: hidden;
   place-items: center;
   color: var(--studio);
@@ -841,14 +454,9 @@ p {
 }
 
 .reference-mark__name {
-  position: absolute;
-  right: 0.8rem;
-  bottom: 0.65rem;
-  left: 0.8rem;
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: 0.82rem;
   font-weight: 500;
-  letter-spacing: 0.04em;
   line-height: 1.2;
   text-align: center;
 }
@@ -895,13 +503,13 @@ p {
 
 .method-section::before,
 .contact-section::before {
-  --ambient-color: var(--art);
+  --ambient-color: var(--it);
   left: clamp(-12rem, -9vw, -4rem);
 }
 
 .method-section::after,
 .contact-section::after {
-  --ambient-color: var(--it);
+  --ambient-color: var(--art);
   right: clamp(-12rem, -9vw, -4rem);
 }
 
@@ -1038,14 +646,14 @@ p {
   right: 0;
 }
 
-.contact-practice--art {
+.contact-practice--it {
   justify-self: end;
   width: min(100%, 34rem);
   padding-right: clamp(2rem, 5vw, 6rem);
   text-align: right;
 }
 
-.contact-practice--it {
+.contact-practice--art {
   justify-self: start;
   width: min(100%, 34rem);
   padding-left: clamp(2rem, 5vw, 6rem);
@@ -1057,7 +665,7 @@ p {
   margin-bottom: clamp(2rem, 4vw, 4rem);
 }
 
-.contact-practice--art h2 {
+.contact-practice--it h2 {
   margin-left: auto;
 }
 
@@ -1094,7 +702,7 @@ p {
   min-height: 13rem;
   padding-block: 2.5rem;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.92rem;
   background: transparent;
 }
 
@@ -1102,8 +710,7 @@ p {
   grid-column: 1 / -1;
   grid-row: 1;
   justify-self: center;
-  width: min(8rem, 100%);
-  font-size: clamp(1.8rem, 2.8vw, 2.8rem);
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
 }
 
 .site-footer p {
@@ -1216,72 +823,6 @@ p {
     display: none;
   }
 
-  html {
-    scroll-padding-top: 4.5rem;
-  }
-
-  .hero-scroll {
-    --signature-y: 50svh;
-    --strata-shift: 4%;
-    /* One period per half keeps the waves legible on a narrow screen. */
-    --columns: 8;
-    --track-start: -100%;
-    --track-width: 300%;
-    height: 155svh;
-    min-height: calc(100svh + 20rem);
-  }
-
-  .hero-scroll__stage {
-    min-height: 100svh;
-  }
-
-  .hero-scroll__shade {
-    background:
-      radial-gradient(ellipse 60% 16svh at 50% var(--signature-y), oklch(6% 0.02 255 / 78%), transparent),
-      linear-gradient(180deg, var(--void) 0 14%, transparent 40% 66%, oklch(5% 0.02 255 / 88%) 90%);
-  }
-
-  .hero-scroll__practice {
-    --practice-edge: 1rem;
-    --practice-bottom: 4.5rem;
-    --practice-fade: 3rem;
-    width: calc(50% - 1.5rem);
-  }
-
-  .hero-scroll__practice > p {
-    margin-bottom: 0.55rem;
-    font-size: 2.25rem;
-  }
-
-  .hero-scroll__practice h2 {
-    display: none;
-  }
-
-  .hero-scroll__practice a {
-    min-height: 2.5rem;
-    font-size: 0.76rem;
-  }
-
-  .hero-scroll__core {
-    width: 100%;
-    padding: 1rem;
-  }
-
-  .hero-scroll__core h1 {
-    font-size: clamp(2.4rem, 13vw, 4.25rem);
-  }
-
-  .hero-scroll__progress {
-    right: auto;
-    bottom: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  .hero-scroll__progress span {
-    display: none;
-  }
-
   .activity-section,
   .section-heading,
   .practice-columns,
@@ -1329,7 +870,6 @@ p {
   }
 
   .activity-section,
-  .services-section,
   .references-section,
   .method-section,
   .contact-section,
@@ -1354,7 +894,11 @@ p {
   }
 
   .practice-services {
-    padding-block: 3rem;
+    padding-block: 1.6rem;
+  }
+
+  .practice-services--it .practice-services__title {
+    margin-left: 0;
   }
 
   .references-practice {
@@ -1391,7 +935,7 @@ p {
     text-align: left;
   }
 
-  .references-practice--art h3 {
+  .references-practice--it h3 {
     text-align: left;
   }
 
@@ -1466,11 +1010,6 @@ p {
 }
 
 @media (max-width: 420px) {
-  .hero-scroll__practice a {
-    max-width: 9rem;
-    line-height: 1.25;
-  }
-
   .service-item {
     grid-template-columns: 2rem 1fr;
     gap: 0 0.75rem;
@@ -1497,23 +1036,5 @@ p {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-  }
-
-  .hero-scroll {
-    height: 100svh;
-    min-height: 36rem;
-  }
-
-  .hero-scroll__progress {
-    display: none;
-  }
-
-  /* A fixed composition: IT holds the sample that ART is drawing at the seam. */
-  .hero-field,
-  .hero-field *,
-  .hero-stratum,
-  .hero-stratum__track,
-  .hero-field__cursor {
-    animation: none !important;
   }
 }
