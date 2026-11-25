@@ -20,7 +20,7 @@ export function verifyQualification(envelope,{publicKey,now=new Date(),configura
   for(const field of ['configurationSha256','recipeSha256','evidenceSha256'])requireValue(hash.test(q[field]),`Invalid ${field}`);
   requireValue(q.imageRef.startsWith(`${IMAGE_NAME}@sha256:`)&&hash.test(q.imageRef.slice(`${IMAGE_NAME}@sha256:`.length)),'Invalid image subject');
   requireValue(typeof q.buildRunId==='string'&&run.test(q.buildRunId)&&Number.isSafeInteger(q.buildAttempt)&&q.buildAttempt>0,'Invalid build run/attempt');
-  requireValue(q.sourceRef===`refs/heads/codex/factory-promotion/${q.candidateId}`,'Invalid candidate source ref');
+  requireValue([`refs/heads/release/factory-promotion/${q.candidateId}`, `refs/heads/codex/factory-promotion/${q.candidateId}`].includes(q.sourceRef),'Invalid candidate source ref');
   if(qualificationRef!==undefined)requireValue(qualificationRef===`factory-qualification/${q.candidateId}`,'Qualification tag mismatch');
   const canonicalUtc = value => typeof value==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(value)&&Number.isFinite(Date.parse(value))&&new Date(value).toISOString()===value.slice(0,-1)+'.000Z';
   const issued=Date.parse(q.issuedAt),expires=Date.parse(q.expiresAt);
@@ -72,7 +72,7 @@ export function promotionPredicate(envelope, qualification, {releaseSha,releaseR
 export function publicationRoute({eventName,qualificationRef,releaseSha,pullRequests=[]}) {
   if(eventName==='workflow_dispatch'&&qualificationRef){requireValue(/^factory-qualification\/[a-f0-9]{32}$/.test(qualificationRef),'Invalid qualification ref');return {mode:'publish',qualificationRef};}
   if(eventName==='push') {
-    const ids=pullRequests.filter(pr=>pr.merged_at&&pr.merge_commit_sha===releaseSha&&pr.base?.ref==='main'&&pr.head?.repo?.full_name===REPOSITORY&&/^codex\/factory-promotion\/[a-f0-9]{32}$/.test(pr.head?.ref??''));
+    const ids=pullRequests.filter(pr=>pr.merged_at&&pr.merge_commit_sha===releaseSha&&pr.base?.ref==='main'&&pr.head?.repo?.full_name===REPOSITORY&&/^(?:release|codex)\/factory-promotion\/[a-f0-9]{32}$/.test(pr.head?.ref??''));
     requireValue(ids.length<=1,'Ambiguous promotion PR');if(ids.length===1)return {mode:'publish',qualificationRef:`factory-qualification/${ids[0].head.ref.split('/').at(-1)}`};
   }
   return {mode:'request'};

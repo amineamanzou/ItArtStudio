@@ -3,10 +3,12 @@ import { access, readFile } from "node:fs/promises";
 
 const requiredFiles = [
   "src/data/site.ts",
-  "src/data/hero-field.ts",
+  "src/data/hero-geometry.ts",
+  "src/components/HeroField.astro",
   "src/layouts/BaseLayout.astro",
   "src/pages/index.astro",
-  "src/scripts/hero-scroll.ts",
+  "src/scripts/hero-motion.ts",
+  "src/styles/hero.css",
   "src/pages/mentions-legales.astro"
 ];
 
@@ -46,46 +48,36 @@ assert(!/from\s+["'][^"']*(?:game|three)[^"']*["']/i.test(source), "Interactive 
 assert(!/href=["']#["']/i.test(source), "Placeholder href found");
 assert(!source.includes("contact@itart.studio"), "Legacy contact found");
 
-for (const heroContract of [
-  "data-hero-scroll",
-  "data-hero-field",
-  "data-hero-field-side={side}",
-  "prefers-reduced-motion",
-  "IntersectionObserver"
-]) {
-  assert(source.includes(heroContract), `Hero composition contract is missing: ${heroContract}`);
-}
-
-const heroFieldSource = await readFile("src/data/hero-field.ts", "utf8");
-const heroControllerSource = await readFile("src/scripts/hero-scroll.ts", "utf8");
-assert(!/<video\b/i.test(homeSource), "Home must not render a background video");
+const heroStyle = await readFile("src/styles/hero.css", "utf8");
+const heroMarkup = await readFile("src/components/HeroField.astro", "utf8");
+const heroController = await readFile("src/scripts/hero-motion.ts", "utf8");
+assert(homeSource.includes("data-hero") && homeSource.includes("<HeroField />"), "Home must render the hero composition");
+assert(heroController.includes("IntersectionObserver"), "Offscreen hero motion must pause");
+assert(!/<video\b/i.test(homeSource + heroMarkup), "Home must not render a background video");
 for (const retiredVideoContract of [".mp4", ".webm", "hero-scroll-poster", "data-hero-video"]) {
-  assert(!homeSource.includes(retiredVideoContract), `Retired hero video contract remains: ${retiredVideoContract}`);
+  assert(!(homeSource + heroMarkup).includes(retiredVideoContract), `Retired hero video contract remains: ${retiredVideoContract}`);
 }
 for (const retiredVideoControl of ["currentTime", "HTMLVideoElement", ".load()"]) {
-  assert(!heroControllerSource.includes(retiredVideoControl), `Hero controller still drives video: ${retiredVideoControl}`);
+  assert(!heroController.includes(retiredVideoControl), `Hero controller still drives video: ${retiredVideoControl}`);
 }
+assertOrdered(heroMarkup, 'data-hero-field-side="it"', 'data-hero-field-side="art"', "Hero fields");
 assert(
-  homeSource.includes('(["art", "it"] as const)'),
-  "Hero composition must render ART before IT, left then right"
-);
-assert(heroFieldSource.includes("heroBeatSeconds"), "Hero halves must share one beat");
-assert(heroFieldSource.includes("organicPoints") && heroFieldSource.includes("sampledPoints"), "Hero must read the same signal organically (ART) and sampled (IT)");
-for (const motionRule of ["@keyframes stratum-flow", "@keyframes stratum-swell", "@keyframes sample-cursor", "steps(var(--samples)"]) {
-  assert(styleSource.includes(motionRule), `Hero motion rule is missing: ${motionRule}`);
-}
-const reducedMotionBlocks = styleSource.match(/@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\n\}/g) ?? [];
-assert(
-  reducedMotionBlocks.some((block) => block.includes(".hero-field") && block.includes("animation: none")),
+  /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.hero-field \*[\s\S]*?animation: none/.test(heroStyle),
   "Reduced motion must hold the hero composition still"
 );
+
+function assertOrdered(markup, first, second, label) {
+  const firstIndex = markup.indexOf(first);
+  assert(firstIndex >= 0 && firstIndex < markup.indexOf(second), `${label} must render IT before ART`);
+}
 
 const clientReferences = [
   "bioMérieux",
   "GCA Groupe Charles André",
   "KeyIA",
   "Enedis",
-  "Odigo"
+  "Odigo",
+  "Orange"
 ];
 
 const artReferences = [
@@ -119,15 +111,15 @@ for (const artReference of artReferences) {
 
 assert(
   homeSource.includes('<span class="hero-title__it">IT</span>'),
-  "Hero title must begin with IT on the right"
+  "Hero title must include IT"
 );
 assert(
   homeSource.includes('<span class="hero-title__art">ART</span>'),
-  "Hero title must place ART on the left"
+  "Hero title must include ART"
 );
 assert(
   homeSource.includes('<strong class="hero-title__studio">STUDIO</strong>'),
-  "Hero title must keep STUDIO centered below ART"
+  "Hero title must keep STUDIO as part of the signature"
 );
 assert(
   !homeSource.includes("Conseil technique. Direction créative. Production."),
@@ -142,11 +134,13 @@ assert(layoutSource.includes("split-signature--footer"), "Footer must reuse the 
 const footerSource = layoutSource.match(/<footer[\s\S]*?<\/footer>/)?.[0] ?? "";
 assert(!footerSource.includes("mailto:"), "Footer must not repeat a contact email");
 assert(footerSource.includes("company.legalForm"), "Footer must retain the legal company form");
-assert(homeSource.includes("data-hero-signature"), "Persistent hero signature contract is missing");
-assert(
-  homeSource.indexOf("practice-services--art") < homeSource.indexOf("practice-services--it"),
-  "ART services must render before IT services"
-);
+assert(homeSource.includes("data-hero-signature"), "Hero signature is missing");
+assertOrdered(homeSource, 'href="#expertises-it"', 'href="#expertises-art"', "Practice links");
+assertOrdered(homeSource, "practice-services--it", "practice-services--art", "Services");
+assertOrdered(homeSource, "references-practice--it", "references-practice--art", "References");
+assertOrdered(homeSource, "contact-practice--it", "contact-practice--art", "Contacts");
+assert(siteDataSource.includes('name: "Orange", logo: "/assets/references/orange.svg"'), "Orange must use the supplied brand asset");
+await access("public/assets/references/orange.svg");
 assert(homeSource.includes('data-reveal="split-left"'), "Left-side entrance contract is missing");
 assert(homeSource.includes('data-reveal="split-right"'), "Right-side entrance contract is missing");
 assert(homeSource.includes('data-reveal-kind="logo"'), "Logo reveal treatment is missing");
@@ -160,13 +154,14 @@ assert(
 );
 assert(homeSource.includes("Besoin de notre art ?"), "ART contact title is missing");
 assert(homeSource.includes("Besoin de notre tech ?"), "IT contact title is missing");
-assert(styleSource.includes("body::before"), "Continuous document axis is missing");
-assert(styleSource.includes("left: 50%"), "Continuous document axis must align to the midpoint");
+const axisRule = styleSource.match(/body::before\s*\{([^}]*)\}/)?.[1] ?? "";
+assert(axisRule, "Continuous document axis is missing");
+assert(/(?:left:\s*50%|inset:\s*0 auto 0 50%)/.test(axisRule), "Continuous document axis must align to the midpoint");
 assert(styleSource.includes("clip-path"), "References must use a masked reveal distinct from services");
-assert(styleSource.includes(".method-section::before"), "ART method ambience light is missing");
-assert(styleSource.includes(".method-section::after"), "IT method ambience light is missing");
-assert(styleSource.includes(".contact-section::before"), "ART contact ambience light is missing");
-assert(styleSource.includes(".contact-section::after"), "IT contact ambience light is missing");
+assert(styleSource.includes(".method-section::before"), "IT method ambience light is missing");
+assert(styleSource.includes(".method-section::after"), "ART method ambience light is missing");
+assert(styleSource.includes(".contact-section::before"), "IT contact ambience light is missing");
+assert(styleSource.includes(".contact-section::after"), "ART contact ambience light is missing");
 assert(revealSource.includes("IntersectionObserver"), "Section reveal controller is missing");
 
 for (const selector of [
