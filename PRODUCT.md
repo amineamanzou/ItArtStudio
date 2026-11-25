@@ -23,22 +23,23 @@ Publier immédiatement une vitrine statique crédible sur `https://itart.studio`
 
 ## Hiérarchie commerciale
 
-La composition du hero reste visuellement partagée à parts égales entre IT et
-ART. Le contenu accorde davantage de poids à IT, qui porte quatre des six offres,
-tout en donnant à ART une identité propre et immédiatement reconnaissable.
+Le premier écran donne autant de place à IT, en jaune à gauche, qu'à ART, en
+violet à droite. La signature IT ART STUDIO domine la scène. Les liens vers les
+deux pratiques sont visibles dès l'arrivée et le premier défilement dévoile les
+prestations. Les prestations, les références et les contacts suivent l'ordre
+IT / ART. IT porte quatre des six offres.
 
 ## Ton et preuves
 
 Le ton est calme, précis, senior et concret. La marque évite les codes d'ESN,
 les faux dashboards, les chiffres non sourcés et les références client non
-validées. Les références approuvées sont présentées par leurs logos, séparées
-entre ART et IT. Aucun tracker ni collecte par formulaire n'est nécessaire dans
-cette version.
+validées. Les références approuvées sont présentées par leurs logos, groupées
+par pratique. Orange figure parmi les références IT dans ses couleurs de marque.
+Aucun tracker ni collecte par formulaire n'est nécessaire dans cette version.
 
 ## Suite possible
 
 L'expérience WebGL est archivée dans `codex/interactive-world-v10-archive`.
-La hero vidéo d'août 2026 a été remplacée par une composition abstraite ART / IT
-générée au build ; ses sources restent consultables dans l'historique Git
-(révision `d81473c`). Les médias indépendants du premier écran, comme les vidéos
-sociales et l'image de partage, gardent leur usage.
+Le premier écran est une composition abstraite générée au build, animée pour
+les personnes qui le souhaitent. Les médias indépendants du premier écran,
+comme les vidéos sociales et l'image de partage, gardent leur usage.

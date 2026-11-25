@@ -11,7 +11,7 @@ const { publicKey, privateKey } = generateKeyPairSync('ed25519');
 const sha = n => String(n).repeat(40);
 const hash = 'a'.repeat(64);
 const now = new Date('2026-11-15T12:00:00Z');
-function payload() { return { kind: 'factory.website.qualification.v1', repository: 'amineamanzou/ItArtStudio', taskId: 'c'.repeat(32), candidateId: 'b'.repeat(32), mode: 'code', devSha: sha(1), baseSha: sha(2), candidateSha: sha(3), treeSha: sha(4), imageRef: `ghcr.io/amineamanzou/it-art-studio@sha256:${hash}`, buildRunId: '1234', buildAttempt: 2, sourceRef: `refs/heads/codex/factory-promotion/${'b'.repeat(32)}`, publicationDate: '2026-11-15', configurationSha256: hash, recipeSha256: hash, evidenceSha256: hash, issuedAt: '2026-11-15T11:00:00Z', expiresAt: '2026-11-15T13:00:00Z', e2e: {passed:14,failed:0,skipped:0}, perf:{requests:120,errors:0,p95Ms:115,lcpMaxMs:1000,clsMax:0,payloadMaxBytes:100000}, staging:{released:true,idle:true}, review:{model:'gpt-6.1-sol',effort:'high',verdict:'approved',headSha:sha(3)} }; }
+function payload() { return { kind: 'factory.website.qualification.v1', repository: 'amineamanzou/ItArtStudio', taskId: 'c'.repeat(32), candidateId: 'b'.repeat(32), mode: 'code', devSha: sha(1), baseSha: sha(2), candidateSha: sha(3), treeSha: sha(4), imageRef: `ghcr.io/amineamanzou/it-art-studio@sha256:${hash}`, buildRunId: '1234', buildAttempt: 2, sourceRef: `refs/heads/release/factory-promotion/${'b'.repeat(32)}`, publicationDate: '2026-11-15', configurationSha256: hash, recipeSha256: hash, evidenceSha256: hash, issuedAt: '2026-11-15T11:00:00Z', expiresAt: '2026-11-15T13:00:00Z', e2e: {passed:14,failed:0,skipped:0}, perf:{requests:120,errors:0,p95Ms:115,lcpMaxMs:1000,clsMax:0,payloadMaxBytes:100000}, staging:{released:true,idle:true}, review:{model:'gpt-6.1-sol',effort:'high',verdict:'approved',headSha:sha(3)} }; }
 function envelope(p = payload()) { const bytes = Buffer.from(JSON.stringify(p)); return {schemaVersion:1,payload:bytes.toString('base64'),signature:sign(null,bytes,privateKey).toString('base64')}; }
 function verify(e, options={}) { return qualification.verifyQualification(e,{publicKey, now, ...options}); }
 test('production configuration preserves canonical URL and absent telemetry', () => {
@@ -69,7 +69,7 @@ test('schedule and ordinary pushes request qualification; owned merged PR select
   assert.equal(typeof qualification.publicationRoute,'function');
   assert.deepEqual(qualification.publicationRoute({eventName:'schedule'}),{mode:'request'});
   assert.deepEqual(qualification.publicationRoute({eventName:'push',releaseSha:sha(5),pullRequests:[]}),{mode:'request'});
-  const id='b'.repeat(32);const pr={merged_at:'2026-11-15T12:00:00Z',merge_commit_sha:sha(5),base:{ref:'main'},head:{ref:`codex/factory-promotion/${id}`,repo:{full_name:payload().repository}}};
+  const id='b'.repeat(32);const pr={merged_at:'2026-11-15T12:00:00Z',merge_commit_sha:sha(5),base:{ref:'main'},head:{ref:`release/factory-promotion/${id}`,repo:{full_name:payload().repository}}};
   assert.deepEqual(qualification.publicationRoute({eventName:'push',releaseSha:sha(5),pullRequests:[pr]}),{mode:'publish',qualificationRef:`factory-qualification/${id}`});
   assert.throws(()=>qualification.publicationRoute({eventName:'workflow_dispatch',qualificationRef:'main'}));
 });
@@ -84,7 +84,7 @@ test('staging and production images record the package manifest version', t => {
   const date = candidate.parisDate();
   const candidateId = 'b'.repeat(32);
   for (const variant of ['staging', 'production']) {
-    const ref = variant === 'staging' ? 'refs/heads/dev' : `refs/heads/codex/factory-promotion/${candidateId}`;
+    const ref = variant === 'staging' ? 'refs/heads/dev' : `refs/heads/release/factory-promotion/${candidateId}`;
     const prepared = candidate.prepareCandidate({
       GITHUB_REF: ref, GITHUB_EVENT_NAME: 'workflow_dispatch', INPUT_PROFILE: variant,
       INPUT_CANDIDATE_ID: candidateId, INPUT_PUBLICATION_DATE: date,
@@ -120,7 +120,7 @@ test('publisher has no rebuild or fabricated main SLSA and tags the qualified di
   assert.ok(workflow.indexOf('release-qualification.mjs recheck')<workflow.indexOf('imagetools create'));
 });
 test('candidate preparation restricts production dispatch ref and preserves requested flags',()=>{
-  const id='b'.repeat(32),env={GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_REF:`refs/heads/codex/factory-promotion/${id}`,INPUT_PROFILE:'production',INPUT_CANDIDATE_ID:id,INPUT_PUBLICATION_DATE:candidate.parisDate(),INPUT_PRODUCT_ANALYTICS:'false',INPUT_BROWSER_OBSERVABILITY:'false'};
+  const id='b'.repeat(32),env={GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_REF:`refs/heads/release/factory-promotion/${id}`,INPUT_PROFILE:'production',INPUT_CANDIDATE_ID:id,INPUT_PUBLICATION_DATE:candidate.parisDate(),INPUT_PRODUCT_ANALYTICS:'false',INPUT_BROWSER_OBSERVABILITY:'false'};
   assert.equal(candidate.prepareCandidate(env).PRODUCT_ANALYTICS_ENABLED,'false');
   assert.equal(candidate.prepareCandidate({...env,INPUT_PRODUCT_ANALYTICS:undefined}).PRODUCT_ANALYTICS_ENABLED,'false');
   for(const patch of [{GITHUB_REF:'refs/heads/dev'},{INPUT_CANDIDATE_ID:'c'.repeat(32)},{GITHUB_EVENT_NAME:'push'},{INPUT_PUBLICATION_DATE:'2020-01-01'}])assert.throws(()=>candidate.prepareCandidate({...env,...patch}));
@@ -175,3 +175,16 @@ for (const field of ['taskId','candidateId']) {
     assert.throws(()=>verify(envelope(p)),/identity/i);
   });
 }
+
+test('historical signed candidate refs still verify; new builds require the release namespace', () => {
+  const id = payload().candidateId;
+  const legacy = `refs/heads/codex/factory-promotion/${id}`;
+  assert.equal(verify(envelope({...payload(),sourceRef:legacy})).sourceRef, legacy);
+  for (const ref of [legacy + '/tail', legacy.toUpperCase(), legacy.replace(id, 'c'.repeat(32)),
+    legacy.replace('factory-promotion','factory-correction')]) {
+    assert.throws(() => verify(envelope({...payload(),sourceRef:ref})));
+  }
+  assert.throws(() => candidate.prepareCandidate({GITHUB_EVENT_NAME:'workflow_dispatch',
+    GITHUB_REF:legacy,INPUT_PROFILE:'production',INPUT_CANDIDATE_ID:id,
+    INPUT_PUBLICATION_DATE:candidate.parisDate()}));
+});
