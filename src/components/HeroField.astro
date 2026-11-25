@@ -1,0 +1,111 @@
+---
+import { technicalFacets, technicalTraces } from "../data/hero-geometry";
+---
+
+<div class="hero-field hero-field--it" data-hero-field-side="it" aria-hidden="true">
+  <svg viewBox="0 0 760 720" preserveAspectRatio="xMidYMid slice" focusable="false">
+    <defs>
+      <linearGradient id="facet-crown" x1="0" x2="0.9" y1="0" y2="1">
+        <stop stop-color="#ffe88a" />
+        <stop offset="1" stop-color="#997016" />
+      </linearGradient>
+      <linearGradient id="facet-west" x1="0" x2="1" y1="0" y2="0.9">
+        <stop stop-color="#b38422" />
+        <stop offset="1" stop-color="#3f2809" />
+      </linearGradient>
+      <linearGradient id="facet-east" x1="0" x2="0.8" y1="0" y2="1">
+        <stop stop-color="#674714" />
+        <stop offset="1" stop-color="#160e08" />
+      </linearGradient>
+      <radialGradient id="facet-light">
+        <stop stop-color="#ffdf71" stop-opacity=".72" />
+        <stop offset="1" stop-color="#f3aa1a" stop-opacity="0" />
+      </radialGradient>
+      <mask id="facet-mask">
+        {technicalFacets.flatMap(({ crown, west, east }) =>
+          [crown, west, east].map((points) => <polygon points={points} fill="white" />)
+        )}
+      </mask>
+    </defs>
+
+    <g class="hero-field__it-body">
+      <g fill="none" stroke="#d49629" stroke-width="1" opacity=".42">
+        <path d="M-115 316 233 136l374 194-350 180zM-90 368 233 200l315 165-329 169M-92 469 234 302l432 224M-40 568l280-145 330 171M29 625l207-106 273 142" />
+        <path d="M52 196v173l-38 20v108m80-320v211l-56 30v106m442-342v202l39 20v144M583 270v127l48 26v135M124 546v132m274-145v165" />
+      </g>
+      <g fill="none" stroke="#f1bd45" stroke-width="1.4" opacity=".75">
+        {technicalTraces.map((trace) => <path d={trace} />)}
+      </g>
+      {technicalFacets.map(({ crown, west, east, edge, depth }) => (
+        <g opacity={1 - depth * 0.14}>
+          <polygon points={crown} fill="url(#facet-crown)" />
+          <polygon points={west} fill="url(#facet-west)" />
+          <polygon points={east} fill="url(#facet-east)" />
+          <polyline points={edge} fill="none" stroke="#ffe396" stroke-opacity=".59" stroke-width="1" />
+        </g>
+      ))}
+      <g mask="url(#facet-mask)">
+        <ellipse class="hero-field__it-light" cx="241" cy="357" rx="178" ry="254" fill="url(#facet-light)" />
+      </g>
+    </g>
+  </svg>
+</div>
+
+<div class="hero-field hero-field--art" data-hero-field-side="art" aria-hidden="true">
+  <svg viewBox="0 0 760 720" preserveAspectRatio="xMidYMid slice" focusable="false">
+    <defs>
+      <path id="art-orbit-back" d="M806 84C612 18 401 124 402 267c2 120 179 135 243 243 45 74 9 152-104 211" />
+      <path id="art-orbit-front" d="M710-33C780 102 643 195 486 247c-170 56-254 124-174 222 80 98 328 73 480 180" />
+      <path id="art-orbit-edge" d="M862 113c-91 180-296 109-408 215-62 58-45 123 52 187 95 63 190 78 201 214" />
+      <linearGradient id="art-back" gradientUnits="userSpaceOnUse" x1="387" y1="438" x2="726" y2="168">
+        <stop stop-color="#1e1039" />
+        <stop offset=".32" stop-color="#432179" />
+        <stop offset=".59" stop-color="#9867d9" />
+        <stop offset=".77" stop-color="#442478" />
+        <stop offset="1" stop-color="#1e1337" />
+      </linearGradient>
+      <linearGradient id="art-front" gradientUnits="userSpaceOnUse" x1="346" y1="220" x2="646" y2="591">
+        <stop stop-color="#352060" />
+        <stop offset=".19" stop-color="#8a54cd" />
+        <stop offset=".39" stop-color="#56228e" />
+        <stop offset=".55" stop-color="#291746" />
+        <stop offset=".68" stop-color="#9b62d8" />
+        <stop offset=".81" stop-color="#633296" />
+        <stop offset="1" stop-color="#29184b" />
+      </linearGradient>
+      <linearGradient id="art-rim" x1="0" x2=".6" y1="0" y2="1">
+        <stop stop-color="#9d61ed" stop-opacity=".1" />
+        <stop offset=".32" stop-color="#e0b9ff" stop-opacity=".94" />
+        <stop offset=".52" stop-color="#b77def" stop-opacity=".14" />
+        <stop offset=".75" stop-color="#d9b3ff" stop-opacity=".69" />
+        <stop offset="1" stop-color="#8354c4" stop-opacity="0" />
+      </linearGradient>
+      <radialGradient id="art-light" gradientTransform="translate(0.5 0.5) scale(1 .64) translate(-0.5 -0.5)">
+        <stop stop-color="#e2aaff" stop-opacity=".9" />
+        <stop offset=".5" stop-color="#ac6bff" stop-opacity=".28" />
+        <stop offset="1" stop-color="#aa6bff" stop-opacity="0" />
+      </radialGradient>
+      <mask id="art-mask" fill="none" stroke="white">
+        <use href="#art-orbit-back" stroke-width="114" />
+        <use href="#art-orbit-front" stroke-width="151" />
+        <use href="#art-orbit-edge" stroke-width="43" />
+      </mask>
+    </defs>
+
+    <g class="hero-field__art-body" fill="none">
+      <use href="#art-orbit-back" stroke="#100a20" stroke-width="124" />
+      <use href="#art-orbit-back" stroke="url(#art-back)" stroke-width="114" />
+      <use href="#art-orbit-back" stroke="url(#art-rim)" stroke-width="1.4" transform="translate(51 -9)" />
+      <use href="#art-orbit-front" stroke="#100a20" stroke-width="165" />
+      <use href="#art-orbit-front" stroke="url(#art-front)" stroke-width="151" />
+      <use href="#art-orbit-front" stroke="url(#art-rim)" stroke-width="2" transform="translate(-70 8)" />
+      <use href="#art-orbit-front" stroke="url(#art-rim)" stroke-width="1" opacity=".48" transform="translate(-63 13)" />
+      <use href="#art-orbit-edge" stroke="#2f164a" stroke-width="49" />
+      <use href="#art-orbit-edge" stroke="url(#art-back)" stroke-width="43" />
+      <use href="#art-orbit-edge" stroke="url(#art-rim)" stroke-width="1.4" transform="translate(18 4)" />
+      <g mask="url(#art-mask)">
+        <ellipse class="hero-field__art-light" cx="520" cy="266" rx="326" ry="268" fill="url(#art-light)" />
+      </g>
+    </g>
+  </svg>
+</div>

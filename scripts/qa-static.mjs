@@ -89,7 +89,7 @@ const viewports = [
 
 const report = [];
 const contrastReport = [];
-const beatSampling = { samples: 8, intervalMs: 650 };
+const motionSampling = { samples: 8, intervalMs: 650 };
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
   ?? (process.platform === "darwin"
     ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
@@ -153,89 +153,98 @@ function trackMediaRequests(page) {
 async function readHeroComposition(page) {
   return page.evaluate(() => {
     const rect = (element) => element?.getBoundingClientRect().toJSON();
-    const hero = document.querySelector("[data-hero-scroll]");
+    const hero = document.querySelector("[data-hero]");
     const side = (name) => {
-      const field = document.querySelector(`[data-hero-field-side="${name}"]`);
-      const visibleStrata = Array.from(field?.querySelectorAll(".hero-stratum") ?? []).filter((stratum) => {
-        const box = stratum.getBoundingClientRect();
-        return box.width > 0 && box.height > 0 && getComputedStyle(stratum).visibility !== "hidden";
-      });
+      const field = hero.querySelector(`[data-hero-field-side="${name}"]`);
       return {
         rect: rect(field),
-        bodies: visibleStrata.filter((stratum) => stratum.classList.contains("hero-stratum--body")).length,
-        echoes: visibleStrata.filter((stratum) => stratum.classList.contains("hero-stratum--ghost")).length,
-        runningAnimations: (field?.getAnimations({ subtree: true }) ?? []).filter((animation) => animation.playState === "running").length
+        artwork: rect(field.querySelector("svg")),
+        runningAnimations: field.getAnimations({ subtree: true }).filter((animation) => animation.playState === "running").length
       };
     };
-    const links = Array.from(document.querySelectorAll(".hero-scroll__practice a"), (link) => {
+    const links = Array.from(hero.querySelectorAll(".hero__practice a"), (link) => {
       const box = link.getBoundingClientRect();
       const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
       return { href: link.getAttribute("href"), rect: box.toJSON(), unobscured: hit === link || link.contains(hit) };
+    });
+    const signature = hero.querySelector("h1");
+    const words = Array.from(signature.children, (element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return { text: element.textContent, rect: rect(range) };
     });
     return {
       midpoint: window.innerWidth / 2,
       viewportWidth: window.innerWidth,
       viewportHeight: window.innerHeight,
       videoCount: document.querySelectorAll("video").length,
-      fieldState: hero?.getAttribute("data-hero-field"),
-      art: side("art"),
+      fieldState: hero.getAttribute("data-hero-field"),
+      hero: rect(hero),
       it: side("it"),
-      practiceArt: rect(document.querySelector(".hero-scroll__practice--art")),
-      practiceIt: rect(document.querySelector(".hero-scroll__practice--it")),
-      signature: rect(document.querySelector("[data-hero-signature] h1")),
+      art: side("art"),
+      practiceIt: rect(hero.querySelector(".hero__practice--it")),
+      practiceArt: rect(hero.querySelector(".hero__practice--art")),
+      signature: rect(signature),
+      words,
       links
     };
   });
 }
 
 function assertHeroHalves(name, hero) {
-  const { art, it, midpoint, viewportWidth } = hero;
+  const { it, art, midpoint, viewportWidth, viewportHeight } = hero;
   assert.equal(hero.videoCount, 0, `${name}: the home must not render a background video`);
-  assert(art.rect && it.rect, `${name}: both hero halves must render`);
-  assert(Math.abs(art.rect.left) <= 1 && Math.abs(art.rect.right - midpoint) <= 1, `${name}: ART field must fill the left half`);
-  assert(Math.abs(it.rect.left - midpoint) <= 1 && Math.abs(it.rect.right - viewportWidth) <= 1, `${name}: IT field must fill the right half`);
+  assert(Math.abs(it.rect.left) <= 1 && Math.abs(it.rect.right - midpoint) <= 1, `${name}: IT field must fill the left half`);
+  assert(Math.abs(art.rect.left - midpoint) <= 1 && Math.abs(art.rect.right - viewportWidth) <= 1, `${name}: ART field must fill the right half`);
   assert(Math.abs(art.rect.width - it.rect.width) <= 1, `${name}: hero halves must carry equal weight`);
-  assert(art.bodies === 4 && it.bodies === 4, `${name}: each half must show four strata (${art.bodies}/${it.bodies})`);
-  assert(art.echoes === 2 && it.echoes === 2, `${name}: each half must show two echo lines (${art.echoes}/${it.echoes})`);
-  assert(hero.practiceArt?.right <= midpoint + 1, `${name}: ART practice text crosses into IT`);
-  assert(hero.practiceIt?.left >= midpoint - 1, `${name}: IT practice text crosses into ART`);
-  assert(hero.signature, `${name}: hero signature is missing`);
-  assert(Math.abs((hero.signature.left + hero.signature.right) / 2 - midpoint) <= 2, `${name}: signature must sit on the seam`);
-  assert(hero.signature.left >= 0 && hero.signature.right <= viewportWidth && hero.signature.top >= 0, `${name}: signature must stay inside the viewport`);
-  assert.equal(hero.links.length, 2, `${name}: both practice links must render`);
+  assert([it, art].every(({ artwork }) => artwork.width > 0 && artwork.height >= viewportHeight * 0.8), `${name}: artwork must fill the scene`);
+  assert(hero.hero.height <= viewportHeight + 1, `${name}: hero must finish within the first screen`);
+  assert(hero.practiceIt.right <= midpoint + 1, `${name}: IT practice text crosses into ART`);
+  assert(hero.practiceArt.left >= midpoint - 1, `${name}: ART practice text crosses into IT`);
+  assert.deepEqual(hero.words.map(({ text }) => text), ["IT", "ART", "STUDIO"], `${name}: studio name must read in order`);
+  const [{ rect: itWord }, { rect: artWord }, { rect: studioWord }] = hero.words;
+  assert(itWord.right < midpoint && artWord.left > midpoint, `${name}: each practice must sit on its own side of the seam`);
+  assert(Math.abs((studioWord.left + studioWord.right) / 2 - midpoint) <= 2, `${name}: STUDIO must sit on the seam`);
+  assert(studioWord.width >= viewportWidth * 0.32, `${name}: STUDIO must take up at least a third of the frame`);
+  for (const { text, rect } of hero.words) {
+    assert(rect.left >= 0 && rect.right <= viewportWidth && rect.top >= 0 && rect.bottom <= viewportHeight, `${name}: ${text} must fit inside the first screen`);
+  }
+  assert.deepEqual(hero.links.map(({ href }) => href), ["#expertises-it", "#expertises-art"], `${name}: links must follow IT then ART`);
   for (const link of hero.links) {
-    assert(link.rect.bottom <= hero.viewportHeight && link.rect.right <= viewportWidth && link.rect.left >= 0, `${name}: ${link.href} must be visible in the first screen`);
-    assert(link.unobscured, `${name}: ${link.href} is covered by the hero composition`);
+    assert(link.rect.top >= hero.signature.bottom, `${name}: ${link.href} must be below the signature`);
+    assert(link.rect.bottom <= viewportHeight && link.rect.right <= viewportWidth && link.rect.left >= 0, `${name}: ${link.href} must be visible in the first screen`);
+    assert(link.rect.height >= 44 && link.unobscured, `${name}: ${link.href} must have a clear 44px hit target`);
   }
 }
 
-async function readStratumTransforms(page) {
-  return page.evaluate(() => ["art", "it"].map((side) => Array.from(
-    document.querySelectorAll(`[data-hero-field-side="${side}"] .hero-stratum__track`),
-    (track) => getComputedStyle(track).transform
+async function readFieldTransforms(page) {
+  return page.evaluate(() => ["it", "art"].map((side) => Array.from(
+    document.querySelectorAll(`.hero-field__${side}-body, .hero-field__${side}-light`),
+    (element) => getComputedStyle(element).transform
   )));
 }
 
-const practiceCopySelectors = [
-  ".hero-scroll__practice--art > p",
-  ".hero-scroll__practice--art h2",
-  ".hero-scroll__practice--art a",
-  ".hero-scroll__practice--it > p",
-  ".hero-scroll__practice--it h2",
-  ".hero-scroll__practice--it a"
+const heroCopySelectors = [
+  ".hero .hero-title__it",
+  ".hero .hero-title__art",
+  ".hero .hero-title__studio",
+  ".hero__practice--it h2",
+  ".hero__practice--it a",
+  ".hero__practice--art h2",
+  ".hero__practice--art a"
 ];
 
 /*
- * Samples the hero practice copy over several beats. For each sample the glyphs
- * are hidden, each copy box is captured with the moving strata behind it, and
- * the text colour is compared with the 99.5th-percentile brightest background
- * pixel of that box (WCAG relative luminance).
+ * Hides the copy for each captured frame and compares every text color with the
+ * 99.5th-percentile brightest pixel behind it (WCAG relative luminance).
  */
-async function assertPracticeCopyContrast(page, name, { samples, intervalMs, minimum = 4.5 }) {
+async function assertHeroCopyContrast(page, name, { samples, intervalMs, minimum = 4.5 }) {
   const copies = await page.evaluate((selectors) => selectors.flatMap((selector) => {
     const element = document.querySelector(selector);
     if (!element) return [];
-    const box = element.getBoundingClientRect();
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const box = range.getBoundingClientRect().toJSON();
     if (box.width === 0 || box.height === 0 || getComputedStyle(element).display === "none") return [];
     const canvas = document.createElement("canvas");
     canvas.width = 1;
@@ -244,48 +253,53 @@ async function assertPracticeCopyContrast(page, name, { samples, intervalMs, min
     context.fillStyle = getComputedStyle(element).color;
     context.fillRect(0, 0, 1, 1);
     const [red, green, blue] = context.getImageData(0, 0, 1, 1).data;
-    return [{ selector, rgb: [red, green, blue] }];
-  }), practiceCopySelectors);
-  assert(copies.some((copy) => copy.selector.endsWith("--art > p")), `${name}: ART label must be measured`);
-  assert(copies.some((copy) => copy.selector.endsWith("--it > p")), `${name}: IT label must be measured`);
+    return [{ selector, box, rgb: [red, green, blue] }];
+  }), heroCopySelectors);
+  assert.equal(copies.length, heroCopySelectors.length, `${name}: all visible hero copy must be measured`);
 
   const worst = Object.fromEntries(copies.map((copy) => [copy.selector, Number.POSITIVE_INFINITY]));
   for (let sample = 0; sample < samples; sample += 1) {
     if (sample > 0) await page.waitForTimeout(intervalMs);
     const style = await page.addStyleTag({
-      content: ".hero-scroll__practice > p, .hero-scroll__practice h2, .hero-scroll__practice a { color: transparent !important; text-shadow: none !important; border-color: transparent !important; outline: none !important; }"
+      content: `${heroCopySelectors.join(", ")} { color: transparent !important; text-shadow: none !important; text-decoration: none !important; }`
     });
-    for (const copy of copies) {
-      const box = await page.locator(copy.selector).boundingBox();
-      const capture = await page.screenshot({ clip: box, animations: "allow" });
-      const contrast = await page.evaluate(async ({ image, rgb }) => {
-        const luminance = (channels) => {
-          const [r, g, b] = channels.map((value) => {
-            const channel = value / 255;
-            return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-          });
-          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-        };
-        const picture = new Image();
-        picture.src = `data:image/png;base64,${image}`;
-        await picture.decode();
-        const canvas = document.createElement("canvas");
-        canvas.width = picture.naturalWidth;
-        canvas.height = picture.naturalHeight;
-        const context = canvas.getContext("2d");
-        context.drawImage(picture, 0, 0);
-        const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+    const capture = await page.screenshot({ animations: "allow", scale: "css" });
+    await style.evaluate((element) => element.remove());
+    const ratios = await page.evaluate(async ({ image, copies }) => {
+      const linear = Array.from({ length: 256 }, (_, value) => {
+        const channel = value / 255;
+        return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+      });
+      const luminance = (r, g, b) => 0.2126 * linear[r] + 0.7152 * linear[g] + 0.0722 * linear[b];
+      const picture = new Image();
+      picture.src = `data:image/png;base64,${image}`;
+      await picture.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = picture.naturalWidth;
+      canvas.height = picture.naturalHeight;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      context.drawImage(picture, 0, 0);
+      return copies.map(({ selector, box, rgb }) => {
+        const left = Math.floor(box.left);
+        const top = Math.floor(box.top);
+        const width = Math.ceil(box.right) - left;
+        const height = Math.ceil(box.bottom) - top;
+        if (left < 0 || top < 0 || left + width > canvas.width || top + height > canvas.height) {
+          throw new Error(`Contrast region outside captured frame: ${selector}`);
+        }
+        const { data } = context.getImageData(left, top, width, height);
         const backgrounds = [];
         for (let index = 0; index < data.length; index += 4) {
-          backgrounds.push(luminance([data[index], data[index + 1], data[index + 2]]));
+          backgrounds.push(luminance(data[index], data[index + 1], data[index + 2]));
         }
         backgrounds.sort((left, right) => left - right);
         const brightest = backgrounds[Math.min(backgrounds.length - 1, Math.floor(backgrounds.length * 0.995))];
-        return (luminance(rgb) + 0.05) / (brightest + 0.05);
-      }, { image: capture.toString("base64"), rgb: copy.rgb });
-      worst[copy.selector] = Math.min(worst[copy.selector], contrast);
+        return { selector, contrast: (luminance(...rgb) + 0.05) / (brightest + 0.05) };
+      });
+    }, { image: capture.toString("base64"), copies });
+    for (const { selector, contrast } of ratios) {
+      worst[selector] = Math.min(worst[selector], contrast);
     }
-    await style.evaluate((element) => element.remove());
   }
 
   for (const [selector, contrast] of Object.entries(worst)) {
@@ -295,16 +309,33 @@ async function assertPracticeCopyContrast(page, name, { samples, intervalMs, min
 }
 
 async function assertHeroMovesUnprompted(page, name) {
-  const before = await readStratumTransforms(page);
-  /* Longer than one shared beat, so the stepped IT strata must have advanced. */
+  const before = await readFieldTransforms(page);
   await page.waitForTimeout(1600);
-  const after = await readStratumTransforms(page);
-  for (const [index, side] of ["art", "it"].entries()) {
+  const after = await readFieldTransforms(page);
+  for (const [index, side] of ["it", "art"].entries()) {
     assert(
       before[index].some((transform, stratum) => transform !== after[index][stratum]),
-      `${name}: ${side.toUpperCase()} strata must move without interaction`
+      `${name}: ${side.toUpperCase()} artwork must move without interaction`
     );
   }
+}
+
+async function assertFirstScroll(page, name) {
+  const before = await page.locator("[data-hero-signature]").boundingBox();
+  await page.mouse.move(15, 15);
+  await page.mouse.wheel(0, 305);
+  await page.waitForFunction(() => {
+    const title = document.querySelector("#expertises-it .practice-services__title");
+    const service = document.querySelector("#expertises-it .service-item");
+    return title.getBoundingClientRect().bottom < window.innerHeight
+      && service.getBoundingClientRect().top < window.innerHeight
+      && getComputedStyle(service).opacity > 0.9;
+  });
+  const after = await page.locator("[data-hero-signature]").boundingBox();
+  const scroll = await page.evaluate(() => window.scrollY);
+  assert(scroll >= 200 && scroll <= 350, `${name}: a single normal wheel step must reveal services`);
+  assert(Math.abs(before.y - after.y - scroll) <= 2, `${name}: signature must scroll with the document`);
+  await page.screenshot({ path: join(artifactDirectory, `${name}-first-scroll.png`) });
 }
 
 try {
@@ -318,7 +349,7 @@ try {
     const mediaRequests = trackMediaRequests(page);
     const browserErrors = [];
     page.on("console", (message) => {
-      if (message.type() === "error") browserErrors.push(message.text());
+      if (message.type() === "error") browserErrors.push(`${message.location().url}: ${message.text()}`);
     });
     page.on("pageerror", (error) => browserErrors.push(error.message));
 
@@ -426,10 +457,10 @@ try {
       assert(splitGeometry.methodStepsRight.every((box) => box.left >= splitGeometry.midpoint - 1), `${viewport.name}: a right method step crosses the axis`);
       assert(splitGeometry.methodProduire?.top > splitGeometry.methodCadrer?.bottom + 24, `${viewport.name}: Produire must sit below Cadrer`);
       assert(splitGeometry.methodTransmettre?.top > splitGeometry.methodProduire?.bottom + 24, `${viewport.name}: Transmettre must sit below Produire`);
-      assert(splitGeometry.contactArt?.right <= splitGeometry.midpoint + 1, `${viewport.name}: ART contact is on the wrong side`);
-      assert(splitGeometry.contactIt?.left >= splitGeometry.midpoint - 1, `${viewport.name}: IT contact is on the wrong side`);
-      assert(splitGeometry.midpoint - splitGeometry.contactArt?.right < 160, `${viewport.name}: ART contact is too far from the axis`);
-      assert(splitGeometry.contactIt?.left - splitGeometry.midpoint < 160, `${viewport.name}: IT contact is too far from the axis`);
+      assert(splitGeometry.contactIt?.right <= splitGeometry.midpoint + 1, `${viewport.name}: IT contact is on the wrong side`);
+      assert(splitGeometry.contactArt?.left >= splitGeometry.midpoint - 1, `${viewport.name}: ART contact is on the wrong side`);
+      assert(splitGeometry.midpoint - splitGeometry.contactIt?.right < 160, `${viewport.name}: IT contact is too far from the axis`);
+      assert(splitGeometry.contactArt?.left - splitGeometry.midpoint < 160, `${viewport.name}: ART contact is too far from the axis`);
       assert.equal(splitGeometry.footerEmailCount, 0, `${viewport.name}: footer must not repeat the technical contact email`);
       assert(splitGeometry.footerSignature, `${viewport.name}: footer must reuse the multi-line split signature`);
       assert(Math.abs((splitGeometry.footerSignature?.left + splitGeometry.footerSignature?.right) / 2 - splitGeometry.midpoint) <= 1, `${viewport.name}: footer signature must be centered on the axis`);
@@ -438,8 +469,8 @@ try {
       assert.equal(splitGeometry.contactLightContinuity.overflow, "visible", `${viewport.name}: contact lights must be allowed to continue into the footer`);
       assert(splitGeometry.contactLightContinuity.beforeExtends && splitGeometry.contactLightContinuity.afterExtends, `${viewport.name}: both contact lights must extend beyond the section`);
       if (viewport.name === "wide-desktop") {
-        assert(splitGeometry.serviceArt?.left >= splitGeometry.midpoint - 600, `${viewport.name}: ART services are too far from the axis`);
-        assert(splitGeometry.serviceIt?.right <= splitGeometry.midpoint + 600, `${viewport.name}: IT services are too far from the axis`);
+        assert(splitGeometry.serviceIt?.left >= splitGeometry.midpoint - 600, `${viewport.name}: IT services are too far from the axis`);
+        assert(splitGeometry.serviceArt?.right <= splitGeometry.midpoint + 600, `${viewport.name}: ART services are too far from the axis`);
         assert(splitGeometry.methodStepsLeft.every((box) => box.left >= splitGeometry.midpoint - 600), `${viewport.name}: a left method step is too far from the axis`);
         assert(splitGeometry.methodStepsRight.every((box) => box.right <= splitGeometry.midpoint + 600), `${viewport.name}: a right method step is too far from the axis`);
       }
@@ -452,19 +483,28 @@ try {
     const reducedHero = await readHeroComposition(page);
     assertHeroHalves(viewport.name, reducedHero);
     assert.equal(reducedHero.art.runningAnimations + reducedHero.it.runningAnimations, 0, `${viewport.name}: reduced-motion hero must hold a fixed composition`);
-    const reducedTransforms = await readStratumTransforms(page);
+    const reducedTransforms = await readFieldTransforms(page);
     await page.waitForTimeout(1300);
-    assert.deepEqual(await readStratumTransforms(page), reducedTransforms, `${viewport.name}: reduced-motion strata must not move`);
-    contrastReport.push({ name: viewport.name, motion: "reduce", worst: await assertPracticeCopyContrast(page, viewport.name, { samples: 1, intervalMs: 0 }) });
+    assert.deepEqual(await readFieldTransforms(page), reducedTransforms, `${viewport.name}: reduced-motion geometry must not move`);
+    contrastReport.push({ name: viewport.name, motion: "reduce", worst: await assertHeroCopyContrast(page, viewport.name, { samples: 1, intervalMs: 0 }) });
     await page.screenshot({ path: join(artifactDirectory, `${viewport.name}-hero-reduced.png`) });
 
-    const reducedSignature = page.locator("[data-hero-signature]");
-    assert.equal(await reducedSignature.count(), 1, `${viewport.name}: persistent hero signature is missing`);
-    const reducedSignatureBox = await reducedSignature.boundingBox();
-    assert((reducedSignatureBox?.y ?? Number.POSITIVE_INFINITY) < 72, `${viewport.name}: reduced-motion signature must be compact at the top`);
-
     const referenceLogos = page.locator(".reference-mark img");
-    assert.equal(await referenceLogos.count(), 8, `${viewport.name}: expected eight reference logos`);
+    assert.equal(await referenceLogos.count(), 9, `${viewport.name}: expected nine reference logos`);
+    const orange = page.locator(".references-practice--it").getByRole("img", { name: "Logo Orange", exact: true });
+    assert.equal(await orange.getAttribute("src"), "/assets/references/orange.svg");
+    assert.deepEqual(await orange.evaluate((image) => {
+      const { filter, mixBlendMode } = getComputedStyle(image);
+      return { filter, mixBlendMode };
+    }), { filter: "none", mixBlendMode: "normal" }, `${viewport.name}: Orange logo must retain its brand colors`);
+    for (const [it, art] of [
+      [".practice-services--it", ".practice-services--art"],
+      [".references-practice--it", ".references-practice--art"],
+      [".contact-practice--it", ".contact-practice--art"]
+    ]) {
+      const [first, second] = await Promise.all([page.locator(it).boundingBox(), page.locator(art).boundingBox()]);
+      assert(viewport.width >= 768 ? first.x < second.x : first.y < second.y, `${viewport.name}: ${it} must precede ${art} in the layout`);
+    }
     assert.equal(await page.getByText("Des organisations accompagnées sur des projets critiques qui nous font confiance.").count(), 0, `${viewport.name}: references statement must be removed`);
     assert(
       await page.locator(".reference-mark__visual").evaluateAll((visuals) => visuals.every((visual) => {
@@ -534,38 +574,18 @@ try {
   await motionPage.screenshot({ path: join(artifactDirectory, "motion-start.png") });
   await assertHeroMovesUnprompted(motionPage, "Motion QA");
   await motionPage.screenshot({ path: join(artifactDirectory, "motion-later.png") });
-  contrastReport.push({ name: "desktop-motion", motion: "no-preference", worst: await assertPracticeCopyContrast(motionPage, "Motion QA", beatSampling) });
+  contrastReport.push({ name: "desktop-motion", motion: "no-preference", worst: await assertHeroCopyContrast(motionPage, "Motion QA", motionSampling) });
 
-  const scrollRange = await motionPage.locator("[data-hero-scroll]").evaluate((section) => section.offsetHeight - window.innerHeight);
-  const signatureAtArrival = await motionPage.locator("[data-hero-signature]").boundingBox();
-  await motionPage.evaluate((distance) => window.scrollTo(0, distance * 0.55), scrollRange);
-  await motionPage.waitForTimeout(300);
-  const signatureMidway = await motionPage.locator("[data-hero-signature]").boundingBox();
-  await motionPage.screenshot({ path: join(artifactDirectory, "motion-middle.png") });
-  await motionPage.evaluate((distance) => window.scrollTo(0, distance), scrollRange);
-  await motionPage.waitForTimeout(300);
-  await motionPage.screenshot({ path: join(artifactDirectory, "motion-end.png") });
-  assert(
-    (signatureAtArrival?.y ?? 0) > (signatureMidway?.y ?? 0),
-    "Motion QA: hero signature must rise while the stage is pinned"
-  );
-
-  const signature = motionPage.locator("[data-hero-signature]");
-  const signatureAtHeroEnd = await signature.boundingBox();
-  assert((signatureAtHeroEnd?.y ?? Number.POSITIVE_INFINITY) < 72, "Motion QA: hero signature must compact to the top at the end of the pinned hero");
-  await motionPage.evaluate((distance) => window.scrollTo(0, distance + window.innerHeight * 0.75), scrollRange);
-  await motionPage.waitForTimeout(200);
-  const signatureAfterHero = await signature.boundingBox();
-  assert(Math.abs((signatureAfterHero?.y ?? 9999) - (signatureAtHeroEnd?.y ?? 0)) < 2, "Motion QA: compact hero signature must remain fixed after the hero");
-
-  const artService = motionPage.locator('.service-item[data-reveal="split-left"]').first();
-  const itService = motionPage.locator('.service-item[data-reveal="split-right"]').first();
-  const [artOffset, itOffset] = await Promise.all([
-    artService.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41),
-    itService.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41)
+  const itService = motionPage.locator('.practice-services--it .service-item').first();
+  const artService = motionPage.locator('.practice-services--art .service-item').first();
+  const [itOffset, artOffset] = await Promise.all([
+    itService.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41),
+    artService.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41)
   ]);
-  assert(artOffset < 0, `Motion QA: ART services must start from the left, got ${artOffset}px`);
-  assert(itOffset > 0, `Motion QA: IT services must start from the right, got ${itOffset}px`);
+  assert(itOffset < 0, `Motion QA: IT services must start from the left, got ${itOffset}px`);
+  assert(artOffset > 0, `Motion QA: ART services must start from the right, got ${artOffset}px`);
+
+  await assertFirstScroll(motionPage, "desktop");
   await artService.scrollIntoViewIfNeeded();
   await itService.scrollIntoViewIfNeeded();
   await motionPage.waitForTimeout(1100);
@@ -578,8 +598,8 @@ try {
     artReferenceMark.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41),
     itReferenceMark.evaluate((element) => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41)
   ]);
-  assert(artReferenceOffset < 0, `Motion QA: ART logos must start from the left, got ${artReferenceOffset}px`);
-  assert(itReferenceOffset > 0, `Motion QA: IT logos must start from the right, got ${itReferenceOffset}px`);
+  assert(artReferenceOffset > 0, `Motion QA: ART logos must start from the right, got ${artReferenceOffset}px`);
+  assert(itReferenceOffset < 0, `Motion QA: IT logos must start from the left, got ${itReferenceOffset}px`);
   assert.equal(await artReferenceMark.locator(".reference-mark__visual").evaluate((element) => getComputedStyle(element).clipPath), "inset(100% 0px 0px)", "Motion QA: reference must start masked");
   await artReferenceMark.scrollIntoViewIfNeeded();
   await itReferenceMark.scrollIntoViewIfNeeded();
@@ -614,7 +634,7 @@ try {
   }
   await motionPage.waitForTimeout(200);
   assert.equal(
-    await motionPage.locator("[data-hero-scroll]").getAttribute("data-hero-field"),
+    await motionPage.locator("[data-hero]").getAttribute("data-hero-field"),
     "paused",
     "Motion QA: hero composition must pause once it has left the viewport"
   );
@@ -622,7 +642,7 @@ try {
   await motionContext.close();
 
   for (const responsiveMotionViewport of [
-    /* Short laptop: the strata rise behind the practice labels (Astra, #28). */
+    /* Short laptop: sample contrast where artwork and copy are in closest proximity. */
     { name: "short-laptop-motion", width: 1440, height: 650 },
     { name: "tablet-motion", width: 768, height: 1024 },
     { name: "mobile-motion", width: 390, height: 844 },
@@ -642,18 +662,17 @@ try {
     const responsiveHero = await readHeroComposition(responsiveMotionPage);
     assertHeroHalves(responsiveMotionViewport.name, responsiveHero);
     assert(responsiveHero.art.runningAnimations > 0 && responsiveHero.it.runningAnimations > 0, `${responsiveMotionViewport.name}: both halves must animate on arrival`);
+    if (responsiveMotionViewport.name === "mobile-motion") {
+      await responsiveMotionPage.screenshot({ path: join(artifactDirectory, "mobile-motion-start.png") });
+    }
     await assertHeroMovesUnprompted(responsiveMotionPage, responsiveMotionViewport.name);
     await responsiveMotionPage.screenshot({ path: join(artifactDirectory, `${responsiveMotionViewport.name}-hero.png`) });
     contrastReport.push({
       name: responsiveMotionViewport.name,
       motion: "no-preference",
-      worst: await assertPracticeCopyContrast(responsiveMotionPage, responsiveMotionViewport.name, beatSampling)
+      worst: await assertHeroCopyContrast(responsiveMotionPage, responsiveMotionViewport.name, motionSampling)
     });
-    const range = await responsiveMotionPage.locator("[data-hero-scroll]").evaluate((section) => section.offsetHeight - window.innerHeight);
-    await responsiveMotionPage.evaluate((distance) => window.scrollTo(0, distance), range);
-    await responsiveMotionPage.waitForTimeout(300);
-    const compactSignature = await responsiveMotionPage.locator("[data-hero-signature]").boundingBox();
-    assert((compactSignature?.y ?? Number.POSITIVE_INFINITY) < 72, `${responsiveMotionViewport.name}: signature must compact to the top after the hero`);
+    await assertFirstScroll(responsiveMotionPage, responsiveMotionViewport.name);
     const scrolledOverflow = await responsiveMotionPage.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     assert(scrolledOverflow <= 1, `${responsiveMotionViewport.name}: horizontal overflow of ${scrolledOverflow}px after scrolling`);
     assert.deepEqual(responsiveMediaRequests, [], `${responsiveMotionViewport.name}: the home must not request video media`);
@@ -662,12 +681,13 @@ try {
 
   for (const keyboardViewport of [
     { name: "desktop-keyboard", width: 1440, height: 1000 },
-    { name: "mobile-keyboard", width: 390, height: 844 }
+    { name: "mobile-keyboard", width: 390, height: 844 },
+    { name: "mobile-320-reduced-keyboard", width: 320, height: 640, reducedMotion: "reduce" }
   ]) {
     const keyboardContext = await browser.newContext({
       viewport: { width: keyboardViewport.width, height: keyboardViewport.height },
       deviceScaleFactor: 1,
-      reducedMotion: "no-preference"
+      reducedMotion: keyboardViewport.reducedMotion ?? "no-preference"
     });
     const keyboardPage = await keyboardContext.newPage();
     const keyboardResponse = await keyboardPage.goto(origin, { waitUntil: "networkidle" });
@@ -685,24 +705,25 @@ try {
         unobscured: Boolean(element && hit && (hit === element || element.contains(hit)))
       };
     });
-    await keyboardPage.keyboard.press("Tab");
-    assert.equal((await focusState()).href, "#contenu", `${keyboardViewport.name}: first Tab must reach the skip link`);
-    for (const expected of ["#expertises-art", "#expertises-it"]) {
+    const destinations = ["#expertises-it", "#expertises-art"];
+    for (const [index, expected] of destinations.entries()) {
+      if (index > 0) await keyboardPage.goto(origin, { waitUntil: "networkidle" });
       await keyboardPage.keyboard.press("Tab");
-      const state = await focusState();
-      assert.equal(state.href, expected, `${keyboardViewport.name}: expected focus on ${expected}, got ${state.href}`);
-      assert(state.inViewport && state.unobscured, `${keyboardViewport.name}: focused ${expected} must be visible above the composition`);
-      assert(!state.outline.startsWith("none") && !state.outline.endsWith(" 0px"), `${keyboardViewport.name}: focused ${expected} needs a visible outline`);
+      assert.equal((await focusState()).href, "#contenu", `${keyboardViewport.name}: first Tab must reach the skip link`);
+      for (const href of destinations.slice(0, index + 1)) {
+        await keyboardPage.keyboard.press("Tab");
+        const state = await focusState();
+        assert.equal(state.href, href, `${keyboardViewport.name}: expected focus on ${href}, got ${state.href}`);
+        assert(state.inViewport && state.unobscured, `${keyboardViewport.name}: focused ${href} must be visible above the composition`);
+        assert(!state.outline.startsWith("none") && !state.outline.endsWith(" 0px"), `${keyboardViewport.name}: focused ${href} needs a visible outline`);
+      }
+      await keyboardPage.screenshot({ path: join(artifactDirectory, `${keyboardViewport.name}-${expected.endsWith("-it") ? "it" : "art"}-focus.png`) });
+      await keyboardPage.keyboard.press("Enter");
+      await keyboardPage.waitForFunction((hash) => {
+        const top = document.querySelector(hash).getBoundingClientRect().top;
+        return location.hash === hash && top >= -1 && top < window.innerHeight / 2;
+      }, expected);
     }
-    await keyboardPage.screenshot({ path: join(artifactDirectory, `${keyboardViewport.name}-focus.png`) });
-    await keyboardPage.keyboard.press("Enter");
-    await keyboardPage.waitForTimeout(1200);
-    const target = await keyboardPage.evaluate(() => ({
-      hash: window.location.hash,
-      top: document.querySelector("#expertises-it")?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY
-    }));
-    assert.equal(target.hash, "#expertises-it", `${keyboardViewport.name}: Enter must follow the IT practice link`);
-    assert(Math.abs(target.top) < keyboardViewport.height / 2, `${keyboardViewport.name}: IT services must scroll into view (top ${target.top}px)`);
     await keyboardContext.close();
   }
 
@@ -719,8 +740,6 @@ try {
   const resizedHero = await readHeroComposition(reducedResizePage);
   assertHeroHalves("Reduced resize QA", resizedHero);
   assert.equal(resizedHero.art.runningAnimations + resizedHero.it.runningAnimations, 0, "Reduced resize QA: composition must stay still across breakpoints");
-  const resizedSignature = await reducedResizePage.locator("[data-hero-signature]").boundingBox();
-  assert((resizedSignature?.y ?? Number.POSITIVE_INFINITY) < 72, "Reduced resize QA: signature must stay compact after a breakpoint change");
   await reducedResizeContext.close();
 
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });

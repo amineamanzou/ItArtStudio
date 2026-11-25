@@ -54,7 +54,7 @@ jobs:
       - run: npm run review:site
   release:
     name: release
-    if: github.repository == 'amineamanzou/ItArtStudio' && ((github.ref == 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')) || (github.event_name == 'workflow_dispatch' && inputs.profile == 'production' && startsWith(github.ref, 'refs/heads/codex/factory-promotion/')))
+    if: github.repository == 'amineamanzou/ItArtStudio' && ((github.ref == 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')) || (github.event_name == 'workflow_dispatch' && inputs.profile == 'production' && github.ref == format('refs/heads/release/factory-promotion/{0}', inputs.candidate_id)))
     needs: quality
     runs-on: ubuntu-latest
     permissions:

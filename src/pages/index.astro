@@ -1,7 +1,8 @@
 ---
 import { company, methodSteps, references, services } from "../data/site";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { heroBeatSeconds, heroStrata } from "../data/hero-field";
+import HeroField from "../components/HeroField.astro";
+import "../styles/hero.css";
 
 const itServices = services.filter((service) => service.practice === "IT");
 const artServices = services.filter((service) => service.practice === "ART");
@@ -9,122 +10,64 @@ const artServices = services.filter((service) => service.practice === "ART");
 
 <BaseLayout splitAxis>
   <main id="contenu">
-    <section
-      class="hero-scroll"
-      data-hero-scroll
-      data-hero-field="running"
-      aria-labelledby="hero-title"
-      style={`--beat: ${heroBeatSeconds}s;`}
-    >
-      <div class="hero-scroll__stage">
-        {(["art", "it"] as const).map((side) => (
-          <div
-            class={`hero-field hero-field--${side}`}
-            data-hero-field-side={side}
-            aria-hidden="true"
-          >
-            {heroStrata.map((stratum) => (
-              <div
-                class={`hero-stratum hero-stratum--${stratum.kind}`}
-                data-hero-stratum={stratum.index}
-                style={`--stratum: ${stratum.index}; --flow: ${stratum.flowSeconds}s; --samples: ${stratum.samples}; --swell: ${stratum.swell}; --band-top: ${stratum.bandTop}%; --band-bottom: ${stratum.bandBottom}%;`}
-              >
-                <div class="hero-stratum__track">
-                  <svg viewBox={stratum.viewBox} preserveAspectRatio="none" focusable="false">
-                    {side === "art" && stratum.kind === "body" && (
-                      <defs>
-                        <linearGradient
-                          id={`hero-art-sheen-${stratum.index}`}
-                          gradientUnits="userSpaceOnUse"
-                          x1="0"
-                          y1={stratum.crestTop}
-                          x2="0"
-                          y2={stratum.crestTop + 260}
-                        >
-                          <stop offset="0" class="hero-stratum__sheen-light" />
-                          <stop offset="1" class="hero-stratum__sheen-deep" />
-                        </linearGradient>
-                      </defs>
-                    )}
-                    {stratum.kind === "body" && (
-                      <path
-                        class="hero-stratum__body"
-                        d={stratum[side].body}
-                        fill={side === "art" ? `url(#hero-art-sheen-${stratum.index})` : undefined}
-                      />
-                    )}
-                    <path class="hero-stratum__crest" d={stratum[side].crest} vector-effect="non-scaling-stroke" />
-                  </svg>
-                </div>
-              </div>
-            ))}
-            {side === "art"
-              ? <div class="hero-field__grain"></div>
-              : <div class="hero-field__cursor"></div>}
-          </div>
-        ))}
+    <section class="hero" data-hero data-hero-field="running" aria-labelledby="hero-title">
+      <HeroField />
+      <div class="hero__shade" aria-hidden="true"></div>
 
-        <div class="hero-scroll__shade" aria-hidden="true"></div>
-
-        <article class="hero-scroll__practice hero-scroll__practice--art">
-          <p>ART</p>
-          <h2>Définir un langage visuel. Produire les images, les films et les objets.</h2>
-          <a href="#expertises-art">Voir la pratique ART</a>
-        </article>
-
-        <article class="hero-scroll__practice hero-scroll__practice--it">
-          <p>IT</p>
-          <h2>Comprendre le système. Construire ce qui doit fonctionner.</h2>
-          <a href="#expertises-it">Voir la pratique IT</a>
-        </article>
-
-        <div class="hero-scroll__progress" aria-hidden="true">
-          <span>Défiler</span>
-          <i><b></b></i>
-        </div>
-      </div>
-
-      <div class="hero-scroll__core" data-hero-signature>
+      <div class="hero__core" data-hero-signature>
         <h1 class="split-signature" id="hero-title">
           <span class="hero-title__it">IT</span>
           <span class="hero-title__art">ART</span>
           <strong class="hero-title__studio">STUDIO</strong>
         </h1>
       </div>
+
+      <div class="hero__practices">
+        <article class="hero__practice hero__practice--it">
+          <h2>Comprendre le système. Construire ce qui doit fonctionner.</h2>
+          <a href="#expertises-it">Voir la pratique IT <span aria-hidden="true">↘</span></a>
+        </article>
+        <article class="hero__practice hero__practice--art">
+          <h2>Définir un langage visuel. Produire les images, les films et les objets.</h2>
+          <a href="#expertises-art">Voir la pratique ART <span aria-hidden="true">↘</span></a>
+        </article>
+      </div>
     </section>
 
     <section class="services-section" id="expertises" aria-labelledby="services-title">
-      <h2 class="visually-hidden" id="services-title">Prestations ART et IT</h2>
+      <h2 class="visually-hidden" id="services-title">Prestations IT et ART</h2>
 
       <div class="practice-columns">
-        <div class="practice-services practice-services--art" id="expertises-art">
+        <div class="practice-services practice-services--it" id="expertises-it">
+          <h3 class="practice-services__title">Prestations IT</h3>
           <div class="service-list">
-            {artServices.map((service, index) => (
+            {itServices.map((service, index) => (
               <article
                 class="service-item"
                 data-reveal="split-left"
                 data-reveal-kind="service"
                 style={`--reveal-index: ${index}`}
               >
-                <span>{String(index + 5).padStart(2, "0")}</span>
-                <h3>{service.title}</h3>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <h4>{service.title}</h4>
                 <p>{service.description}</p>
               </article>
             ))}
           </div>
         </div>
 
-        <div class="practice-services practice-services--it" id="expertises-it">
+        <div class="practice-services practice-services--art" id="expertises-art">
+          <h3 class="practice-services__title">Prestations ART</h3>
           <div class="service-list">
-            {itServices.map((service, index) => (
+            {artServices.map((service, index) => (
               <article
                 class="service-item"
                 data-reveal="split-right"
                 data-reveal-kind="service"
                 style={`--reveal-index: ${index}`}
               >
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <h3>{service.title}</h3>
+                <span>{String(index + 5).padStart(2, "0")}</span>
+                <h4>{service.title}</h4>
                 <p>{service.description}</p>
               </article>
             ))}
@@ -134,12 +77,12 @@ const artServices = services.filter((service) => service.practice === "ART");
     </section>
 
     <section class="references-section" id="references" aria-labelledby="references-title">
-      <h2 class="visually-hidden" id="references-title">Références ART et IT</h2>
+      <h2 class="visually-hidden" id="references-title">Références IT et ART</h2>
       <div class="references-practices">
-        <section class="references-practice references-practice--art" aria-labelledby="references-art-title">
-          <h3 id="references-art-title" data-reveal="split-left">ART</h3>
+        <section class="references-practice references-practice--it" aria-labelledby="references-it-title">
+          <h3 id="references-it-title" data-reveal="split-left">IT</h3>
           <ul>
-            {references.art.map((reference, index) => (
+            {references.it.map((reference, index) => (
               <li
                 class:list={["reference-mark", reference.treatment && `reference-mark--${reference.treatment}`]}
                 data-reveal="split-left"
@@ -154,10 +97,10 @@ const artServices = services.filter((service) => service.practice === "ART");
             ))}
           </ul>
         </section>
-        <section class="references-practice references-practice--it" aria-labelledby="references-it-title">
-          <h3 id="references-it-title" data-reveal="split-right">IT</h3>
+        <section class="references-practice references-practice--art" aria-labelledby="references-art-title">
+          <h3 id="references-art-title" data-reveal="split-right">ART</h3>
           <ul>
-            {references.it.map((reference, index) => (
+            {references.art.map((reference, index) => (
               <li
                 class:list={["reference-mark", reference.treatment && `reference-mark--${reference.treatment}`]}
                 data-reveal="split-right"
@@ -197,22 +140,22 @@ const artServices = services.filter((service) => service.practice === "ART");
     </section>
 
     <section class="contact-section" id="contact" aria-label="Contacter IT Art Studio">
-      <article class="contact-practice contact-practice--art" data-reveal="split-left">
-        <h2>Besoin de notre art ?</h2>
-        <a href={`mailto:${company.artEmail}`}>{company.artEmail}</a>
-      </article>
-      <article class="contact-practice contact-practice--it" data-reveal="split-right">
+      <article class="contact-practice contact-practice--it" data-reveal="split-left">
         <h2>Besoin de notre tech ?</h2>
         <a href={`mailto:${company.email}`}>{company.email}</a>
+      </article>
+      <article class="contact-practice contact-practice--art" data-reveal="split-right">
+        <h2>Besoin de notre art ?</h2>
+        <a href={`mailto:${company.artEmail}`}>{company.artEmail}</a>
       </article>
     </section>
   </main>
 
   <script>
-    import { initHeroScroll } from "../scripts/hero-scroll";
+    import { initHeroField } from "../scripts/hero-motion";
     import { initSectionReveals } from "../scripts/section-reveals";
 
-    initHeroScroll();
+    initHeroField();
     initSectionReveals();
   </script>
 </BaseLayout>

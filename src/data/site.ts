@@ -53,7 +53,8 @@ export const references: { art: Reference[]; it: Reference[] } = {
     { name: "GCA Groupe Charles André", logo: "/assets/references/gca.jpg", treatment: "invert" },
     { name: "KeyIA", logo: "/assets/references/keyia.svg", treatment: "wide" },
     { name: "Enedis", logo: "/assets/references/enedis.jpg", treatment: "invert" },
-    { name: "Odigo", logo: "/assets/references/odigo.svg", treatment: "invert" }
+    { name: "Odigo", logo: "/assets/references/odigo.svg", treatment: "invert" },
+    { name: "Orange", logo: "/assets/references/orange.svg" }
   ]
 };
 

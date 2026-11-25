@@ -1,7 +1,23 @@
 # IT Art Studio QA Protocol
 
-This folder defines the interactive QA gate for the 3D brand experience.
-Generated artifacts are written to `qa/artifacts/` and ignored by Git.
+## Static site
+
+Run `npm run qa:static` against a local production build. The runner writes
+screenshots and contrast measurements to `qa/artifacts/static/`.
+
+The browser checks the first frame at desktop, short laptop, tablet and mobile
+sizes down to 320 px. It follows both practice links from the keyboard, checks
+that a single scroll reaches the services and samples the contrast of the
+wordmark, practice copy and links while the two fields animate. The captures
+include two moments of motion, the first scroll and reduced-motion views.
+The runner also checks the section layout, the existing logo treatments and
+decoding, Orange's accessible name and unfiltered colors, the legal page and
+the absence of video requests.
+
+## Archived 3D experience
+
+The remaining sections describe the interactive QA gate from the archived 3D
+experience. Its commands do not apply to the static site.
 
 ## Command
 

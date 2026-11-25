@@ -4,7 +4,7 @@ import { configurationHash } from './release-candidate.mjs';
 // Invoked only after the exact digest passes scan, signature and provenance verification.
 const { IMAGE_REF, GITHUB_SHA, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT,
   GITHUB_REPOSITORY, GITHUB_REF, GITHUB_EVENT_NAME } = process.env;
-if (GITHUB_REPOSITORY !== 'amineamanzou/ItArtStudio' || !(GITHUB_REF === 'refs/heads/dev' || /^refs\/heads\/codex\/factory-promotion\/[a-f0-9]{32}$/.test(GITHUB_REF ?? '')) ||
+if (GITHUB_REPOSITORY !== 'amineamanzou/ItArtStudio' || !(GITHUB_REF === 'refs/heads/dev' || /^refs\/heads\/release\/factory-promotion\/[a-f0-9]{32}$/.test(GITHUB_REF ?? '')) ||
     !['push', 'workflow_dispatch'].includes(GITHUB_EVENT_NAME) ||
     !/^ghcr\.io\/amineamanzou\/it-art-studio@sha256:[a-f0-9]{64}$/.test(IMAGE_REF ?? '') ||
     !/^[a-f0-9]{40}$/.test(GITHUB_SHA ?? '') || !/^[1-9][0-9]*$/.test(GITHUB_RUN_ID ?? '') ||

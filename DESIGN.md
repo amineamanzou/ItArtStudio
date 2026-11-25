@@ -2,95 +2,62 @@
 
 ## Direction
 
-Une vitrine sombre, divisée par un axe vertical continu : ART occupe la moitié
-gauche et IT la moitié droite, du haut jusqu'au bas de la page. Le mot STUDIO
-occupe la couture centrale et matérialise ce qui rassemble les deux disciplines.
+IT Art Studio s'ouvre sur deux matières réunies par la même signature. IT occupe
+la moitié gauche en jaune et ART la moitié droite en violet. Le mot STUDIO en
+ivoire traverse visuellement la couture. L'axe prolonge cette composition sur
+ordinateur et tablette, jusque dans le pied de page.
 
 ## Système visuel
 
-- fond graphite profond, sans gradients décoratifs ; le reflet des strates ART
-  de la hero est une matière, borné à sa moitié ;
-- cyan électrique réservé à IT ;
-- corail cuivré réservé à ART ;
-- ivoire chaud pour STUDIO, les grands titres et la méthode, sur fond sombre ;
-- IBM Plex Sans pour la structure et Instrument Serif pour les titres ;
-- traits fins, grandes respirations, angles francs, aucune carte vitrée ;
-- une image documentaire sombre par pratique, générée sans texte ni logo.
+- Graphite pour le fond et ivoire pour le texte courant et STUDIO.
+- Jaune chaud pour la géométrie, les liens et les repères IT. Violet pour les
+  volumes, les liens et les repères ART.
+- IBM Plex Sans pour la signature, les libellés et les prestations. Instrument
+  Serif reste la voix des grands titres de la méthode, du contact et des pages
+  légales.
+- Traits fins et angles francs. Chaque séparateur horizontal reste dans sa
+  moitié.
 
-L'axe vertical est le seul trait autorisé à traverser la page. Aucun séparateur
-horizontal ne peut le couper. Les séparateurs internes éventuels restent
-strictement contenus dans leur moitié ART ou IT.
+## Premier écran
 
-## Hero
+Les deux champs couvrent chacun la moitié du premier écran, jusqu'à 320 px. Le
+titre IT ART STUDIO occupe le centre et les deux liens de pratique restent
+visibles sous les accroches. Un voile stable ménage une zone de lecture autour
+du titre et au pied de la scène. Le premier défilement révèle les prestations.
+La signature quitte l'écran avec la scène.
 
-Le premier écran présente deux champs 50/50 sur une hauteur d'écran, à toutes
-les largeurs jusqu'à 320 px. ART reste à gauche et IT à droite. Dans le titre
-central, IT apparaît en premier à droite de l'axe, ART vient ensuite à gauche et
-STUDIO reste centré sous les deux, sur la couture. Un voile sombre suit la
-signature et le bas de l'écran pour garantir la lisibilité.
+La composition SVG est produite au build. Les blocs isométriques IT se
+ramifient à trois profondeurs depuis une forme principale. Les facettes et
+leurs tracés réagissent à une lumière jaune diffuse. Les rubans ART se
+recouvrent, avec des liserés fins et un reflet violet qui se déplace sur leur
+surface. À l'arrivée, les matières prennent leur luminosité puis évoluent à
+des rythmes distincts. La scène utilise des animations CSS et se met en pause
+hors écran. Avec `prefers-reduced-motion`, la géométrie, les reflets et la
+signature restent fixes au même emplacement.
 
-Aucune vidéo ni image ne compose le fond. La composition abstraite repose sur un
-seul signal lu de deux façons, généré au build (`src/data/hero-field.ts`) :
+## Suite de la page
 
-- quatre strates pleines et deux échos au trait, identiques dans chaque moitié ;
-- ART trace le signal en courbes continues, strates cuivre et corail éclairées
-  à la crête, avec un grain de matière ;
-- IT échantillonne et quantifie le même signal en marches cyan, sur une grille
-  de colonnes parcourue par un curseur ;
-- un temps commun de 1,2 s : chaque marche IT avance d'un échantillon par temps,
-  ART glisse en continu et respire sur quatre temps. Les deux lectures se
-  rejoignent sur l'axe à chaque temps.
+- Les prestations, les références puis les contacts suivent chacun l'ordre
+  IT / ART. Les colonnes se succèdent dans cet ordre sur mobile.
+- Les prestations viennent du côté de leur pratique. Les logos ajoutent un
+  masque, un changement de netteté et d'échelle à leur entrée. Le logo
+  officiel d'Orange conserve ses couleurs dans les références IT.
+- La méthode alterne gauche, droite, gauche. Les halos de la méthode et du
+  contact reprennent le jaune à gauche et le violet à droite. Le pied de page
+  prolonge les halos du contact et reprend la signature.
 
-À l'arrivée, les deux champs s'ouvrent depuis la couture, puis l'animation
-continue sans interaction. Elle n'utilise que des transformations CSS, fonctionne
-sans JavaScript et se met en pause lorsque la hero quitte l'écran. Sous 760 px,
-chaque moitié porte une seule période et huit colonnes pour rester lisible.
+## Continuité et vérification
 
-Le titre central est l'unique signature de navigation : la scène reste épinglée
-pendant un court défilement, le titre se compacte, rejoint le centre supérieur
-et reste fixé pendant le reste de la page. Aucun header ou contact décoratif ne
-lui fait concurrence.
+La scène et ses destinations sont utilisables sans JavaScript. Le site garde
+un seul `h1` par page, un focus visible, des libellés explicites et des textes
+alternatifs pour les logos. En mouvement réduit, les révélations de section
+laissent le contenu immédiatement visible.
 
-Avec `prefers-reduced-motion`, la composition est figée sur l'instant où les deux
-lectures coïncident à la couture, et la signature est directement compacte.
+Le premier écran utilise du HTML, des SVG et du CSS. Le site sert ses polices
+localement et la page d'accueil ne charge ni vidéo de fond ni traceur. Les
+sections gardent leurs fonds pleine largeur, avec le retrait latéral appliqué
+au contenu.
 
-## Responsive et accessibilité
-
-- navigation secondaire masquée sur petit écran, contact toujours visible ;
-- composition desktop et tablette maintenue en deux moitiés autour du même axe ;
-- composition abstraite en deux moitiés jusqu'à `320px`, avec ART à gauche et IT
-  à droite ;
-- largeur minimale validée à `320px` sans défilement horizontal ;
-- focus clavier visible et liens identifiables sans dépendre de la couleur ;
-- HTML sémantique, un seul `h1`, textes alternatifs descriptifs ;
-- aucune fonctionnalité essentielle liée au mouvement ou au JavaScript.
-
-## Chorégraphie des sections
-
-- les prestations ART entrent depuis la gauche et les prestations IT depuis la
-  droite ;
-- les logos de références apparaissent par masque, netteté et échelle, afin de
-  compléter leur entrée depuis la moitié ART ou IT ;
-- la méthode alterne gauche, droite, gauche sur trois rangées successives ;
-- la section contact présente une invitation et une adresse propres à chaque
-  pratique ;
-- la méthode et le contact utilisent des halos diffus corail et cyan, bornés à
-  leur section et placés derrière le contenu ;
-- `prefers-reduced-motion` neutralise les transitions sans masquer de contenu.
-
-## Règles de continuité
-
-Ne pas ajouter de gradients marketing, métriques sans source, faux témoignages,
-carrousels automatiques, formulaires non fonctionnels ni dépendance client lourde.
-Le premier écran ne charge aucune vidéo d'arrière-plan. Toute évolution de la
-hero conserve une composition fixe et intentionnelle en mouvement réduit.
-L'axe central est unique : aucune section ne crée sa propre variante du trait.
-Les sections de l'accueil restent pleine largeur ; seuls leurs contenus internes
-reçoivent le padding latéral, afin que fonds et halos touchent toujours les bords
-du viewport.
-
-Sur desktop et tablette, les contenus textuels s'ancrent vers l'axe plutôt que
-vers les bords extérieurs : prestations ART à droite de leur moitié, prestations
-IT à gauche, méthode et contact en miroir. Les couleurs et les halos continuent
-de remplir le viewport. Le footer prolonge les halos du contact, reprend la
-signature composée de la hero et ne répète aucune adresse email.
+La QA statique vérifie le contraste de la signature et des liens pendant le
+mouvement, y compris à 1440 × 650. Elle couvre le rendu à 320 px, le premier
+défilement, les deux parcours au clavier et le mouvement réduit.

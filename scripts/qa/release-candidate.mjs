@@ -38,7 +38,7 @@ export function releaseMetadata(env, directory='dist') {
 }
 export function prepareCandidate(env=process.env) {
   const production=env.INPUT_PROFILE==='production';
-  if(production && (!/^[a-f0-9]{32}$/.test(env.INPUT_CANDIDATE_ID??'') || env.GITHUB_REF!==`refs/heads/codex/factory-promotion/${env.INPUT_CANDIDATE_ID}` || env.GITHUB_EVENT_NAME!=='workflow_dispatch')) throw new Error('Production candidates require their exact reserved ref');
+  if(production && (!/^[a-f0-9]{32}$/.test(env.INPUT_CANDIDATE_ID??'') || env.GITHUB_REF!==`refs/heads/release/factory-promotion/${env.INPUT_CANDIDATE_ID}` || env.GITHUB_EVENT_NAME!=='workflow_dispatch')) throw new Error('Production candidates require their exact reserved ref');
   if(!production && env.GITHUB_REF!=='refs/heads/dev') throw new Error('Staging build requires dev');
   const config=production?productionConfiguration({browserObservability:env.INPUT_BROWSER_OBSERVABILITY,productAnalytics:env.INPUT_PRODUCT_ANALYTICS,browserObservabilityUrl:env.PUBLIC_BROWSER_OBSERVABILITY_URL,posthogKey:env.PUBLIC_POSTHOG_KEY}):{...productionConfiguration({productAnalytics:false}),deploymentEnvironment:'staging'};
   const date=publicationDate(production?env.INPUT_PUBLICATION_DATE:parisDate());
